@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-02-12T15:36:44.357Z",
+  "baseUrl": "http://127.0.0.1:4173",
+  "scenarios": [
+    "desktop-dark",
+    "mobile-dark"
+  ],
+  "thresholds": {
+    "inpP75Max": 500,
+    "apiErrorRateMax": 0.12,
+    "duplicateSubmitRateMax": 0.08,
+    "minInpSamples": 5,
+    "minApiRequests": 10
+  },
+  "inpP75": 72,
+  "inpSamples": 71,
+  "lcpSamples": 0,
+  "clsSamples": 0,
+  "longTaskSamples": 0,
+  "apiRequests": 20,
+  "apiSuccess": 20,
+  "apiFailure": 0,
+  "apiIgnoredFailures": 0,
+  "apiErrorRate": 0,
+  "duplicateSubmitRate": 0,
+  "actionAttempts": 0,
+  "actionGuard": {
+    "started": 0,
+    "blocked": 0,
+    "succeeded": 0,
+    "failed": 0
+  },
+  "failureByCode": {},
+  "notes": [
+    "[desktop-dark] Student auth fallback to guest.",
+    "[mobile-dark] Student auth fallback to guest."
+  ]
+}

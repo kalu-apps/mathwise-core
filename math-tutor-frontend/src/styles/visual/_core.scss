@@ -1,0 +1,751 @@
+/* Global product-owned visual layer (2026) */
+
+.hero,
+.courses-preview,
+.cta,
+.courses-page,
+.course-details,
+.lesson-details,
+.booking-page,
+.student-profile,
+.teacher-dashboard,
+.teacher-student-profile,
+.about-teacher-page,
+.tp2 {
+  color: var(--text-primary);
+  background: transparent !important;
+}
+
+.hero,
+.courses-preview,
+.cta,
+.courses-page,
+.course-details,
+.lesson-details,
+.booking-page,
+.student-profile,
+.teacher-dashboard,
+.teacher-student-profile,
+.about-teacher-page,
+.tp2,
+.main-layout {
+  position: relative;
+}
+
+.hero::before,
+.courses-preview::before,
+.cta::before,
+.courses-page::before,
+.course-details::before,
+.lesson-details::before,
+.booking-page::before,
+.student-profile::before,
+.teacher-dashboard::before,
+.teacher-student-profile::before,
+.about-teacher-page::before,
+.tp2::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-aurora);
+  opacity: 0.32;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero > *,
+.courses-preview > *,
+.cta > *,
+.courses-page > *,
+.course-details > *,
+.lesson-details > *,
+.booking-page > *,
+.student-profile > *,
+.teacher-dashboard > *,
+.teacher-student-profile > *,
+.about-teacher-page > *,
+.tp2 > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .hero::before,
+  .courses-preview::before,
+  .cta::before,
+  .courses-page::before,
+  .course-details::before,
+  .lesson-details::before,
+  .booking-page::before,
+  .student-profile::before,
+  .teacher-dashboard::before,
+  .teacher-student-profile::before,
+  .about-teacher-page::before,
+  .tp2::before {
+    opacity: 0.2;
+  }
+}
+
+/* Soft premium corner language and spatial rhythm */
+button,
+input,
+textarea,
+select,
+.MuiButton-root,
+.MuiIconButton-root,
+.MuiInputBase-root,
+.MuiOutlinedInput-root,
+.MuiPaper-root,
+.MuiCard-root,
+.MuiAlert-root,
+.MuiDialog-paper {
+  border-radius: var(--radius-sm);
+}
+
+[class*="__section"],
+[class*="__block"] {
+  scroll-margin-top: 92px;
+}
+
+/* Headline treatment */
+.hero__title,
+.courses-preview__title,
+.cta__title,
+.courses-page__title,
+.course-details__title,
+.lesson-details__title,
+.booking-page__title,
+.student-profile__title,
+.teacher-dashboard__title,
+.teacher-student-profile__header h1,
+.about-teacher-page__header h1,
+.tp2 h1,
+.tp2 h2,
+.tp2 h3 {
+  margin: 0;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-wrap: balance;
+  letter-spacing: -0.03em;
+}
+
+.hero__subtitle,
+.courses-preview__subtitle,
+.cta__subtitle,
+.course-details__description,
+.lesson-details__description,
+.booking-page__subtitle,
+.student-profile__subtitle,
+.teacher-dashboard__subtitle,
+.teacher-student-profile__subtitle,
+.about-teacher-page__header p,
+.tp2 p {
+  color: var(--text-secondary) !important;
+}
+
+/* Surfaces: cards, panels, lists, table-like zones */
+.course-details,
+.course-details__roadmap,
+.course-details__buy-panel,
+.course-details__offer-card,
+.course-details__lessons,
+.lesson-details__loading-card,
+.lesson-details__video-card,
+.booking-page__calendar,
+.booking-page__slot-card,
+.booking-page__booking-card,
+.booking-page__list,
+.booking-page__section,
+.student-profile__card,
+.student-profile__booking-card,
+.student-profile__course-card,
+.student-profile__news,
+.teacher-dashboard__card,
+.teacher-dashboard__panel,
+.teacher-dashboard__booking-card,
+.teacher-dashboard__student-card,
+.teacher-student-profile__panel,
+.teacher-student-profile__course-card,
+.teacher-student-profile__booking-card,
+.news-feed,
+.student-card,
+.tp2-card,
+.lesson-item,
+.courses-preview__card,
+.courses-page__card,
+[class*="__card "],
+[class$="__card"],
+[class*="__tile "],
+[class$="__tile"] {
+  background: var(--surface-glass) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-md) !important;
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+/* Hero-like large blocks */
+.course-details__hero,
+.lesson-details__hero,
+.booking-page__hero,
+.study-cabinet-panel__cover,
+.tp2-profile,
+.news-feed__composer,
+.news-feed__item {
+  border: 1px solid var(--border-strong) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* Inputs and search bars */
+.courses-page__search,
+.course-details__search,
+.teacher-dashboard__search,
+.teacher-dashboard__students-search,
+.student-profile__search,
+.teacher-student-profile__search,
+.booking-page__search,
+.assessment-templates-page__filters,
+.assessment-template-select__search,
+.news-feed input,
+.news-feed textarea {
+  border-radius: var(--radius-sm) !important;
+  border: 1px solid var(--input-border) !important;
+  background: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.courses-page__search:hover,
+.course-details__search:hover,
+.teacher-dashboard__search:hover,
+.teacher-dashboard__students-search:hover,
+.student-profile__search:hover,
+.teacher-student-profile__search:hover,
+.booking-page__search:hover,
+.assessment-templates-page__filters:hover,
+.assessment-template-select__search:hover,
+.news-feed input:hover,
+.news-feed textarea:hover {
+  background: var(--input-bg-hover) !important;
+}
+
+.courses-page__search::placeholder,
+.course-details__search::placeholder,
+.teacher-dashboard__search::placeholder,
+.teacher-dashboard__students-search::placeholder,
+.student-profile__search::placeholder,
+.teacher-student-profile__search::placeholder,
+.booking-page__search::placeholder,
+.assessment-templates-page__filters::placeholder,
+.assessment-template-select__search::placeholder,
+.news-feed input::placeholder,
+.news-feed textarea::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 1;
+}
+
+.courses-page__search .MuiTextField-root,
+.teacher-dashboard__search .MuiTextField-root,
+.teacher-dashboard__students-search .MuiTextField-root,
+.student-profile__search .MuiTextField-root,
+.teacher-student-profile__search .MuiTextField-root,
+.booking-page__search .MuiTextField-root,
+.assessment-templates-page__filters .MuiTextField-root,
+.assessment-template-select__search .MuiTextField-root {
+  background: transparent;
+  border-radius: 0;
+}
+
+.courses-page__search .MuiOutlinedInput-root,
+.teacher-dashboard__search .MuiOutlinedInput-root,
+.teacher-dashboard__students-search .MuiOutlinedInput-root,
+.student-profile__search .MuiOutlinedInput-root,
+.teacher-student-profile__search .MuiOutlinedInput-root,
+.booking-page__search .MuiOutlinedInput-root,
+.assessment-templates-page__filters .MuiOutlinedInput-root,
+.assessment-template-select__search .MuiOutlinedInput-root {
+  border-radius: 14px;
+  box-shadow: none;
+}
+
+.courses-page__search .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline,
+.teacher-dashboard__search .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline,
+.teacher-dashboard__students-search .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline,
+.student-profile__search .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline,
+.teacher-student-profile__search .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline,
+.booking-page__search .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline,
+.assessment-templates-page__filters .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline,
+.assessment-template-select__search .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
+  border-color: var(--card-border);
+}
+
+.courses-page__search .MuiOutlinedInput-root.Mui-focused,
+.teacher-dashboard__search .MuiOutlinedInput-root.Mui-focused,
+.teacher-dashboard__students-search .MuiOutlinedInput-root.Mui-focused,
+.student-profile__search .MuiOutlinedInput-root.Mui-focused,
+.teacher-student-profile__search .MuiOutlinedInput-root.Mui-focused,
+.booking-page__search .MuiOutlinedInput-root.Mui-focused,
+.assessment-templates-page__filters .MuiOutlinedInput-root.Mui-focused,
+.assessment-template-select__search .MuiOutlinedInput-root.Mui-focused {
+  box-shadow: none;
+}
+
+.courses-page__search .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.teacher-dashboard__search .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.teacher-dashboard__students-search .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.student-profile__search .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.teacher-student-profile__search .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.booking-page__search .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.assessment-templates-page__filters .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.assessment-template-select__search
+  .MuiOutlinedInput-root.Mui-focused
+  .MuiOutlinedInput-notchedOutline {
+  border-color: var(--card-border);
+  border-width: 1px;
+}
+
+.courses-page__search .MuiInputBase-input:focus,
+.courses-page__search .MuiInputBase-input:focus-visible,
+.teacher-dashboard__search .MuiInputBase-input:focus,
+.teacher-dashboard__search .MuiInputBase-input:focus-visible,
+.teacher-dashboard__students-search .MuiInputBase-input:focus,
+.teacher-dashboard__students-search .MuiInputBase-input:focus-visible,
+.student-profile__search .MuiInputBase-input:focus,
+.student-profile__search .MuiInputBase-input:focus-visible,
+.teacher-student-profile__search .MuiInputBase-input:focus,
+.teacher-student-profile__search .MuiInputBase-input:focus-visible,
+.booking-page__search .MuiInputBase-input:focus,
+.booking-page__search .MuiInputBase-input:focus-visible,
+.assessment-templates-page__filters .MuiInputBase-input:focus,
+.assessment-templates-page__filters .MuiInputBase-input:focus-visible,
+.assessment-template-select__search .MuiInputBase-input:focus,
+.assessment-template-select__search .MuiInputBase-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Segment/tabs visual identity */
+.courses-page__segment,
+.student-profile .MuiTabs-root,
+.teacher-dashboard .MuiTabs-root,
+.teacher-student-profile .MuiTabs-root,
+.tp2 .MuiTabs-root {
+  background: color-mix(in srgb, var(--surface-soft) 85%, transparent) !important;
+  border: 1px solid var(--border-subtle) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.courses-page__segment-btn,
+.student-profile .MuiTab-root,
+.teacher-dashboard .MuiTab-root,
+.teacher-student-profile .MuiTab-root,
+.tp2 .MuiTab-root {
+  color: var(--text-secondary) !important;
+  border-radius: var(--radius-sm) !important;
+  font-weight: 700 !important;
+}
+
+.courses-page__segment-btn.is-active,
+.student-profile .MuiTab-root.Mui-selected,
+.teacher-dashboard .MuiTab-root.Mui-selected,
+.teacher-student-profile .MuiTab-root.Mui-selected,
+.tp2 .MuiTab-root.Mui-selected {
+  color: var(--text-primary) !important;
+  background: color-mix(in srgb, var(--brand-solid) 20%, transparent) !important;
+  border-color: var(--border-strong) !important;
+  box-shadow: var(--shadow-glow) !important;
+}
+
+/* Buttons: strong ownership */
+.courses-preview__button,
+.courses-preview__cta,
+.cta__button,
+.booking-page .MuiButton-contained,
+.course-details .MuiButton-contained,
+.lesson-details .MuiButton-contained,
+.student-profile .MuiButton-contained,
+.teacher-dashboard .MuiButton-contained,
+.teacher-student-profile .MuiButton-contained,
+.about-teacher-page .MuiButton-contained,
+.tp2 .MuiButton-contained,
+.news-feed .MuiButton-contained {
+  background: var(--btn-primary-bg) !important;
+  color: var(--btn-primary-text) !important;
+  border: 1px solid color-mix(in srgb, var(--brand-soft) 28%, transparent) !important;
+  box-shadow: var(--shadow-sm) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.courses-preview__button:hover,
+.courses-preview__cta:hover,
+.cta__button:hover,
+.booking-page .MuiButton-contained:hover,
+.course-details .MuiButton-contained:hover,
+.lesson-details .MuiButton-contained:hover,
+.student-profile .MuiButton-contained:hover,
+.teacher-dashboard .MuiButton-contained:hover,
+.teacher-student-profile .MuiButton-contained:hover,
+.about-teacher-page .MuiButton-contained:hover,
+.tp2 .MuiButton-contained:hover,
+.news-feed .MuiButton-contained:hover {
+  background: var(--btn-primary-bg-hover) !important;
+  box-shadow: var(--shadow-glow) !important;
+}
+
+.booking-page .MuiButton-outlined,
+.course-details .MuiButton-outlined,
+.lesson-details .MuiButton-outlined,
+.student-profile .MuiButton-outlined,
+.teacher-dashboard .MuiButton-outlined,
+.teacher-student-profile .MuiButton-outlined,
+.tp2 .MuiButton-outlined,
+.news-feed .MuiButton-outlined {
+  background: var(--btn-secondary-bg) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--btn-secondary-text) !important;
+}
+
+/* Tags/chips/badges */
+[class*="__kicker"],
+[class*="__tag"],
+[class*="__badge"],
+[class*="status"],
+.MuiChip-root {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: var(--chip-min-height) !important;
+  max-width: 100% !important;
+  padding: 0 var(--chip-padding-x) !important;
+  gap: var(--chip-gap) !important;
+  background: var(--tag-bg) !important;
+  border: 1px solid var(--tag-border) !important;
+  color: var(--tag-text) !important;
+  box-shadow: var(--tag-shadow) !important;
+  border-radius: 999px !important;
+  font-size: var(--chip-font-size) !important;
+  font-weight: var(--chip-font-weight) !important;
+  letter-spacing: var(--chip-letter-spacing) !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-transform: uppercase !important;
+}
+
+[class*="status--scheduled"],
+[class*="status--active"],
+[class*="status--trial"],
+[class*="status--unpaid"],
+[class*="booking-kind"],
+[class*="status-inprogress"] {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--brand-solid) 30%, transparent),
+    color-mix(in srgb, var(--feedback-info) 24%, transparent)
+  ) !important;
+  color: var(--tag-text) !important;
+  border-color: color-mix(in srgb, var(--brand-soft) 52%, var(--border-strong)) !important;
+}
+
+[class*="status--completed"],
+[class*="status--paid"],
+[class*="status-completed"] {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--feedback-success) 30%, transparent),
+    color-mix(in srgb, var(--brand-mint) 22%, transparent)
+  ) !important;
+  color: var(--tag-text) !important;
+  border-color: color-mix(in srgb, var(--feedback-success) 40%, var(--border-strong)) !important;
+}
+
+[class*="status--danger"],
+[class*="status--warning"],
+[class*="status--error"] {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--feedback-danger) 32%, transparent),
+    color-mix(in srgb, var(--feedback-warning) 22%, transparent)
+  ) !important;
+  color: var(--tag-text) !important;
+  border-color: color-mix(in srgb, var(--feedback-danger) 40%, var(--border-strong)) !important;
+}
+
+/* High-contrast content where issues were observed */
+.course-details__card-price,
+.course-details__offer-list li,
+.course-details__time-range,
+.course-details__time-price,
+.booking-calendar__time-range,
+.booking-calendar__time-price,
+.student-profile__course-price,
+.teacher-dashboard__booking-meta,
+[class*="price"],
+[class*="duration"] {
+  color: var(--text-primary) !important;
+}
+
+.course-details__offer-list,
+.booking-calendar__summary,
+.student-profile__booking-summary {
+  background: var(--surface-tint-strong) !important;
+  border-color: var(--card-border) !important;
+}
+
+/* Alerts spacing and readability */
+.MuiAlert-root,
+.alert,
+[class*="alert"] {
+  margin-top: 14px !important;
+  margin-bottom: 14px !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* Skeleton and loading consistency */
+[class*="loading"],
+[class*="skeleton"],
+.MuiSkeleton-root {
+  border-radius: var(--radius-sm) !important;
+}
+
+[class*="__loading"],
+[class*="loading"] {
+  color: var(--text-secondary) !important;
+}
+
+[class*="__empty"],
+[class*="empty"],
+[class*="not-found"] {
+  border-radius: var(--radius-md) !important;
+  border: 1px dashed color-mix(in srgb, var(--border-subtle) 94%, var(--brand-soft)) !important;
+  background: color-mix(in srgb, var(--surface-soft) 82%, transparent) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* Pagination visual parity */
+.list-pagination,
+.MuiPagination-root {
+  border-radius: var(--radius-sm) !important;
+}
+
+/* Calendar emphasis */
+.booking-page [class*="calendar"],
+.student-profile [class*="calendar"] {
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--brand-solid) 20%, transparent),
+    color-mix(in srgb, var(--surface-soft) 88%, transparent)
+  ) !important;
+  border: 1px solid var(--border-subtle) !important;
+}
+
+.booking-page [class*="day"][class*="available"],
+.student-profile [class*="day"][class*="available"] {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--brand-solid) 32%, transparent),
+    color-mix(in srgb, var(--brand-mint) 28%, transparent)
+  ) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-soft) 58%, transparent);
+  color: var(--text-primary) !important;
+}
+
+/* Typography rhythm */
+[class*="__title"],
+[class*="__heading"],
+[class*="__name"] {
+  color: var(--text-primary) !important;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+[class*="__meta"],
+[class*="__description"],
+[class*="__subtitle"],
+[class*="__hint"],
+[class*="__empty"],
+[class*="__muted"] {
+  color: var(--text-secondary) !important;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Dialog ergonomics: one global contract for desktop/mobile */
+.MuiDialog-root .MuiDialog-container {
+  padding: 10px !important;
+  align-items: center;
+}
+
+.MuiDialog-root .MuiDialog-paper {
+  width: min(94vw, var(--dialog-max-width)) !important;
+  max-width: min(94vw, var(--dialog-max-width)) !important;
+  margin: 0 !important;
+  overflow: hidden;
+  overflow-x: clip;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 20px);
+  box-sizing: border-box;
+}
+
+.MuiDialog-root .MuiDialogTitle-root,
+.MuiDialog-root .MuiDialogContent-root,
+.MuiDialog-root .MuiDialogActions-root {
+  min-width: 0;
+}
+
+.home-dev-reset {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 140;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-glass);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(var(--blur-sm));
+  -webkit-backdrop-filter: blur(var(--blur-sm));
+
+  .MuiIconButton-root {
+    color: var(--text-primary);
+    width: 46px;
+    height: 46px;
+  }
+}
+
+.MuiDialog-root .MuiDialogContent-root > * {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.MuiDialog-root.ui-dialog--wide .MuiDialog-paper {
+  width: min(96vw, var(--dialog-wide-max-width)) !important;
+  max-width: min(96vw, var(--dialog-wide-max-width)) !important;
+}
+
+.MuiDialog-root.ui-dialog--compact .MuiDialog-paper {
+  width: min(92vw, var(--dialog-compact-width)) !important;
+  max-width: min(92vw, var(--dialog-compact-width)) !important;
+}
+
+.MuiDialog-root .MuiDialogContent-root {
+  overflow: auto;
+  padding: 12px 18px 16px !important;
+}
+
+.MuiDialog-root .MuiDialogActions-root {
+  gap: 8px !important;
+  padding: 10px 14px 14px !important;
+  border-top: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-popover) 92%, transparent);
+  backdrop-filter: blur(var(--blur-sm));
+}
+
+@media (max-width: 900px) {
+  .MuiDialog-root .MuiDialog-container {
+    padding: 8px !important;
+  }
+
+  .MuiDialog-root .MuiDialog-paper {
+    width: min(96vw, var(--dialog-max-width)) !important;
+    max-width: min(96vw, var(--dialog-max-width)) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .MuiDialog-root .MuiDialog-container {
+    padding: var(--dialog-mobile-gutter) !important;
+  }
+
+  .MuiDialog-root .MuiDialog-paper {
+    width: var(--dialog-mobile-width) !important;
+    max-width: var(--dialog-mobile-width) !important;
+    max-height: var(--dialog-mobile-max-height) !important;
+    margin: 0 !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  .MuiDialog-root .MuiDialogTitle-root {
+    padding: 14px 14px 8px !important;
+  }
+
+  .MuiDialog-root .MuiDialogContent-root {
+    padding: 10px 12px !important;
+  }
+
+  .MuiDialog-root .MuiDialogActions-root {
+    position: sticky;
+    bottom: 0;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+    align-items: stretch !important;
+    justify-content: flex-end !important;
+  }
+
+  .MuiDialog-root .MuiDialogActions-root .MuiButton-root {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+    padding-inline: 12px !important;
+    flex: 1 1 140px;
+  }
+
+  .MuiDialog-root .MuiDialogActions-root .MuiButton-root[aria-label] {
+    width: var(--dialog-mobile-action-size) !important;
+    min-width: var(--dialog-mobile-action-size) !important;
+    max-width: var(--dialog-mobile-action-size) !important;
+    padding: 8px !important;
+    flex: 0 0 var(--dialog-mobile-action-size);
+    border-radius: var(--radius-sm) !important;
+  }
+
+  .MuiDialog-root .MuiDialogContent-root .MuiAlert-root,
+  .MuiDialog-root .MuiDialogActions-root .MuiAlert-root {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-inline: 0 !important;
+  }
+
+  .MuiDialog-root .MuiDialogContent-root .MuiAlert-message,
+  .MuiDialog-root .MuiDialogActions-root .MuiAlert-message {
+    min-width: 0 !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .course-editor-dialog .MuiDialogActions-root .MuiButton-root,
+  .lesson-editor-dialog .MuiDialogActions-root .MuiButton-root,
+  .ui-confirm-dialog .MuiDialogActions-root .MuiButton-root {
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: 100% !important;
+    padding-inline: 12px !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .home-dev-reset {
+    right: 12px;
+    bottom: 12px;
+
+    .MuiIconButton-root {
+      width: 42px;
+      height: 42px;
+    }
+  }
+}
+
+/* ========================================================================== */
+/* PHASE 2-3: Migrated page-level styles into unified visual layer */
+/* ========================================================================== */

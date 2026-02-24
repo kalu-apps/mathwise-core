@@ -1,0 +1,144 @@
+.connectivity-banner-wrap {
+  position: sticky;
+  top: 72px;
+  z-index: 99;
+  padding: 10px 22px 0;
+  pointer-events: none;
+}
+
+.connectivity-banner-container {
+  max-width: 1320px;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+.connectivity-banner.MuiAlert-root {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(var(--blur-xs));
+  background: var(--surface-glass);
+  color: var(--text-primary);
+  align-items: flex-start;
+}
+
+.connectivity-banner--offline.MuiAlert-root {
+  border-color: color-mix(in srgb, var(--feedback-danger) 52%, var(--border-strong));
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--danger-bg) 55%, var(--surface-glass)),
+    color-mix(in srgb, var(--surface-glass) 85%, transparent)
+  );
+}
+
+.connectivity-banner--degraded.MuiAlert-root {
+  border-color: color-mix(in srgb, var(--feedback-warning) 52%, var(--border-strong));
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--warning-bg) 55%, var(--surface-glass)),
+    color-mix(in srgb, var(--surface-glass) 85%, transparent)
+  );
+}
+
+.connectivity-banner--online.MuiAlert-root {
+  border-color: color-mix(in srgb, var(--feedback-info) 48%, var(--border-strong));
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--info-bg) 52%, var(--surface-glass)),
+    color-mix(in srgb, var(--surface-glass) 85%, transparent)
+  );
+}
+
+.connectivity-banner__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.connectivity-banner__content strong {
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.connectivity-banner__content span {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.connectivity-banner__content small {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.connectivity-banner .MuiAlert-action {
+  margin-top: 0;
+  margin-left: 8px;
+  padding-top: 0;
+  align-self: center;
+}
+
+.connectivity-banner__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.connectivity-banner .MuiButton-root {
+  min-height: 34px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-elevated) 65%, transparent);
+  color: var(--text-primary);
+  text-transform: none;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+}
+
+.connectivity-banner .MuiButton-root:hover {
+  background: color-mix(in srgb, var(--surface-elevated) 82%, transparent);
+  border-color: var(--border-strong);
+}
+
+@media (max-width: 900px) {
+  .connectivity-banner-wrap {
+    top: 58px;
+    padding: 8px 10px 0;
+  }
+
+  .connectivity-banner.MuiAlert-root {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .connectivity-banner .MuiAlert-icon {
+    margin-right: 8px;
+    padding: 2px 0;
+  }
+
+  .connectivity-banner .MuiAlert-message {
+    min-width: 0;
+  }
+
+  .connectivity-banner__content strong {
+    font-size: 12px;
+  }
+
+  .connectivity-banner__content span {
+    font-size: 11px;
+  }
+
+  .connectivity-banner .MuiButton-root {
+    min-width: auto;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .connectivity-banner__actions {
+    gap: 6px;
+  }
+}

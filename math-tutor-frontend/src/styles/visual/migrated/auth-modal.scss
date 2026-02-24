@@ -1,0 +1,288 @@
+.auth-modal {
+  .MuiPaper-root {
+    border-radius: 22px;
+    padding-top: 8px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(14px);
+  }
+
+  &__title {
+    font-size: 22px;
+    font-weight: 700;
+    text-align: center;
+    padding: 24px 24px 8px;
+    letter-spacing: -0.02em;
+    position: relative;
+  }
+
+  &__close {
+    position: absolute !important;
+    top: 14px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px !important;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+    background: color-mix(in srgb, var(--surface-soft) 78%, transparent);
+  }
+
+  &__content {
+    padding: 20px 32px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+
+    > * {
+      min-width: 0;
+    }
+  }
+
+  &__description {
+    line-height: 1.5;
+  }
+
+  &__warning-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    p {
+      margin: 0;
+      line-height: 1.5;
+    }
+  }
+
+  &__actions {
+    margin-top: 8px;
+    padding-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+
+    > * {
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+  }
+
+  &__mode-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+
+    .auth-modal__mode-btn {
+      min-width: 0;
+      border-radius: 12px;
+      text-transform: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  &__secondary-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  &__reset-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
+    background: color-mix(in srgb, var(--surface-soft) 54%, transparent);
+    padding: 12px;
+  }
+
+  &__primary {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  /* TextField */
+  .MuiTextField-root {
+    background: var(--input-bg);
+    border-radius: 14px;
+
+    .MuiOutlinedInput-root {
+      border-radius: 14px;
+      background: var(--input-bg);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+      &.Mui-focused {
+        box-shadow: none !important;
+      }
+
+      .MuiOutlinedInput-notchedOutline {
+        border-color: var(--input-border);
+      }
+    }
+  }
+
+  .MuiInputBase-input:focus,
+  .MuiInputBase-input:focus-visible,
+  .MuiOutlinedInput-input:focus,
+  .MuiOutlinedInput-input:focus-visible,
+  input:focus,
+  input:focus-visible,
+  textarea:focus,
+  textarea:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  /* label — чтобы НЕ обрезался */
+  .MuiInputLabel-root {
+    background: var(--input-bg);
+    padding: 0 6px;
+    font-size: 14px;
+  }
+
+  /* main button */
+  .MuiButton-contained {
+    height: 48px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 14px;
+    background: var(--btn-primary-bg);
+    text-transform: none;
+    box-shadow: 0 12px 24px rgba(79, 70, 229, 0.25);
+
+    &:hover {
+      background: var(--btn-primary-bg-hover);
+      box-shadow: var(--shadow-md);
+    }
+  }
+
+  /* text button */
+  .MuiButton-text {
+    text-transform: none;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  &__recover-hint,
+  &__recover-state {
+    margin: 0;
+  }
+
+  &__recover-description {
+    line-height: 1.45;
+  }
+
+  &__reset-submit,
+  &__resend {
+    min-height: 44px;
+  }
+}
+
+/* 📱 mobile */
+@media (max-width: 600px) {
+  .auth-modal {
+    .MuiPaper-root {
+      margin: 0 !important;
+      width: 100% !important;
+      max-width: var(--dialog-mobile-width) !important;
+      border-radius: 18px;
+      box-sizing: border-box;
+    }
+
+    &__content {
+      padding: 12px 14px 0;
+      gap: 12px;
+    }
+
+    &__mode-switch {
+      .auth-modal__mode-btn {
+        font-size: 12px;
+        padding-inline: 8px;
+      }
+    }
+
+    &__actions {
+      padding-bottom: 20px;
+      align-items: stretch;
+      gap: 10px;
+
+      .MuiButton-root {
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .auth-modal__primary {
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      .auth-modal__submit,
+      .auth-modal__recover {
+        min-width: 46px;
+        width: 46px;
+        max-width: 46px;
+        padding: 8px;
+        flex: 0 0 46px;
+      }
+
+      .auth-modal__resend,
+      .auth-modal__reset-submit {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        justify-content: center;
+        padding-inline: 10px;
+        white-space: normal;
+        line-height: 1.25;
+      }
+
+      .auth-modal__recover-hint,
+      .auth-modal__recover-state,
+      .auth-modal__recover-description {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+
+      .auth-modal__recover-description {
+        font-size: 12px;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .auth-modal__secondary-actions {
+        justify-content: flex-start;
+      }
+
+      .auth-modal__reset-toggle {
+        width: auto;
+        max-width: 100%;
+        min-width: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+
+      .auth-modal__warning-lines p {
+        font-size: 13px;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+    }
+
+    &__reset-panel {
+      padding: 10px;
+      gap: 9px;
+    }
+  }
+}

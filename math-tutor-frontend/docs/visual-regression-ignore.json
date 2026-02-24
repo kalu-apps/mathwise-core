@@ -1,0 +1,5 @@
+{
+  "ignoreChanged": [
+    "lesson-details__*"
+  ]
+}

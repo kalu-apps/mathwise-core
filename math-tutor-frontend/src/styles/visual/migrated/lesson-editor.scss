@@ -1,0 +1,315 @@
+.lesson-editor {
+  padding-top: 8px;
+
+  button {
+    justify-content: flex-start;
+  }
+}
+
+.materials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+
+  .MuiChip-root {
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.course-editor-dialog,
+.lesson-editor-dialog {
+  .MuiDialog-paper {
+    box-sizing: border-box;
+    border-radius: 18px;
+    border: 1px solid var(--card-border);
+    box-shadow: var(--shadow-lg);
+    background: var(--surface-glass);
+    max-height: calc(100dvh - 24px);
+    overflow: hidden;
+  }
+
+  .MuiDialogTitle-root {
+    padding: 18px 20px 10px;
+    font-weight: 700;
+  }
+
+  .MuiDialogContent-root {
+    padding: 12px 20px 16px;
+    overflow-y: auto;
+  }
+
+  .MuiInputBase-input,
+  .MuiInputBase-inputMultiline {
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .MuiTextField-root .MuiOutlinedInput-root {
+    border-radius: 12px;
+    box-shadow: none;
+  }
+
+  .MuiTextField-root .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
+    border-color: var(--card-border);
+  }
+
+  .MuiTextField-root .MuiOutlinedInput-root.Mui-focused {
+    box-shadow: none;
+  }
+
+  .MuiTextField-root
+    .MuiOutlinedInput-root.Mui-focused
+    .MuiOutlinedInput-notchedOutline {
+    border-color: var(--card-border);
+    border-width: 1px;
+  }
+
+  .MuiTextField-root .MuiOutlinedInput-root .MuiOutlinedInput-input {
+    padding: 10px 12px;
+  }
+
+  .MuiTextField-root .MuiOutlinedInput-root.MuiInputBase-multiline {
+    padding: 10px 12px;
+    align-items: flex-start;
+  }
+
+  .MuiTextField-root
+    .MuiOutlinedInput-root.MuiInputBase-multiline
+    .MuiInputBase-inputMultiline {
+    padding: 0 !important;
+  }
+
+  .MuiDialogActions-root {
+    padding: 10px 16px 14px;
+    border-top: 1px solid var(--border-subtle);
+    background: color-mix(in srgb, var(--surface-popover) 90%, transparent);
+    backdrop-filter: blur(8px);
+    gap: 8px;
+  }
+
+  &__mobile-add {
+    background: color-mix(in srgb, var(--brand-solid) 12%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--brand-solid) 32%, transparent);
+    color: var(--text-primary) !important;
+  }
+
+  &__blocks {
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    background: var(--surface-soft);
+    padding: 12px;
+    min-width: 0;
+  }
+
+  &__block-card {
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    background: var(--surface-translucent);
+    padding: 10px;
+    align-items: center;
+    min-width: 0;
+  }
+
+  &__queue-group {
+    display: grid;
+    gap: 8px;
+  }
+
+  &__queue-group-head {
+    display: grid;
+    gap: 3px;
+    padding: 8px 10px;
+    border: 1px solid color-mix(in srgb, var(--brand-soft) 42%, var(--border-subtle));
+    border-radius: 12px;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--brand-solid) 14%, transparent),
+      color-mix(in srgb, var(--feedback-info) 10%, transparent)
+    );
+
+    .MuiTypography-subtitle2 {
+      font-weight: 700;
+      color: var(--accent-text);
+      line-height: 1.25;
+      letter-spacing: 0.01em;
+    }
+
+    .MuiTypography-caption {
+      color: color-mix(in srgb, var(--accent-soft) 78%, var(--text-secondary));
+      line-height: 1.35;
+    }
+  }
+
+  &__queue-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--surface-translucent);
+    border: 1px solid var(--border-subtle);
+    min-width: 0;
+
+    &:hover {
+      box-shadow: var(--shadow-sm);
+    }
+  }
+
+  &__queue-item--test {
+    background: linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--brand-solid) 16%, transparent),
+      color-mix(in srgb, var(--surface-translucent) 85%, transparent)
+    );
+    border-color: var(--border-strong);
+  }
+
+  &__queue-item.is-touch-target {
+    border-color: color-mix(in srgb, var(--brand-solid) 70%, var(--border-strong));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-solid) 24%, transparent);
+  }
+
+  &__queue-item-main {
+    min-width: 0;
+    flex: 1;
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    justify-items: start;
+
+    .MuiTypography-root {
+      overflow-wrap: anywhere;
+      min-width: 0;
+      line-height: 1.35;
+      text-align: left;
+    }
+  }
+
+  &__queue-item-title {
+    width: 100%;
+  }
+
+  &__queue-item-meta {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    .MuiChip-root {
+      max-width: 100%;
+    }
+  }
+
+  &__queue-item-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 6px;
+    min-width: fit-content;
+    flex: 0 0 auto;
+    margin-left: auto;
+    white-space: nowrap;
+
+    .MuiIconButton-root {
+      flex-shrink: 0;
+    }
+
+    .MuiFormControl-root {
+      min-width: 160px;
+    }
+  }
+
+  &__queue-item-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+}
+
+@media (max-width: 600px) {
+  .course-editor-dialog,
+  .lesson-editor-dialog {
+    .MuiDialogTitle-root {
+      padding: 14px 16px 8px;
+      font-size: 18px;
+    }
+
+    .MuiDialogContent-root {
+      padding: 10px 16px 12px;
+    }
+
+    .MuiDialogActions-root {
+      padding: 8px 12px 12px;
+      justify-content: space-between;
+    }
+  }
+
+  .course-editor-dialog .MuiDialog-paper {
+    width: var(--dialog-mobile-width) !important;
+    max-width: var(--dialog-mobile-width) !important;
+    margin: 0 !important;
+    border-radius: 16px;
+  }
+
+  .lesson-editor-dialog .MuiDialog-paper {
+    width: var(--dialog-mobile-width) !important;
+    max-width: var(--dialog-mobile-width) !important;
+    margin: 0 !important;
+    border-radius: 16px;
+  }
+
+  .course-editor-dialog__action-text,
+  .lesson-editor-dialog__action-text {
+    display: none;
+  }
+
+  .course-editor-dialog .MuiDialogActions-root .MuiButton-root,
+  .lesson-editor-dialog .MuiDialogActions-root .MuiButton-root {
+    min-width: 0;
+    width: auto;
+    max-width: 100%;
+    padding: 8px 12px;
+    border-radius: 14px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .course-editor-dialog__block-card {
+    align-items: stretch;
+  }
+
+  .course-editor-dialog__queue-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .course-editor-dialog__queue-item-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .course-editor-dialog__queue-item-icons {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 900px) {
+  .course-editor-dialog .MuiDialog-container {
+    padding: 4px !important;
+  }
+
+  .course-editor-dialog .MuiDialog-paper {
+    width: min(96vw, var(--dialog-wide-max-width)) !important;
+    max-width: min(96vw, var(--dialog-wide-max-width)) !important;
+  }
+}

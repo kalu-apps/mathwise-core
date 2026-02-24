@@ -1,0 +1,429 @@
+export type Solid3dPoint = {
+  x: number;
+  y: number;
+};
+
+export type Solid3dSegment = {
+  from: Solid3dPoint;
+  to: Solid3dPoint;
+  hidden?: boolean;
+};
+
+export type Solid3dFace = {
+  points: Solid3dPoint[];
+};
+
+export type Solid3dTemplate = {
+  id: string;
+  title: string;
+  segments: Solid3dSegment[];
+  faces?: Solid3dFace[];
+};
+
+export type Solid3dPreset = {
+  id: string;
+  title: string;
+};
+
+const PRESET_ALIAS: Record<string, string> = {
+  octahedron: "tetrahedron",
+  dodecahedron: "tetrahedron",
+  icosahedron: "tetrahedron",
+  truncated_pyramid: "frustum_square",
+  frustum_prism: "rectangular_prism",
+  parallelepiped_oblique: "rectangular_prism",
+  wedge: "triangular_prism",
+  section_plane: "cube",
+  cross_section_cube: "cube",
+  cross_section_cone: "cone",
+  cross_section_cylinder: "cylinder",
+  net_cube: "cube",
+  net_prism: "triangular_prism",
+  net_pyramid: "pyramid_square",
+  net_cylinder: "cylinder",
+  net_cone: "cone",
+};
+
+const p = (x: number, y: number): Solid3dPoint => ({ x, y });
+
+const TEMPLATES: Record<string, Solid3dTemplate> = {
+  cube: {
+    id: "cube",
+    title: "Куб",
+    faces: [{ points: [p(20, 34), p(55, 34), p(55, 74), p(20, 74)] }],
+    segments: [
+      { from: p(20, 34), to: p(55, 34) },
+      { from: p(55, 34), to: p(55, 74) },
+      { from: p(55, 74), to: p(20, 74) },
+      { from: p(20, 74), to: p(20, 34) },
+      { from: p(20, 34), to: p(34, 22) },
+      { from: p(55, 34), to: p(69, 22) },
+      { from: p(55, 74), to: p(69, 62) },
+      { from: p(34, 22), to: p(69, 22) },
+      { from: p(69, 22), to: p(69, 62) },
+      { from: p(34, 62), to: p(69, 62), hidden: true },
+      { from: p(34, 22), to: p(34, 62), hidden: true },
+      { from: p(20, 74), to: p(34, 62), hidden: true },
+    ],
+  },
+  rectangular_prism: {
+    id: "rectangular_prism",
+    title: "Прямоугольный параллелепипед",
+    faces: [{ points: [p(14, 38), p(58, 38), p(58, 74), p(14, 74)] }],
+    segments: [
+      { from: p(14, 38), to: p(58, 38) },
+      { from: p(58, 38), to: p(58, 74) },
+      { from: p(58, 74), to: p(14, 74) },
+      { from: p(14, 74), to: p(14, 38) },
+      { from: p(14, 38), to: p(30, 26) },
+      { from: p(58, 38), to: p(74, 26) },
+      { from: p(58, 74), to: p(74, 62) },
+      { from: p(30, 26), to: p(74, 26) },
+      { from: p(74, 26), to: p(74, 62) },
+      { from: p(30, 62), to: p(74, 62), hidden: true },
+      { from: p(30, 26), to: p(30, 62), hidden: true },
+      { from: p(14, 74), to: p(30, 62), hidden: true },
+    ],
+  },
+  triangular_prism: {
+    id: "triangular_prism",
+    title: "Треугольная призма",
+    faces: [{ points: [p(18, 72), p(50, 72), p(34, 36)] }],
+    segments: [
+      { from: p(18, 72), to: p(50, 72) },
+      { from: p(50, 72), to: p(34, 36) },
+      { from: p(34, 36), to: p(18, 72) },
+      { from: p(18, 72), to: p(38, 60) },
+      { from: p(50, 72), to: p(70, 60) },
+      { from: p(34, 36), to: p(54, 24) },
+      { from: p(38, 60), to: p(70, 60) },
+      { from: p(70, 60), to: p(54, 24) },
+      { from: p(54, 24), to: p(38, 60), hidden: true },
+    ],
+  },
+  hexagonal_prism: {
+    id: "hexagonal_prism",
+    title: "Шестиугольная призма",
+    faces: [{ points: [p(24, 30), p(52, 30), p(66, 42), p(66, 68), p(38, 68), p(24, 56)] }],
+    segments: [
+      { from: p(24, 30), to: p(52, 30) },
+      { from: p(52, 30), to: p(66, 42) },
+      { from: p(66, 42), to: p(66, 68) },
+      { from: p(66, 68), to: p(38, 68) },
+      { from: p(38, 68), to: p(24, 56) },
+      { from: p(24, 56), to: p(24, 30) },
+      { from: p(24, 30), to: p(12, 20) },
+      { from: p(52, 30), to: p(40, 20) },
+      { from: p(66, 42), to: p(54, 32) },
+      { from: p(66, 68), to: p(54, 58) },
+      { from: p(38, 68), to: p(26, 58), hidden: true },
+      { from: p(24, 56), to: p(12, 46), hidden: true },
+      { from: p(12, 20), to: p(40, 20) },
+      { from: p(40, 20), to: p(54, 32) },
+      { from: p(54, 32), to: p(54, 58) },
+      { from: p(54, 58), to: p(26, 58), hidden: true },
+      { from: p(26, 58), to: p(12, 46), hidden: true },
+      { from: p(12, 46), to: p(12, 20), hidden: true },
+    ],
+  },
+  pentagonal_prism: {
+    id: "pentagonal_prism",
+    title: "Пятиугольная призма",
+    faces: [{ points: [p(30, 30), p(52, 30), p(62, 46), p(44, 66), p(22, 46)] }],
+    segments: [
+      { from: p(30, 30), to: p(52, 30) },
+      { from: p(52, 30), to: p(62, 46) },
+      { from: p(62, 46), to: p(44, 66) },
+      { from: p(44, 66), to: p(22, 46) },
+      { from: p(22, 46), to: p(30, 30) },
+      { from: p(30, 30), to: p(18, 20) },
+      { from: p(52, 30), to: p(40, 20) },
+      { from: p(62, 46), to: p(50, 36) },
+      { from: p(44, 66), to: p(32, 56) },
+      { from: p(22, 46), to: p(10, 36), hidden: true },
+      { from: p(18, 20), to: p(40, 20) },
+      { from: p(40, 20), to: p(50, 36) },
+      { from: p(50, 36), to: p(32, 56), hidden: true },
+      { from: p(32, 56), to: p(10, 36), hidden: true },
+      { from: p(10, 36), to: p(18, 20), hidden: true },
+    ],
+  },
+  oblique_parallelepiped: {
+    id: "oblique_parallelepiped",
+    title: "Наклонный параллелепипед",
+    faces: [{ points: [p(22, 38), p(58, 32), p(64, 72), p(28, 78)] }],
+    segments: [
+      { from: p(22, 38), to: p(58, 32) },
+      { from: p(58, 32), to: p(64, 72) },
+      { from: p(64, 72), to: p(28, 78) },
+      { from: p(28, 78), to: p(22, 38) },
+      { from: p(22, 38), to: p(34, 24) },
+      { from: p(58, 32), to: p(70, 18) },
+      { from: p(64, 72), to: p(76, 58) },
+      { from: p(28, 78), to: p(40, 64), hidden: true },
+      { from: p(34, 24), to: p(70, 18) },
+      { from: p(70, 18), to: p(76, 58) },
+      { from: p(76, 58), to: p(40, 64), hidden: true },
+      { from: p(40, 64), to: p(34, 24), hidden: true },
+    ],
+  },
+  prism_trapezoid: {
+    id: "prism_trapezoid",
+    title: "Трапецеидальная призма",
+    faces: [{ points: [p(20, 72), p(60, 72), p(48, 42), p(30, 42)] }],
+    segments: [
+      { from: p(20, 72), to: p(60, 72) },
+      { from: p(60, 72), to: p(48, 42) },
+      { from: p(48, 42), to: p(30, 42) },
+      { from: p(30, 42), to: p(20, 72) },
+      { from: p(20, 72), to: p(34, 60) },
+      { from: p(60, 72), to: p(74, 60) },
+      { from: p(48, 42), to: p(62, 30) },
+      { from: p(30, 42), to: p(44, 30), hidden: true },
+      { from: p(34, 60), to: p(74, 60) },
+      { from: p(74, 60), to: p(62, 30) },
+      { from: p(62, 30), to: p(44, 30), hidden: true },
+      { from: p(44, 30), to: p(34, 60), hidden: true },
+    ],
+  },
+  pyramid_square: {
+    id: "pyramid_square",
+    title: "Четырехугольная пирамида",
+    faces: [{ points: [p(24, 70), p(62, 70), p(76, 58), p(38, 58)] }],
+    segments: [
+      { from: p(24, 70), to: p(62, 70) },
+      { from: p(62, 70), to: p(76, 58) },
+      { from: p(76, 58), to: p(38, 58), hidden: true },
+      { from: p(38, 58), to: p(24, 70) },
+      { from: p(52, 18), to: p(24, 70) },
+      { from: p(52, 18), to: p(62, 70) },
+      { from: p(52, 18), to: p(76, 58) },
+      { from: p(52, 18), to: p(38, 58), hidden: true },
+      { from: p(24, 70), to: p(76, 58), hidden: true },
+    ],
+  },
+  tetrahedron: {
+    id: "tetrahedron",
+    title: "Тетраэдр",
+    faces: [{ points: [p(18, 72), p(62, 72), p(45, 58)] }],
+    segments: [
+      { from: p(18, 72), to: p(62, 72) },
+      { from: p(62, 72), to: p(45, 58) },
+      { from: p(45, 58), to: p(18, 72), hidden: true },
+      { from: p(30, 22), to: p(18, 72) },
+      { from: p(30, 22), to: p(62, 72) },
+      { from: p(30, 22), to: p(45, 58), hidden: true },
+    ],
+  },
+  pyramid_triangular: {
+    id: "pyramid_triangular",
+    title: "Треугольная пирамида",
+    faces: [{ points: [p(20, 72), p(66, 70), p(48, 56)] }],
+    segments: [
+      { from: p(20, 72), to: p(66, 70) },
+      { from: p(66, 70), to: p(48, 56) },
+      { from: p(48, 56), to: p(20, 72), hidden: true },
+      { from: p(26, 22), to: p(20, 72) },
+      { from: p(26, 22), to: p(66, 70) },
+      { from: p(26, 22), to: p(48, 56), hidden: true },
+    ],
+  },
+  pyramid_pentagonal: {
+    id: "pyramid_pentagonal",
+    title: "Пятиугольная пирамида",
+    faces: [{ points: [p(24, 70), p(48, 72), p(70, 60), p(58, 46), p(30, 50)] }],
+    segments: [
+      { from: p(24, 70), to: p(48, 72) },
+      { from: p(48, 72), to: p(70, 60) },
+      { from: p(70, 60), to: p(58, 46) },
+      { from: p(58, 46), to: p(30, 50), hidden: true },
+      { from: p(30, 50), to: p(24, 70) },
+      { from: p(44, 14), to: p(24, 70) },
+      { from: p(44, 14), to: p(48, 72) },
+      { from: p(44, 14), to: p(70, 60) },
+      { from: p(44, 14), to: p(58, 46), hidden: true },
+      { from: p(44, 14), to: p(30, 50), hidden: true },
+      { from: p(24, 70), to: p(70, 60), hidden: true },
+    ],
+  },
+  pyramid_hexagonal: {
+    id: "pyramid_hexagonal",
+    title: "Шестиугольная пирамида",
+    faces: [{ points: [p(24, 70), p(48, 72), p(70, 62), p(70, 48), p(46, 40), p(22, 48)] }],
+    segments: [
+      { from: p(24, 70), to: p(48, 72) },
+      { from: p(48, 72), to: p(70, 62) },
+      { from: p(70, 62), to: p(70, 48) },
+      { from: p(70, 48), to: p(46, 40), hidden: true },
+      { from: p(46, 40), to: p(22, 48), hidden: true },
+      { from: p(22, 48), to: p(24, 70) },
+      { from: p(46, 12), to: p(24, 70) },
+      { from: p(46, 12), to: p(48, 72) },
+      { from: p(46, 12), to: p(70, 62) },
+      { from: p(46, 12), to: p(70, 48) },
+      { from: p(46, 12), to: p(46, 40), hidden: true },
+      { from: p(46, 12), to: p(22, 48), hidden: true },
+      { from: p(24, 70), to: p(70, 62), hidden: true },
+    ],
+  },
+  frustum_square: {
+    id: "frustum_square",
+    title: "Усеченная пирамида",
+    faces: [{ points: [p(20, 74), p(58, 74), p(72, 62), p(34, 62)] }],
+    segments: [
+      { from: p(20, 74), to: p(58, 74) },
+      { from: p(58, 74), to: p(72, 62) },
+      { from: p(72, 62), to: p(34, 62), hidden: true },
+      { from: p(34, 62), to: p(20, 74) },
+      { from: p(28, 42), to: p(50, 42) },
+      { from: p(50, 42), to: p(60, 34) },
+      { from: p(60, 34), to: p(38, 34), hidden: true },
+      { from: p(38, 34), to: p(28, 42), hidden: true },
+      { from: p(20, 74), to: p(28, 42) },
+      { from: p(58, 74), to: p(50, 42) },
+      { from: p(72, 62), to: p(60, 34) },
+      { from: p(34, 62), to: p(38, 34), hidden: true },
+      { from: p(20, 74), to: p(72, 62), hidden: true },
+    ],
+  },
+  frustum_triangular: {
+    id: "frustum_triangular",
+    title: "Усеченная треугольная пирамида",
+    faces: [{ points: [p(18, 74), p(62, 74), p(46, 56)] }],
+    segments: [
+      { from: p(18, 74), to: p(62, 74) },
+      { from: p(62, 74), to: p(46, 56) },
+      { from: p(46, 56), to: p(18, 74), hidden: true },
+      { from: p(28, 42), to: p(52, 42) },
+      { from: p(52, 42), to: p(42, 30) },
+      { from: p(42, 30), to: p(28, 42), hidden: true },
+      { from: p(18, 74), to: p(28, 42) },
+      { from: p(62, 74), to: p(52, 42) },
+      { from: p(46, 56), to: p(42, 30), hidden: true },
+    ],
+  },
+  frustum_hexagonal: {
+    id: "frustum_hexagonal",
+    title: "Усеченная шестиугольная пирамида",
+    faces: [{ points: [p(20, 70), p(46, 72), p(70, 60), p(70, 46), p(44, 36), p(20, 46)] }],
+    segments: [
+      { from: p(20, 70), to: p(46, 72) },
+      { from: p(46, 72), to: p(70, 60) },
+      { from: p(70, 60), to: p(70, 46) },
+      { from: p(70, 46), to: p(44, 36), hidden: true },
+      { from: p(44, 36), to: p(20, 46), hidden: true },
+      { from: p(20, 46), to: p(20, 70) },
+      { from: p(30, 52), to: p(46, 53) },
+      { from: p(46, 53), to: p(60, 46) },
+      { from: p(60, 46), to: p(60, 38) },
+      { from: p(60, 38), to: p(44, 32), hidden: true },
+      { from: p(44, 32), to: p(30, 38), hidden: true },
+      { from: p(30, 38), to: p(30, 52), hidden: true },
+      { from: p(20, 70), to: p(30, 52) },
+      { from: p(46, 72), to: p(46, 53) },
+      { from: p(70, 60), to: p(60, 46) },
+      { from: p(70, 46), to: p(60, 38) },
+      { from: p(44, 36), to: p(44, 32), hidden: true },
+      { from: p(20, 46), to: p(30, 38), hidden: true },
+    ],
+  },
+  cylinder: {
+    id: "cylinder",
+    title: "Цилиндр",
+    segments: [
+      { from: p(24, 24), to: p(76, 24) },
+      { from: p(24, 24), to: p(24, 74) },
+      { from: p(76, 24), to: p(76, 74) },
+      { from: p(24, 74), to: p(76, 74) },
+      { from: p(24, 24), to: p(76, 24) },
+      { from: p(24, 74), to: p(76, 74), hidden: true },
+      { from: p(24, 24), to: p(76, 24), hidden: true },
+    ],
+    faces: [
+      { points: [p(24, 24), p(76, 24), p(76, 74), p(24, 74)] },
+    ],
+  },
+  cone: {
+    id: "cone",
+    title: "Конус",
+    segments: [
+      { from: p(50, 16), to: p(24, 72) },
+      { from: p(50, 16), to: p(76, 72) },
+      { from: p(24, 72), to: p(76, 72) },
+      { from: p(24, 72), to: p(76, 72), hidden: true },
+    ],
+    faces: [{ points: [p(50, 16), p(24, 72), p(76, 72)] }],
+  },
+  truncated_cone: {
+    id: "truncated_cone",
+    title: "Усеченный конус",
+    segments: [
+      { from: p(36, 22), to: p(64, 22) },
+      { from: p(22, 72), to: p(78, 72) },
+      { from: p(36, 22), to: p(22, 72) },
+      { from: p(64, 22), to: p(78, 72) },
+      { from: p(22, 72), to: p(78, 72), hidden: true },
+      { from: p(36, 22), to: p(64, 22), hidden: true },
+    ],
+    faces: [{ points: [p(36, 22), p(64, 22), p(78, 72), p(22, 72)] }],
+  },
+  sphere: {
+    id: "sphere",
+    title: "Сфера",
+    segments: [
+      { from: p(18, 48), to: p(82, 48) },
+      { from: p(18, 48), to: p(82, 48), hidden: true },
+      { from: p(50, 16), to: p(50, 80), hidden: true },
+    ],
+    faces: [],
+  },
+  hemisphere: {
+    id: "hemisphere",
+    title: "Полусфера",
+    segments: [
+      { from: p(20, 56), to: p(80, 56) },
+      { from: p(20, 56), to: p(80, 56), hidden: true },
+    ],
+    faces: [{ points: [p(20, 56), p(80, 56), p(50, 18)] }],
+  },
+  torus: {
+    id: "torus",
+    title: "Тор",
+    segments: [
+      { from: p(18, 48), to: p(82, 48) },
+      { from: p(30, 48), to: p(70, 48), hidden: true },
+      { from: p(30, 48), to: p(70, 48) },
+    ],
+    faces: [],
+  },
+};
+
+export const SOLID3D_PRESETS: Solid3dPreset[] = [
+  { id: "cube", title: "Куб" },
+  { id: "rectangular_prism", title: "Прямоугольный параллелепипед" },
+  { id: "oblique_parallelepiped", title: "Наклонный параллелепипед" },
+  { id: "triangular_prism", title: "Треугольная призма" },
+  { id: "prism_trapezoid", title: "Трапецеидальная призма" },
+  { id: "pentagonal_prism", title: "Пятиугольная призма" },
+  { id: "hexagonal_prism", title: "Шестиугольная призма" },
+  { id: "pyramid_triangular", title: "Треугольная пирамида" },
+  { id: "pyramid_square", title: "Четырехугольная пирамида" },
+  { id: "pyramid_pentagonal", title: "Пятиугольная пирамида" },
+  { id: "pyramid_hexagonal", title: "Шестиугольная пирамида" },
+  { id: "tetrahedron", title: "Тетраэдр" },
+  { id: "frustum_triangular", title: "Усеченная треугольная пирамида" },
+  { id: "frustum_square", title: "Усеченная пирамида" },
+  { id: "frustum_hexagonal", title: "Усеченная шестиугольная пирамида" },
+  { id: "cylinder", title: "Цилиндр" },
+  { id: "cone", title: "Конус" },
+  { id: "truncated_cone", title: "Усеченный конус" },
+  { id: "sphere", title: "Сфера" },
+  { id: "hemisphere", title: "Полусфера" },
+  { id: "torus", title: "Тор" },
+];
+
+export const resolveSolid3dPresetId = (presetId: string) =>
+  PRESET_ALIAS[presetId] ?? (TEMPLATES[presetId] ? presetId : "cube");
+
+export const getSolid3dTemplate = (presetId: string): Solid3dTemplate =>
+  TEMPLATES[resolveSolid3dPresetId(presetId)] ?? TEMPLATES.cube;

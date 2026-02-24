@@ -1,0 +1,305 @@
+.lesson-details {
+  width: 100%;
+  padding: 42px 0 86px;
+  background:
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--brand-solid) 18%, transparent),
+      transparent 46%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      color-mix(in srgb, var(--feedback-info) 16%, transparent),
+      transparent 42%
+    ),
+    var(--surface-soft);
+}
+
+.lesson-details__container {
+  max-width: 1120px !important;
+}
+
+.lesson-details__top-nav {
+  display: flex;
+  justify-content: flex-start;
+  margin: 0 0 14px;
+}
+
+.lesson-details__loading-card {
+  display: grid;
+  gap: 14px;
+  background: var(--surface-elevated);
+  border-radius: 24px;
+  border: 1px solid var(--card-border);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.lesson-details__loading-indicator {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.lesson-details__hero {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--brand-soft) 40%, var(--border-subtle));
+  background:
+    linear-gradient(140deg, var(--surface-elevated), var(--surface-soft)),
+    linear-gradient(
+      125deg,
+      color-mix(in srgb, var(--brand-solid) 16%, transparent),
+      color-mix(in srgb, var(--feedback-info) 14%, transparent)
+    );
+  box-shadow: var(--shadow-sm);
+}
+
+.lesson-details__kicker {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand-solid) 16%, transparent);
+  color: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--brand-solid) 34%, transparent);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.lesson-details__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lesson-details__title {
+  margin: 0;
+  font-size: clamp(14px, 1.4vw, 18px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  background: linear-gradient(
+    95deg,
+    var(--text-primary) 0%,
+    var(--accent-soft) 52%,
+    color-mix(in srgb, var(--feedback-info) 82%, var(--brand-solid)) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lesson-details__meta-badge {
+  display: inline-grid;
+  gap: 3px;
+  width: fit-content;
+  min-width: 104px;
+  border-radius: 14px;
+  padding: 5px 7px;
+  border: 1px solid color-mix(in srgb, var(--brand-solid) 34%, var(--border-subtle));
+  background: color-mix(in srgb, var(--brand-solid) 14%, transparent);
+  flex-shrink: 0;
+
+  span {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  strong {
+    color: var(--accent-soft);
+    font-size: 11px;
+    line-height: 1.2;
+  }
+}
+
+.lesson-details__video-card {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 24px;
+  border: 1px solid var(--card-border);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-sm);
+}
+
+.lesson-details__video {
+  width: 100%;
+}
+
+.lesson-details__video-empty {
+  border-radius: 16px;
+  background: var(--surface-soft);
+  border: 1px dashed color-mix(in srgb, var(--border-subtle) 92%, var(--brand-soft));
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 48px 14px;
+  font-size: 14px;
+}
+
+.lesson-details__materials {
+  margin-top: 20px;
+  border-radius: 24px;
+  border: 1px solid var(--card-border);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-sm);
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.lesson-details__materials-head {
+  display: grid;
+  gap: 4px;
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text-primary);
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+}
+
+.lesson-details__materials-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.lesson-details__material-card {
+  border-radius: 14px;
+  border: 1px solid var(--card-border);
+  background: linear-gradient(180deg, var(--surface-soft), var(--surface-elevated));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.lesson-details__material-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 14px;
+  display: inline-grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--brand-soft) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-soft) 24%, transparent);
+  flex-shrink: 0;
+}
+
+.lesson-details__material-content {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+
+  h3 {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.35;
+    color: var(--text-primary);
+    word-break: break-word;
+  }
+
+  a {
+    font-size: 13px;
+    color: var(--accent-text);
+    font-weight: 700;
+    text-decoration: none;
+  }
+}
+
+.lesson-details__locked-card {
+  margin: 0 auto;
+  max-width: 680px;
+  background: var(--surface-elevated);
+  border-radius: 22px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-sm);
+  padding: 26px;
+  text-align: center;
+
+  p {
+    margin: 10px 0 0;
+    color: var(--text-secondary);
+  }
+}
+
+.lesson-details__locked-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lesson-details__not-found {
+  padding: 80px 24px;
+  text-align: center;
+  font-size: 18px;
+}
+
+@media (max-width: 768px) {
+  .lesson-details {
+    padding: 30px 0 60px;
+  }
+
+  .lesson-details__top-nav .MuiButton-root {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .lesson-details__top-nav {
+    margin: 0 0 10px;
+  }
+
+  .lesson-details__hero {
+    padding: 8px 9px;
+    border-radius: 14px;
+  }
+
+  .lesson-details__title-row {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .lesson-details__title {
+    font-size: 14px;
+  }
+
+  .lesson-details__meta-badge {
+    min-width: 98px;
+    padding: 5px 7px;
+  }
+
+  .lesson-details__video-card,
+  .lesson-details__materials {
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .lesson-details__video-empty {
+    padding: 36px 12px;
+  }
+
+  .lesson-details__material-card {
+    padding: 9px 10px;
+  }
+
+  .lesson-details__locked-card {
+    padding: 18px 14px;
+  }
+}

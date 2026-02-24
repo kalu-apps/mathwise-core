@@ -1,0 +1,6 @@
+.DS_Store
+portfolio-repos/
+
+# local credentials
+**/.env
+**/.env.*.local
