@@ -29,3 +29,4 @@ node ../portfolio/scripts/export-showcases.mjs
 - `portfolio/docs/REPOSITORY_MAP_RU.md`
 - `portfolio/docs/WORKFLOW_RU.md`
 - `portfolio/docs/PUBLICATION_CHECKLIST_RU.md`
+- `portfolio/docs/GITHUB_PUBLISH_STEPS_RU.md`
