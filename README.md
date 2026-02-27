@@ -42,3 +42,10 @@ node portfolio/scripts/release-showcases.mjs
 - `portfolio/docs/PUBLICATION_CHECKLIST_RU.md`
 - `portfolio/docs/GITHUB_PUBLISH_STEPS_RU.md`
 - `portfolio/docs/SHOWCASE_RELEASE_PROCESS_RU.md`
+
+## Публичные showcase-репозитории
+- Публикуются как витрина, а не как полный продукт.
+- В каждый showcase автоматически добавляются:
+  - `LICENSE`
+  - `SHOWCASE_NOTICE.md`
+- Внутренние служебные артефакты (`.github`, `.vscode`, `docs`, `reports`) не экспортируются.

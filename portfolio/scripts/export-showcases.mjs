@@ -43,7 +43,10 @@ const excluded = new Set([
   'node_modules',
   'dist',
   '.git',
+  '.github',
   '.DS_Store',
+  '.vscode',
+  'docs',
   'reports',
   'visual-baseline',
   'visual-current',
@@ -187,6 +190,58 @@ function writePortfolioNote(repoPath, showcase) {
   fs.writeFileSync(path.join(repoPath, 'PORTFOLIO_NOTES.md'), note, 'utf8');
 }
 
+function writeLicense(repoPath) {
+  const content = [
+    'All Rights Reserved',
+    '',
+    'Copyright (c) 2026 Иван Калугин',
+    '',
+    'Этот репозиторий опубликован только как showcase-демо для портфолио.',
+    'Копирование, переработка, повторное использование, публикация и коммерческое применение',
+    'полностью или частично без письменного разрешения правообладателя запрещены.',
+    '',
+    'Исходный private core-репозиторий является единственным источником правды.',
+    '',
+  ].join('\n');
+  fs.writeFileSync(path.join(repoPath, 'LICENSE'), content, 'utf8');
+}
+
+function writeShowcaseNotice(repoPath, showcase) {
+  const shared = [
+    '# Showcase Notice',
+    '',
+    'Этот репозиторий — публичная витрина, а не полный продукт.',
+    '',
+    'Что важно:',
+    '- часть внутренней инфраструктуры и организационной логики сознательно не публикуется;',
+    '- private core-репозиторий остаётся единственным источником правды;',
+    '- этот код предназначен для демонстрации архитектуры и UX, а не для свободного переиспользования;',
+    '',
+  ];
+
+  const perShowcase = {
+    whiteboard: [
+      '## Whiteboard scope',
+      '- сохранена достаточная фронтенд-логика для демонстрации интерактивной доски и подготовки к пилотному деплою;',
+      '- логика whiteboard intentionally сохранена шире, чем у остальных showcase, чтобы не блокировать будущий Vercel smoke/pilot;',
+      '- для реального одновременного урока teacher/student между разными устройствами нужен отдельный backend/realtime-слой, он не является частью этого публичного репозитория.',
+    ],
+    realtime: [
+      '## Realtime lesson scope',
+      '- демонстрируется UX и клиентская модель коллективного урока;',
+      '- production-ready сетевой слой и медиасигналинг не раскрываются в публичной витрине.',
+    ],
+    assistant: [
+      '## Assistant scope',
+      '- демонстрируется UI/UX и продуктовая интеграция ассистента;',
+      '- провайдеры, production-конфигурация и часть внутренних интеграций не публикуются.',
+    ],
+  };
+
+  const content = [...shared, ...(perShowcase[showcase.id] ?? []), ''].join('\n');
+  fs.writeFileSync(path.join(repoPath, 'SHOWCASE_NOTICE.md'), content, 'utf8');
+}
+
 function readExistingChangelog(repoPath) {
   const changelogPath = path.join(repoPath, 'CHANGELOG.md');
   if (!fs.existsSync(changelogPath)) {
@@ -235,6 +290,8 @@ function run() {
     writeShowcaseEnv(target, showcase);
     writeReadme(target, showcase);
     writePortfolioNote(target, showcase);
+    writeLicense(target);
+    writeShowcaseNotice(target, showcase);
     ensureChangelog(target, showcase, existingChangelog);
     console.log(`✔ exported: ${showcase.repoName}`);
   }

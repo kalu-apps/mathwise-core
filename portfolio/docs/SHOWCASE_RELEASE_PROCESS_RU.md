@@ -24,8 +24,14 @@
 4. Что сделает скрипт:
    - обновит содержимое `portfolio-repos/*` из `core`;
    - сохранит/обновит `CHANGELOG.md` в каждом showcase;
+   - создаст `LICENSE` и `SHOWCASE_NOTICE.md` в каждом showcase;
    - зафиксирует релиз в `portfolio/releases/showcase-release-history.json`;
    - создаст архив релизного конфига в `portfolio/releases/archive/`.
+
+## Границы hardening
+- Whiteboard showcase не урезается агрессивно по клиентской логике: он должен оставаться пригодным для скорого пилотного деплоя и UX-тестов.
+- При этом в public showcase не выносятся внутренние артефакты и организационные файлы, не нужные для демо.
+- Реальный multi-user урок между устройствами требует отдельного backend/realtime-слоя; публичный showcase не является production-инфраструктурой.
 
 5. Проверить стабильность showcase:
    ```bash

@@ -14,3 +14,11 @@
    - `portfolio/releases/showcase-release-history.json`
    - `portfolio/releases/archive/<версия>.json`
 10. В changelog нет черновых/нестабильных задач — только то, что реально попало в showcase.
+11. В showcase лежат:
+    - `LICENSE`
+    - `SHOWCASE_NOTICE.md`
+12. Из public showcase убраны внутренние артефакты, не нужные для демо:
+    - `.github`
+    - `.vscode`
+    - `docs/`
+    - `reports/`
