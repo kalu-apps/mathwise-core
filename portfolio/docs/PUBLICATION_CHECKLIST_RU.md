@@ -7,3 +7,10 @@
 5. `npm run lint` и `npm run build` проходят.
 6. Добавлены ограничения/допущения в README.
 7. Добавлены ссылки на основной стек и архитектурные решения.
+8. В `CHANGELOG.md` showcase добавлен новый релизный блок:
+   - `Добавлено`
+   - `Исправлено`
+9. Зафиксирован release-срез:
+   - `portfolio/releases/showcase-release-history.json`
+   - `portfolio/releases/archive/<версия>.json`
+10. В changelog нет черновых/нестабильных задач — только то, что реально попало в showcase.

@@ -1,0 +1,12 @@
+{
+  "releases": [
+    {
+      "version": "2026.02.W09",
+      "releaseDate": "2026-02-27",
+      "coreFrom": "90cc024228278cd56b40ddf2376a27d61f3220c3",
+      "coreTo": "01eea41d89e2f7fdb8f52db88aba9b80c31015c7",
+      "createdAt": "2026-02-27T20:58:28.502Z",
+      "configPath": "portfolio/releases/showcase-release.config.json"
+    }
+  ]
+}

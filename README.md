@@ -11,6 +11,7 @@
 2. Коммиты делаются логическими порциями (`feat/fix/refactor/docs`).
 3. Раз в неделю из `core` экспортируются showcase-репозитории.
 4. Витринные репозитории обновляются только стабильными срезами.
+5. Для showcase ведётся отдельный changelog: что добавлено/исправлено.
 
 ## Команды
 ```bash
@@ -25,8 +26,18 @@ cd math-tutor-frontend
 node ../portfolio/scripts/export-showcases.mjs
 ```
 
+Еженедельный release-срез showcase:
+```bash
+node portfolio/scripts/release-showcases.mjs
+```
+
+Конфиг релиза:
+- `portfolio/releases/showcase-release.config.json`
+- пример: `portfolio/releases/showcase-release.config.example.json`
+
 ## Документация для портфолио
 - `portfolio/docs/REPOSITORY_MAP_RU.md`
 - `portfolio/docs/WORKFLOW_RU.md`
 - `portfolio/docs/PUBLICATION_CHECKLIST_RU.md`
 - `portfolio/docs/GITHUB_PUBLISH_STEPS_RU.md`
+- `portfolio/docs/SHOWCASE_RELEASE_PROCESS_RU.md`

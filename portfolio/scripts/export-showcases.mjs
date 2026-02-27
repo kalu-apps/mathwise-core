@@ -44,6 +44,7 @@ const excluded = new Set([
   'dist',
   '.git',
   '.DS_Store',
+  'reports',
   'visual-baseline',
   'visual-current',
 ]);
@@ -61,8 +62,15 @@ function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
 }
 
-function removeDir(dirPath) {
-  fs.rmSync(dirPath, { recursive: true, force: true });
+function clearTargetPreservingGit(dirPath) {
+  if (!fs.existsSync(dirPath)) {
+    return;
+  }
+  const entries = fs.readdirSync(dirPath);
+  for (const entry of entries) {
+    if (entry === '.git') continue;
+    fs.rmSync(path.join(dirPath, entry), { recursive: true, force: true });
+  }
 }
 
 function copyProject(src, dst) {
@@ -179,6 +187,34 @@ function writePortfolioNote(repoPath, showcase) {
   fs.writeFileSync(path.join(repoPath, 'PORTFOLIO_NOTES.md'), note, 'utf8');
 }
 
+function readExistingChangelog(repoPath) {
+  const changelogPath = path.join(repoPath, 'CHANGELOG.md');
+  if (!fs.existsSync(changelogPath)) {
+    return null;
+  }
+  return fs.readFileSync(changelogPath, 'utf8');
+}
+
+function ensureChangelog(repoPath, showcase, existingContent) {
+  const changelogPath = path.join(repoPath, 'CHANGELOG.md');
+  if (existingContent) {
+    fs.writeFileSync(changelogPath, existingContent, 'utf8');
+    return;
+  }
+
+  const initial = [
+    `# Changelog — ${showcase.title}`,
+    '',
+    'Формат:',
+    '- `Добавлено` — новые стабильные возможности, попавшие в showcase-срез.',
+    '- `Исправлено` — стабильные багфиксы, попавшие в showcase-срез.',
+    '',
+    'Истина по разработке: private core-репозиторий. Showcase обновляется только релизными срезами.',
+    '',
+  ].join('\n');
+  fs.writeFileSync(changelogPath, initial, 'utf8');
+}
+
 function run() {
   if (!fs.existsSync(sourceDir)) {
     throw new Error(`Source not found: ${sourceDir}`);
@@ -188,7 +224,9 @@ function run() {
 
   for (const showcase of showcases) {
     const target = path.join(outputRoot, showcase.repoName);
-    removeDir(target);
+    const existingChangelog = readExistingChangelog(target);
+    ensureDir(target);
+    clearTargetPreservingGit(target);
     copyProject(sourceDir, target);
     sanitizeMockDb(target);
     patchAuthConstants(target);
@@ -197,6 +235,7 @@ function run() {
     writeShowcaseEnv(target, showcase);
     writeReadme(target, showcase);
     writePortfolioNote(target, showcase);
+    ensureChangelog(target, showcase, existingChangelog);
     console.log(`✔ exported: ${showcase.repoName}`);
   }
 
