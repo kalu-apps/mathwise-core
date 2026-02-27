@@ -16,23 +16,28 @@
 - Showcase: только витрина готовых и стабильных изменений.
 
 ### Порядок
-1. Заполнить `portfolio/releases/showcase-release.config.json` (разделы `added` / `fixed`).
-2. Запустить release-срез:
+1. Создать отдельную release-ветку от `main`:
+   ```bash
+   ./portfolio/scripts/create-showcase-release-branch.sh <версия>
+   ```
+2. Заполнить `portfolio/releases/showcase-release.config.json` (разделы `added` / `fixed`).
+3. Запустить release-срез:
    ```bash
    node portfolio/scripts/release-showcases.mjs
    ```
-3. Скрипт:
+4. Скрипт:
    - пересобирает `portfolio-repos/*` из `core`;
    - обновляет `CHANGELOG.md` в каждом showcase;
    - пишет историю релизов в `portfolio/releases/showcase-release-history.json`;
    - архивирует конфиг релиза в `portfolio/releases/archive/`.
-4. Проверить каждый showcase:
+5. Проверить каждый showcase:
    ```bash
    cd portfolio-repos/math-whiteboard-demo && npm run lint && npm run build
    cd ../math-realtime-lesson-demo && npm run lint && npm run build
    cd ../math-axiom-assistant-demo && npm run lint && npm run build
    ```
-5. Закоммитить и запушить только стабильный срез в public showcase-репозитории.
+6. Закоммитить release-ветку, затем влить её в `main`.
+7. Закоммитить и запушить только стабильный срез в public showcase-репозитории.
 
 ## Шаблон сообщений коммитов
 - `feat: ...`

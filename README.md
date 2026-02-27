@@ -28,6 +28,7 @@ node ../portfolio/scripts/export-showcases.mjs
 
 Еженедельный release-срез showcase:
 ```bash
+./portfolio/scripts/create-showcase-release-branch.sh <версия>
 node portfolio/scripts/release-showcases.mjs
 ```
 

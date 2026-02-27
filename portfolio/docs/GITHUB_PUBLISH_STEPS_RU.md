@@ -21,11 +21,16 @@ GITHUB_OWNER=kalu-apps GITHUB_TOKEN=<ваш_token> ./portfolio/scripts/publish-r
 3. Включить ежедневный ритм коммитов в private core.
 
 ## Еженедельный release-срез в showcase
-1. Обновить `portfolio/releases/showcase-release.config.json`.
-2. Запустить:
+1. Создать release-ветку:
+   ```bash
+   ./portfolio/scripts/create-showcase-release-branch.sh <версия>
+   ```
+2. Обновить `portfolio/releases/showcase-release.config.json`.
+3. Запустить:
    ```bash
    node portfolio/scripts/release-showcases.mjs
    ```
-3. Проверить lint/build в каждом showcase в `portfolio-repos/*`.
-4. Запушить изменения только в public showcase репозитории.
-5. `core` остаётся источником правды, showcase — витрина готового.
+4. Проверить lint/build в каждом showcase в `portfolio-repos/*`.
+5. Закоммитить release-ветку и влить в `main`.
+6. Запушить изменения только в public showcase репозитории.
+7. `core` остаётся источником правды, showcase — витрина готового.
