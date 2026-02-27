@@ -144,6 +144,7 @@ export function TeacherProfile({ user, readOnly = false }: Props) {
   const roleLabel = effectiveRole === "teacher" ? "Преподаватель" : "Студент";
   const displayPhone =
     authUser?.id === user.id ? (authUser.phone ?? "") : (user.phone ?? "");
+  const showResumeSections = false;
 
   const achievementsView = editing
     ? data.achievements
@@ -474,6 +475,8 @@ export function TeacherProfile({ user, readOnly = false }: Props) {
           </aside>
 
           <main className="tp2-content">
+            {showResumeSections ? (
+              <>
             <section className="tp2-card">
               <div className="tp2-section-title">
                 <h2>О себе</h2>
@@ -698,6 +701,8 @@ export function TeacherProfile({ user, readOnly = false }: Props) {
                 }}
               />
             </section>
+              </>
+            ) : null}
           </main>
         </div>
       </div>

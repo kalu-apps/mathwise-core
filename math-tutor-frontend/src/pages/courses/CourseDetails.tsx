@@ -41,6 +41,8 @@ import {
   RefreshRounded,
   CheckCircleRounded,
   HourglassTopRounded,
+  AssignmentTurnedInRounded,
+  GavelRounded,
 } from "@mui/icons-material";
 import { ListPagination } from "@/shared/ui/ListPagination";
 import { formatLessonDuration } from "@/shared/lib/duration";
@@ -208,8 +210,11 @@ const formatApproxMonthlyBnplLine = (params: {
   if (!approxMonthly) {
     return "Оплата частями доступна (условия покажем на следующем шаге).";
   }
-  return `Оплата частями: от ${approxMonthly.toLocaleString("ru-RU")} ₽/мес`;
+  return `Оплата частями: от ${approxMonthly.toLocaleString("ru-RU")} ₽ в месяц`;
 };
+
+const getAssessmentKindByItem = (item: CourseContentTestItem) =>
+  item.templateSnapshot?.assessmentKind === "exam" ? "exam" : "credit";
 
 const clampPercent = (value: number) =>
   Math.max(0, Math.min(100, Math.round(value)));
@@ -1084,14 +1089,14 @@ export default function CourseDetails() {
       ? `От ${getApproxMonthlyFrom({
           fromAmount: selectedCheckoutBnplPlan.fromAmount,
           periodLabel: selectedCheckoutBnplPlan.periodLabel,
-        })?.toLocaleString("ru-RU")} ₽/мес • ${
+        })?.toLocaleString("ru-RU")} ₽ в месяц • ${
           selectedCheckoutBnplPlan.installmentsCount
         } платежей`
       : checkoutBnplMarketing?.fromAmount
         ? `От ${getApproxMonthlyFrom({
             fromAmount: checkoutBnplMarketing.fromAmount,
             periodLabel: checkoutBnplMarketing.periodLabel,
-          })?.toLocaleString("ru-RU")} ₽/мес • ${
+          })?.toLocaleString("ru-RU")} ₽ в месяц • ${
             checkoutBnplMarketing.installmentsCount
           } платежей`
         : "Оплата частями (точные условия на следующем шаге).";
@@ -1456,6 +1461,22 @@ export default function CourseDetails() {
 
   const lessonsSection = (
     <div className="course-details__lessons">
+      <header className="course-details__hero">
+        <div className="course-details__hero-main">
+          <div className="course-details__hero-content">
+            <span className="course-details__kicker">Содержание курса</span>
+            <h1 className="course-details__title">
+              <span>{course.title}</span>
+              {isPremiumPurchased && hasPurchase && (
+                <Diamond className="course-details__title-premium" />
+              )}
+            </h1>
+            {course.description && (
+              <p className="course-details__description">{course.description}</p>
+            )}
+          </div>
+        </div>
+      </header>
       <div className="course-details__lessons-head">
         <h2 className="course-details__lessons-title">Материалы курса</h2>
         <div className="course-details__lessons-head-right">
@@ -1539,6 +1560,7 @@ export default function CourseDetails() {
             if (contentItem.type === "test") {
               const latestAttempt = latestTestAttemptByItemId[contentItem.id];
               const hasAttempt = Boolean(latestAttempt);
+              const assessmentKind = getAssessmentKindByItem(contentItem);
               const blockQueue = courseContentItems
                 .filter((item) => item.blockId === contentItem.blockId)
                 .sort((a, b) => a.order - b.order);
@@ -1575,6 +1597,20 @@ export default function CourseDetails() {
                     <strong className="course-details__test-head">
                       <span>
                         Тест: {testTitleByItemId[contentItem.id] ?? contentItem.titleSnapshot}
+                      </span>
+                      <span
+                        className={`course-details__test-kind-badge ${
+                          assessmentKind === "exam"
+                            ? "is-exam"
+                            : "is-credit"
+                        }`}
+                      >
+                        {assessmentKind === "exam" ? (
+                          <GavelRounded fontSize="inherit" />
+                        ) : (
+                          <AssignmentTurnedInRounded fontSize="inherit" />
+                        )}
+                        {assessmentKind === "exam" ? "Экзамен" : "Зачет"}
                       </span>
                       {newMaterialItemIds.has(contentItem.id) ? (
                         <span className="course-details__new-badge">Новое</span>
@@ -2009,7 +2045,7 @@ export default function CourseDetails() {
               />
               <span>{learningProgressPercent}%</span>
             </div>
-            <strong>Прогресс изучения</strong>
+            <strong>Изучено</strong>
           </article>
           {hasCourseTests ? (
             <article
@@ -2031,7 +2067,7 @@ export default function CourseDetails() {
                 />
                 <span>{knowledgeProgressPercent}%</span>
               </div>
-              <strong>Проверка знаний</strong>
+              <strong>Сдано</strong>
             </article>
           ) : null}
         </div>
@@ -2160,22 +2196,6 @@ export default function CourseDetails() {
           className="course-details__back-button"
         />
       </div>
-      <header className="course-details__hero">
-        <div className="course-details__hero-main">
-          <div className="course-details__hero-content">
-            <span className="course-details__kicker">Содержание курса</span>
-            <h1 className="course-details__title">
-              <span>{course.title}</span>
-              {isPremiumPurchased && hasPurchase && (
-                <Diamond className="course-details__title-premium" />
-              )}
-            </h1>
-            {course.description && (
-              <p className="course-details__description">{course.description}</p>
-            )}
-          </div>
-        </div>
-      </header>
       {pageNoticeState && (
         <AccessStateBanner
           state={pageNoticeState}

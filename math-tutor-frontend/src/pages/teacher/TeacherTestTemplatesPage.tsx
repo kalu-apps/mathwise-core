@@ -239,6 +239,15 @@ export default function TeacherTestTemplatesPage() {
                   >
                     {template.status === "published" ? "Опубликован" : "Черновик"}
                   </span>
+                  <span
+                    className={`assessment-templates-page__status ui-status-chip ${
+                      template.assessmentKind === "exam"
+                        ? "ui-status-chip--warning"
+                        : "ui-status-chip--new"
+                    }`}
+                  >
+                    {template.assessmentKind === "exam" ? "Экзамен" : "Зачет"}
+                  </span>
                   <div className="assessment-templates-page__meta">
                     <span>Вопросов: {template.questions.length}</span>
                     <span>

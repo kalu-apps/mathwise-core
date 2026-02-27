@@ -99,16 +99,20 @@ export async function resolveWorkbookInvite(token: string) {
     title: string;
     kind: WorkbookSessionKind;
     hostName: string;
+    ended: boolean;
     expired: boolean;
     revoked: boolean;
   }>(`/workbook/invites/${encodeURIComponent(token)}`);
 }
 
-export async function joinWorkbookInvite(token: string) {
+export async function joinWorkbookInvite(token: string, guestName?: string) {
   return api.post<{
     session: WorkbookSession;
     draft: WorkbookDraftCard;
-  }>(`/workbook/invites/${encodeURIComponent(token)}/join`, {});
+  }>(
+    `/workbook/invites/${encodeURIComponent(token)}/join`,
+    typeof guestName === "string" ? { guestName } : {}
+  );
 }
 
 export async function getWorkbookEvents(sessionId: string, afterSeq: number) {

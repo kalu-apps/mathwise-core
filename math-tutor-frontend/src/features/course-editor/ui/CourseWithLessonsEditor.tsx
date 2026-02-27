@@ -28,6 +28,7 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
+import GavelRoundedIcon from "@mui/icons-material/GavelRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import RemoveRoundedIcon from "@mui/icons-material/RemoveRounded";
@@ -541,6 +542,7 @@ export function CourseWithLessonsEditor({
               title: template.title,
               description: template.description ?? "",
               durationMinutes: template.durationMinutes,
+              assessmentKind: template.assessmentKind,
               questions: template.questions,
               recommendationMap: template.recommendationMap,
             },
@@ -1312,6 +1314,10 @@ export function CourseWithLessonsEditor({
                       {group.items.map((item) => {
                         const queueIndex = queueItemIndexMap.get(item.id) ?? -1;
                         if (item.type === "test") {
+                          const testKind =
+                            item.templateSnapshot?.assessmentKind === "exam"
+                              ? "exam"
+                              : "credit";
                           return (
                             <div
                               key={item.id}
@@ -1339,9 +1345,15 @@ export function CourseWithLessonsEditor({
                                 <div className="course-editor-dialog__queue-item-meta">
                                   <Chip
                                     size="small"
-                                    icon={<FactCheckRoundedIcon />}
-                                    label="TEST"
-                                    color="info"
+                                    icon={
+                                      testKind === "exam" ? (
+                                        <GavelRoundedIcon />
+                                      ) : (
+                                        <FactCheckRoundedIcon />
+                                      )
+                                    }
+                                    label={testKind === "exam" ? "Экзамен" : "Зачет"}
+                                    color={testKind === "exam" ? "warning" : "info"}
                                     sx={{ alignSelf: "flex-start" }}
                                   />
                                   {getTestAttachmentItems(item).map((attachment) => (
@@ -1420,6 +1432,10 @@ export function CourseWithLessonsEditor({
                                           title: snapshot?.title ?? item.titleSnapshot,
                                           description: snapshot?.description ?? "",
                                           durationMinutes: snapshot?.durationMinutes ?? 0,
+                                          assessmentKind:
+                                            snapshot?.assessmentKind === "exam"
+                                              ? "exam"
+                                              : "credit",
                                           createdByTeacherId: teacherId,
                                           createdAt: item.createdAt,
                                           updatedAt: item.createdAt,

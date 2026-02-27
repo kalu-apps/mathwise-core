@@ -35,6 +35,11 @@ const ALLOWED_NOTE_COLORS = new Set([
 const activityKey = (role: StudyCabinetRole, userId: string) =>
   `study-cabinet:activity:${role}:${userId}`;
 
+const legacyActivityKeys = (role: StudyCabinetRole, userId: string) => [
+  `study-cabinet:activity:${userId}`,
+  `study-cabinet:activity:${userId}:${role}`,
+];
+
 const notesKey = (role: StudyCabinetRole, userId: string) =>
   `study-cabinet:notes:${role}:${userId}`;
 
@@ -45,9 +50,17 @@ const toDateKey = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const normalizeMinutes = (value: number) => {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.round(value));
+const normalizeMinutes = (value: unknown) => {
+  const numericValue =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value.trim().replace(",", "."))
+        : typeof value === "bigint"
+          ? Number(value)
+          : Number.NaN;
+  if (!Number.isFinite(numericValue)) return 0;
+  return Math.max(0, Math.round(numericValue));
 };
 
 const normalizeNoteColor = (value: unknown) => {
@@ -62,14 +75,40 @@ export const getStudyCabinetActivity = (
   userId: string
 ): StudyActivityByDay => {
   if (!userId) return {};
-  const raw = readStorage<StudyActivityByDay>(activityKey(role, userId), {});
-  return Object.entries(raw).reduce<StudyActivityByDay>((acc, [key, value]) => {
+  const primaryKey = activityKey(role, userId);
+  const primary = readStorage<StudyActivityByDay>(primaryKey, {});
+  const normalizedPrimary = Object.entries(primary).reduce<StudyActivityByDay>((acc, [key, value]) => {
     const minutes = normalizeMinutes(value);
     if (minutes > 0) {
       acc[key] = minutes;
     }
     return acc;
   }, {});
+  const normalizedLegacy = legacyActivityKeys(role, userId).reduce<StudyActivityByDay>(
+    (acc, key) => {
+      const legacyData = readStorage<StudyActivityByDay>(key, {});
+      Object.entries(legacyData).forEach(([dayKey, minutes]) => {
+        const normalizedMinutes = normalizeMinutes(minutes);
+        if (normalizedMinutes <= 0) return;
+        if (dayKey in acc) return;
+        acc[dayKey] = normalizedMinutes;
+      });
+      return acc;
+    },
+    {}
+  );
+  const merged = {
+    ...normalizedLegacy,
+    ...normalizedPrimary,
+  };
+  const mergedKeys = Object.keys(merged);
+  if (
+    mergedKeys.length > 0 &&
+    JSON.stringify(merged) !== JSON.stringify(normalizedPrimary)
+  ) {
+    writeStorage(primaryKey, merged, { ttlMs: ACTIVITY_TTL_MS });
+  }
+  return merged;
 };
 
 export const recordStudyCabinetActivity = (params: {
@@ -94,17 +133,16 @@ export const buildStudyCabinetWeekActivity = (
 ) => {
   const labels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   const byDay = getStudyCabinetActivity(role, userId);
-  const monday = new Date(anchorDate);
-  const currentDay = (monday.getDay() + 6) % 7;
-  monday.setHours(0, 0, 0, 0);
-  monday.setDate(monday.getDate() - currentDay);
+  const anchor = new Date(anchorDate);
+  anchor.setHours(0, 0, 0, 0);
   return Array.from({ length: 7 }).map((_, index) => {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + index);
+    const date = new Date(anchor);
+    date.setDate(anchor.getDate() - (6 - index));
     const key = toDateKey(date);
+    const dayIndex = (date.getDay() + 6) % 7;
     return {
       key,
-      label: labels[index],
+      label: labels[dayIndex],
       minutes: normalizeMinutes(byDay[key] ?? 0),
     };
   });

@@ -10,7 +10,6 @@ import {
 } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { jsPDF } from "jspdf";
-import JSZip from "jszip";
 import {
   Alert,
   Avatar,
@@ -31,6 +30,7 @@ import {
 } from "@mui/material";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
+import ContentCutRoundedIcon from "@mui/icons-material/ContentCutRounded";
 import GroupRoundedIcon from "@mui/icons-material/GroupRounded";
 import MicRoundedIcon from "@mui/icons-material/MicRounded";
 import MicOffRoundedIcon from "@mui/icons-material/MicOffRounded";
@@ -68,6 +68,7 @@ import CenterFocusStrongRoundedIcon from "@mui/icons-material/CenterFocusStrongR
 import FullscreenRoundedIcon from "@mui/icons-material/FullscreenRounded";
 import FullscreenExitRoundedIcon from "@mui/icons-material/FullscreenExitRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
+import LayersRoundedIcon from "@mui/icons-material/LayersRounded";
 import UnfoldLessRoundedIcon from "@mui/icons-material/UnfoldLessRounded";
 import UnfoldMoreRoundedIcon from "@mui/icons-material/UnfoldMoreRounded";
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
@@ -165,7 +166,6 @@ import {
   recognizeSmartInkStroke,
   type SmartInkDetectedResult,
 } from "@/features/workbook/model/smartInk";
-import { AxiomAssistant } from "@/features/assistant/ui/AxiomAssistant";
 import { PageLoader } from "@/shared/ui/loading";
 import { generateId } from "@/shared/lib/id";
 import {
@@ -496,6 +496,104 @@ const getNextUniqueBoardLabel = (used: Set<string>, indexSeed: number) => {
 };
 
 const clampGraphOffset = (value: number) => Math.max(-999, Math.min(999, value));
+
+const mergeBoardObjectWithPatch = (
+  current: WorkbookBoardObject,
+  patch: Partial<WorkbookBoardObject>
+): WorkbookBoardObject => {
+  const hasMetaPatch = Object.prototype.hasOwnProperty.call(patch, "meta");
+  if (!hasMetaPatch) {
+    return {
+      ...current,
+      ...patch,
+    };
+  }
+  const patchMeta = patch.meta;
+  if (!patchMeta || typeof patchMeta !== "object" || Array.isArray(patchMeta)) {
+    return {
+      ...current,
+      ...patch,
+      meta: patchMeta,
+    };
+  }
+  const currentMeta =
+    current.meta && typeof current.meta === "object" && !Array.isArray(current.meta)
+      ? (current.meta as Record<string, unknown>)
+      : {};
+  const nextMeta = {
+    ...currentMeta,
+    ...(patchMeta as Record<string, unknown>),
+  };
+  return {
+    ...current,
+    ...patch,
+    meta: nextMeta,
+  };
+};
+
+const resolveGraphFunctionsFromObject = (object: WorkbookBoardObject): GraphFunctionDraft[] => {
+  if (object.type !== "function_graph") return [];
+  const raw = Array.isArray(object.meta?.functions) ? object.meta.functions : [];
+  return raw.reduce<GraphFunctionDraft[]>((acc, item, index) => {
+    if (!item || typeof item !== "object") return acc;
+    const typed = item as Partial<GraphFunctionDraft>;
+    const expression =
+      typeof typed.expression === "string"
+        ? normalizeFunctionExpression(typed.expression)
+        : "";
+    if (!expression) return acc;
+    return [
+      ...acc,
+      {
+        id: typeof typed.id === "string" && typed.id ? typed.id : generateId(),
+        expression,
+        color:
+          typeof typed.color === "string" && typed.color
+            ? typed.color
+            : GRAPH_FUNCTION_COLORS[index % GRAPH_FUNCTION_COLORS.length],
+        visible: typed.visible !== false,
+        dashed: Boolean(typed.dashed),
+        width:
+          typeof typed.width === "number" && Number.isFinite(typed.width)
+            ? Math.max(1, Math.min(6, typed.width))
+            : 2,
+        offsetX:
+          typeof typed.offsetX === "number" && Number.isFinite(typed.offsetX)
+            ? clampGraphOffset(typed.offsetX)
+            : 0,
+        offsetY:
+          typeof typed.offsetY === "number" && Number.isFinite(typed.offsetY)
+            ? clampGraphOffset(typed.offsetY)
+            : 0,
+        scaleX: normalizeGraphScale(typed.scaleX ?? 1, 1),
+        scaleY: normalizeGraphScale(typed.scaleY ?? 1, 1),
+      },
+    ];
+  }, []);
+};
+
+const areGraphFunctionDraftListsEqual = (
+  left: GraphFunctionDraft[],
+  right: GraphFunctionDraft[]
+) => {
+  if (left.length !== right.length) return false;
+  return left.every((item, index) => {
+    const next = right[index];
+    if (!next) return false;
+    return (
+      item.id === next.id &&
+      item.expression === next.expression &&
+      item.color === next.color &&
+      item.visible === next.visible &&
+      item.dashed === next.dashed &&
+      (item.width ?? 2) === (next.width ?? 2) &&
+      (item.offsetX ?? 0) === (next.offsetX ?? 0) &&
+      (item.offsetY ?? 0) === (next.offsetY ?? 0) &&
+      (item.scaleX ?? 1) === (next.scaleX ?? 1) &&
+      (item.scaleY ?? 1) === (next.scaleY ?? 1)
+    );
+  });
+};
 
 const TEXT_FONT_OPTIONS = [
   { value: "\"Fira Sans\", \"Segoe UI\", sans-serif", label: "Fira Sans" },
@@ -1069,6 +1167,7 @@ export default function WorkbookSessionPage() {
   const [selectedGraphPresetId, setSelectedGraphPresetId] = useState<string | null>(null);
   const [graphDraftError, setGraphDraftError] = useState<string | null>(null);
   const [graphFunctionsDraft, setGraphFunctionsDraft] = useState<GraphFunctionDraft[]>([]);
+  const [graphCatalogCursorActive, setGraphCatalogCursorActive] = useState(false);
   const [graphWorkbenchTab, setGraphWorkbenchTab] = useState<"catalog" | "work">(
     "catalog"
   );
@@ -1100,8 +1199,6 @@ export default function WorkbookSessionPage() {
   );
   const [isUtilityPanelOpen, setIsUtilityPanelOpen] = useState(false);
   const [isUtilityPanelCollapsed, setIsUtilityPanelCollapsed] = useState(false);
-  const [utilityPanelClosedForSelectionId, setUtilityPanelClosedForSelectionId] =
-    useState<string | null>(null);
   const [utilityPanelPosition, setUtilityPanelPosition] = useState({ x: 0, y: 86 });
   const [utilityPanelDragState, setUtilityPanelDragState] = useState<{
     startClientX: number;
@@ -1168,7 +1265,8 @@ export default function WorkbookSessionPage() {
   const shapeDraftObjectIdRef = useRef<string | null>(null);
   const dividerDraftObjectIdRef = useRef<string | null>(null);
   const graphDraftObjectIdRef = useRef<string | null>(null);
-  const lastAutoTransformSelectionRef = useRef<string | null>(null);
+  const graphCatalogCursorTimeoutRef = useRef<number | null>(null);
+  const suppressAutoPanelSelectionRef = useRef<string | null>(null);
   const [latestSeq, setLatestSeq] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1215,6 +1313,7 @@ export default function WorkbookSessionPage() {
     x: number;
     y: number;
   } | null>(null);
+  const areaSelectionClipboardRef = useRef<WorkbookBoardObject[] | null>(null);
   const [saveState, setSaveState] = useState<"saved" | "unsaved" | "saving" | "error">(
     "saved"
   );
@@ -1279,7 +1378,6 @@ export default function WorkbookSessionPage() {
   const canUseMedia = Boolean(actorPermissions.canUseMedia);
   const canUseSessionChat = Boolean(actorPermissions.canUseChat);
   const canSendSessionChat = canUseSessionChat && !isEnded;
-  const canClear = Boolean(actorPermissions.canClear && !isEnded);
   const isClassSession = session?.kind === "CLASS";
   const showCollaborationPanels = Boolean(isClassSession);
   const participantCards = useMemo(
@@ -1901,6 +1999,7 @@ export default function WorkbookSessionPage() {
     (events: WorkbookEvent[]) => {
       if (events.length === 0) return;
       events.forEach((event) => {
+        try {
         if (event.type === "board.undo" || event.type === "board.redo") {
           const payload = event.payload as { scene?: unknown };
           if (!payload.scene || typeof payload.scene !== "object") return;
@@ -1968,9 +2067,15 @@ export default function WorkbookSessionPage() {
               ? (payload.patch as Partial<WorkbookBoardObject>)
               : null;
           if (!objectId || !patch) return;
-          setBoardObjects((current) =>
-            current.map((item) => (item.id === objectId ? { ...item, ...patch } : item))
-          );
+          setBoardObjects((current) => {
+            let found = false;
+            const next = current.map((item) => {
+              if (item.id !== objectId) return item;
+              found = true;
+              return mergeBoardObjectWithPatch(item, patch);
+            });
+            return found ? next : current;
+          });
           return;
         }
         if (event.type === "board.object.delete") {
@@ -2372,6 +2477,9 @@ export default function WorkbookSessionPage() {
           setChatMessages((current) =>
             current.some((item) => item.id === message.id) ? current : [...current, message]
           );
+        }
+        } catch (error) {
+          console.warn("Workbook event apply failed", event.type, error);
         }
       });
     },
@@ -3170,10 +3278,8 @@ export default function WorkbookSessionPage() {
           return;
         }
         setIsUtilityPanelOpen(false);
-        setUtilityPanelClosedForSelectionId(selectedObjectId ?? "__none__");
         return;
       }
-      setUtilityPanelClosedForSelectionId(null);
       setUtilityTab(tab);
       setIsUtilityPanelOpen(true);
       setIsUtilityPanelCollapsed(false);
@@ -3205,6 +3311,13 @@ export default function WorkbookSessionPage() {
 
   const handleUtilityPanelDragStart = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
+    const target = event.target;
+    if (target instanceof HTMLElement) {
+      const interactive = target.closest(
+        "button, input, textarea, select, option, a, [role='button'], .MuiButtonBase-root, .MuiInputBase-root, .MuiFormControl-root, .MuiSelect-root, .MuiSwitch-root"
+      );
+      if (interactive) return;
+    }
     event.preventDefault();
     setUtilityPanelDragState({
       startClientX: event.clientX,
@@ -3213,6 +3326,27 @@ export default function WorkbookSessionPage() {
       startTop: utilityPanelPosition.y,
     });
   };
+
+  const activateGraphCatalogCursor = useCallback(() => {
+    if (graphCatalogCursorTimeoutRef.current !== null) {
+      window.clearTimeout(graphCatalogCursorTimeoutRef.current);
+      graphCatalogCursorTimeoutRef.current = null;
+    }
+    setGraphCatalogCursorActive(true);
+    graphCatalogCursorTimeoutRef.current = window.setTimeout(() => {
+      setGraphCatalogCursorActive(false);
+      graphCatalogCursorTimeoutRef.current = null;
+    }, 1300);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (graphCatalogCursorTimeoutRef.current !== null) {
+        window.clearTimeout(graphCatalogCursorTimeoutRef.current);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (!utilityPanelDragState) return;
@@ -3258,6 +3392,14 @@ export default function WorkbookSessionPage() {
       };
     });
   }, [isFullscreen, isUtilityPanelOpen]);
+
+  const utilityPanelTitle = useMemo(() => {
+    if (utilityTab === "settings") return "Настройки доски";
+    if (utilityTab === "notes") return "Заметки";
+    if (utilityTab === "graph") return "Графики функции";
+    if (utilityTab === "layers") return "Слои";
+    return "Трансформации";
+  }, [utilityTab]);
 
   const handleCreateNoteSticker = async () => {
     const text = noteDraftText.trim();
@@ -3350,35 +3492,6 @@ export default function WorkbookSessionPage() {
     },
     [constraintShapeTypes, constraints, session?.settings?.strictGeometry]
   );
-
-  const clearLayer = async (target: WorkbookLayer) => {
-    if (!sessionId || !canClear) return;
-    try {
-      if (showCollaborationPanels) {
-        const requestId = generateId();
-        const request: ClearRequest = {
-          requestId,
-          targetLayer: target,
-          authorUserId: user?.id ?? "",
-        };
-        setPendingClearRequest(request);
-        setAwaitingClearRequest(request);
-        await appendEventsAndApply([
-          {
-            type: "board.clear.request",
-            payload: {
-              requestId,
-              targetLayer: target,
-            },
-          },
-        ]);
-        return;
-      }
-      await clearLayerNow(target);
-    } catch {
-      setError("Не удалось очистить слой.");
-    }
-  };
 
   const handleConfirmClear = async () => {
     if (!pendingClearRequest || pendingClearRequest.authorUserId === user?.id) return;
@@ -3591,6 +3704,11 @@ export default function WorkbookSessionPage() {
         sceneLayerId: activeSceneLayerId,
       },
     };
+    setBoardObjects((current) =>
+      current.some((item) => item.id === objectWithPage.id)
+        ? current
+        : [...current, objectWithPage]
+    );
     try {
       await appendEventsAndApply([
         {
@@ -3612,6 +3730,12 @@ export default function WorkbookSessionPage() {
         });
       }
     } catch {
+      setBoardObjects((current) =>
+        current.filter((item) => item.id !== objectWithPage.id)
+      );
+      setSelectedObjectId((current) =>
+        current === objectWithPage.id ? null : current
+      );
       setError("Не удалось создать объект.");
     }
   };
@@ -3621,7 +3745,7 @@ export default function WorkbookSessionPage() {
       if (!sessionId || !canSelect) return;
       const currentObject = boardObjects.find((item) => item.id === objectId);
       if (!currentObject) return;
-      const merged = { ...currentObject, ...patch };
+      const merged = mergeBoardObjectWithPatch(currentObject, patch);
       const constrained = applyConstraintsForObject(merged, boardObjects);
       const shouldApplyGeometryPatch =
         patch.x !== undefined ||
@@ -3824,7 +3948,7 @@ export default function WorkbookSessionPage() {
     [boardObjects, canSelect, commitObjectUpdate, selectedObjectId]
   );
 
-  const deleteAreaSelectionObjects = async () => {
+  const deleteAreaSelectionObjects = useCallback(async () => {
     if (!canDelete || !areaSelection || areaSelection.objectIds.length === 0) return;
     const objectIds = areaSelection.objectIds.filter((id) =>
       boardObjects.some((object) => object.id === id && !object.pinned)
@@ -3877,7 +4001,67 @@ export default function WorkbookSessionPage() {
     } catch {
       setError("Не удалось удалить объекты из выделенной области.");
     }
-  };
+  }, [
+    appendEventsAndApply,
+    areaSelection,
+    boardObjects,
+    boardSettings,
+    canDelete,
+    getObjectSceneLayerId,
+    normalizedSceneLayers.sceneLayers,
+    selectedObjectId,
+  ]);
+
+  const copyAreaSelectionObjects = useCallback(() => {
+    if (!canSelect || !areaSelection || areaSelection.objectIds.length === 0) return;
+    const selectedObjects = areaSelection.objectIds
+      .map((id) => boardObjects.find((object) => object.id === id))
+      .filter(
+        (object): object is WorkbookBoardObject =>
+          object != null && !object.pinned
+      );
+    if (selectedObjects.length === 0) {
+      areaSelectionClipboardRef.current = null;
+      return;
+    }
+    areaSelectionClipboardRef.current = selectedObjects.map((object) =>
+      structuredClone<WorkbookBoardObject>(object)
+    );
+    setAreaSelectionContextMenu(null);
+  }, [areaSelection, boardObjects, canSelect]);
+
+  const pasteAreaSelectionObjects = useCallback(async () => {
+    if (!canSelect) return;
+    const clipboard = areaSelectionClipboardRef.current;
+    if (!clipboard || clipboard.length === 0) return;
+    const now = new Date().toISOString();
+    const offset = 24;
+    const createEvents = clipboard.map((object) => ({
+      type: "board.object.create" as const,
+      payload: {
+        object: {
+          ...object,
+          id: generateId(),
+          x: object.x + offset,
+          y: object.y + offset,
+          createdAt: now,
+          authorUserId: user?.id ?? object.authorUserId,
+        },
+      },
+    }));
+    try {
+      await appendEventsAndApply(createEvents);
+      setAreaSelectionContextMenu(null);
+    } catch {
+      setError("Не удалось вставить скопированную область.");
+    }
+  }, [appendEventsAndApply, canSelect, user?.id]);
+
+  const cutAreaSelectionObjects = useCallback(async () => {
+    if (!canDelete || !areaSelection || areaSelection.objectIds.length === 0) return;
+    copyAreaSelectionObjects();
+    await deleteAreaSelectionObjects();
+  }, [areaSelection, canDelete, copyAreaSelectionObjects, deleteAreaSelectionObjects]);
 
   const createCompositionFromAreaSelection = useCallback(async () => {
     if (!canSelect || !areaSelection || areaSelection.objectIds.length === 0) return;
@@ -4139,6 +4323,16 @@ export default function WorkbookSessionPage() {
     [updateSelectedFunctionGraphMeta]
   );
 
+  const updateSelectedFunctionGraphAppearance = useCallback(
+    (patch: { axisColor?: string; planeColor?: string }) => {
+      void updateSelectedFunctionGraphMeta({
+        ...(typeof patch.axisColor === "string" ? { axisColor: patch.axisColor } : {}),
+        ...(typeof patch.planeColor === "string" ? { planeColor: patch.planeColor } : {}),
+      });
+    },
+    [updateSelectedFunctionGraphMeta]
+  );
+
   const pushSelectedGraphFunctions = useCallback(
     (nextFunctions: GraphFunctionDraft[]) => {
       const sanitized = sanitizeFunctionGraphDrafts(nextFunctions, {
@@ -4184,36 +4378,6 @@ export default function WorkbookSessionPage() {
     await updateSelectedLineObject({ strokeWidth: next });
   }, [boardObjects, lineWidthDraft, selectedObjectId, updateSelectedLineObject]);
 
-  const appendGraphDraftFunction = useCallback(
-    (expressionOverride?: string) => {
-      const validation = validateFunctionExpression(
-        expressionOverride ?? graphExpressionDraft
-      );
-      if (!validation.ok) {
-        setGraphDraftError(validation.error ?? "Проверьте формулу.");
-        return;
-      }
-      setGraphDraftFunctions((current) => [
-        ...current,
-        {
-          id: generateId(),
-          expression: validation.expression,
-          color: GRAPH_FUNCTION_COLORS[current.length % GRAPH_FUNCTION_COLORS.length],
-          visible: true,
-          dashed: false,
-          width: 2,
-          offsetX: 0,
-          offsetY: 0,
-          scaleX: 1,
-          scaleY: 1,
-        },
-      ]);
-      setGraphExpressionDraft("");
-      setGraphDraftError(null);
-    },
-    [graphExpressionDraft]
-  );
-
   const appendSelectedGraphFunction = useCallback(
     (expressionOverride?: string) => {
       const selectedGraphObject =
@@ -4256,32 +4420,6 @@ export default function WorkbookSessionPage() {
     ]
   );
 
-  const appendPresetGraphFunction = useCallback(
-    (expression: string) => {
-      const selectedGraphObject =
-        selectedObjectId != null
-          ? boardObjects.find((item) => item.id === selectedObjectId)
-          : null;
-      if (selectedGraphObject?.type === "function_graph") {
-        appendSelectedGraphFunction(expression);
-        return;
-      }
-      appendGraphDraftFunction(expression);
-    },
-    [
-      appendGraphDraftFunction,
-      appendSelectedGraphFunction,
-      boardObjects,
-      selectedObjectId,
-    ]
-  );
-
-  const removeDraftGraphFunction = useCallback((id: string) => {
-    setGraphDraftFunctions((current) =>
-      current.length <= 1 ? current : current.filter((entry) => entry.id !== id)
-    );
-  }, []);
-
   const removeSelectedGraphFunction = useCallback(
     (id: string) => {
       if (graphFunctionsDraft.length <= 1) return;
@@ -4289,15 +4427,6 @@ export default function WorkbookSessionPage() {
       pushSelectedGraphFunctions(nextFunctions);
     },
     [graphFunctionsDraft, pushSelectedGraphFunctions]
-  );
-
-  const updateDraftGraphFunction = useCallback(
-    (id: string, patch: Partial<GraphFunctionDraft>) => {
-      setGraphDraftFunctions((current) =>
-        current.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry))
-      );
-    },
-    []
   );
 
   const updateSelectedGraphFunction = useCallback(
@@ -5145,7 +5274,7 @@ export default function WorkbookSessionPage() {
     options?: { presetId?: string; presetTitle?: string }
   ) => {
     if (!canDraw) return;
-    const solidPresetId = options?.presetId ?? "cube";
+    const solidPresetId = resolveSolid3dPresetId(options?.presetId ?? "cube");
     const defaultSolidWidth = 220;
     const defaultSolidHeight = 180;
     const initialSolidMesh =
@@ -5169,7 +5298,7 @@ export default function WorkbookSessionPage() {
         ? { step: boardSettings.gridSize }
         : type === "solid3d"
           ? {
-              presetId: options?.presetId ?? solidPresetId,
+              presetId: solidPresetId,
               presetTitle: options?.presetTitle ?? null,
               ...writeSolid3dState(initialSolidState ?? DEFAULT_SOLID3D_STATE, undefined),
             }
@@ -5207,9 +5336,49 @@ export default function WorkbookSessionPage() {
       createdAt: new Date().toISOString(),
     };
     await commitObjectCreate(object);
+    suppressAutoPanelSelectionRef.current = object.id;
     setSelectedObjectId(object.id);
     setTool("select");
   };
+
+  const createFunctionGraphPlane = useCallback(async () => {
+    if (!canDraw) return;
+    const graphPlaneCount = boardObjects.filter((item) => item.type === "function_graph").length;
+    const object: WorkbookBoardObject = {
+      id: generateId(),
+      type: "function_graph",
+      layer: "board",
+      x: canvasViewport.x + 90 + (graphPlaneCount % 3) * 28,
+      y: canvasViewport.y + 70 + (graphPlaneCount % 3) * 22,
+      width: 460,
+      height: 290,
+      color: "#6b78bd",
+      fill: "transparent",
+      strokeWidth: 1.8,
+      opacity: 1,
+      meta: {
+        functions: [],
+        axisColor: "#ff8e3c",
+        planeColor: "#8ea7ff",
+      },
+      authorUserId: user?.id ?? "unknown",
+      createdAt: new Date().toISOString(),
+    };
+    await commitObjectCreate(object);
+    suppressAutoPanelSelectionRef.current = object.id;
+    setSelectedConstraintId(null);
+    setSelectedObjectId(object.id);
+    setGraphWorkbenchTab("catalog");
+    setTool("select");
+    setGraphDraftError(null);
+  }, [
+    boardObjects,
+    canDraw,
+    canvasViewport.x,
+    canvasViewport.y,
+    commitObjectCreate,
+    user?.id,
+  ]);
 
   const handleLaserPoint = useCallback(
     async (point: WorkbookPoint) => {
@@ -5333,8 +5502,38 @@ export default function WorkbookSessionPage() {
       );
       if (isTypingTarget) return;
       const withModifier = event.metaKey || event.ctrlKey;
-      if (!withModifier) return;
       const key = event.key.toLowerCase();
+
+      if (
+        tool === "area_select" &&
+        areaSelection &&
+        areaSelection.objectIds.length > 0 &&
+        (event.key === "Delete" || event.key === "Backspace")
+      ) {
+        event.preventDefault();
+        void deleteAreaSelectionObjects();
+        return;
+      }
+
+      if (tool === "area_select" && withModifier && key === "c") {
+        event.preventDefault();
+        copyAreaSelectionObjects();
+        return;
+      }
+
+      if (tool === "area_select" && withModifier && key === "x") {
+        event.preventDefault();
+        void cutAreaSelectionObjects();
+        return;
+      }
+
+      if (tool === "area_select" && withModifier && key === "v") {
+        event.preventDefault();
+        void pasteAreaSelectionObjects();
+        return;
+      }
+
+      if (!withModifier) return;
       if (key !== "z" && key !== "y") return;
       event.preventDefault();
       if (key === "z" && event.shiftKey) {
@@ -5351,7 +5550,16 @@ export default function WorkbookSessionPage() {
     };
     window.addEventListener("keydown", onHotkey);
     return () => window.removeEventListener("keydown", onHotkey);
-  }, [handleRedo, handleUndo]);
+  }, [
+    areaSelection,
+    copyAreaSelectionObjects,
+    cutAreaSelectionObjects,
+    deleteAreaSelectionObjects,
+    handleRedo,
+    handleUndo,
+    pasteAreaSelectionObjects,
+    tool,
+  ]);
 
   const handleObjectContextMenu = (objectId: string, anchor: { x: number; y: number }) => {
     setShapeVertexContextMenu(null);
@@ -5596,6 +5804,14 @@ export default function WorkbookSessionPage() {
       text: text.slice(0, 1000),
       createdAt: new Date().toISOString(),
     };
+    setChatMessages((current) =>
+      current.some((item) => item.id === message.id) ? current : [...current, message]
+    );
+    setSessionChatDraft("");
+    setIsSessionChatEmojiOpen(false);
+    setIsSessionChatAtBottom(true);
+    scrollSessionChatToLatest("smooth");
+    markSessionChatReadToLatest();
     try {
       await appendEventsAndApply([
         {
@@ -5603,12 +5819,11 @@ export default function WorkbookSessionPage() {
           payload: { message },
         },
       ]);
-      setSessionChatDraft("");
-      setIsSessionChatEmojiOpen(false);
-      setIsSessionChatAtBottom(true);
-      scrollSessionChatToLatest("smooth");
-      markSessionChatReadToLatest();
     } catch {
+      setChatMessages((current) =>
+        current.filter((item) => item.id !== message.id)
+      );
+      setSessionChatDraft(text);
       setError("Не удалось отправить сообщение в чат.");
     }
   }, [
@@ -5713,6 +5928,13 @@ export default function WorkbookSessionPage() {
       let renderedPages: WorkbookDocumentAsset["renderedPages"] = undefined;
       const isPdf =
         file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf");
+      const isImage =
+        file.type.includes("image") ||
+        /\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(file.name);
+      if (!isPdf && !isImage) {
+        setError("Можно загрузить только PDF или изображение.");
+        return;
+      }
       if (isPdf) {
         setUploadProgress(45);
         const rendered = await renderWorkbookPdfPages({
@@ -5727,7 +5949,7 @@ export default function WorkbookSessionPage() {
       const asset: WorkbookDocumentAsset = {
         id: generateId(),
         name: file.name,
-        type: isPdf ? "pdf" : "image",
+        type: isPdf ? "pdf" : isImage ? "image" : "file",
         url,
         uploadedBy: user?.id ?? "unknown",
         uploadedAt: new Date().toISOString(),
@@ -5742,7 +5964,7 @@ export default function WorkbookSessionPage() {
       await upsertLibraryItem({
         id: generateId(),
         name: file.name,
-        type: isPdf ? "pdf" : file.type.includes("image") ? "image" : "office",
+        type: isPdf ? "pdf" : isImage ? "image" : "office",
         ownerUserId: user?.id ?? "unknown",
         sourceUrl: url,
         createdAt: new Date().toISOString(),
@@ -5753,7 +5975,36 @@ export default function WorkbookSessionPage() {
         activeAssetId: asset.id,
         page: 1,
       });
-      setDocsWindow((current) => ({ ...current, open: true }));
+      const insertOffset = boardObjects.length % 6;
+      const renderedPage =
+        asset.type === "pdf"
+          ? asset.renderedPages?.find((page) => page.page === 1) ?? asset.renderedPages?.[0]
+          : null;
+      const object: WorkbookBoardObject = {
+        id: generateId(),
+        type: asset.type === "image" || renderedPage ? "image" : "text",
+        layer: "board",
+        x: canvasViewport.x + 96 + insertOffset * 20,
+        y: canvasViewport.y + 92 + insertOffset * 16,
+        width: asset.type === "image" || renderedPage ? 380 : 320,
+        height: asset.type === "image" || renderedPage ? 260 : 120,
+        color: "#16213e",
+        fill: "transparent",
+        strokeWidth: 2,
+        opacity: 1,
+        imageUrl:
+          asset.type === "image"
+            ? asset.url
+            : renderedPage
+              ? renderedPage.imageUrl
+              : undefined,
+        imageName: asset.name,
+        text: renderedPage ? undefined : `PDF: ${asset.name}`,
+        fontSize: renderedPage ? undefined : 18,
+        authorUserId: user?.id ?? "unknown",
+        createdAt: new Date().toISOString(),
+      };
+      await commitObjectCreate(object);
     } catch {
       setError("Не удалось загрузить документ.");
     } finally {
@@ -5767,6 +6018,7 @@ export default function WorkbookSessionPage() {
       (asset) => asset.id === documentState.activeAssetId
     );
     if (!active) return;
+    const insertOffset = boardObjects.length % 6;
     const renderedPage =
       active.type === "pdf"
         ? active.renderedPages?.find((page) => page.page === documentState.page) ??
@@ -5776,8 +6028,8 @@ export default function WorkbookSessionPage() {
       id: generateId(),
       type: active.type === "image" || renderedPage ? "image" : "text",
       layer: "board",
-      x: 120,
-      y: 120,
+      x: canvasViewport.x + 96 + insertOffset * 20,
+      y: canvasViewport.y + 92 + insertOffset * 16,
       width: 320,
       height: 220,
       color: "#16213e",
@@ -5791,8 +6043,13 @@ export default function WorkbookSessionPage() {
             ? renderedPage.imageUrl
             : undefined,
       imageName: active.name,
-      text: active.type === "pdf" ? `PDF: ${active.name}` : undefined,
-      fontSize: active.type === "pdf" ? 18 : undefined,
+      text:
+        active.type === "pdf"
+          ? `PDF: ${active.name}`
+          : active.type === "file"
+            ? `Файл: ${active.name}`
+            : undefined,
+      fontSize: active.type === "pdf" || active.type === "file" ? 18 : undefined,
       authorUserId: user?.id ?? "unknown",
       createdAt: new Date().toISOString(),
     };
@@ -5834,284 +6091,91 @@ export default function WorkbookSessionPage() {
     }
   };
 
-  const exportBoardAsJson = () => {
-    const payload = encodeScenePayload({
-      strokes: boardStrokes,
-      objects: boardObjects,
-      chat: chatMessages,
-      comments,
-      timer: timerState,
-      boardSettings,
-      library: libraryState,
-      document: documentState,
-    });
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `workbook-${sessionId || "session"}.mwb.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const getSectionBoundaries = useCallback(() => {
-    const manualDividerY = boardObjects
-      .filter((object) => object.type === "section_divider")
-      .map((object) => object.y)
-      .filter((value) => Number.isFinite(value) && value > 0);
-
-    const maxObjectBottom = boardObjects.reduce(
-      (max, object) => Math.max(max, object.y + Math.max(2, object.height)),
-      0
-    );
-    const maxStrokeY = boardStrokes.reduce((max, stroke) => {
-      const localMax = stroke.points.reduce(
-        (strokeMax, point) => Math.max(strokeMax, point.y),
-        0
-      );
-      return Math.max(max, localMax);
-    }, 0);
-    const contentBottom = Math.max(1200, maxObjectBottom, maxStrokeY);
-
-    const boundaries = new Set<number>([0]);
-    manualDividerY.forEach((value) => boundaries.add(Math.max(0, Math.round(value))));
-    if (boardSettings.autoSectionDividers) {
-      const step = Math.max(320, boardSettings.dividerStep);
-      for (let y = step; y <= contentBottom + step; y += step) {
-        boundaries.add(y);
-      }
-    }
-    boundaries.add(Math.ceil((contentBottom + 40) / 40) * 40);
-    return [...boundaries].sort((a, b) => a - b);
-  }, [boardObjects, boardSettings.autoSectionDividers, boardSettings.dividerStep, boardStrokes]);
-
-  const captureSectionAsPng = async (sectionIndex: number) => {
+  const renderBoardToCanvas = async (scale = 2) => {
     const svg = document.querySelector<SVGSVGElement>(".workbook-session__canvas-svg");
     if (!svg) return null;
-    const boundaries = getSectionBoundaries();
-    const start = boundaries[Math.max(0, sectionIndex)];
-    const end = boundaries[Math.min(boundaries.length - 1, sectionIndex + 1)];
-    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
-    const rootWidth = Math.max(1, svg.viewBox.baseVal.width || 1600);
-    const zoom = Math.max(0.3, Math.min(3, viewportZoom || 1));
-    const sectionHeightRoot = Math.max(1, Math.round((end - start) * zoom));
-    const sectionStartRoot = Math.round((start - canvasViewport.y) * zoom);
-    const cloned = svg.cloneNode(true) as SVGSVGElement;
-    cloned.setAttribute("viewBox", `0 ${sectionStartRoot} ${rootWidth} ${sectionHeightRoot}`);
-    const serialized = new XMLSerializer().serializeToString(cloned);
+    const serialized = new XMLSerializer().serializeToString(svg);
     const blob = new Blob([serialized], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     try {
-      const rendered = await new Promise<{
-        dataUrl: string;
-        width: number;
-        height: number;
-      }>((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = rootWidth;
-          canvas.height = sectionHeightRoot;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) {
-            reject(new Error("canvas_ctx_unavailable"));
-            return;
-          }
-          ctx.fillStyle = boardSettings.backgroundColor || "#f5f7ff";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(image, 0, 0);
-          resolve({
-            dataUrl: canvas.toDataURL("image/png"),
-            width: canvas.width,
-            height: canvas.height,
-          });
-        };
-        image.onerror = () => reject(new Error("section_render_failed"));
-        image.src = url;
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const next = new Image();
+        next.onload = () => resolve(next);
+        next.onerror = () => reject(new Error("image_load_failed"));
+        next.src = url;
       });
-      return rendered;
+      const width = Math.max(1, svg.viewBox.baseVal.width || 1600);
+      const height = Math.max(1, svg.viewBox.baseVal.height || 900);
+      const safeScale = Math.max(1, Math.min(4, scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(width * safeScale);
+      canvas.height = Math.round(height * safeScale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+      ctx.save();
+      ctx.scale(safeScale, safeScale);
+      ctx.fillStyle = boardSettings.backgroundColor || "#f5f7ff";
+      ctx.fillRect(0, 0, width, height);
+      if (boardSettings.showGrid) {
+        const gridStep = Math.max(8, Math.min(96, Math.floor(boardSettings.gridSize || 22)));
+        ctx.strokeStyle = boardSettings.gridColor || "rgba(92, 129, 192, 0.32)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = 0; x <= width; x += gridStep) {
+          const crispX = Math.round(x) + 0.5;
+          ctx.moveTo(crispX, 0);
+          ctx.lineTo(crispX, height);
+        }
+        for (let y = 0; y <= height; y += gridStep) {
+          const crispY = Math.round(y) + 0.5;
+          ctx.moveTo(0, crispY);
+          ctx.lineTo(width, crispY);
+        }
+        ctx.stroke();
+      }
+      ctx.drawImage(image, 0, 0, width, height);
+      ctx.restore();
+      return { canvas, width, height };
     } finally {
       URL.revokeObjectURL(url);
-    }
-  };
-
-  const triggerDataUrlDownload = (dataUrl: string, fileName: string) => {
-    const link = document.createElement("a");
-    link.href = dataUrl;
-    link.download = fileName;
-    link.click();
-  };
-
-  const exportSectionAsPng = async (sectionIndex: number) => {
-    try {
-      const rendered = await captureSectionAsPng(sectionIndex);
-      if (!rendered) return;
-      triggerDataUrlDownload(
-        rendered.dataUrl,
-        `workbook-${sessionId || "session"}-section-${sectionIndex + 1}.png`
-      );
-    } catch {
-      setError("Не удалось экспортировать секцию.");
-    }
-  };
-
-  const exportCurrentSectionAsPng = async () => {
-    const boundaries = getSectionBoundaries();
-    const centerY = canvasViewport.y + 10;
-    let sectionIndex = 0;
-    for (let index = 0; index < boundaries.length - 1; index += 1) {
-      if (centerY >= boundaries[index] && centerY < boundaries[index + 1]) {
-        sectionIndex = index;
-        break;
-      }
-    }
-    await exportSectionAsPng(sectionIndex);
-  };
-
-  const exportAllSectionsAsPng = async () => {
-    const boundaries = getSectionBoundaries();
-    for (let index = 0; index < boundaries.length - 1; index += 1) {
-      await exportSectionAsPng(index);
-    }
-  };
-
-  const exportSectionsAsPdf = async (mode: "current" | "all") => {
-    if (exportingSections) return;
-    setExportingSections(true);
-    try {
-      const boundaries = getSectionBoundaries();
-      const indexes: number[] = [];
-      if (mode === "current") {
-        const centerY = canvasViewport.y + 10;
-        let sectionIndex = 0;
-        for (let index = 0; index < boundaries.length - 1; index += 1) {
-          if (centerY >= boundaries[index] && centerY < boundaries[index + 1]) {
-            sectionIndex = index;
-            break;
-          }
-        }
-        indexes.push(sectionIndex);
-      } else {
-        for (let index = 0; index < boundaries.length - 1; index += 1) {
-          indexes.push(index);
-        }
-      }
-      const captures: Array<{ index: number; dataUrl: string; width: number; height: number }> =
-        [];
-      for (const index of indexes) {
-        const rendered = await captureSectionAsPng(index);
-        if (rendered) {
-          captures.push({
-            index,
-            dataUrl: rendered.dataUrl,
-            width: rendered.width,
-            height: rendered.height,
-          });
-        }
-      }
-      if (captures.length === 0) {
-        setError("Нет данных для экспорта секций.");
-        return;
-      }
-      const first = captures[0];
-      const doc = new jsPDF({
-        orientation: first.width > first.height ? "landscape" : "portrait",
-        unit: "px",
-        format: [first.width, first.height],
-        compress: true,
-      });
-      captures.forEach((capture, index) => {
-        if (index > 0) {
-          doc.addPage(
-            [capture.width, capture.height],
-            capture.width > capture.height ? "landscape" : "portrait"
-          );
-        }
-        doc.addImage(capture.dataUrl, "PNG", 0, 0, capture.width, capture.height);
-      });
-      doc.save(`workbook-${sessionId || "session"}-sections.pdf`);
-    } catch {
-      setError("Не удалось экспортировать секции в PDF.");
-    } finally {
-      setExportingSections(false);
-    }
-  };
-
-  const exportSectionsAsZip = async () => {
-    if (exportingSections) return;
-    setExportingSections(true);
-    try {
-      const boundaries = getSectionBoundaries();
-      const zip = new JSZip();
-      const sectionsFolder = zip.folder("sections");
-      if (!sectionsFolder) {
-        setError("Не удалось подготовить ZIP.");
-        return;
-      }
-      const manifest: Array<{
-        section: number;
-        fileName: string;
-      }> = [];
-      for (let index = 0; index < boundaries.length - 1; index += 1) {
-        const rendered = await captureSectionAsPng(index);
-        if (!rendered) continue;
-        const fileName = `section-${index + 1}.png`;
-        const base64Data = rendered.dataUrl.split(",")[1] ?? "";
-        sectionsFolder.file(fileName, base64Data, { base64: true });
-        manifest.push({
-          section: index + 1,
-          fileName,
-        });
-      }
-      if (manifest.length === 0) {
-        setError("Нет данных для экспорта секций.");
-        return;
-      }
-      zip.file("manifest.json", JSON.stringify(manifest, null, 2));
-      const zipBlob = await zip.generateAsync({ type: "blob" });
-      const url = URL.createObjectURL(zipBlob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `workbook-${sessionId || "session"}-sections.zip`;
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      setError("Не удалось экспортировать секции в ZIP.");
-    } finally {
-      setExportingSections(false);
     }
   };
 
   const exportBoardAsPng = async () => {
-    const svg = document.querySelector<SVGSVGElement>(".workbook-session__canvas-svg");
-    if (!svg) return;
-    const serialized = new XMLSerializer().serializeToString(svg);
-    const blob = new Blob([serialized], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const image = new Image();
-    image.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, svg.viewBox.baseVal.width || 1600);
-      canvas.height = Math.max(1, svg.viewBox.baseVal.height || 900);
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.fillStyle = "#f5f7ff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(image, 0, 0);
-      const png = canvas.toDataURL("image/png");
+    try {
+      const rendered = await renderBoardToCanvas(2.2);
+      if (!rendered) return;
+      const png = rendered.canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.href = png;
       link.download = `workbook-${sessionId || "session"}.png`;
       link.click();
-      URL.revokeObjectURL(url);
-    };
-    image.onerror = () => {
-      URL.revokeObjectURL(url);
+    } catch {
       setError("Не удалось экспортировать PNG.");
-    };
-    image.src = url;
+    }
+  };
+
+  const exportBoardAsPdf = async () => {
+    if (exportingSections) return;
+    setExportingSections(true);
+    try {
+      const rendered = await renderBoardToCanvas(2);
+      if (!rendered) return;
+      const width = Math.max(1, Math.round(rendered.width));
+      const height = Math.max(1, Math.round(rendered.height));
+      const pdf = new jsPDF({
+        orientation: width >= height ? "landscape" : "portrait",
+        unit: "px",
+        format: [width, height],
+      });
+      const dataUrl = rendered.canvas.toDataURL("image/png");
+      pdf.addImage(dataUrl, "PNG", 0, 0, width, height);
+      pdf.save(`workbook-${sessionId || "session"}.pdf`);
+    } catch {
+      setError("Не удалось экспортировать PDF.");
+    } finally {
+      setExportingSections(false);
+    }
   };
 
   const handleLoadBoardFile = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -6158,7 +6222,7 @@ export default function WorkbookSessionPage() {
     { tool: "line", label: "Линия", icon: <HorizontalRuleRoundedIcon /> },
     { tool: "function_graph", label: "График функции", icon: <ShowChartRoundedIcon /> },
     { tool: "point", label: "Точка", icon: <FiberManualRecordRoundedIcon /> },
-    { tool: "area_select", label: "Выделение области", icon: <CropFreeRoundedIcon /> },
+    { tool: "area_select", label: "Ножницы", icon: <ContentCutRoundedIcon /> },
     { tool: "text", label: "Текст", icon: <TextFieldsRoundedIcon /> },
     { tool: "divider", label: "Разделитель", icon: <DragHandleRoundedIcon /> },
     { tool: "laser", label: "Указка (Esc/ПКМ убрать)", icon: <MyLocationRoundedIcon /> },
@@ -6195,6 +6259,10 @@ export default function WorkbookSessionPage() {
             className={`workbook-session__tool-btn ${isActive ? "is-active" : ""}`}
             disabled={isDisabled}
             onClick={() => {
+              if (item.tool === "function_graph") {
+                void createFunctionGraphPlane();
+                return;
+              }
               if (
                 (item.tool === "sweep" && tool === "sweep") ||
                 (item.tool === "area_select" && tool === "area_select")
@@ -6361,6 +6429,9 @@ export default function WorkbookSessionPage() {
         <li>`Ctrl/Cmd + Shift + Z` — повтор действия</li>
         <li>`Del / Backspace` — удалить выбранный объект</li>
         <li>`Shift + Click` — мультивыбор</li>
+        <li>`Ctrl/Cmd + C` — копировать выделенную область (Ножницы)</li>
+        <li>`Ctrl/Cmd + V` — вставить выделенную область (Ножницы)</li>
+        <li>`Ctrl/Cmd + X` — вырезать выделенную область (Ножницы)</li>
         <li>`Space` — временная рука (pan)</li>
         <li>`Esc` — убрать указку (в режиме указки)</li>
         <li>`Enter` — завершить многоугольник по точкам</li>
@@ -6373,40 +6444,36 @@ export default function WorkbookSessionPage() {
     () => boardObjects.find((item) => item.id === selectedObjectId) ?? null,
     [boardObjects, selectedObjectId]
   );
-  useEffect(() => {
-    if (!selectedObjectId) {
-      lastAutoTransformSelectionRef.current = null;
-      if (utilityPanelClosedForSelectionId) {
-        setUtilityPanelClosedForSelectionId(null);
+  const handleCanvasSelectedObjectChange = useCallback(
+    (nextObjectId: string | null) => {
+      const suppressedObjectId = suppressAutoPanelSelectionRef.current;
+      setSelectedObjectId(nextObjectId);
+      if (!nextObjectId) return;
+      if (suppressedObjectId === nextObjectId) {
+        suppressAutoPanelSelectionRef.current = null;
+        return;
       }
-      return;
-    }
-    if (utilityPanelClosedForSelectionId === selectedObjectId) return;
-    if (lastAutoTransformSelectionRef.current === selectedObjectId) return;
-    lastAutoTransformSelectionRef.current = selectedObjectId;
-    const selected = boardObjects.find((item) => item.id === selectedObjectId);
-    if (selected?.type === "function_graph") {
-      openUtilityPanel("graph", { toggle: false });
-      return;
-    }
-    openUtilityPanel("transform", { toggle: false });
-  }, [
-    boardObjects,
-    openUtilityPanel,
-    selectedObjectId,
-    utilityPanelClosedForSelectionId,
-  ]);
+      const target = boardObjects.find((item) => item.id === nextObjectId);
+      openUtilityPanel(target?.type === "function_graph" ? "graph" : "transform", {
+        toggle: false,
+      });
+    },
+    [boardObjects, openUtilityPanel]
+  );
+
+  const handleCanvasObjectCreate = useCallback(
+    (object: WorkbookBoardObject) => {
+      suppressAutoPanelSelectionRef.current = object.id;
+      void commitObjectCreate(object);
+    },
+    [commitObjectCreate]
+  );
 
   useEffect(() => {
     if (tool === "area_select") return;
     setAreaSelection(null);
     setAreaSelectionContextMenu(null);
   }, [tool]);
-
-  useEffect(() => {
-    if (tool !== "function_graph") return;
-    openUtilityPanel("graph", { toggle: false });
-  }, [openUtilityPanel, tool]);
 
   const selectedObjectLabel = useMemo(() => {
     if (!selectedObject) return "Объект не выбран";
@@ -6590,47 +6657,20 @@ export default function WorkbookSessionPage() {
         : "",
     [selectedLineObject]
   );
-  const selectedFunctionGraphFunctions = useMemo(() => {
-    if (!selectedFunctionGraphObject) return [] as GraphFunctionDraft[];
-    const raw = Array.isArray(selectedFunctionGraphObject.meta?.functions)
-      ? selectedFunctionGraphObject.meta.functions
-      : [];
-    return raw.reduce<GraphFunctionDraft[]>((acc, item, index) => {
-      if (!item || typeof item !== "object") return acc;
-      const typed = item as Partial<GraphFunctionDraft>;
-      const expression =
-        typeof typed.expression === "string"
-          ? normalizeFunctionExpression(typed.expression)
-          : "";
-      if (!expression) return acc;
-      return [
-        ...acc,
-        {
-          id: typeof typed.id === "string" && typed.id ? typed.id : generateId(),
-          expression,
-          color:
-            typeof typed.color === "string" && typed.color
-              ? typed.color
-              : GRAPH_FUNCTION_COLORS[index % GRAPH_FUNCTION_COLORS.length],
-          visible: typed.visible !== false,
-          dashed: Boolean(typed.dashed),
-          width:
-            typeof typed.width === "number" && Number.isFinite(typed.width)
-              ? Math.max(1, Math.min(6, typed.width))
-              : 2,
-          offsetX:
-            typeof typed.offsetX === "number" && Number.isFinite(typed.offsetX)
-              ? clampGraphOffset(typed.offsetX)
-              : 0,
-          offsetY:
-            typeof typed.offsetY === "number" && Number.isFinite(typed.offsetY)
-              ? clampGraphOffset(typed.offsetY)
-              : 0,
-          scaleX: normalizeGraphScale(typed.scaleX ?? 1, 1),
-          scaleY: normalizeGraphScale(typed.scaleY ?? 1, 1),
-        },
-      ];
-    }, []);
+  const selectedFunctionGraphFunctions = useMemo(
+    () =>
+      selectedFunctionGraphObject
+        ? resolveGraphFunctionsFromObject(selectedFunctionGraphObject)
+        : ([] as GraphFunctionDraft[]),
+    [selectedFunctionGraphObject]
+  );
+  const selectedFunctionGraphAxisColor = useMemo(() => {
+    const raw = selectedFunctionGraphObject?.meta?.axisColor;
+    return typeof raw === "string" && raw.startsWith("#") ? raw : "#ff8e3c";
+  }, [selectedFunctionGraphObject]);
+  const selectedFunctionGraphPlaneColor = useMemo(() => {
+    const raw = selectedFunctionGraphObject?.meta?.planeColor;
+    return typeof raw === "string" && raw.startsWith("#") ? raw : "#8ea7ff";
   }, [selectedFunctionGraphObject]);
   const selectedTextColor = useMemo(() => {
     if (!selectedTextObject) return "#172039";
@@ -6670,6 +6710,13 @@ export default function WorkbookSessionPage() {
     return "left";
   }, [selectedTextObject]);
   const graphTabUsesSelectedObject = Boolean(selectedFunctionGraphObject);
+  const functionGraphPlanes = useMemo(
+    () =>
+      boardObjects
+        .filter((item): item is WorkbookBoardObject => item.type === "function_graph")
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+    [boardObjects]
+  );
   const graphTabFunctions = graphTabUsesSelectedObject
     ? graphFunctionsDraft
     : graphDraftFunctions;
@@ -6706,11 +6753,17 @@ export default function WorkbookSessionPage() {
   useEffect(() => {
     if (!selectedFunctionGraphObject) {
       graphDraftObjectIdRef.current = null;
+      setGraphFunctionsDraft([]);
       return;
     }
-    if (graphDraftObjectIdRef.current === selectedFunctionGraphObject.id) return;
-    graphDraftObjectIdRef.current = selectedFunctionGraphObject.id;
-    setGraphFunctionsDraft(selectedFunctionGraphFunctions);
+    if (graphDraftObjectIdRef.current !== selectedFunctionGraphObject.id) {
+      graphDraftObjectIdRef.current = selectedFunctionGraphObject.id;
+    }
+    setGraphFunctionsDraft((current) =>
+      areGraphFunctionDraftListsEqual(current, selectedFunctionGraphFunctions)
+        ? current
+        : selectedFunctionGraphFunctions
+    );
     setGraphDraftError(null);
   }, [
     selectedFunctionGraphFunctions,
@@ -7193,7 +7246,7 @@ export default function WorkbookSessionPage() {
       <input
         ref={docsInputRef}
         type="file"
-        accept=".pdf,image/*"
+        accept="application/pdf,image/*"
         className="workbook-session__file-input"
         onChange={handleDocsUpload}
       />
@@ -7296,7 +7349,12 @@ export default function WorkbookSessionPage() {
           showCollaborationPanels ? "" : " workbook-session__layout--workspace"
         }`}
       >
-        <div className="workbook-session__workspace" ref={workspaceRef}>
+        <div
+          className={`workbook-session__workspace${
+            graphCatalogCursorActive ? " is-graph-catalog-cursor" : ""
+          }`}
+          ref={workspaceRef}
+        >
           <div className="workbook-session__contextbar">
             <Menu
               container={overlayContainer}
@@ -7304,22 +7362,6 @@ export default function WorkbookSessionPage() {
               open={Boolean(menuAnchor)}
               onClose={() => setMenuAnchor(null)}
             >
-              <MenuItem
-                onClick={() => {
-                  exportBoardAsJson();
-                  setMenuAnchor(null);
-                }}
-              >
-                Сохранить файл доски
-              </MenuItem>
-              <MenuItem
-                onClick={() => {
-                  boardFileInputRef.current?.click();
-                  setMenuAnchor(null);
-                }}
-              >
-                Открыть файл доски
-              </MenuItem>
               <MenuItem
                 onClick={() => {
                   void exportBoardAsPng();
@@ -7330,55 +7372,12 @@ export default function WorkbookSessionPage() {
               </MenuItem>
               <MenuItem
                 onClick={() => {
-                  void exportCurrentSectionAsPng();
-                  setMenuAnchor(null);
-                }}
-              >
-                Экспорт текущей секции PNG
-              </MenuItem>
-              <MenuItem
-                onClick={() => {
-                  void exportAllSectionsAsPng();
-                  setMenuAnchor(null);
-                }}
-              >
-                Экспорт всех секций PNG
-              </MenuItem>
-              <MenuItem
-                onClick={() => {
-                  void exportSectionsAsPdf("current");
+                  void exportBoardAsPdf();
                   setMenuAnchor(null);
                 }}
                 disabled={exportingSections}
               >
-                Экспорт текущей секции PDF
-              </MenuItem>
-              <MenuItem
-                onClick={() => {
-                  void exportSectionsAsPdf("all");
-                  setMenuAnchor(null);
-                }}
-                disabled={exportingSections}
-              >
-                Экспорт всех секций PDF
-              </MenuItem>
-              <MenuItem
-                onClick={() => {
-                  void exportSectionsAsZip();
-                  setMenuAnchor(null);
-                }}
-                disabled={exportingSections}
-              >
-                Экспорт всех секций ZIP
-              </MenuItem>
-              <MenuItem
-                onClick={() => {
-                  void clearLayer("board");
-                  setMenuAnchor(null);
-                }}
-                disabled={!canClear}
-              >
-                Очистить слой
+                Экспорт PDF
               </MenuItem>
             </Menu>
 
@@ -7442,6 +7441,19 @@ export default function WorkbookSessionPage() {
                   onClick={() => openUtilityPanel("transform")}
                 >
                   <AutoFixHighRoundedIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Слои" placement="bottom" arrow>
+              <span>
+                <IconButton
+                  size="small"
+                  className={`workbook-session__toolbar-icon ${
+                    isUtilityPanelOpen && utilityTab === "layers" ? "is-active" : ""
+                  }`}
+                  onClick={() => openUtilityPanel("layers")}
+                >
+                  <LayersRoundedIcon />
                 </IconButton>
               </span>
             </Tooltip>
@@ -7682,13 +7694,13 @@ export default function WorkbookSessionPage() {
                     }
                   : null
               }
-              onSelectedObjectChange={setSelectedObjectId}
+              onSelectedObjectChange={handleCanvasSelectedObjectChange}
               onSelectedConstraintChange={setSelectedConstraintId}
               onStrokeCommit={(stroke) => void commitStroke(stroke)}
               onStrokeDelete={(strokeId, targetLayer) =>
                 void commitStrokeDelete(strokeId, targetLayer)
               }
-              onObjectCreate={(object) => void commitObjectCreate(object)}
+              onObjectCreate={handleCanvasObjectCreate}
               onObjectUpdate={(objectId, patch) => void commitObjectUpdate(objectId, patch)}
               onObjectDelete={(objectId) => void commitObjectDelete(objectId)}
               onObjectContextMenu={handleObjectContextMenu}
@@ -7754,15 +7766,6 @@ export default function WorkbookSessionPage() {
               {toolButtonsAfterCatalog.map(renderToolButton)}
             </aside>
           </div>
-
-          {user ? (
-            <AxiomAssistant
-              userId={user.id}
-              role={user.role}
-              mode="whiteboard"
-              className="workbook-session__assistant"
-            />
-          ) : null}
 
           {docsWindow.open ? (
             <div
@@ -7882,6 +7885,13 @@ export default function WorkbookSessionPage() {
                         </a>
                       </div>
                     )
+                  ) : activeDocument.type === "file" ? (
+                    <div className="workbook-session__docs-pdf-fallback">
+                      <p>Предпросмотр этого формата недоступен в доске.</p>
+                      <a href={activeDocument.url} target="_blank" rel="noreferrer">
+                        Открыть файл
+                      </a>
+                    </div>
                   ) : (
                     <img src={activeDocument.url} alt={activeDocument.name} />
                   )
@@ -8139,20 +8149,23 @@ export default function WorkbookSessionPage() {
           <div
             className="workbook-session__utility-float"
             style={{ left: utilityPanelPosition.x, top: utilityPanelPosition.y }}
+            onPointerDown={handleUtilityPanelDragStart}
           >
             <div
               className="workbook-session__utility-float-head"
-              onPointerDown={handleUtilityPanelDragStart}
             >
               <h3>
                 <TuneRoundedIcon fontSize="small" />
-                Дополнительные инструменты
+                {utilityPanelTitle}
               </h3>
               <div className="workbook-session__utility-float-actions">
                 <IconButton
                   size="small"
                   onPointerDown={(event) => event.stopPropagation()}
-                  onClick={() => setIsUtilityPanelCollapsed((current) => !current)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setIsUtilityPanelCollapsed((current) => !current);
+                  }}
                   title={isUtilityPanelCollapsed ? "Развернуть" : "Свернуть"}
                 >
                   {isUtilityPanelCollapsed ? (
@@ -8164,8 +8177,8 @@ export default function WorkbookSessionPage() {
                 <IconButton
                   size="small"
                   onPointerDown={(event) => event.stopPropagation()}
-                  onClick={() => {
-                    setUtilityPanelClosedForSelectionId(selectedObjectId ?? "__none__");
+                  onClick={(event) => {
+                    event.stopPropagation();
                     setIsUtilityPanelOpen(false);
                   }}
                   title="Закрыть"
@@ -8176,44 +8189,6 @@ export default function WorkbookSessionPage() {
             </div>
             {!isUtilityPanelCollapsed ? (
             <>
-            <div className="workbook-session__utility-tabs">
-              <button
-                type="button"
-                className={utilityTab === "settings" ? "is-active" : ""}
-                onClick={() => setUtilityTab("settings")}
-              >
-                Настройки
-              </button>
-              <button
-                type="button"
-                className={utilityTab === "notes" ? "is-active" : ""}
-                onClick={() => setUtilityTab("notes")}
-              >
-                Заметки
-              </button>
-              <button
-                type="button"
-                className={utilityTab === "graph" ? "is-active" : ""}
-                onClick={() => setUtilityTab("graph")}
-              >
-                График функции
-              </button>
-              <button
-                type="button"
-                className={utilityTab === "transform" ? "is-active" : ""}
-                onClick={() => setUtilityTab("transform")}
-              >
-                Трансформации
-              </button>
-              <button
-                type="button"
-                className={utilityTab === "layers" ? "is-active" : ""}
-                onClick={() => setUtilityTab("layers")}
-              >
-                Слои
-              </button>
-            </div>
-
           {utilityTab === "settings" ? (
           <div className="workbook-session__card workbook-session__board-settings">
             <div className="workbook-session__board-settings-head">
@@ -8595,258 +8570,290 @@ export default function WorkbookSessionPage() {
           <div className="workbook-session__card">
             <h3>График функции</h3>
             <div className="workbook-session__settings workbook-session__graph-tab">
-              <p className="workbook-session__hint">
-                {graphTabUsesSelectedObject
-                  ? "Редактирование выбранного графика на доске."
-                  : "Настройка нового графика. После настройки нарисуйте область инструментом «График функции»."}
-              </p>
-
-              <div className="workbook-session__graph-mode-tabs">
-                <button
-                  type="button"
-                  className={graphWorkbenchTab === "catalog" ? "is-active" : ""}
-                  onClick={() => setGraphWorkbenchTab("catalog")}
-                >
-                  Каталог
-                </button>
-                <button
-                  type="button"
-                  className={graphWorkbenchTab === "work" ? "is-active" : ""}
-                  onClick={() => setGraphWorkbenchTab("work")}
-                >
-                  Работа с чертежом
-                </button>
-              </div>
-
-              {graphWorkbenchTab === "catalog" ? (
-                <>
-                  <div className="workbook-session__graph-builder-row">
-                    <TextField
-                      size="small"
-                      value={graphExpressionDraft}
-                      error={Boolean(graphDraftError)}
-                      helperText={
-                        graphDraftError ??
-                        "Примеры: y = x^2 - 3*x + 2, sin(x), 1/x, abs(x)"
-                      }
-                      onChange={(event) => {
-                        setGraphExpressionDraft(event.target.value);
-                        setSelectedGraphPresetId(null);
-                        if (graphDraftError) setGraphDraftError(null);
-                      }}
-                      placeholder="Формула y = ..."
-                    />
+              {!graphTabUsesSelectedObject ? (
+                <div className="workbook-session__graph-plane-select">
+                  <Alert severity="info">
+                    Для работы с графиками выберите существующую плоскость или создайте новую на доске.
+                  </Alert>
+                  <div className="workbook-session__graph-plane-select-actions">
                     <Button
                       size="small"
-                      variant="outlined"
-                      onClick={() => {
-                        setSelectedGraphPresetId(null);
-                        if (graphTabUsesSelectedObject) {
-                          appendSelectedGraphFunction();
-                          return;
-                        }
-                        appendGraphDraftFunction();
-                      }}
+                      variant="contained"
+                      onClick={() => void createFunctionGraphPlane()}
+                      disabled={!canDraw}
                     >
-                      Добавить
+                      Создать плоскость
                     </Button>
                   </div>
-                  <div className="workbook-session__graph-presets">
-                    {FUNCTION_GRAPH_PRESETS.map((preset) => (
-                      <button
-                        type="button"
-                        key={preset.id}
-                        className={`workbook-session__graph-preset ${
-                          selectedGraphPresetId === preset.id ? "is-selected" : ""
-                        }`}
-                        onClick={() => {
-                          setSelectedGraphPresetId(preset.id);
-                          appendPresetGraphFunction(preset.expression);
-                        }}
-                        aria-pressed={selectedGraphPresetId === preset.id}
-                      >
-                        <strong>{preset.title}</strong>
-                        <span>{preset.expression}</span>
-                        <small>{preset.description}</small>
-                      </button>
-                    ))}
-                  </div>
-                </>
+                  {functionGraphPlanes.length > 0 ? (
+                    <div className="workbook-session__graph-plane-list">
+                      {functionGraphPlanes.map((plane, index) => {
+                        const planeFunctions = resolveGraphFunctionsFromObject(plane);
+                        return (
+                          <button
+                            key={plane.id}
+                            type="button"
+                            className="workbook-session__graph-plane-item"
+                            onClick={() => {
+                              setSelectedObjectId(plane.id);
+                              setTool("select");
+                            }}
+                          >
+                            <strong>{`Плоскость ${index + 1}`}</strong>
+                            <span>{`Графиков: ${planeFunctions.length}`}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="workbook-session__hint">Координатные плоскости пока не созданы.</p>
+                  )}
+                </div>
               ) : (
                 <>
-                  {graphTabFunctions.length === 0 ? (
-                    <Alert
-                      severity="info"
-                      action={
-                        <Button size="small" onClick={() => setGraphWorkbenchTab("catalog")}>
-                          Каталог
-                        </Button>
-                      }
-                    >
-                      На плоскости пока нет функций. Добавьте формулу или выберите шаблон.
-                    </Alert>
-                  ) : (
-                    <div className="workbook-session__graph-builder-list">
-                      {graphTabFunctions.map((item) => (
-                        <div
-                          key={`graph-builder-${item.id}`}
-                          className="workbook-session__graph-builder-item workbook-session__graph-builder-item--work"
-                        >
-                          <div className="workbook-session__graph-builder-item-main">
-                            <input
-                              type="color"
-                              value={item.color}
-                              onChange={(event) => {
-                                const nextColor = event.target.value || item.color;
-                                if (graphTabUsesSelectedObject) {
-                                  updateSelectedGraphFunction(item.id, { color: nextColor });
-                                  return;
-                                }
-                                updateDraftGraphFunction(item.id, { color: nextColor });
-                              }}
-                            />
-                            <TextField
-                              size="small"
-                              value={item.expression}
-                              error={!isFunctionExpressionValid(item.expression)}
-                              placeholder="f(x)"
-                              onChange={(event) =>
-                                normalizeGraphExpressionDraft(
-                                  item.id,
-                                  event.target.value,
-                                  graphTabUsesSelectedObject
-                                )
-                              }
-                              onBlur={() => {
-                                if (!graphTabUsesSelectedObject) return;
-                                commitSelectedGraphExpressions();
-                              }}
-                            />
-                            <Switch
-                              size="small"
-                              checked={item.visible !== false}
-                              onChange={(event) => {
-                                const visible = event.target.checked;
-                                if (graphTabUsesSelectedObject) {
-                                  updateSelectedGraphFunction(item.id, { visible });
-                                  return;
-                                }
-                                updateDraftGraphFunction(item.id, { visible });
-                              }}
-                            />
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                if (graphTabUsesSelectedObject) {
-                                  removeSelectedGraphFunction(item.id);
-                                  return;
-                                }
-                                removeDraftGraphFunction(item.id);
-                              }}
-                              disabled={graphTabFunctions.length <= 1}
-                            >
-                              <CloseRoundedIcon fontSize="small" />
-                            </IconButton>
-                          </div>
-                          <div className="workbook-session__graph-transform-row">
-                            <TextField
-                              size="small"
-                              type="number"
-                              label="Δx"
-                              value={item.offsetX ?? 0}
-                              onChange={(event) => {
-                                const next = Number(event.target.value);
-                                const safe = Number.isFinite(next)
-                                  ? clampGraphOffset(next)
-                                  : clampGraphOffset(item.offsetX ?? 0);
-                                if (graphTabUsesSelectedObject) {
-                                  updateSelectedGraphFunction(item.id, { offsetX: safe });
-                                  return;
-                                }
-                                updateDraftGraphFunction(item.id, { offsetX: safe });
-                              }}
-                            />
-                            <TextField
-                              size="small"
-                              type="number"
-                              label="Δy"
-                              value={item.offsetY ?? 0}
-                              onChange={(event) => {
-                                const next = Number(event.target.value);
-                                const safe = Number.isFinite(next)
-                                  ? clampGraphOffset(next)
-                                  : clampGraphOffset(item.offsetY ?? 0);
-                                if (graphTabUsesSelectedObject) {
-                                  updateSelectedGraphFunction(item.id, { offsetY: safe });
-                                  return;
-                                }
-                                updateDraftGraphFunction(item.id, { offsetY: safe });
-                              }}
-                            />
-                            <TextField
-                              size="small"
-                              type="number"
-                              label="Kx"
-                              value={item.scaleX ?? 1}
-                              inputProps={{ step: 0.1, min: -12, max: 12 }}
-                              onChange={(event) => {
-                                const next = Number(event.target.value);
-                                const safe = Number.isFinite(next)
-                                  ? normalizeGraphScale(next, item.scaleX ?? 1)
-                                  : normalizeGraphScale(item.scaleX ?? 1, 1);
-                                if (graphTabUsesSelectedObject) {
-                                  updateSelectedGraphFunction(item.id, { scaleX: safe });
-                                  return;
-                                }
-                                updateDraftGraphFunction(item.id, { scaleX: safe });
-                              }}
-                            />
-                            <TextField
-                              size="small"
-                              type="number"
-                              label="Ky"
-                              value={item.scaleY ?? 1}
-                              inputProps={{ step: 0.1, min: -12, max: 12 }}
-                              onChange={(event) => {
-                                const next = Number(event.target.value);
-                                const safe = Number.isFinite(next)
-                                  ? normalizeGraphScale(next, item.scaleY ?? 1)
-                                  : normalizeGraphScale(item.scaleY ?? 1, 1);
-                                if (graphTabUsesSelectedObject) {
-                                  updateSelectedGraphFunction(item.id, { scaleY: safe });
-                                  return;
-                                }
-                                updateDraftGraphFunction(item.id, { scaleY: safe });
-                              }}
-                            />
-                          </div>
-                          <div className="workbook-session__graph-transform-actions">
-                            <Tooltip title="Отразить график по оси X" arrow>
-                              <IconButton
-                                size="small"
-                                onClick={() => reflectGraphFunctionByAxis(item.id, "x")}
-                                aria-label="Отразить график по оси X"
-                              >
-                                <SwapVertRoundedIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Отразить график по оси Y" arrow>
-                              <IconButton
-                                size="small"
-                                onClick={() => reflectGraphFunctionByAxis(item.id, "y")}
-                                aria-label="Отразить график по оси Y"
-                              >
-                                <SwapHorizRoundedIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                   <p className="workbook-session__hint">
-                    Координатная сетка и подписи осей синхронизированы автоматически.
+                    Редактируется выбранная координатная плоскость.
                   </p>
+
+                  <div className="workbook-session__graph-appearance">
+                    <label>
+                      <span>Цвет осей</span>
+                      <input
+                        type="color"
+                        value={selectedFunctionGraphAxisColor}
+                        onChange={(event) =>
+                          updateSelectedFunctionGraphAppearance({
+                            axisColor: event.target.value || "#ff8e3c",
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>Цвет плоскости</span>
+                      <input
+                        type="color"
+                        value={selectedFunctionGraphPlaneColor}
+                        onChange={(event) =>
+                          updateSelectedFunctionGraphAppearance({
+                            planeColor: event.target.value || "#8ea7ff",
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+
+                  <div className="workbook-session__graph-mode-tabs">
+                    <button
+                      type="button"
+                      className={graphWorkbenchTab === "catalog" ? "is-active" : ""}
+                      onClick={() => setGraphWorkbenchTab("catalog")}
+                    >
+                      Каталог
+                    </button>
+                    <button
+                      type="button"
+                      className={graphWorkbenchTab === "work" ? "is-active" : ""}
+                      onClick={() => setGraphWorkbenchTab("work")}
+                    >
+                      Работа с чертежом
+                    </button>
+                  </div>
+
+                  {graphWorkbenchTab === "catalog" ? (
+                    <>
+                      <div className="workbook-session__graph-builder-row">
+                        <TextField
+                          size="small"
+                          value={graphExpressionDraft}
+                          error={Boolean(graphDraftError)}
+                          helperText={
+                            graphDraftError ??
+                            "Примеры: y = x^2 - 3*x + 2, sin(x), 1/x, abs(x)"
+                          }
+                          onChange={(event) => {
+                            setGraphExpressionDraft(event.target.value);
+                            setSelectedGraphPresetId(null);
+                            if (graphDraftError) setGraphDraftError(null);
+                          }}
+                          placeholder="Формула y = ..."
+                        />
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            setSelectedGraphPresetId(null);
+                            appendSelectedGraphFunction();
+                          }}
+                        >
+                          Добавить
+                        </Button>
+                      </div>
+                      <div className="workbook-session__graph-presets">
+                        {FUNCTION_GRAPH_PRESETS.map((preset) => (
+                          <button
+                            type="button"
+                            key={preset.id}
+                            className={`workbook-session__graph-preset ${
+                              selectedGraphPresetId === preset.id ? "is-selected" : ""
+                            }`}
+                            onClick={() => {
+                              setSelectedGraphPresetId(preset.id);
+                              activateGraphCatalogCursor();
+                              appendSelectedGraphFunction(preset.expression);
+                            }}
+                            aria-pressed={selectedGraphPresetId === preset.id}
+                          >
+                            <strong>{preset.title}</strong>
+                            <span>{preset.expression}</span>
+                            <small>{preset.description}</small>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {graphTabFunctions.length === 0 ? (
+                        <Alert
+                          severity="info"
+                          action={
+                            <Button size="small" onClick={() => setGraphWorkbenchTab("catalog")}>
+                              Каталог
+                            </Button>
+                          }
+                        >
+                          На плоскости пока нет функций. Добавьте формулу или выберите шаблон.
+                        </Alert>
+                      ) : (
+                        <div className="workbook-session__graph-builder-list">
+                          {graphTabFunctions.map((item) => (
+                            <div
+                              key={`graph-builder-${item.id}`}
+                              className="workbook-session__graph-builder-item workbook-session__graph-builder-item--work"
+                            >
+                              <div className="workbook-session__graph-builder-item-main">
+                                <input
+                                  type="color"
+                                  value={item.color}
+                                  onChange={(event) => {
+                                    const nextColor = event.target.value || item.color;
+                                    updateSelectedGraphFunction(item.id, { color: nextColor });
+                                  }}
+                                />
+                                <TextField
+                                  size="small"
+                                  value={item.expression}
+                                  error={!isFunctionExpressionValid(item.expression)}
+                                  placeholder="f(x)"
+                                  onChange={(event) =>
+                                    normalizeGraphExpressionDraft(item.id, event.target.value, true)
+                                  }
+                                  onBlur={() => {
+                                    commitSelectedGraphExpressions();
+                                  }}
+                                />
+                                <Switch
+                                  size="small"
+                                  checked={item.visible !== false}
+                                  onChange={(event) => {
+                                    const visible = event.target.checked;
+                                    updateSelectedGraphFunction(item.id, { visible });
+                                  }}
+                                />
+                                <IconButton
+                                  size="small"
+                                  onClick={() => {
+                                    removeSelectedGraphFunction(item.id);
+                                  }}
+                                  disabled={graphTabFunctions.length <= 1}
+                                >
+                                  <CloseRoundedIcon fontSize="small" />
+                                </IconButton>
+                              </div>
+                              <div className="workbook-session__graph-transform-row">
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  label="Δx"
+                                  value={item.offsetX ?? 0}
+                                  onChange={(event) => {
+                                    const next = Number(event.target.value);
+                                    const safe = Number.isFinite(next)
+                                      ? clampGraphOffset(next)
+                                      : clampGraphOffset(item.offsetX ?? 0);
+                                    updateSelectedGraphFunction(item.id, { offsetX: safe });
+                                  }}
+                                />
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  label="Δy"
+                                  value={item.offsetY ?? 0}
+                                  onChange={(event) => {
+                                    const next = Number(event.target.value);
+                                    const safe = Number.isFinite(next)
+                                      ? clampGraphOffset(next)
+                                      : clampGraphOffset(item.offsetY ?? 0);
+                                    updateSelectedGraphFunction(item.id, { offsetY: safe });
+                                  }}
+                                />
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  label="Kx"
+                                  value={item.scaleX ?? 1}
+                                  inputProps={{ step: 0.1, min: -12, max: 12 }}
+                                  onChange={(event) => {
+                                    const next = Number(event.target.value);
+                                    const safe = Number.isFinite(next)
+                                      ? normalizeGraphScale(next, item.scaleX ?? 1)
+                                      : normalizeGraphScale(item.scaleX ?? 1, 1);
+                                    updateSelectedGraphFunction(item.id, { scaleX: safe });
+                                  }}
+                                />
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  label="Ky"
+                                  value={item.scaleY ?? 1}
+                                  inputProps={{ step: 0.1, min: -12, max: 12 }}
+                                  onChange={(event) => {
+                                    const next = Number(event.target.value);
+                                    const safe = Number.isFinite(next)
+                                      ? normalizeGraphScale(next, item.scaleY ?? 1)
+                                      : normalizeGraphScale(item.scaleY ?? 1, 1);
+                                    updateSelectedGraphFunction(item.id, { scaleY: safe });
+                                  }}
+                                />
+                              </div>
+                              <div className="workbook-session__graph-transform-actions">
+                                <Tooltip title="Отразить график по оси X" arrow>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => reflectGraphFunctionByAxis(item.id, "x")}
+                                    aria-label="Отразить график по оси X"
+                                  >
+                                    <SwapVertRoundedIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Отразить график по оси Y" arrow>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => reflectGraphFunctionByAxis(item.id, "y")}
+                                    aria-label="Отразить график по оси Y"
+                                  >
+                                    <SwapHorizRoundedIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <p className="workbook-session__hint">
+                        Координатная сетка и оси отображаются прямо на доске в границах плоскости.
+                      </p>
+                    </>
+                  )}
                 </>
               )}
 
@@ -10647,6 +10654,18 @@ export default function WorkbookSessionPage() {
                 : undefined
             }
           >
+            <MenuItem
+              onClick={() => void copyAreaSelectionObjects()}
+              disabled={!canSelect || !areaSelection || areaSelection.objectIds.length === 0}
+            >
+              Скопировать область
+            </MenuItem>
+            <MenuItem
+              onClick={() => void cutAreaSelectionObjects()}
+              disabled={!canDelete || !areaSelection || areaSelection.objectIds.length === 0}
+            >
+              Вырезать область
+            </MenuItem>
             <MenuItem
               onClick={() => void createCompositionFromAreaSelection()}
               disabled={!canSelect || !areaSelection || areaSelection.objectIds.length < 2}

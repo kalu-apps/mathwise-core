@@ -286,13 +286,10 @@ export default function LessonDetails() {
         </div>
         <header className="lesson-details__hero">
           <span className="lesson-details__kicker">Содержание урока</span>
-          <div className="lesson-details__title-row">
-            <h1 className="lesson-details__title">{lesson.title}</h1>
-            <div className="lesson-details__meta-badge">
-              <span>Длительность</span>
-              <strong>{durationText}</strong>
-            </div>
-          </div>
+          <span className="lesson-details__duration-chip">
+            Длительность: {durationText}
+          </span>
+          <h1 className="lesson-details__title">{lesson.title}</h1>
         </header>
 
         <div className="lesson-details__video-card">

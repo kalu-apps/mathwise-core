@@ -69,6 +69,22 @@
   z-index: 1;
 }
 
+@supports (content-visibility: auto) {
+  .courses-preview,
+  .courses-page,
+  .course-details,
+  .booking-page,
+  .student-profile,
+  .teacher-dashboard,
+  .teacher-student-profile,
+  .about-teacher-page,
+  .workbook-hub,
+  .workbook-session {
+    content-visibility: auto;
+    contain-intrinsic-size: 960px;
+  }
+}
+
 @media (max-width: 768px) {
   .hero::before,
   .courses-preview::before,

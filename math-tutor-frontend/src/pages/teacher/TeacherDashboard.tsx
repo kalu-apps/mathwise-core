@@ -5,6 +5,7 @@ import {
   Tabs,
   Tab,
   Button,
+  Drawer,
   TextField,
   MenuItem,
   IconButton,
@@ -34,6 +35,7 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import TipsAndUpdatesRoundedIcon from "@mui/icons-material/TipsAndUpdatesRounded";
+import AppsRoundedIcon from "@mui/icons-material/AppsRounded";
 
 import { StudentCard } from "@/entities/student/ui/StudentCard";
 import { CourseCard } from "@/entities/course/ui/CourseCard";
@@ -43,7 +45,6 @@ import { TeacherProfile } from "@/features/teacher-profile/ui/TeacherProfile";
 import { NewsFeedPanel } from "@/features/news-feed/ui/NewsFeedPanel";
 import { ListPagination } from "@/shared/ui/ListPagination";
 import { StudyCabinetPanel } from "@/shared/ui/StudyCabinetPanel";
-import { AxiomAssistant } from "@/features/assistant/ui/AxiomAssistant";
 import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { ListSkeleton } from "@/shared/ui/loading";
 
@@ -140,6 +141,7 @@ export default function TeacherDashboard() {
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isNonDesktop = useMediaQuery(theme.breakpoints.down("lg"));
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -196,6 +198,7 @@ export default function TeacherDashboard() {
   const [expandedSlotsDate, setExpandedSlotsDate] = useState<string | null>(
     null
   );
+  const [tabMenuOpen, setTabMenuOpen] = useState(false);
   const [scheduledPage, setScheduledPage] = useState(1);
   const [completedPage, setCompletedPage] = useState(1);
   const [confirm, setConfirm] = useState<{
@@ -213,6 +216,12 @@ export default function TeacherDashboard() {
     const nextTab = getTabFromQuery(searchParams.get("tab"));
     setTab((prev) => (prev === nextTab ? prev : nextTab));
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!isNonDesktop && tabMenuOpen) {
+      setTabMenuOpen(false);
+    }
+  }, [isNonDesktop, tabMenuOpen]);
 
   const refreshAll = useCallback(async () => {
     if (!userId || !isTeacher) {
@@ -645,26 +654,6 @@ export default function TeacherDashboard() {
       sortKey: number;
     }> = [];
 
-    studyDrafts
-      .filter((draft) => draft.kind === "CLASS")
-      .slice(0, 4)
-      .forEach((draft) => {
-        const updatedAt = new Date(draft.updatedAt).getTime();
-        reminders.push({
-          id: `teacher-class-${draft.sessionId}`,
-          title: draft.title || "Коллективный урок",
-          subtitle: `Последняя активность: ${new Date(draft.updatedAt).toLocaleString("ru-RU", {
-            day: "2-digit",
-            month: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}`,
-          badge: "Коллектив",
-          source: "system",
-          sortKey: Number.isFinite(updatedAt) ? updatedAt : now,
-        });
-      });
-
     studyNotes
       .filter((note) => note.remind && !note.done && note.dueAt)
       .forEach((note) => {
@@ -704,7 +693,7 @@ export default function TeacherDashboard() {
           highlighted: item.highlighted,
         };
       });
-  }, [studyDrafts, studyNotes]);
+  }, [studyNotes]);
 
   const studyReminderHint = useMemo(() => {
     if (studyReminderCount <= 0) return null;
@@ -1373,6 +1362,59 @@ export default function TeacherDashboard() {
 
   if (!user || !isTeacher) return null;
 
+  const teacherTabItems = [
+    {
+      index: 0,
+      label: t("teacherDashboard.tabProfile"),
+      icon: <PersonOutlineRoundedIcon />,
+    },
+    {
+      index: 1,
+      label: t("teacherDashboard.tabStudents"),
+      icon: <GroupRoundedIcon />,
+    },
+    {
+      index: 2,
+      label: t("teacherDashboard.tabCourses"),
+      icon: <MenuBookRoundedIcon />,
+    },
+    {
+      index: 3,
+      label: t("teacherDashboard.tabBooking"),
+      icon: <EventAvailableRoundedIcon />,
+    },
+    {
+      index: 4,
+      label: t("teacherDashboard.tabStudy"),
+      icon: (
+        <Badge color="warning" variant="dot" invisible={studyReminderCount <= 0}>
+          <AutoStoriesRoundedIcon />
+        </Badge>
+      ),
+    },
+    {
+      index: 5,
+      label: "Чат",
+      icon: (
+        <Badge
+          color="error"
+          badgeContent={chatUnreadCount > 99 ? "99+" : chatUnreadCount}
+          invisible={chatUnreadCount <= 0}
+        >
+          <ForumRoundedIcon />
+        </Badge>
+      ),
+    },
+    {
+      index: 6,
+      label: t("teacherDashboard.tabStats"),
+      icon: <InsightsRoundedIcon />,
+    },
+  ] as const;
+
+  const activeTeacherTab =
+    teacherTabItems.find((item) => item.index === tab) ?? teacherTabItems[0];
+
   return (
     <div className="teacher-dashboard">
       {upcomingReminder && (
@@ -1389,90 +1431,78 @@ export default function TeacherDashboard() {
         </h1>
       </div>
 
-      <Tabs
-        value={tab}
-        onChange={(_, v) => {
-          setTab(v);
-          setSearchParams({ tab: TAB_KEYS[v] });
-        }}
-        className="teacher-dashboard__tabs"
-      >
-        <Tab
-          label={
-            <span className="teacher-dashboard__tab-label">
-              {t("teacherDashboard.tabProfile")}
-            </span>
-          }
-          icon={<PersonOutlineRoundedIcon />}
-          iconPosition="start"
-        />
-        <Tab
-          label={
-            <span className="teacher-dashboard__tab-label">
-              {t("teacherDashboard.tabStudents")}
-            </span>
-          }
-          icon={<GroupRoundedIcon />}
-          iconPosition="start"
-        />
-        <Tab
-          label={
-            <span className="teacher-dashboard__tab-label">
-              {t("teacherDashboard.tabCourses")}
-            </span>
-          }
-          icon={<MenuBookRoundedIcon />}
-          iconPosition="start"
-        />
-        <Tab
-          label={
-            <span className="teacher-dashboard__tab-label">
-              {t("teacherDashboard.tabBooking")}
-            </span>
-          }
-          icon={<EventAvailableRoundedIcon />}
-          iconPosition="start"
-        />
-        <Tab
-          label={
-            <span className="teacher-dashboard__tab-label">
-              {t("teacherDashboard.tabStudy")}
-            </span>
-          }
-          icon={
-            <Badge
-              color="warning"
-              variant="dot"
-              invisible={studyReminderCount <= 0}
-            >
-              <AutoStoriesRoundedIcon />
-            </Badge>
-          }
-          iconPosition="start"
-        />
-        <Tab
-          label={<span className="teacher-dashboard__tab-label">Чат</span>}
-          icon={
-            <Badge
-              color="error"
-              badgeContent={chatUnreadCount > 99 ? "99+" : chatUnreadCount}
-              invisible={chatUnreadCount <= 0}
-            >
-              <ForumRoundedIcon />
-            </Badge>
-          }
-          iconPosition="start"
-        />
-        <Tab
-          label={
-            <span className="teacher-dashboard__tab-label">
-              {t("teacherDashboard.tabStats")}
-            </span>
-          }
-          icon={<InsightsRoundedIcon />}
-          iconPosition="start"
-        />
-      </Tabs>
+      {!isNonDesktop ? (
+        <Tabs
+          value={tab}
+          onChange={(_, v) => {
+            setTab(v);
+            setSearchParams({ tab: TAB_KEYS[v] });
+          }}
+          className="teacher-dashboard__tabs"
+        >
+          {teacherTabItems.map((item) => (
+            <Tab
+              key={item.index}
+              label={
+                <span className="teacher-dashboard__tab-label">{item.label}</span>
+              }
+              icon={item.icon}
+              iconPosition="start"
+            />
+          ))}
+        </Tabs>
+      ) : (
+        <div className="teacher-dashboard__tabs-mobile">
+          <Button
+            className="teacher-dashboard__tabs-mobile-trigger"
+            variant="outlined"
+            startIcon={<AppsRoundedIcon />}
+            onClick={() => setTabMenuOpen(true)}
+          >
+            Раздел: {activeTeacherTab.label}
+          </Button>
+        </div>
+      )}
+      {isNonDesktop ? (
+        <Drawer
+          anchor={isMobile ? "bottom" : "left"}
+          open={tabMenuOpen}
+          onClose={() => setTabMenuOpen(false)}
+          PaperProps={{
+            className: isMobile
+              ? "teacher-dashboard__tabs-drawer teacher-dashboard__tabs-drawer--mobile"
+              : "teacher-dashboard__tabs-drawer",
+          }}
+        >
+          <div className="teacher-dashboard__tabs-drawer-head">
+            <h3>Разделы кабинета</h3>
+            <span>Выберите нужный раздел</span>
+          </div>
+          <div className="teacher-dashboard__tabs-drawer-grid">
+            {teacherTabItems.map((item) => (
+              <button
+                key={item.index}
+                type="button"
+                className={`teacher-dashboard__tabs-drawer-item ${
+                  tab === item.index ? "is-active" : ""
+                }`}
+                onClick={() => {
+                  setTab(item.index);
+                  setSearchParams({ tab: TAB_KEYS[item.index] });
+                  setTabMenuOpen(false);
+                }}
+              >
+                <span className="teacher-dashboard__tabs-drawer-icon">
+                  {item.icon}
+                </span>
+                <span className="teacher-dashboard__tabs-drawer-label">
+                  {item.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </Drawer>
+      ) : null}
       {/* PROFILE */}
       {tab === 0 && (
         <div className="teacher-dashboard__profile-layout">
@@ -2139,11 +2169,6 @@ export default function TeacherDashboard() {
         />
       )}
 
-      <AxiomAssistant
-        userId={user.id}
-        role="teacher"
-        mode={tab === 2 ? "course" : tab === 4 ? "study-cabinet" : "teacher-dashboard"}
-      />
     </div>
   );
 }

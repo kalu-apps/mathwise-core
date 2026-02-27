@@ -288,6 +288,26 @@ export default function WorkbookHubPage() {
     const preparedTab = window.open("", "_blank");
     try {
       if (isStudent && card.kind === "CLASS" && card.statusForCard === "ended") {
+        const linkedPersonalSessionId =
+          card.redirectSessionId &&
+          cards.some(
+            (candidate) =>
+              candidate.sessionId === card.redirectSessionId &&
+              candidate.kind === "PERSONAL"
+          )
+            ? card.redirectSessionId
+            : null;
+        if (linkedPersonalSessionId) {
+          const opened = openPreparedTabOrFallback(preparedTab, linkedPersonalSessionId);
+          if (!opened) {
+            setBlockedSessionUrl(buildSessionUrl(linkedPersonalSessionId));
+            setError(
+              "Браузер заблокировал новую вкладку. Открываем личную тетрадь в текущей вкладке."
+            );
+            openSessionFallbackCurrentTab(linkedPersonalSessionId);
+          }
+          return;
+        }
         const created = await duplicateWorkbookSession(card.sessionId);
         const opened = openPreparedTabOrFallback(preparedTab, created.session.id);
         if (!opened) {

@@ -1,9 +1,8 @@
 import {
+  Button,
   Chip,
   Dialog,
-  DialogActions,
   DialogContent,
-  Button,
   Stack,
   Typography,
 } from "@mui/material";
@@ -45,6 +44,12 @@ export function TestTemplatePreviewDialog({ open, template, onClose }: Props) {
               size="small"
               label={template.status === "published" ? "Опубликован" : "Черновик"}
               color={template.status === "published" ? "success" : "warning"}
+              sx={{ alignSelf: "flex-start" }}
+            />
+            <Chip
+              size="small"
+              label={template.assessmentKind === "exam" ? "Экзамен" : "Зачет"}
+              color={template.assessmentKind === "exam" ? "error" : "info"}
               sx={{ alignSelf: "flex-start" }}
             />
             <Typography variant="body2" color="text.secondary">
@@ -108,9 +113,6 @@ export function TestTemplatePreviewDialog({ open, template, onClose }: Props) {
           </Stack>
         )}
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Закрыть</Button>
-      </DialogActions>
     </Dialog>
   );
 }

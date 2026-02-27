@@ -54,6 +54,7 @@ export type TestTemplate = {
   title: string;
   description?: string;
   durationMinutes: number;
+  assessmentKind: "credit" | "exam";
   createdByTeacherId: string;
   createdAt: string;
   updatedAt: string;
@@ -67,6 +68,7 @@ export type TestTemplateSnapshot = {
   title: string;
   description?: string;
   durationMinutes: number;
+  assessmentKind: "credit" | "exam";
   questions: AssessmentQuestion[];
   recommendationMap?: AssessmentRecommendationMapItem[];
 };

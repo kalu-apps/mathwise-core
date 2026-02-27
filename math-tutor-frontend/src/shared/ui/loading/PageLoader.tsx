@@ -1,4 +1,5 @@
 import { useDelayedLoading } from "@/shared/lib/useDelayedLoading";
+import { t } from "@/shared/i18n";
 
 type PageLoaderProps = {
   title?: string;
@@ -6,20 +7,22 @@ type PageLoaderProps = {
   className?: string;
   minHeight?: number | string;
   showRingDelayMs?: number;
+  showRingMinVisibleMs?: number;
 };
 
 export function PageLoader({
-  title = "Загрузка",
+  title = t("common.loading"),
   description: _description,
   className,
   minHeight = 320,
-  showRingDelayMs = 120,
+  showRingDelayMs = 220,
+  showRingMinVisibleMs = 280,
 }: PageLoaderProps) {
   void _description;
 
   const showRing = useDelayedLoading(true, {
     delayMs: showRingDelayMs,
-    minVisibleMs: 0,
+    minVisibleMs: showRingMinVisibleMs,
   });
 
   const classes = ["ui-loader", "ui-loader--page", className]

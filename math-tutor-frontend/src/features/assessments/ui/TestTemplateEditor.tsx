@@ -66,6 +66,7 @@ const buildSnapshot = (input: {
   templateId: string | null;
   title: string;
   description: string;
+  assessmentKind: "credit" | "exam";
   durationMinutes: string;
   questions: AssessmentQuestion[];
 }) =>
@@ -73,6 +74,7 @@ const buildSnapshot = (input: {
     templateId: input.templateId,
     title: input.title.trim(),
     description: input.description.trim(),
+    assessmentKind: input.assessmentKind,
     durationMinutes: input.durationMinutes.trim(),
     questions: input.questions,
   });
@@ -102,6 +104,7 @@ type TemplateSource = {
   templateId: string | null;
   title: string;
   description: string;
+  assessmentKind: "credit" | "exam";
   durationMinutes: string;
   questions: AssessmentQuestion[];
 };
@@ -118,6 +121,9 @@ export function TestTemplateEditor({
   const [templateId, setTemplateId] = useState<string | null>(initialTemplate?.id ?? null);
   const [title, setTitle] = useState(initialTemplate?.title ?? "");
   const [description, setDescription] = useState(initialTemplate?.description ?? "");
+  const [assessmentKind, setAssessmentKind] = useState<"credit" | "exam">(
+    initialTemplate?.assessmentKind === "exam" ? "exam" : "credit"
+  );
   const [durationMinutes, setDurationMinutes] = useState(
     initialTemplate?.durationMinutes ? String(initialTemplate.durationMinutes) : ""
   );
@@ -142,6 +148,7 @@ export function TestTemplateEditor({
       templateId: initialTemplate?.id ?? null,
       title: initialTemplate?.title ?? "",
       description: initialTemplate?.description ?? "",
+      assessmentKind: initialTemplate?.assessmentKind === "exam" ? "exam" : "credit",
       durationMinutes: initialTemplate?.durationMinutes
         ? String(initialTemplate.durationMinutes)
         : "",
@@ -157,6 +164,9 @@ export function TestTemplateEditor({
   const latestStateRef = useRef({
     title: initialTemplate?.title ?? "",
     description: initialTemplate?.description ?? "",
+    assessmentKind: (initialTemplate?.assessmentKind === "exam"
+      ? "exam"
+      : "credit") as "credit" | "exam",
     durationMinutes: initialTemplate?.durationMinutes
       ? String(initialTemplate.durationMinutes)
       : "",
@@ -344,6 +354,7 @@ export function TestTemplateEditor({
         templateId: templateIdRef.current ?? templateId,
         title,
         description,
+        assessmentKind,
         durationMinutes,
         questions,
       };
@@ -381,6 +392,7 @@ export function TestTemplateEditor({
         id: source.templateId ?? undefined,
         title: source.title,
         description: source.description,
+        assessmentKind: source.assessmentKind,
         durationMinutes: parsedDuration,
         createdByTeacherId: teacherId,
         questions: preparedQuestions,
@@ -394,12 +406,14 @@ export function TestTemplateEditor({
         templateId: saved.id,
         title: saved.title,
         description: saved.description ?? "",
+        assessmentKind: saved.assessmentKind,
         durationMinutes: String(saved.durationMinutes),
         questions: saved.questions,
       });
       latestStateRef.current = {
         title: saved.title,
         description: saved.description ?? "",
+        assessmentKind: saved.assessmentKind,
         durationMinutes: String(saved.durationMinutes),
         questions: saved.questions,
       };
@@ -426,6 +440,7 @@ export function TestTemplateEditor({
       templateId: templateIdRef.current,
       title: latest.title,
       description: latest.description,
+      assessmentKind: latest.assessmentKind,
       durationMinutes: latest.durationMinutes,
       questions: latest.questions,
     });
@@ -448,6 +463,7 @@ export function TestTemplateEditor({
           templateId: templateIdRef.current,
           title: latest.title,
           description: latest.description,
+          assessmentKind: latest.assessmentKind,
           durationMinutes: latest.durationMinutes,
           questions: latest.questions,
         }
@@ -464,6 +480,7 @@ export function TestTemplateEditor({
       templateId: templateIdRef.current,
       title,
       description,
+      assessmentKind,
       durationMinutes,
       questions,
     }) !== snapshotRef.current;
@@ -484,10 +501,11 @@ export function TestTemplateEditor({
     latestStateRef.current = {
       title,
       description,
+      assessmentKind,
       durationMinutes,
       questions,
     };
-  }, [title, description, durationMinutes, questions]);
+  }, [title, description, assessmentKind, durationMinutes, questions]);
 
   useEffect(() => {
     templateIdRef.current = templateId;
@@ -582,6 +600,27 @@ export function TestTemplateEditor({
               disabled={readOnly}
               size="small"
             />
+            <div className="assessment-editor__kind">
+              <span className="assessment-editor__kind-label">Формат проверки</span>
+              <div className="assessment-editor__kind-options">
+                <Button
+                  size="small"
+                  variant={assessmentKind === "credit" ? "contained" : "outlined"}
+                  onClick={() => setAssessmentKind("credit")}
+                  disabled={readOnly}
+                >
+                  Зачет
+                </Button>
+                <Button
+                  size="small"
+                  variant={assessmentKind === "exam" ? "contained" : "outlined"}
+                  onClick={() => setAssessmentKind("exam")}
+                  disabled={readOnly}
+                >
+                  Экзамен
+                </Button>
+              </div>
+            </div>
             <TextField
               label="Длительность (мин)"
               value={durationMinutes}

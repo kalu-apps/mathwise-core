@@ -73,8 +73,7 @@ export function LessonItem({
       </div>
 
       <span className="lesson-item__duration" title="Длительность урока">
-        <span className="lesson-item__duration-label">Длительность</span>
-        <strong>{durationText}</strong>
+        <strong>Длительность: {durationText}</strong>
       </span>
     </div>
   );

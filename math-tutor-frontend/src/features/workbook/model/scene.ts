@@ -299,7 +299,12 @@ const normalizeDocumentAsset = (raw: unknown): WorkbookDocumentAsset | null => {
     name,
     url,
     uploadedBy,
-    type: source.type === "pdf" ? "pdf" : "image",
+    type:
+      source.type === "pdf"
+        ? "pdf"
+        : source.type === "file"
+          ? "file"
+          : "image",
     uploadedAt:
       typeof source.uploadedAt === "string"
         ? source.uploadedAt

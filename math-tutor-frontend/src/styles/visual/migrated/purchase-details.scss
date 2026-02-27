@@ -196,6 +196,18 @@
   gap: 8px;
 }
 
+.purchase-details-page__bnpl-actions-inline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+
+  .MuiButton-root {
+    min-height: 36px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
 @media (max-width: 900px) {
   .purchase-details-page__grid {
     grid-template-columns: 1fr;
@@ -245,5 +257,9 @@
   .purchase-details-page__attempts-head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .purchase-details-page__bnpl-actions-inline {
+    grid-template-columns: 1fr;
   }
 }

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Alert, Button, CircularProgress } from "@mui/material";
+import { Alert, Button, CircularProgress, TextField } from "@mui/material";
 import { joinWorkbookInvite, resolveWorkbookInvite } from "@/features/workbook/model/api";
 import { useAuth } from "@/features/auth/model/AuthContext";
+import { ApiError } from "@/shared/api/client";
+import { t } from "@/shared/i18n";
 
 export default function WorkbookInviteJoinPage() {
   const { token = "" } = useParams();
@@ -24,10 +26,18 @@ export default function WorkbookInviteJoinPage() {
     joined: false,
   });
   const [blockedSessionUrl, setBlockedSessionUrl] = useState<string | null>(null);
+  const [guestName, setGuestName] = useState("");
+  const [guestNameError, setGuestNameError] = useState<string | null>(null);
 
   const canJoin = useMemo(
-    () => Boolean(user && token && !state.loading && !state.error),
-    [state.error, state.loading, token, user]
+    () =>
+      Boolean(
+        token &&
+          !state.loading &&
+          !state.error &&
+          (user || guestName.trim().length >= 2)
+      ),
+    [guestName, state.error, state.loading, token, user]
   );
 
   useEffect(() => {
@@ -36,23 +46,34 @@ export default function WorkbookInviteJoinPage() {
       if (!token) {
         if (!active) return;
         setState((prev) => ({
-          ...prev,
-          loading: false,
-          error: "Некорректная ссылка приглашения.",
-        }));
+            ...prev,
+            loading: false,
+            error: t("workbookInvite.invalidLink"),
+          }));
         return;
       }
       try {
         const info = await resolveWorkbookInvite(token);
         if (!active) return;
+        if (info.ended) {
+          setState((prev) => ({
+                ...prev,
+                loading: false,
+                error: t("workbookInvite.ended"),
+                title: info.title,
+                hostName: info.hostName,
+                sessionId: info.sessionId,
+          }));
+          return;
+        }
         if (info.expired || info.revoked) {
           setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: "Ссылка приглашения недействительна.",
-            title: info.title,
-            hostName: info.hostName,
-            sessionId: info.sessionId,
+                ...prev,
+                loading: false,
+                error: t("workbookInvite.inactive"),
+                title: info.title,
+                hostName: info.hostName,
+                sessionId: info.sessionId,
           }));
           return;
         }
@@ -67,10 +88,10 @@ export default function WorkbookInviteJoinPage() {
       } catch {
         if (!active) return;
         setState((prev) => ({
-          ...prev,
-          loading: false,
-          error: "Не удалось проверить ссылку приглашения.",
-        }));
+            ...prev,
+            loading: false,
+            error: t("workbookInvite.resolveError"),
+          }));
       }
     };
     void resolve();
@@ -81,11 +102,16 @@ export default function WorkbookInviteJoinPage() {
 
   const handleJoin = async () => {
     if (!token) return;
+      if (!user && guestName.trim().length < 2) {
+      setGuestNameError(t("workbookInvite.guestNameRequired"));
+      return;
+    }
+    setGuestNameError(null);
     setBlockedSessionUrl(null);
     const preparedTab = window.open("", "_blank");
     try {
       setState((prev) => ({ ...prev, loading: true }));
-      const joined = await joinWorkbookInvite(token);
+      const joined = await joinWorkbookInvite(token, user ? undefined : guestName.trim());
       const targetPath = `/workbook/session/${encodeURIComponent(joined.session.id)}`;
       const targetUrl = `${window.location.origin}${targetPath}`;
       setState((prev) => ({
@@ -106,23 +132,34 @@ export default function WorkbookInviteJoinPage() {
         } catch {
           // ignore browser focus restrictions
         }
-        navigate("/workbook", { replace: true });
+        if (user) {
+          navigate("/workbook", { replace: true });
+        } else {
+          window.location.assign("/");
+        }
         return;
       }
       setState((prev) => ({
-        ...prev,
-        loading: false,
-        error:
-          "Подключение выполнено, но браузер заблокировал новую вкладку. Разрешите pop-up и откройте сессию из раздела рабочей тетради.",
-      }));
+            ...prev,
+            loading: false,
+            error: t("workbookInvite.popupBlocked"),
+          }));
       setBlockedSessionUrl(targetUrl);
       return;
-    } catch {
+    } catch (error) {
       if (preparedTab && !preparedTab.closed) preparedTab.close();
+      const detailsMessage =
+        error instanceof ApiError &&
+        typeof error.details === "object" &&
+        error.details &&
+        "error" in error.details &&
+        typeof (error.details as { error?: unknown }).error === "string"
+          ? (error.details as { error: string }).error
+          : null;
       setState((prev) => ({
         ...prev,
         loading: false,
-        error: "Не удалось подключиться к коллективной сессии.",
+        error: detailsMessage ?? t("workbookInvite.joinError"),
       }));
     }
   };
@@ -130,19 +167,19 @@ export default function WorkbookInviteJoinPage() {
   return (
     <section className="workbook-invite">
       <article className="workbook-invite__card">
-        <h1>Подключение к рабочей тетради</h1>
+        <h1>{t("workbookInvite.title")}</h1>
         {state.loading ? (
           <div className="workbook-invite__loading">
             <CircularProgress size={24} />
-            <span>Проверяем приглашение...</span>
+            <span>{t("workbookInvite.checkingInvite")}</span>
           </div>
         ) : null}
         {state.error ? <Alert severity="error">{state.error}</Alert> : null}
         {blockedSessionUrl ? (
           <Alert severity="warning">
-            Открыть вручную:{" "}
+            {t("workbookInvite.manualOpen")}:{" "}
             <a href={blockedSessionUrl} target="_blank" rel="noopener noreferrer">
-              перейти в сессию в новой вкладке
+              {t("workbookInvite.manualOpenAction")}
             </a>
             .
           </Alert>
@@ -150,24 +187,37 @@ export default function WorkbookInviteJoinPage() {
         {!state.loading && !state.error ? (
           <div className="workbook-invite__meta">
             <p>
-              Сессия: <strong>{state.title}</strong>
+              {t("workbookInvite.sessionLabel")}: <strong>{state.title}</strong>
             </p>
             <p>
-              Преподаватель: <strong>{state.hostName}</strong>
+              {t("workbookInvite.teacherLabel")}: <strong>{state.hostName}</strong>
             </p>
+            {!user ? (
+              <TextField
+                size="small"
+                label={t("workbookInvite.guestNameLabel")}
+                value={guestName}
+                onChange={(event) => {
+                  setGuestName(event.target.value);
+                  if (guestNameError) setGuestNameError(null);
+                }}
+                error={Boolean(guestNameError)}
+                helperText={guestNameError ?? t("workbookInvite.guestNameHint")}
+              />
+            ) : null}
           </div>
         ) : null}
         {!state.loading ? (
           <div className="workbook-invite__actions">
-            <Button variant="outlined" onClick={() => navigate("/workbook")}>
-              К рабочим тетрадям
+            <Button variant="outlined" onClick={() => navigate(user ? "/workbook" : "/")}>
+              {t("workbookInvite.openWorkbook")}
             </Button>
             <Button
               variant="contained"
               onClick={() => void handleJoin()}
               disabled={!canJoin || state.joined}
             >
-              Подключиться
+              {t("workbookInvite.join")}
             </Button>
           </div>
         ) : null}

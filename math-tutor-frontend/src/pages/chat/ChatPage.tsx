@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type ReactNode,
 } from "react";
 import {
   Alert,
@@ -62,6 +63,7 @@ import type {
   TeacherChatThread,
 } from "@/features/chat/model/types";
 import { fileToDataUrl } from "@/shared/lib/files";
+import { generateId } from "@/shared/lib/id";
 
 type LocationState = {
   from?: string;
@@ -156,6 +158,68 @@ const formatPlaybackTime = (seconds: number) => {
     .toString()
     .padStart(2, "0");
   return `${mins}:${secs}`;
+};
+
+const CHAT_LINK_PATTERN = /\b((?:https?:\/\/|www\.)[^\s]+)/gi;
+
+const normalizeChatLinkUrl = (value: string) =>
+  /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+const splitChatLinkToken = (token: string) => {
+  let tail = "";
+  let urlToken = token;
+  while (
+    urlToken.length > 0 &&
+    /[),.!?:;"'\]]/.test(urlToken[urlToken.length - 1] ?? "")
+  ) {
+    tail = `${urlToken[urlToken.length - 1]}${tail}`;
+    urlToken = urlToken.slice(0, -1);
+  }
+  return {
+    urlToken,
+    tail,
+  };
+};
+
+const renderChatMessageText = (value: string): ReactNode => {
+  const text = value ?? "";
+  if (!text) return "";
+  const nodes: ReactNode[] = [];
+  let cursor = 0;
+  CHAT_LINK_PATTERN.lastIndex = 0;
+  let match: RegExpExecArray | null = CHAT_LINK_PATTERN.exec(text);
+  while (match) {
+    const full = match[0] ?? "";
+    const index = match.index ?? 0;
+    if (index > cursor) {
+      nodes.push(
+        <span key={`text-${cursor}`}>{text.slice(cursor, index)}</span>
+      );
+    }
+    const { urlToken, tail } = splitChatLinkToken(full);
+    if (urlToken) {
+      nodes.push(
+        <a
+          key={`link-${index}-${urlToken}`}
+          href={normalizeChatLinkUrl(urlToken)}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="chat-page__message-link"
+        >
+          {urlToken}
+        </a>
+      );
+    }
+    if (tail) {
+      nodes.push(<span key={`tail-${index}`}>{tail}</span>);
+    }
+    cursor = index + full.length;
+    match = CHAT_LINK_PATTERN.exec(text);
+  }
+  if (cursor < text.length) {
+    nodes.push(<span key={`text-tail-${cursor}`}>{text.slice(cursor)}</span>);
+  }
+  return nodes;
 };
 
 const getAttachmentKind = (mimeType: string) => {
@@ -1056,6 +1120,9 @@ export default function ChatPage() {
       setSending(true);
       setMessagesError(null);
       let resultingThreadId = activeThreadId;
+      let optimisticMessageIds: string[] = [];
+      const restoreDraftText = text;
+      const restoreDraftAttachments = safeAttachments;
       try {
         if (editingMessageId && activeThreadId) {
           await updateTeacherChatMessage({
@@ -1086,6 +1153,37 @@ export default function ChatPage() {
             payloads.push({ text });
           }
 
+          if (activeThreadId) {
+            const senderName =
+              `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+              (user.role === "teacher"
+                ? selectedThread?.teacherName || "Преподаватель"
+                : selectedThread?.studentName || "Студент");
+            const senderPhoto =
+              user.role === "teacher"
+                ? selectedThread?.teacherPhoto
+                : selectedThread?.studentPhoto;
+            const baseTimestamp = Date.now();
+            const optimisticMessages: TeacherChatMessage[] = payloads.map(
+              (payload, index) => ({
+                id: `optimistic-${generateId()}`,
+                threadId: activeThreadId,
+                senderId: user.id,
+                senderRole: user.role,
+                senderName,
+                senderPhoto,
+                text: payload.text,
+                createdAt: new Date(baseTimestamp + index).toISOString(),
+                attachments: payload.attachments ?? [],
+                readByPeer: false,
+              })
+            );
+            optimisticMessageIds = optimisticMessages.map((item) => item.id);
+            setMessages((current) => [...current, ...optimisticMessages]);
+            resetComposer();
+            closeMessageMenu();
+          }
+
           let createdThreadId: string | null = null;
           for (const payload of payloads) {
             const created = await sendTeacherChatMessage({
@@ -1102,20 +1200,21 @@ export default function ChatPage() {
             resultingThreadId = createdThreadId;
           }
         }
-        resetComposer();
-        try {
-          await loadThreads({ keepSpinner: true });
-        } catch {
-          // the message may already be sent; refresh errors are non-fatal
+        if (!optimisticMessageIds.length) {
+          resetComposer();
         }
+        void loadThreads({ keepSpinner: true }).catch(() => undefined);
         if (resultingThreadId) {
-          try {
-            await loadMessages(resultingThreadId, { silent: true });
-          } catch {
-            // the message may already be sent; refresh errors are non-fatal
-          }
+          void loadMessages(resultingThreadId, { silent: true }).catch(() => undefined);
         }
       } catch (error) {
+        if (optimisticMessageIds.length > 0) {
+          setMessages((current) =>
+            current.filter((message) => !optimisticMessageIds.includes(message.id))
+          );
+          setInputValue(restoreDraftText);
+          setComposerAttachments(restoreDraftAttachments);
+        }
         setMessagesError(
           error instanceof Error ? error.message : "Не удалось отправить сообщение."
         );
@@ -1130,7 +1229,9 @@ export default function ChatPage() {
       isRecordingAudio,
       loadMessages,
       loadThreads,
+      closeMessageMenu,
       resetComposer,
+      selectedThread,
       selectedThreadId,
       sending,
       user,
@@ -1311,7 +1412,7 @@ export default function ChatPage() {
                 <h2>
                   {isTeacher
                     ? selectedThread?.studentName ?? "Выберите диалог"
-                    : selectedThread?.teacherName ?? "Чат с преподавателем"}
+                    : selectedThread?.teacherName ?? "Чат"}
                 </h2>
                 <p>
                   {isTeacher
@@ -1344,7 +1445,7 @@ export default function ChatPage() {
           {chatUnavailable ? (
             <div className="chat-page__empty-gate">
               <Alert severity="warning">
-                Чат с преподавателем доступен после покупки курса по премиум тарифу
+                Чат доступен после покупки курса по премиум тарифу
                 или записи на индивидуальное занятие.
               </Alert>
               <div className="chat-page__empty-actions">
@@ -1441,7 +1542,7 @@ export default function ChatPage() {
                           });
                         }}
                       >
-                        {message.text ? <p>{message.text}</p> : null}
+                        {message.text ? <p>{renderChatMessageText(message.text)}</p> : null}
 
                         {message.attachments && message.attachments.length > 0 ? (
                           <div className="chat-page__message-attachments">
@@ -1661,22 +1762,22 @@ export default function ChatPage() {
                     placeholder="Введите сообщение..."
                     rows={1}
                   />
-                  <Button
+                  <IconButton
                     type="submit"
-                    variant="contained"
                     disabled={
                       sending ||
                       isRecordingAudio ||
                       (!inputValue.trim() && composerAttachments.length === 0)
                     }
                     className="chat-page__send-button"
+                    aria-label="Отправить сообщение"
                   >
                     {sending ? (
                       <CircularProgress size={18} color="inherit" />
                     ) : (
                       <SendRoundedIcon />
                     )}
-                  </Button>
+                  </IconButton>
                 </div>
                 {editingMessageId ? (
                   <div className="chat-page__editing-row">

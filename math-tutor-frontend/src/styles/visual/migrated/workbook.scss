@@ -1,11 +1,11 @@
 .workbook-hub,
 .workbook-session,
 .workbook-invite {
-  width: min(1240px, 100%);
+  width: min(var(--layout-content-max), 100%);
   margin: 0 auto;
-  padding-top: 12px;
+  padding-top: var(--fluid-gap-sm);
   display: grid;
-  gap: 14px;
+  gap: var(--fluid-gap-md);
   position: relative;
 }
 
@@ -39,7 +39,7 @@
 .workbook-session__head,
 .workbook-session__workspace,
 .workbook-session__card {
-  padding: 14px;
+  padding: var(--fluid-gap-md);
 }
 
 .workbook-hub__hero {
@@ -131,8 +131,14 @@
 
 .workbook-hub__list {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--fluid-gap-sm);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1260px) {
+  .workbook-hub__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .workbook-hub__card {
@@ -242,11 +248,13 @@
   flex-direction: row;
   justify-content: flex-end;
   gap: 4px;
-  padding: 3px 6px;
+  padding: 2px 4px;
   border: 1px solid color-mix(in srgb, var(--brand-soft) 28%, var(--border-subtle));
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface-soft) 86%, transparent);
   flex-shrink: 0;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .workbook-session__head {
@@ -304,8 +312,8 @@
 
 .workbook-session__layout {
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.24fr);
+  gap: var(--fluid-gap-sm);
+  grid-template-columns: minmax(0, 1fr) minmax(clamp(220px, 22vw, 320px), 0.26fr);
   align-items: start;
 }
 
@@ -506,6 +514,16 @@
   cursor: grabbing;
 }
 
+.workbook-session__canvas.is-graph-mode,
+.workbook-session__canvas.is-graph-mode .workbook-session__canvas-svg {
+  cursor: crosshair;
+}
+
+.workbook-session__workspace.is-graph-catalog-cursor .workbook-session__canvas,
+.workbook-session__workspace.is-graph-catalog-cursor .workbook-session__canvas .workbook-session__canvas-svg {
+  cursor: crosshair;
+}
+
 .workbook-session__canvas-page {
   position: absolute;
   right: 12px;
@@ -637,7 +655,9 @@
   z-index: 80;
   width: min(420px, calc(100vw - 20px));
   max-height: min(78vh, 760px);
+  max-width: calc(100vw - 20px);
   overflow: auto;
+  overflow-x: hidden;
   border: 1px solid var(--card-border);
   background: var(--surface-elevated);
   border-radius: 16px;
@@ -1272,6 +1292,128 @@
   gap: 8px;
 }
 
+.workbook-session__graph-plane-select {
+  display: grid;
+  gap: 8px;
+}
+
+.workbook-session__graph-plane-select-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.workbook-session__graph-plane-list {
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.workbook-session__graph-plane-item {
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 84%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-elevated) 94%, transparent);
+  color: var(--text-primary);
+  cursor: pointer;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  padding: 8px 10px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+
+  strong {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  span {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+}
+
+.workbook-session__graph-plane-item:hover {
+  border-color: color-mix(in srgb, var(--brand-solid) 56%, var(--border-strong));
+  transform: translateY(-1px);
+}
+
+.workbook-session__graph-planes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  strong {
+    font-size: 12px;
+    color: var(--text-primary);
+  }
+}
+
+.workbook-session__graph-plane-list {
+  display: grid;
+  gap: 8px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.workbook-session__graph-plane-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 84%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface-elevated) 95%, transparent);
+  padding: 8px;
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  strong {
+    font-size: 12px;
+    color: var(--text-primary);
+  }
+
+  span {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 14px;
+    display: grid;
+    gap: 4px;
+    max-height: 96px;
+    overflow: auto;
+  }
+
+  li {
+    color: var(--text-secondary);
+    font-size: 11px;
+    line-height: 1.35;
+    display: grid;
+    gap: 2px;
+  }
+
+  small {
+    color: var(--text-muted);
+    font-size: 10px;
+  }
+}
+
+.workbook-session__graph-plane-card.is-active {
+  border-color: color-mix(in srgb, var(--brand-solid) 60%, var(--border-strong));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-solid) 20%, transparent) inset;
+}
+
+.workbook-session__graph-plane-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .workbook-session__graph-mode-tabs {
   display: inline-flex;
   gap: 6px;
@@ -1345,6 +1487,36 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px;
   align-items: start;
+}
+
+.workbook-session__graph-appearance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+
+  label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 82%, transparent);
+    border-radius: 8px;
+    padding: 4px 8px;
+    background: color-mix(in srgb, var(--surface-elevated) 94%, transparent);
+  }
+
+  span {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  input[type="color"] {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    padding: 0;
+  }
 }
 
 .workbook-session__graph-builder-list {
@@ -2420,11 +2592,47 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .workbook-hub__card-title-row h3 {
+    font-size: 14px;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .workbook-hub__card-timeline-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
   .workbook-hub__card-actions {
     justify-content: flex-start;
-    align-items: flex-start;
+    align-items: center;
+    width: fit-content;
+    flex-wrap: nowrap;
+  }
+
+  .workbook-session__head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .workbook-session__head-main {
+    width: 100%;
+  }
+
+  .workbook-session__head-meta {
     width: 100%;
     flex-wrap: wrap;
+    gap: 6px;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .workbook-session__head-meta .MuiChip-root {
+    max-width: 100%;
+    height: 28px;
+    font-size: 11px;
   }
 
   .workbook-hub__hero-actions,
@@ -2438,8 +2646,21 @@
   }
 
   .workbook-session__contextbar {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 6px;
+    scrollbar-width: thin;
+    padding-bottom: 6px;
+  }
+
+  .workbook-session__contextbar-inline {
+    width: auto;
+    min-width: min(220px, 74vw);
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
   }
 
   .workbook-session__docs-window {
@@ -2459,13 +2680,38 @@
     min-height: 46vh;
   }
 
+  .workbook-session__board-shell {
+    position: relative;
+    padding-right: 52px;
+  }
+
+  .workbook-session__tools {
+    position: absolute;
+    top: 10px;
+    right: 8px;
+    width: 40px;
+    max-height: calc(100% - 20px);
+    flex-direction: column;
+    overflow: auto;
+    padding: 5px;
+    gap: 5px;
+    z-index: 7;
+  }
+
+  .workbook-session__tool-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
+
   .workbook-session__chat-form {
     flex-direction: column;
   }
 
   .workbook-session__board-settings-field {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
   }
 
   .workbook-session__board-settings-select {
@@ -2487,6 +2733,69 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .workbook-session__utility-float {
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    max-height: min(66vh, 580px);
+    top: auto !important;
+    bottom: 8px;
+    height: min(66vh, 580px);
+    border-radius: 14px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .workbook-session__utility-float-head {
+    top: 0;
+    margin: 0;
+    padding-top: 4px;
+  }
+
+  .workbook-session__board-settings-card {
+    padding: 9px 10px;
+    gap: 8px;
+  }
+
+  .workbook-session__board-settings-card-head p {
+    display: none;
+  }
+
+  .workbook-session__board-settings-field-main strong {
+    font-size: 11.5px;
+  }
+
+  .workbook-session__board-settings-field-main small {
+    font-size: 10px;
+  }
+
+  .workbook-session__utility-float > * {
+    min-width: 0;
+  }
+
+  .workbook-session__graph-builder,
+  .workbook-session__card,
+  .workbook-session__solid-inspector {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .workbook-session__graph-transform-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workbook-session__graph-builder-item-main {
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 6px;
+  }
+
+  .workbook-session__graph-builder-item-main > :nth-child(3),
+  .workbook-session__graph-builder-item-main > :nth-child(4) {
+    grid-column: 1 / -1;
+  }
+
   .workbook-session__session-chat {
     left: 8px;
     top: 56px;
@@ -2500,5 +2809,47 @@
     width: calc(100vw - 16px);
     height: calc(100vh - 16px);
     transform: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .workbook-session__head-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .workbook-session__head-actions > * {
+    width: 100%;
+  }
+
+  .workbook-session__board-shell {
+    padding-right: 46px;
+  }
+
+  .workbook-session__tools {
+    width: 36px;
+    padding: 4px;
+    right: 6px;
+  }
+
+  .workbook-session__tool-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .workbook-session__utility-float {
+    left: 6px !important;
+    right: 6px !important;
+    width: auto !important;
+    max-height: min(64vh, 520px);
+    height: min(64vh, 520px);
+    border-radius: 12px;
+    padding: 7px;
+  }
+
+  .workbook-session__board-settings-field {
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
 }

@@ -2,13 +2,13 @@
   position: sticky;
   top: 72px;
   z-index: 99;
-  padding: 10px 22px 0;
+  padding: clamp(8px, 0.3vw + 7px, 12px) var(--layout-gutter) 0;
   pointer-events: none;
 }
 
 .connectivity-banner-container {
-  max-width: 1320px;
-  margin: 0 auto;
+  width: min(100%, var(--layout-content-max));
+  margin-inline: auto;
   pointer-events: auto;
 }
 
@@ -56,20 +56,20 @@
 }
 
 .connectivity-banner__content strong {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   line-height: 1.25;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .connectivity-banner__content span {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   line-height: 1.4;
   color: var(--text-secondary);
 }
 
 .connectivity-banner__content small {
-  font-size: 11px;
+  font-size: clamp(0.62rem, 0.12vw + 0.6rem, 0.72rem);
   line-height: 1.35;
   color: var(--text-muted);
 }
@@ -88,15 +88,15 @@
 }
 
 .connectivity-banner .MuiButton-root {
-  min-height: 34px;
+  min-height: clamp(32px, 0.32vw + 31px, 38px);
   border-radius: var(--radius-xs);
   border: 1px solid var(--border-subtle);
   background: color-mix(in srgb, var(--surface-elevated) 65%, transparent);
   color: var(--text-primary);
   text-transform: none;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 700;
-  padding: 6px 10px;
+  padding: clamp(5px, 0.2vw + 4px, 7px) clamp(8px, 0.3vw + 7px, 11px);
 }
 
 .connectivity-banner .MuiButton-root:hover {
@@ -104,10 +104,10 @@
   border-color: var(--border-strong);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .connectivity-banner-wrap {
-    top: 58px;
-    padding: 8px 10px 0;
+    top: clamp(56px, 0.64vw + 52px, 66px);
+    padding: clamp(6px, 0.2vw + 5px, 10px) var(--layout-gutter) 0;
   }
 
   .connectivity-banner.MuiAlert-root {
@@ -125,17 +125,17 @@
   }
 
   .connectivity-banner__content strong {
-    font-size: 12px;
+    font-size: var(--font-size-xs);
   }
 
   .connectivity-banner__content span {
-    font-size: 11px;
+    font-size: clamp(0.62rem, 0.12vw + 0.6rem, 0.72rem);
   }
 
   .connectivity-banner .MuiButton-root {
     min-width: auto;
     padding: 6px 8px;
-    font-size: 11px;
+    font-size: clamp(0.62rem, 0.12vw + 0.6rem, 0.72rem);
   }
 
   .connectivity-banner__actions {

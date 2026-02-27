@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   Button,
+  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
@@ -10,6 +11,7 @@ import {
   MenuItem,
   TextField,
   Tooltip,
+  useMediaQuery,
 } from "@mui/material";
 import AutoGraphRoundedIcon from "@mui/icons-material/AutoGraphRounded";
 import TipsAndUpdatesRoundedIcon from "@mui/icons-material/TipsAndUpdatesRounded";
@@ -25,6 +27,8 @@ import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import NotificationImportantRoundedIcon from "@mui/icons-material/NotificationImportantRounded";
 import EventRoundedIcon from "@mui/icons-material/EventRounded";
 import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import type { StudyCabinetNote } from "@/shared/lib/studyCabinet";
 
 type StudyCalendarEvent = {
@@ -307,10 +311,11 @@ export function StudyCabinetPanel({
   reminderAccent = false,
   reminderHint = null,
 }: StudyCabinetPanelProps) {
+  const isCompactLayout = useMediaQuery("(max-width:900px)");
   const cards = role === "teacher" ? teacherCards : studentCards;
   const heroTitle =
     role === "teacher" ? "Умный центр преподавателя" : "Умный центр обучения";
-  const chatButtonLabel = role === "teacher" ? "Чат со студентами" : "Чат с преподавателем";
+  const chatButtonLabel = role === "teacher" ? "Чат со студентами" : "Чат";
   const heroSubtitle =
     role === "teacher"
       ? "Премиальный контур управления: события, активности и учебные сценарии в одном экране."
@@ -333,6 +338,8 @@ export function StudyCabinetPanel({
   const [noteTimeError, setNoteTimeError] = useState<string | null>(null);
   const [hoveredDayKey, setHoveredDayKey] = useState<string | null>(null);
   const [remindersPage, setRemindersPage] = useState(1);
+  const [showMobileActivityDetails, setShowMobileActivityDetails] = useState(false);
+  const [plannerCollapsed, setPlannerCollapsed] = useState(true);
 
   const maxActivityMinutes = useMemo(
     () => Math.max(1, ...activityDays.map((day) => day.minutes)),
@@ -379,13 +386,15 @@ export function StudyCabinetPanel({
     return generalReminders.slice(start, start + remindersPerPage);
   }, [generalReminders, safeRemindersPage]);
 
+  const plannerMode: "day" | "week" = isCompactLayout ? "day" : plannerView;
+
   const plannerDays = useMemo(() => {
-    if (plannerView === "day") {
+    if (plannerMode === "day") {
       const date = fromDateKey(selectedDateKey);
       return [{ key: selectedDateKey, date }];
     }
     return buildWeekDays(visibleRangeStart);
-  }, [plannerView, selectedDateKey, visibleRangeStart]);
+  }, [plannerMode, selectedDateKey, visibleRangeStart]);
   const plannerRangeLabel = useMemo(() => getPlannerRangeLabel(plannerDays), [plannerDays]);
   const plannerDayKeys = useMemo(
     () => new Set(plannerDays.map((day) => day.key)),
@@ -408,7 +417,16 @@ export function StudyCabinetPanel({
     todayKey: toLocalDateKey(now),
     minutes: now.getHours() * 60 + now.getMinutes(),
   };
+  const nowTimestamp = now.getTime();
   const todayKey = nowMeta.todayKey;
+  const nextUpcomingEvent = useMemo(() => {
+    return [...calendarEvents]
+      .filter((event) => new Date(event.startAt).getTime() >= nowTimestamp)
+      .sort((left, right) => new Date(left.startAt).getTime() - new Date(right.startAt).getTime())[0];
+  }, [calendarEvents, nowTimestamp]);
+  const upcomingEventsCount = useMemo(() => {
+    return calendarEvents.filter((event) => new Date(event.startAt).getTime() >= nowTimestamp).length;
+  }, [calendarEvents, nowTimestamp]);
 
   const buildLocalDateTime = (dateKey: string, timeValue: string) => {
     if (!dateKey || !timeValue) return null;
@@ -571,7 +589,7 @@ export function StudyCabinetPanel({
   };
 
   const shiftPlannerRange = (step: number) => {
-    if (plannerView === "day") {
+    if (plannerMode === "day") {
       const shifted = addDays(fromDateKey(selectedDateKey), step);
       const key = toLocalDateKey(shifted);
       setSelectedDateKey(key);
@@ -591,7 +609,7 @@ export function StudyCabinetPanel({
     const container = plannerScrollRef.current;
     if (!container) return;
     const hasTodayInView =
-      plannerView === "day"
+      plannerMode === "day"
         ? selectedDateKey === todayKey
         : plannerDays.some((day) => day.key === todayKey);
     if (!hasTodayInView) return;
@@ -600,7 +618,10 @@ export function StudyCabinetPanel({
       PLANNER_HOUR_HEIGHT * 2;
     const nextTop = Math.max(0, targetTop);
     container.scrollTo({ top: nextTop, behavior: "smooth" });
-  }, [plannerView, selectedDateKey, plannerDays, nowMeta.minutes, todayKey]);
+  }, [plannerMode, selectedDateKey, plannerDays, nowMeta.minutes, todayKey]);
+
+  const showActivityDetails = !isCompactLayout || showMobileActivityDetails;
+  const isPlannerCollapsed = plannerCollapsed;
 
   return (
     <section
@@ -665,40 +686,60 @@ export function StudyCabinetPanel({
               <AutoGraphRoundedIcon fontSize="small" />
               Активность
             </h3>
+            {isCompactLayout ? (
+              <Button
+                size="small"
+                variant="text"
+                onClick={() =>
+                  setShowMobileActivityDetails((current) => !current)
+                }
+                endIcon={
+                  showMobileActivityDetails ? (
+                    <ExpandLessRoundedIcon fontSize="small" />
+                  ) : (
+                    <ExpandMoreRoundedIcon fontSize="small" />
+                  )
+                }
+              >
+                {showMobileActivityDetails ? "Свернуть" : "Подробнее"}
+              </Button>
+            ) : null}
           </div>
 
-          <div className="study-cabinet-panel__activity-insights">
-            <div className="study-cabinet-panel__activity-metric">
-              <span className="study-cabinet-panel__activity-metric-icon">
-                <AutoGraphRoundedIcon fontSize="small" />
-              </span>
-              <span>Всего за неделю</span>
-              <strong>{totalWeeklyMinutes} мин</strong>
+          <Collapse in={showActivityDetails} timeout="auto" unmountOnExit={isCompactLayout}>
+            <div className="study-cabinet-panel__activity-insights">
+              <div className="study-cabinet-panel__activity-metric">
+                <span className="study-cabinet-panel__activity-metric-icon">
+                  <AutoGraphRoundedIcon fontSize="small" />
+                </span>
+                <span>Всего за неделю</span>
+                <strong>{totalWeeklyMinutes} мин</strong>
+              </div>
+              <div className="study-cabinet-panel__activity-metric">
+                <span className="study-cabinet-panel__activity-metric-icon">
+                  <TipsAndUpdatesRoundedIcon fontSize="small" />
+                </span>
+                <span>Среднее в активный день</span>
+                <strong>{averageDailyMinutes} мин</strong>
+              </div>
+              <div className="study-cabinet-panel__activity-metric">
+                <span className="study-cabinet-panel__activity-metric-icon">
+                  <CalendarMonthRoundedIcon fontSize="small" />
+                </span>
+                <span>Пиковый день</span>
+                <strong>
+                  {topDay.label} · {topDay.minutes} мин
+                </strong>
+              </div>
+              <div className="study-cabinet-panel__activity-metric">
+                <span className="study-cabinet-panel__activity-metric-icon">
+                  <EventRoundedIcon fontSize="small" />
+                </span>
+                <span>Активных дней</span>
+                <strong>{activeDaysCount} из 7</strong>
+              </div>
             </div>
-            <div className="study-cabinet-panel__activity-metric">
-              <span className="study-cabinet-panel__activity-metric-icon">
-                <TipsAndUpdatesRoundedIcon fontSize="small" />
-              </span>
-              <span>Среднее в активный день</span>
-              <strong>{averageDailyMinutes} мин</strong>
-            </div>
-            <div className="study-cabinet-panel__activity-metric">
-              <span className="study-cabinet-panel__activity-metric-icon">
-                <CalendarMonthRoundedIcon fontSize="small" />
-              </span>
-              <span>Пиковый день</span>
-              <strong>
-                {topDay.label} · {topDay.minutes} мин
-              </strong>
-            </div>
-            <div className="study-cabinet-panel__activity-metric">
-              <span className="study-cabinet-panel__activity-metric-icon">
-                <EventRoundedIcon fontSize="small" />
-              </span>
-              <span>Активных дней</span>
-              <strong>{activeDaysCount} из 7</strong>
-            </div>
-          </div>
+          </Collapse>
 
           <div className="study-cabinet-panel__activity-dashboard">
             <div className="study-cabinet-panel__activity-bars">
@@ -753,27 +794,29 @@ export function StudyCabinetPanel({
               )}
             </div>
 
-            {visibleStats.length > 0 ? (
-              <div className="study-cabinet-panel__activity-table">
-                <div className="study-cabinet-panel__activity-table-head">
-                  <span>Показатель</span>
-                  <span>Значение</span>
+            <Collapse in={showActivityDetails} timeout="auto" unmountOnExit={isCompactLayout}>
+              {visibleStats.length > 0 ? (
+                <div className="study-cabinet-panel__activity-table">
+                  <div className="study-cabinet-panel__activity-table-head">
+                    <span>Показатель</span>
+                    <span>Значение</span>
+                  </div>
+                  <div className="study-cabinet-panel__activity-table-body">
+                    {visibleStats.map((stat) => (
+                      <div key={stat.id} className="study-cabinet-panel__activity-table-row">
+                        <span className="study-cabinet-panel__activity-table-label">
+                          <i>{stat.icon ?? <AutoGraphRoundedIcon fontSize="small" />}</i>
+                          <em>{stat.label}</em>
+                        </span>
+                        <strong>{stat.value}</strong>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="study-cabinet-panel__activity-table-body">
-                  {visibleStats.map((stat) => (
-                    <div key={stat.id} className="study-cabinet-panel__activity-table-row">
-                      <span className="study-cabinet-panel__activity-table-label">
-                        <i>{stat.icon ?? <AutoGraphRoundedIcon fontSize="small" />}</i>
-                        <em>{stat.label}</em>
-                      </span>
-                      <strong>{stat.value}</strong>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="study-cabinet-panel__empty">Пока нет накопленной активности.</div>
-            )}
+              ) : (
+                <div className="study-cabinet-panel__empty">Пока нет накопленной активности.</div>
+              )}
+            </Collapse>
           </div>
         </article>
 
@@ -862,27 +905,64 @@ export function StudyCabinetPanel({
               <CalendarMonthRoundedIcon fontSize="small" />
               Планировщик задач
             </h3>
+            <Button
+              size="small"
+              variant="text"
+              onClick={() => setPlannerCollapsed((current) => !current)}
+              endIcon={
+                isPlannerCollapsed ? (
+                  <ExpandMoreRoundedIcon fontSize="small" />
+                ) : (
+                  <ExpandLessRoundedIcon fontSize="small" />
+                )
+              }
+            >
+              {isPlannerCollapsed ? "Открыть" : "Свернуть"}
+            </Button>
           </div>
 
-          <div className="study-cabinet-panel__planner-controls">
+          {isPlannerCollapsed ? (
+            <div className="study-cabinet-panel__planner-collapsed">
+              <strong>Ближайшее событие</strong>
+              {nextUpcomingEvent ? (
+                <span>
+                  {new Date(nextUpcomingEvent.startAt).toLocaleString("ru-RU", {
+                    day: "2-digit",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  · {nextUpcomingEvent.title}
+                </span>
+              ) : (
+                <span>Нет запланированных событий.</span>
+              )}
+              <small>Всего предстоящих событий: {upcomingEventsCount}</small>
+            </div>
+          ) : null}
+
+          <Collapse in={!isPlannerCollapsed} timeout="auto">
+            <div className="study-cabinet-panel__planner-controls">
             <div className="study-cabinet-panel__planner-switch">
               <Button
                 size="small"
-                variant={plannerView === "day" ? "contained" : "outlined"}
+                variant={plannerMode === "day" ? "contained" : "outlined"}
                 onClick={() => setPlannerView("day")}
               >
                 День
               </Button>
-              <Button
-                size="small"
-                variant={plannerView === "week" ? "contained" : "outlined"}
-                onClick={() => {
-                  setPlannerView("week");
-                  setVisibleRangeStart(startOfWeek(fromDateKey(selectedDateKey)));
-                }}
-              >
-                Неделя
-              </Button>
+              {!isCompactLayout ? (
+                <Button
+                  size="small"
+                  variant={plannerMode === "week" ? "contained" : "outlined"}
+                  onClick={() => {
+                    setPlannerView("week");
+                    setVisibleRangeStart(startOfWeek(fromDateKey(selectedDateKey)));
+                  }}
+                >
+                  Неделя
+                </Button>
+              ) : null}
             </div>
 
             <div className="study-cabinet-panel__planner-nav">
@@ -904,9 +984,9 @@ export function StudyCabinetPanel({
                 </Tooltip>
               ) : null}
             </div>
-          </div>
+            </div>
 
-          <div className="study-cabinet-panel__planner" ref={plannerScrollRef}>
+            <div className="study-cabinet-panel__planner" ref={plannerScrollRef}>
             <div className="study-cabinet-panel__planner-header">
               <div className="study-cabinet-panel__planner-time-head">Время</div>
               <div
@@ -926,7 +1006,7 @@ export function StudyCabinetPanel({
                     }}
                   >
                     <span>
-                      {plannerView === "week"
+                      {plannerMode === "week"
                         ? plannerWeekdayLabels[index]
                         : day.date
                             .toLocaleDateString("ru-RU", { weekday: "short" })
@@ -1041,6 +1121,7 @@ export function StudyCabinetPanel({
               </div>
             </div>
           </div>
+          </Collapse>
         </article>
       </div>
 

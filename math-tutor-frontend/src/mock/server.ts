@@ -30,6 +30,7 @@ import {
 } from "./modules/assistant/assistant.orchestrator";
 import type { Course } from "../entities/course/model/types";
 import type { Lesson } from "../entities/lesson/model/types";
+import type { Purchase } from "../entities/purchase/model/types";
 import type {
   NewsPost,
   NewsTone,
@@ -1142,6 +1143,7 @@ const serializeWorkbookDraftCard = (
   return {
     draftId: draft.id,
     sessionId: draft.sessionId,
+    redirectSessionId: draft.redirectSessionId ?? null,
     title: draft.title,
     kind: session.kind,
     statusForCard: draft.statusForCard,
@@ -1357,6 +1359,44 @@ const toDisplayName = (user?: { firstName?: string; lastName?: string; email?: s
   if (!user) return "Пользователь";
   const fullName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
   return fullName || user.email || "Пользователь";
+};
+
+const normalizeWorkbookGuestName = (value: unknown) =>
+  typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, 72) : "";
+
+const splitWorkbookGuestName = (displayName: string) => {
+  const normalized = normalizeWorkbookGuestName(displayName);
+  if (!normalized) {
+    return {
+      firstName: "Гость",
+      lastName: "",
+    };
+  }
+  const [firstName, ...tail] = normalized.split(" ");
+  return {
+    firstName: firstName || "Гость",
+    lastName: tail.join(" "),
+  };
+};
+
+const createWorkbookGuestUser = (
+  db: ReturnType<typeof getDb>,
+  displayName: string
+) => {
+  const parsedName = splitWorkbookGuestName(displayName);
+  const userId = ensureId();
+  const user: (typeof db.users)[number] = {
+    id: userId,
+    email: `guest-${userId}@axiom.local`,
+    firstName: parsedName.firstName,
+    lastName: parsedName.lastName,
+    role: "student",
+    phone: "",
+    photo: "",
+    password: "",
+  };
+  db.users.push(user);
+  return user;
 };
 
 const resolveChatSenderName = (
@@ -2769,6 +2809,217 @@ const buildBnplPurchaseSnapshot = (params: {
     nextPaymentDate: generatedPlan?.nextPaymentDate ?? fallbackSchedule[1]?.dueDate,
     schedule: generatedPlan?.schedule ?? fallbackSchedule,
     lastKnownStatus: generated.lastKnownStatus ?? "active",
+  };
+};
+
+const applyBnplInstallmentPayment = (
+  purchase: Purchase,
+  checkout: CheckoutProcess,
+  processedAt: string
+): {
+  applied: boolean;
+  installmentsCount: number;
+  paidCount: number;
+  nextPaymentDate?: string;
+  completed: boolean;
+} => {
+  const normalizedBnpl = normalizeBnplData(
+    purchase.bnpl,
+    purchase.price ?? checkout.amount ?? 0,
+    purchase.purchasedAt || checkout.createdAt,
+    checkout.bnplInstallmentsCount
+  );
+  const fallback = buildBnplPurchaseSnapshot({
+    amount: purchase.price ?? checkout.amount ?? 0,
+    purchasedAt: purchase.purchasedAt || checkout.createdAt,
+    selectedInstallmentsCount:
+      normalizedBnpl.plan?.installmentsCount ?? checkout.bnplInstallmentsCount,
+  });
+  const fallbackPlan = fallback.plan ?? {
+    installmentsCount: fallback.installmentsCount ?? 4,
+    paidCount: fallback.paidCount ?? 1,
+    nextPaymentDate: fallback.nextPaymentDate,
+    schedule: fallback.schedule ?? [],
+  };
+  const basePlan = normalizedBnpl.plan ?? fallbackPlan;
+  const schedule = [...(basePlan.schedule ?? fallbackPlan.schedule ?? [])].sort((a, b) =>
+    a.dueDate.localeCompare(b.dueDate)
+  );
+  const installmentsCount = Math.max(
+    1,
+    Math.floor(basePlan.installmentsCount || schedule.length || 1)
+  );
+  const firstUnpaidIndex = schedule.findIndex((item) => item.status !== "paid");
+  if (firstUnpaidIndex === -1) {
+    const paidCount = Math.min(
+      installmentsCount,
+      Math.max(
+        0,
+        Math.floor(
+          Number.isFinite(basePlan.paidCount) ? basePlan.paidCount : installmentsCount
+        )
+      )
+    );
+    purchase.paymentMethod = "bnpl";
+    purchase.checkoutId = checkout.id;
+    purchase.bnpl = {
+      ...normalizedBnpl,
+      plan: {
+        installmentsCount,
+        paidCount,
+        nextPaymentDate: undefined,
+        schedule,
+      },
+      installmentsCount,
+      paidCount,
+      nextPaymentDate: undefined,
+      schedule,
+      lastKnownStatus: "completed",
+    };
+    return {
+      applied: false,
+      installmentsCount,
+      paidCount,
+      nextPaymentDate: undefined,
+      completed: true,
+    };
+  }
+
+  schedule[firstUnpaidIndex] = {
+    ...schedule[firstUnpaidIndex],
+    status: "paid",
+  };
+  const paidCount = Math.min(
+    installmentsCount,
+    schedule.filter((item) => item.status === "paid").length
+  );
+  const nextPaymentDate = schedule.find((item) => item.status !== "paid")?.dueDate;
+  const completed = paidCount >= installmentsCount || !nextPaymentDate;
+  const hasOverdue = schedule.some(
+    (item) => item.status === "overdue" || item.status === "failed"
+  );
+  const nextKnownStatus: NonNullable<BnplPurchaseData["lastKnownStatus"]> = completed
+    ? "completed"
+    : hasOverdue
+      ? "overdue"
+      : "active";
+
+  purchase.paymentMethod = "bnpl";
+  purchase.checkoutId = checkout.id;
+  purchase.bnpl = {
+    ...normalizedBnpl,
+    plan: {
+      installmentsCount,
+      paidCount,
+      nextPaymentDate,
+      schedule,
+    },
+    installmentsCount,
+    paidCount,
+    nextPaymentDate,
+    schedule,
+    lastKnownStatus: nextKnownStatus,
+  };
+
+  const purchasedAtTime = new Date(purchase.purchasedAt).getTime();
+  const processedTime = new Date(processedAt).getTime();
+  if (Number.isFinite(purchasedAtTime) && Number.isFinite(processedTime)) {
+    if (processedTime > purchasedAtTime) {
+      purchase.purchasedAt = new Date(processedTime).toISOString();
+    }
+  }
+
+  return {
+    applied: true,
+    installmentsCount,
+    paidCount,
+    nextPaymentDate,
+    completed,
+  };
+};
+
+const applyBnplRemainingPayment = (
+  purchase: Purchase,
+  checkout: CheckoutProcess,
+  processedAt: string
+): {
+  applied: boolean;
+  installmentsCount: number;
+  paidCount: number;
+  nextPaymentDate?: string;
+  completed: boolean;
+} => {
+  const normalizedBnpl = normalizeBnplData(
+    purchase.bnpl,
+    purchase.price ?? checkout.amount ?? 0,
+    purchase.purchasedAt || checkout.createdAt,
+    checkout.bnplInstallmentsCount
+  );
+  const fallback = buildBnplPurchaseSnapshot({
+    amount: purchase.price ?? checkout.amount ?? 0,
+    purchasedAt: purchase.purchasedAt || checkout.createdAt,
+    selectedInstallmentsCount:
+      normalizedBnpl.plan?.installmentsCount ?? checkout.bnplInstallmentsCount,
+  });
+  const fallbackPlan = fallback.plan ?? {
+    installmentsCount: fallback.installmentsCount ?? 4,
+    paidCount: fallback.paidCount ?? 1,
+    nextPaymentDate: fallback.nextPaymentDate,
+    schedule: fallback.schedule ?? [],
+  };
+  const basePlan = normalizedBnpl.plan ?? fallbackPlan;
+  const schedule = [...(basePlan.schedule ?? fallbackPlan.schedule ?? [])].sort((a, b) =>
+    a.dueDate.localeCompare(b.dueDate)
+  );
+  const installmentsCount = Math.max(
+    1,
+    Math.floor(basePlan.installmentsCount || schedule.length || 1)
+  );
+
+  let changed = false;
+  const normalizedSchedule = schedule.map((item) => {
+    if (item.status === "paid") return item;
+    changed = true;
+    return { ...item, status: "paid" as const };
+  });
+
+  const paidCount = Math.min(
+    installmentsCount,
+    normalizedSchedule.filter((item) => item.status === "paid").length
+  );
+  const completed = paidCount >= installmentsCount;
+
+  purchase.paymentMethod = "bnpl";
+  purchase.checkoutId = checkout.id;
+  purchase.bnpl = {
+    ...normalizedBnpl,
+    plan: {
+      installmentsCount,
+      paidCount,
+      nextPaymentDate: undefined,
+      schedule: normalizedSchedule,
+    },
+    installmentsCount,
+    paidCount,
+    nextPaymentDate: undefined,
+    schedule: normalizedSchedule,
+    lastKnownStatus: completed ? "completed" : "active",
+  };
+
+  const purchasedAtTime = new Date(purchase.purchasedAt).getTime();
+  const processedTime = new Date(processedAt).getTime();
+  if (Number.isFinite(purchasedAtTime) && Number.isFinite(processedTime)) {
+    if (processedTime > purchasedAtTime) {
+      purchase.purchasedAt = new Date(processedTime).toISOString();
+    }
+  }
+
+  return {
+    applied: changed,
+    installmentsCount,
+    paidCount,
+    nextPaymentDate: undefined,
+    completed,
   };
 };
 
@@ -6261,6 +6512,7 @@ export function setupMockServer(server: ServerWithMiddlewares) {
                 ...draft,
                 statusForCard: "ended",
                 updatedAt: timestamp,
+                redirectSessionId: draft.redirectSessionId ?? null,
               }
             : draft
         );
@@ -6318,24 +6570,27 @@ export function setupMockServer(server: ServerWithMiddlewares) {
               createdAt: timestamp,
             });
           });
-          ensureWorkbookDraft(db, {
+          const personalDraft = ensureWorkbookDraft(db, {
             ownerUserId: studentParticipant.userId,
             session: personalSession,
             statusForCard: "in_progress",
             timestamp,
           });
+          db.workbookDrafts = db.workbookDrafts.map((draft) =>
+            draft.sessionId === sessionId &&
+            draft.ownerUserId === studentParticipant.userId
+              ? {
+                  ...draft,
+                  statusForCard: "ended",
+                  updatedAt: timestamp,
+                  redirectSessionId: personalDraft.sessionId,
+                }
+              : draft
+          );
         });
-        studentParticipants.forEach((studentParticipant) => {
-          closeWorkbookStreamClientByUser(sessionId, studentParticipant.userId);
-        });
-        db.workbookParticipants = db.workbookParticipants.filter((participant) => {
-          if (participant.sessionId !== sessionId) return true;
-          return participant.roleInSession === "teacher";
-        });
-        db.workbookDrafts = db.workbookDrafts.filter((draft) => {
-          if (draft.sessionId !== sessionId) return true;
-          return draft.ownerUserId === session.createdBy;
-        });
+        studentParticipants.forEach((studentParticipant) =>
+          closeWorkbookStreamClientByUser(sessionId, studentParticipant.userId)
+        );
         saveDb();
         return json(res, 200, {
           ok: true,
@@ -6591,9 +6846,6 @@ export function setupMockServer(server: ServerWithMiddlewares) {
         /^\/api\/workbook\/invites\/([^/]+)$/
       );
       if (workbookInviteResolveMatch && method === "GET") {
-        if (!actorUser) {
-          return json(res, 401, { error: "Требуется авторизация." });
-        }
         const token = decodeURIComponent(workbookInviteResolveMatch[1]);
         const invite = db.workbookInvites.find((item) => item.token === token) ?? null;
         if (!invite) return json(res, 404, { error: "Приглашение не найдено." });
@@ -6605,6 +6857,7 @@ export function setupMockServer(server: ServerWithMiddlewares) {
           title: session.title,
           kind: session.kind,
           hostName: toDisplayName(host ?? undefined),
+          ended: session.status === "ended",
           expired: isWorkbookInviteExpired(invite),
           revoked: Boolean(invite.revokedAt),
         });
@@ -6614,9 +6867,9 @@ export function setupMockServer(server: ServerWithMiddlewares) {
         /^\/api\/workbook\/invites\/([^/]+)\/join$/
       );
       if (workbookInviteJoinMatch && method === "POST") {
-        if (!actorUser) {
-          return json(res, 401, { error: "Требуется авторизация." });
-        }
+        const body = (await readBody(req)) as {
+          guestName?: unknown;
+        };
         const token = decodeURIComponent(workbookInviteJoinMatch[1]);
         const invite = db.workbookInvites.find((item) => item.token === token) ?? null;
         if (!invite) return json(res, 404, { error: "Приглашение не найдено." });
@@ -6638,14 +6891,41 @@ export function setupMockServer(server: ServerWithMiddlewares) {
         if (session.kind !== "CLASS") {
           return json(res, 409, { error: "Приглашение доступно только для CLASS-сессии." });
         }
+        if (session.status === "ended") {
+          return json(res, 409, {
+            error:
+              "Ссылка больше не активна: коллективный урок уже завершен преподавателем.",
+          });
+        }
 
         const timestamp = nowIso();
-        let participant = getWorkbookParticipant(db, session.id, actorUser.id);
+        let resolvedActorUser = actorUser;
+        if (!resolvedActorUser) {
+          const guestName = normalizeWorkbookGuestName(body?.guestName);
+          if (!guestName) {
+            return json(res, 401, { error: "Укажите имя для входа по приглашению." });
+          }
+          resolvedActorUser = createWorkbookGuestUser(db, guestName);
+          const guestSession = createAuthSession(
+            db,
+            {
+              userId: resolvedActorUser.id,
+              email: resolvedActorUser.email,
+              role: "student",
+            },
+            timestamp
+          );
+          setSessionCookie(res, guestSession.id);
+        }
+        let participant = getWorkbookParticipant(db, session.id, resolvedActorUser.id);
         if (!participant) {
           const settings = parseWorkbookSettingsFromSession(session);
-          const basePermissions = defaultWorkbookPermissions(actorUser.role, session.kind);
+          const basePermissions = defaultWorkbookPermissions(
+            resolvedActorUser.role,
+            session.kind
+          );
           const normalizedPermissions =
-            actorUser.role === "student"
+            resolvedActorUser.role === "student"
               ? {
                   ...basePermissions,
                   canDraw: settings.studentControls.canDraw,
@@ -6659,8 +6939,8 @@ export function setupMockServer(server: ServerWithMiddlewares) {
               : basePermissions;
           participant = {
             sessionId: session.id,
-            userId: actorUser.id,
-            roleInSession: actorUser.role,
+            userId: resolvedActorUser.id,
+            roleInSession: resolvedActorUser.role,
             permissions: stringifyWorkbookPermissions(normalizedPermissions),
             joinedAt: timestamp,
             leftAt: null,
@@ -6676,20 +6956,20 @@ export function setupMockServer(server: ServerWithMiddlewares) {
         }
         touchWorkbookSessionActivity(session, timestamp);
         const draft = ensureWorkbookDraft(db, {
-          ownerUserId: actorUser.id,
+          ownerUserId: resolvedActorUser.id,
           session,
-          statusForCard: session.status === "ended" ? "ended" : "in_progress",
+          statusForCard: "in_progress",
           timestamp,
         });
         saveDb();
         return json(res, 200, {
           session: serializeWorkbookSession(db, session, {
-            id: actorUser.id,
-            role: actorUser.role,
+            id: resolvedActorUser.id,
+            role: resolvedActorUser.role,
           }),
           draft: serializeWorkbookDraftCard(db, draft, {
-            id: actorUser.id,
-            role: actorUser.role,
+            id: resolvedActorUser.id,
+            role: resolvedActorUser.role,
           }),
         });
       }
@@ -8582,6 +8862,236 @@ export function setupMockServer(server: ServerWithMiddlewares) {
           checkoutState: checkout.state,
           payment: getCheckoutPaymentPayload(paymentDecision),
           ...checkoutAccess,
+        });
+      }
+
+      const purchaseBnplPayInstallmentMatch = path.match(
+        /^\/api\/purchases\/([^/]+)\/bnpl\/pay-installment$/
+      );
+      const purchaseBnplPayRemainingMatch = path.match(
+        /^\/api\/purchases\/([^/]+)\/bnpl\/pay-remaining$/
+      );
+      const purchaseBnplPayMatch =
+        purchaseBnplPayInstallmentMatch ?? purchaseBnplPayRemainingMatch;
+      const bnplPaymentMode = purchaseBnplPayInstallmentMatch
+        ? "installment"
+        : purchaseBnplPayRemainingMatch
+          ? "remaining"
+          : null;
+
+      if (purchaseBnplPayMatch && bnplPaymentMode && method === "POST") {
+        if (!actorUser) {
+          return json(res, 401, { error: "Требуется авторизация." });
+        }
+        const purchaseId = decodeURIComponent(purchaseBnplPayMatch[1]);
+        const purchase =
+          db.purchases.find((item) => item.id === purchaseId) ?? null;
+        if (!purchase) {
+          return json(res, 404, { error: "Покупка не найдена." });
+        }
+        if (actorUser.role !== "teacher" && purchase.userId !== actorUser.id) {
+          return json(res, 403, { error: "Недопустимый контекст покупки." });
+        }
+        if ((purchase.paymentMethod ?? "unknown") !== "bnpl") {
+          return json(res, 409, {
+            error: "Для этой покупки не настроен график оплаты частями.",
+          });
+        }
+        const owner =
+          db.users.find((item) => item.id === purchase.userId) ?? null;
+        if (!owner) {
+          return json(res, 409, {
+            error: "Невозможно провести оплату: владелец покупки не найден.",
+          });
+        }
+
+        const timestamp = nowIso();
+        let checkout =
+          (typeof purchase.checkoutId === "string" && purchase.checkoutId.trim()
+            ? db.checkoutProcesses.find((item) => item.id === purchase.checkoutId) ??
+              null
+            : null) ??
+          db.checkoutProcesses
+            .filter(
+              (item) =>
+                item.userId === purchase.userId &&
+                item.courseId === purchase.courseId &&
+                item.method === "bnpl"
+            )
+            .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0] ??
+          null;
+
+        if (!checkout) {
+          checkout = {
+            id: ensureId(),
+            idempotencyKey: `legacy-bnpl:${purchase.userId}:${purchase.courseId}:${timestamp}`,
+            userId: purchase.userId,
+            email: owner.email,
+            courseId: purchase.courseId,
+            amount: purchase.price,
+            currency: "RUB",
+            method: "bnpl",
+            bnplInstallmentsCount:
+              normalizeBnplData(
+                purchase.bnpl,
+                purchase.price,
+                purchase.purchasedAt,
+                undefined
+              ).plan?.installmentsCount ?? 4,
+            state: "provisioned",
+            createdAt: purchase.purchasedAt,
+            updatedAt: timestamp,
+            expiresAt: checkoutExpiresAt(timestamp),
+          };
+          db.checkoutProcesses.push(checkout);
+        }
+
+        if (checkout.method !== "bnpl") {
+          return json(res, 409, {
+            error:
+              "Связанный checkout не поддерживает оплату частями. Обратитесь в поддержку.",
+          });
+        }
+
+        const body = (await readBody(req)) as {
+          source?: unknown;
+        } | null;
+        const currentBnplPlan = normalizeBnplData(
+          purchase.bnpl,
+          purchase.price,
+          purchase.purchasedAt,
+          checkout.bnplInstallmentsCount
+        ).plan;
+        const fallbackBnplSnapshot = buildBnplPurchaseSnapshot({
+          amount: purchase.price ?? checkout.amount ?? 0,
+          purchasedAt: purchase.purchasedAt || checkout.createdAt,
+          selectedInstallmentsCount:
+            currentBnplPlan?.installmentsCount ?? checkout.bnplInstallmentsCount,
+        });
+        const fallbackPlan = fallbackBnplSnapshot.plan ?? {
+          installmentsCount: fallbackBnplSnapshot.installmentsCount ?? 4,
+          paidCount: fallbackBnplSnapshot.paidCount ?? 1,
+          nextPaymentDate: fallbackBnplSnapshot.nextPaymentDate,
+          schedule: fallbackBnplSnapshot.schedule ?? [],
+        };
+        const effectivePlan = currentBnplPlan ?? fallbackPlan;
+        const effectiveSchedule = [...(effectivePlan.schedule ?? fallbackPlan.schedule ?? [])]
+          .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+        const nextDueItem = effectiveSchedule.find((item) => item.status !== "paid") ?? null;
+        const remainingAmount = effectiveSchedule
+          .filter((item) => item.status !== "paid")
+          .reduce((sum, item) => sum + Math.max(0, Number(item.amount) || 0), 0);
+        const installmentsCount = Math.max(
+          1,
+          Math.floor(effectivePlan.installmentsCount || effectiveSchedule.length || 1)
+        );
+        const fallbackInstallmentAmount = Math.ceil(
+          Math.max(0, Number(purchase.price ?? checkout.amount ?? 0)) / installmentsCount
+        );
+
+        if (bnplPaymentMode === "installment" && !nextDueItem) {
+          const paymentProgress = {
+            applied: false,
+            installmentsCount,
+            paidCount: Math.min(
+              installmentsCount,
+              Math.max(0, Math.floor(effectivePlan.paidCount || installmentsCount))
+            ),
+            nextPaymentDate: undefined,
+            completed: true,
+          };
+          saveDb();
+          return json(res, 200, {
+            ok: true,
+            purchaseId: purchase.id,
+            checkoutId: checkout.id,
+            checkoutState: checkout.state,
+            payment: getCheckoutPaymentStatusPayload(db, checkout),
+            bnpl: paymentProgress,
+            purchase,
+          });
+        }
+
+        if (bnplPaymentMode === "remaining" && remainingAmount <= 0) {
+          const paymentProgress = {
+            applied: false,
+            installmentsCount,
+            paidCount: installmentsCount,
+            nextPaymentDate: undefined,
+            completed: true,
+          };
+          saveDb();
+          return json(res, 200, {
+            ok: true,
+            purchaseId: purchase.id,
+            checkoutId: checkout.id,
+            checkoutState: checkout.state,
+            payment: getCheckoutPaymentStatusPayload(db, checkout),
+            bnpl: paymentProgress,
+            purchase,
+          });
+        }
+
+        const paymentAmount =
+          bnplPaymentMode === "remaining"
+            ? Math.max(1, remainingAmount)
+            : Math.max(1, nextDueItem?.amount ?? fallbackInstallmentAmount);
+
+        const paymentDecision = initiateCheckoutPayment({
+          checkoutId: checkout.id,
+          amount: paymentAmount,
+          currency: checkout.currency,
+          method: "bnpl",
+          courseId: checkout.courseId,
+          userId: checkout.userId,
+          email: checkout.email,
+          requestedAt: timestamp,
+        });
+        const sourceTag =
+          body && typeof body.source === "string" && body.source.trim()
+            ? body.source.trim()
+            : bnplPaymentMode === "remaining"
+              ? "manual_full_repayment"
+              : "manual_installment_payment";
+        processPaymentEvent(db, {
+          provider: paymentDecision.provider,
+          externalEventId: `${paymentDecision.externalEventId}:${bnplPaymentMode}:${timestamp}`,
+          checkoutId: checkout.id,
+          status: paymentDecision.status,
+          payload: {
+            ...(paymentDecision.payload ?? {}),
+            source: sourceTag,
+            installmentIntent: bnplPaymentMode === "installment",
+            fullRepaymentIntent: bnplPaymentMode === "remaining",
+          },
+          processedAt: timestamp,
+        });
+        ensureCheckoutProvisioned(db, checkout, timestamp);
+        const paymentProgress =
+          paymentDecision.status === "paid"
+            ? bnplPaymentMode === "remaining"
+              ? applyBnplRemainingPayment(purchase, checkout, timestamp)
+              : applyBnplInstallmentPayment(purchase, checkout, timestamp)
+            : {
+                applied: false,
+                installmentsCount,
+                paidCount: Math.min(
+                  installmentsCount,
+                  Math.max(0, Math.floor(effectivePlan.paidCount || 0))
+                ),
+                nextPaymentDate: effectivePlan.nextPaymentDate,
+                completed: bnplPaymentMode === "remaining" ? remainingAmount <= 0 : false,
+              };
+
+        saveDb();
+        return json(res, 200, {
+          ok: true,
+          purchaseId: purchase.id,
+          checkoutId: checkout.id,
+          checkoutState: checkout.state,
+          payment: getCheckoutPaymentStatusPayload(db, checkout),
+          bnpl: paymentProgress,
+          purchase,
         });
       }
 

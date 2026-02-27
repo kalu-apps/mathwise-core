@@ -225,7 +225,7 @@ export type WorkbookChatMessage = {
   createdAt: string;
 };
 
-export type WorkbookDocumentAssetType = "pdf" | "image";
+export type WorkbookDocumentAssetType = "pdf" | "image" | "file";
 
 export type WorkbookDocumentAsset = {
   id: string;
@@ -365,6 +365,7 @@ export type WorkbookSession = {
 export type WorkbookDraftCard = {
   draftId: string;
   sessionId: string;
+  redirectSessionId?: string | null;
   title: string;
   kind: WorkbookSessionKind;
   statusForCard: WorkbookSessionStatus;

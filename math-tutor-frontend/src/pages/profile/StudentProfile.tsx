@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ReactNode,
   type CSSProperties,
 } from "react";
 import {
@@ -16,6 +17,7 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  Drawer,
   FormControlLabel,
   IconButton,
   InputAdornment,
@@ -44,7 +46,10 @@ import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import CreditCardRoundedIcon from "@mui/icons-material/CreditCardRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
-import { getPurchases } from "@/entities/purchase/model/storage";
+import AppsRoundedIcon from "@mui/icons-material/AppsRounded";
+import {
+  getPurchases,
+} from "@/entities/purchase/model/storage";
 import type { Purchase } from "@/entities/purchase/model/types";
 import { getCourses } from "@/entities/course/model/storage";
 import { getLessonsByCourse } from "@/entities/lesson/model/storage";
@@ -67,7 +72,6 @@ import { getTeacherAvailability } from "@/features/teacher-availability/api";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
 import type { User } from "@/entities/user/model/types";
 import { StudyCabinetPanel } from "@/shared/ui/StudyCabinetPanel";
-import { AxiomAssistant } from "@/features/assistant/ui/AxiomAssistant";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { selectPurchaseFinancialView } from "@/entities/purchase/model/selectors";
 import { BnplReminderFeed } from "@/entities/purchase/ui/BnplReminderFeed";
@@ -140,6 +144,7 @@ export default function StudentProfile() {
   const { user, updateUser, openAuthModal, openRecoverModal } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isNonDesktop = useMediaQuery(theme.breakpoints.down("lg"));
   const userId = user?.id;
   const navigate = useNavigate();
   const location = useLocation();
@@ -175,6 +180,7 @@ export default function StudentProfile() {
   const [chatEligibility, setChatEligibility] =
     useState<TeacherChatEligibility | null>(null);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const [tabMenuOpen, setTabMenuOpen] = useState(false);
   const [studyDrafts, setStudyDrafts] = useState<
     Awaited<ReturnType<typeof getWorkbookDrafts>>["items"]
   >([]);
@@ -595,6 +601,12 @@ export default function StudentProfile() {
       setTabWithQuery(0, { replace: true });
     }
   }, [chatAccessAvailable, tab, CHAT_TAB_INDEX, setTabWithQuery]);
+
+  useEffect(() => {
+    if (!isNonDesktop && tabMenuOpen) {
+      setTabMenuOpen(false);
+    }
+  }, [isNonDesktop, tabMenuOpen]);
 
   useEffect(() => {
     if (tab !== 3) return;
@@ -1365,8 +1377,6 @@ export default function StudentProfile() {
     });
   };
 
-  if (!user) return null;
-  const roleLabel = user.role === "teacher" ? "Преподаватель" : "Студент";
   const handleOpenTeacherChat = async () => {
     try {
       const eligibility = chatEligibility ?? (await getTeacherChatEligibility());
@@ -1432,6 +1442,63 @@ export default function StudentProfile() {
     fontSize: { xs: 28, md: 36 },
   } as const;
 
+  const studentTabItems = useMemo(
+    () =>
+      [
+        {
+          index: 0,
+          label: "Мой профиль",
+          icon: <PersonRoundedIcon />,
+        },
+        {
+          index: 1,
+          label: "Мои курсы",
+          icon: <MenuBookRoundedIcon />,
+        },
+        {
+          index: 2,
+          label: "Индивидуальные занятия",
+          icon: (
+            <Badge color="error" variant="dot" invisible={scheduledCount === 0}>
+              <EventAvailableRoundedIcon />
+            </Badge>
+          ),
+        },
+        {
+          index: 3,
+          label: "Учебный кабинет",
+          icon: <AutoStoriesRoundedIcon />,
+        },
+        ...(chatAccessAvailable
+          ? [
+              {
+                index: CHAT_TAB_INDEX,
+                label: "Чат",
+                icon: (
+                  <Badge
+                    color="error"
+                    badgeContent={chatUnreadCount > 99 ? "99+" : chatUnreadCount}
+                    invisible={chatUnreadCount <= 0}
+                  >
+                    <ForumRoundedIcon />
+                  </Badge>
+                ),
+              },
+            ]
+          : []),
+      ] satisfies Array<{ index: number; label: string; icon: ReactNode }>,
+    [chatAccessAvailable, CHAT_TAB_INDEX, chatUnreadCount, scheduledCount]
+  );
+
+  const activeStudentTab = useMemo(
+    () =>
+      studentTabItems.find((item) => item.index === tab) ?? studentTabItems[0] ?? null,
+    [studentTabItems, tab]
+  );
+
+  if (!user) return null;
+  const roleLabel = user.role === "teacher" ? "Преподаватель" : "Студент";
+
   return (
     <div className="student-profile">
       <Snackbar
@@ -1491,68 +1558,69 @@ export default function StudentProfile() {
           <SpaceDashboardRoundedIcon />
           <span>Панель студента</span>
         </h1>
-        <Tabs
-          value={tab}
-          onChange={(_, next) => setTabWithQuery(next, { replace: true })}
-          className="student-profile__tabs"
-        >
-          <Tab
-            label={<span className="student-profile__tab-label">Мой профиль</span>}
-            icon={<PersonRoundedIcon />}
-            iconPosition="start"
-          />
-          <Tab
-            label={<span className="student-profile__tab-label">Мои курсы</span>}
-            icon={<MenuBookRoundedIcon />}
-            iconPosition="start"
-          />
-          <Tab
-            label={
-              <span className="student-profile__tab-label">
-                Индивидуальные занятия
-              </span>
-            }
-            icon={
-              <Badge
-                color="error"
-                variant="dot"
-                invisible={scheduledCount === 0}
-              >
-                <EventAvailableRoundedIcon />
-              </Badge>
-            }
-            iconPosition="start"
-          />
-          <Tab
-            label={
-              <span className="student-profile__tab-label">
-                Учебный кабинет
-              </span>
-            }
-            icon={<AutoStoriesRoundedIcon />}
-            iconPosition="start"
-          />
-          {chatAccessAvailable ? (
-            <Tab
-              label={
-                <span className="student-profile__tab-label">
-                  Чат с преподавателем
-                </span>
-              }
-              icon={
-                <Badge
-                  color="error"
-                  badgeContent={chatUnreadCount > 99 ? "99+" : chatUnreadCount}
-                  invisible={chatUnreadCount <= 0}
-                >
-                  <ForumRoundedIcon />
-                </Badge>
-              }
-              iconPosition="start"
-            />
-          ) : null}
-        </Tabs>
+        {!isNonDesktop ? (
+          <Tabs
+            value={tab}
+            onChange={(_, next) => setTabWithQuery(next, { replace: true })}
+            className="student-profile__tabs"
+          >
+            {studentTabItems.map((item) => (
+              <Tab
+                key={item.index}
+                label={<span className="student-profile__tab-label">{item.label}</span>}
+                icon={item.icon}
+                iconPosition="start"
+              />
+            ))}
+          </Tabs>
+        ) : (
+          <div className="student-profile__tabs-mobile">
+            <Button
+              className="student-profile__tabs-mobile-trigger"
+              variant="outlined"
+              startIcon={<AppsRoundedIcon />}
+              onClick={() => setTabMenuOpen(true)}
+            >
+              {activeStudentTab ? `Раздел: ${activeStudentTab.label}` : "Разделы"}
+            </Button>
+          </div>
+        )}
       </div>
+      {isNonDesktop ? (
+        <Drawer
+          anchor={isMobile ? "bottom" : "left"}
+          open={tabMenuOpen}
+          onClose={() => setTabMenuOpen(false)}
+          PaperProps={{
+            className: isMobile
+              ? "student-profile__tabs-drawer student-profile__tabs-drawer--mobile"
+              : "student-profile__tabs-drawer",
+          }}
+        >
+          <div className="student-profile__tabs-drawer-head">
+            <h3>Разделы кабинета</h3>
+            <span>Выберите нужный раздел</span>
+          </div>
+          <div className="student-profile__tabs-drawer-grid">
+            {studentTabItems.map((item) => (
+              <button
+                key={item.index}
+                type="button"
+                className={`student-profile__tabs-drawer-item ${
+                  tab === item.index ? "is-active" : ""
+                }`}
+                onClick={() => {
+                  setTabWithQuery(item.index, { replace: true });
+                  setTabMenuOpen(false);
+                }}
+              >
+                <span className="student-profile__tabs-drawer-icon">{item.icon}</span>
+                <span className="student-profile__tabs-drawer-label">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </Drawer>
+      ) : null}
 
       {tab === 1 && (
         <div className="student-profile__courses">
@@ -1659,6 +1727,7 @@ export default function StudentProfile() {
               const courseCtaLabel = isCourseCompleted
                 ? "Рестарт"
                 : "Открыть";
+              const paymentActionLabel = "Оплата";
               return (
                 <div key={course.id} className="student-profile__course-card">
                   <div className="student-profile__course-main">
@@ -1736,7 +1805,7 @@ export default function StudentProfile() {
                           fontSize="inherit"
                           className="student-profile__course-link-icon"
                         />
-                        Оплата
+                        {paymentActionLabel}
                       </button>
                     </div>
                   </div>
@@ -1775,7 +1844,7 @@ export default function StudentProfile() {
                           <span>{learningVisual.percent}%</span>
                         </div>
                         <span className="student-profile__progress-label">
-                          Изучение
+                          Изучено
                         </span>
                       </div>
                       {totalTests > 0 ? (
@@ -1794,7 +1863,7 @@ export default function StudentProfile() {
                             <span>{knowledgeVisual.percent}%</span>
                           </div>
                           <span className="student-profile__progress-label">
-                            Тесты
+                            Сдано
                           </span>
                         </div>
                       ) : null}
@@ -2468,12 +2537,6 @@ export default function StudentProfile() {
       </div>
 
       {tab === CHAT_TAB_INDEX && chatAccessAvailable && <ChatPage />}
-
-      <AxiomAssistant
-        userId={user.id}
-        role="student"
-        mode={tab === 1 ? "course" : tab === 3 ? "study-cabinet" : "course"}
-      />
 
     </div>
   );

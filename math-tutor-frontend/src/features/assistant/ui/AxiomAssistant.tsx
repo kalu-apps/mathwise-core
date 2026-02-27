@@ -9,7 +9,6 @@ import type {
 } from "@/shared/api/assistant-contracts";
 import { getDefaultActionsByRole } from "@/features/assistant/model/assistant.constants";
 import { useAssistantController } from "@/features/assistant/model/assistant.store";
-import { AssistantLauncher } from "@/features/assistant/ui/AssistantLauncher/AssistantLauncher";
 import { AssistantPanel } from "@/features/assistant/ui/AssistantPanel/AssistantPanel";
 import { trackAssistantEvent } from "@/features/assistant/api/assistant.api";
 
@@ -55,44 +54,71 @@ export function AxiomAssistant({
   floating = true,
 }: AxiomAssistantProps) {
   const navigate = useNavigate();
-  const hintStorageKey = `axiom_assistant_hint_seen_v1_${userId}`;
   const [isMinimized, setIsMinimized] = useState(false);
-  const [showFirstHint, setShowFirstHint] = useState(() => {
-    try {
-      if (typeof window === "undefined") return false;
-      return !window.localStorage.getItem(hintStorageKey);
-    } catch {
-      return false;
-    }
-  });
   const controller = useAssistantController({ userId, role, mode });
   const latest = controller.state.latest;
   const quickActions =
     latest?.quickActions?.length ? latest.quickActions : getDefaultActionsByRole(role);
 
   useEffect(() => {
-    if (!showFirstHint) return;
-    try {
-      const timer = window.setTimeout(() => {
-        setShowFirstHint(false);
-        window.localStorage.setItem(hintStorageKey, "1");
-      }, 7000);
-      return () => window.clearTimeout(timer);
-    } catch {
-      return undefined;
-    }
-  }, [hintStorageKey, showFirstHint]);
-
-  const dismissHint = () => {
-    setShowFirstHint(false);
-    try {
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(hintStorageKey, "1");
+    if (typeof window === "undefined") return undefined;
+    const handleToggle = () => {
+      if (controller.state.isPanelOpen && isMinimized) {
+        setIsMinimized(false);
+        return;
       }
-    } catch {
-      // ignore storage errors
-    }
-  };
+      if (controller.state.isPanelOpen) {
+        setIsMinimized(false);
+        controller.close();
+        return;
+      }
+      setIsMinimized(false);
+      void controller.open();
+    };
+
+    window.addEventListener("axiom:toggle", handleToggle);
+    return () => window.removeEventListener("axiom:toggle", handleToggle);
+  }, [controller, isMinimized]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    window.dispatchEvent(
+      new CustomEvent("axiom:state", {
+        detail: {
+          available: true,
+        },
+      })
+    );
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent("axiom:state", {
+          detail: {
+            available: false,
+          },
+        })
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(
+      new CustomEvent("axiom:state", {
+        detail: {
+          available: true,
+          uiState: controller.state.uiState,
+          isOpen: controller.state.isPanelOpen,
+          isLoading: controller.state.isLoading,
+          hasError: Boolean(controller.state.error),
+        },
+      })
+    );
+  }, [
+    controller.state.error,
+    controller.state.isLoading,
+    controller.state.isPanelOpen,
+    controller.state.uiState,
+  ]);
 
   const handleAction = async (action: AssistantAction) => {
     void trackAssistantEvent({
@@ -148,26 +174,6 @@ export function AxiomAssistant({
         }}
         onRecommendation={handleRecommendation}
         onEntityLink={handleEntityLink}
-      />
-
-      <AssistantLauncher
-        state={controller.state.uiState}
-        active={controller.state.isPanelOpen}
-        hintVisible={showFirstHint}
-        onClick={() => {
-          dismissHint();
-          if (controller.state.isPanelOpen && isMinimized) {
-            setIsMinimized(false);
-            return;
-          }
-          if (controller.state.isPanelOpen) {
-            setIsMinimized(false);
-            controller.close();
-            return;
-          }
-          setIsMinimized(false);
-          void controller.open();
-        }}
       />
     </section>
   );

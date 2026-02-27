@@ -42,7 +42,9 @@
 }
 
 .lesson-details__hero {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   padding: 12px 14px;
   border-radius: 18px;
@@ -55,28 +57,45 @@
       color-mix(in srgb, var(--feedback-info) 14%, transparent)
     );
   box-shadow: var(--shadow-sm);
+  max-width: min(100%, 50%);
 }
 
-.lesson-details__kicker {
+.lesson-details__kicker,
+.lesson-details__duration-chip {
   display: inline-flex;
   align-items: center;
-  width: fit-content;
-  padding: 4px 9px;
+  justify-content: center;
+  width: 170px;
+  min-height: 24px;
+  padding: 4px 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--brand-solid) 16%, transparent);
-  color: var(--accent-soft);
-  border: 1px solid color-mix(in srgb, var(--brand-solid) 34%, transparent);
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.lesson-details__title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+.lesson-details__kicker {
+  background: color-mix(in srgb, var(--brand-solid) 16%, transparent);
+  color: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--brand-solid) 34%, transparent);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--brand-solid) 18%, transparent);
+}
+
+.lesson-details__duration-chip {
+  color: color-mix(in srgb, var(--feedback-info) 86%, var(--text-primary));
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--feedback-info) 24%, transparent),
+      color-mix(in srgb, var(--brand-solid) 12%, transparent)
+    );
+  border: 1px solid color-mix(in srgb, var(--feedback-info) 44%, transparent);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--feedback-info) 18%, transparent);
 }
 
 .lesson-details__title {
@@ -96,32 +115,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.lesson-details__meta-badge {
-  display: inline-grid;
-  gap: 3px;
-  width: fit-content;
-  min-width: 104px;
-  border-radius: 14px;
-  padding: 5px 7px;
-  border: 1px solid color-mix(in srgb, var(--brand-solid) 34%, var(--border-subtle));
-  background: color-mix(in srgb, var(--brand-solid) 14%, transparent);
-  flex-shrink: 0;
-
-  span {
-    font-size: 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-muted);
-    font-weight: 700;
-  }
-
-  strong {
-    color: var(--accent-soft);
-    font-size: 11px;
-    line-height: 1.2;
-  }
+  flex: 1 1 100%;
 }
 
 .lesson-details__video-card {
@@ -177,6 +171,7 @@
 
 .lesson-details__materials-grid {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -267,22 +262,13 @@
   }
 
   .lesson-details__hero {
+    max-width: 100%;
     padding: 8px 9px;
     border-radius: 14px;
   }
 
-  .lesson-details__title-row {
-    align-items: flex-start;
-    gap: 8px;
-  }
-
   .lesson-details__title {
     font-size: 14px;
-  }
-
-  .lesson-details__meta-badge {
-    min-width: 98px;
-    padding: 5px 7px;
   }
 
   .lesson-details__video-card,
@@ -299,7 +285,17 @@
     padding: 9px 10px;
   }
 
+  .lesson-details__materials-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .lesson-details__locked-card {
     padding: 18px 14px;
+  }
+}
+
+@media (max-width: 520px) {
+  .lesson-details__materials-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -27,7 +27,7 @@ import DiamondRoundedIcon from "@mui/icons-material/DiamondRounded";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { getUsers } from "@/features/auth/model/api";
 import { getCourses } from "@/entities/course/model/storage";
-import { getLessons } from "@/entities/lesson/model/storage";
+import { getLessonsByCourse } from "@/entities/lesson/model/storage";
 import { getPurchases } from "@/entities/purchase/model/storage";
 import { getViewedLessonIds } from "@/entities/progress/model/storage";
 import { getBookings, updateBooking } from "@/entities/booking/model/storage";
@@ -111,57 +111,64 @@ export default function TeacherStudentProfile() {
         setLoading(true);
       }
       setError(null);
-      const [students, allCourses, allLessons, purchases, bookingData] =
-        await Promise.all([
-          getUsers("student", { forceFresh: true }),
-          getCourses({ forceFresh: true }),
-          getLessons({ forceFresh: true }),
-          getPurchases({ userId: studentId }, { forceFresh: true }),
-          getBookings({ teacherId: user.id, studentId }),
-        ]);
+      const [students, allCourses, purchases, bookingData] = await Promise.all([
+        getUsers("student", { forceFresh: true }),
+        getCourses({ forceFresh: true }),
+        getPurchases({ userId: studentId }, { forceFresh: true }),
+        getBookings({ teacherId: user.id, studentId }),
+      ]);
 
       const selected = students.find((u) => u.id === studentId) ?? null;
-      const teacherCourses = allCourses.filter((c) => c.teacherId === user.id);
-      const lessonCounts = allLessons.reduce<Record<string, number>>(
-        (acc, lesson) => {
-          acc[lesson.courseId] = (acc[lesson.courseId] ?? 0) + 1;
-          return acc;
-        },
-        {}
-      );
       const studentPurchases = purchases;
       const courseInfo = await Promise.all(
         studentPurchases.map(async (purchase) => {
+          const liveCourse =
+            allCourses.find((candidate) => candidate.id === purchase.courseId) ?? null;
+          const usePublishedCourse = liveCourse?.status === "published";
           const course =
-            purchase.courseSnapshot ??
-            teacherCourses.find((c) => c.id === purchase.courseId);
+            (usePublishedCourse
+              ? liveCourse
+              : purchase.courseSnapshot ?? liveCourse) ?? null;
           if (!course) return null;
-          const snapshotLessons = Array.isArray(purchase.lessonsSnapshot)
-            ? purchase.lessonsSnapshot
-            : null;
-          const lessonsForProgress =
-            snapshotLessons ?? allLessons.filter((lesson) => lesson.courseId === course.id);
-          const queue = await getCourseContentItems(course.id, lessonsForProgress);
-          const courseLessonIds = queue
+          if (course.teacherId !== user.id) return null;
+
+          const lessons = usePublishedCourse
+            ? await getLessonsByCourse(course.id, { forceFresh: true })
+            : Array.isArray(purchase.lessonsSnapshot)
+              ? purchase.lessonsSnapshot
+              : await getLessonsByCourse(course.id, { forceFresh: true });
+          const queue = await getCourseContentItems(course.id, lessons);
+          const purchasedTestItemIdSet = new Set(
+            Array.isArray(purchase.purchasedTestItemIds)
+              ? purchase.purchasedTestItemIds
+              : []
+          );
+          const effectiveQueue = usePublishedCourse
+            ? queue
+            : queue.filter((item) => {
+                if (item.type === "lesson") return true;
+                if (purchasedTestItemIdSet.size > 0) {
+                  return purchasedTestItemIdSet.has(item.id);
+                }
+                if (!purchase.purchasedAt) return true;
+                return item.createdAt <= purchase.purchasedAt;
+              });
+
+          const lessonIds = effectiveQueue
             .filter(
               (
                 item
               ): item is Extract<
-                (typeof queue)[number],
+                (typeof effectiveQueue)[number],
                 {
                   type: "lesson";
                 }
               > => item.type === "lesson"
             )
             .map((item) => item.lessonId);
-          const uniqueCourseLessonIds = Array.from(new Set(courseLessonIds));
-          const totalLessons =
-            uniqueCourseLessonIds.length > 0
-              ? uniqueCourseLessonIds.length
-              : snapshotLessons
-              ? snapshotLessons.length
-              : lessonCounts[course.id] ?? 0;
-          const testItemIds = queue
+          const uniqueLessonIds = Array.from(new Set(lessonIds));
+          const totalLessons = uniqueLessonIds.length || lessons.length;
+          const testItemIds = effectiveQueue
             .filter((item) => item.type === "test")
             .map((item) => item.id);
           const [testsProgress, testsKnowledgeProgress] = await Promise.all([
@@ -181,8 +188,8 @@ export default function TeacherStudentProfile() {
           });
           const viewedSet = new Set(viewed);
           const viewedCount =
-            uniqueCourseLessonIds.length > 0
-              ? uniqueCourseLessonIds.filter((lessonId) => viewedSet.has(lessonId))
+            uniqueLessonIds.length > 0
+              ? uniqueLessonIds.filter((lessonId) => viewedSet.has(lessonId))
                   .length
               : viewedSet.size;
           const progress =
@@ -590,7 +597,7 @@ export default function TeacherStudentProfile() {
                           <span>{learningVisual.percent}%</span>
                         </div>
                         <span className="teacher-student-profile__progress-label">
-                          Изучение
+                          Изучено
                         </span>
                       </div>
                       {course.totalTests > 0 ? (
@@ -609,7 +616,7 @@ export default function TeacherStudentProfile() {
                             <span>{knowledgeVisual.percent}%</span>
                           </div>
                           <span className="teacher-student-profile__progress-label">
-                            Тесты
+                            Сдано
                           </span>
                         </div>
                       ) : null}

@@ -1,6 +1,7 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/features/auth/model/AuthContext";
+import { t } from "@/shared/i18n";
 import { PageLoader } from "@/shared/ui/loading";
 
 export function RoleProtectedRoute({
@@ -12,15 +13,24 @@ export function RoleProtectedRoute({
 }) {
   const { user, openAuthModal, isAuthReady } = useAuth();
   const location = useLocation();
+  const authModalOpenedForPathRef = useRef<string | null>(null);
+  const requestedPath = useMemo(
+    () => `${location.pathname}${location.search}${location.hash}`,
+    [location.hash, location.pathname, location.search]
+  );
 
   useEffect(() => {
-    if (isAuthReady && !user) {
+    if (isAuthReady && !user && authModalOpenedForPathRef.current !== requestedPath) {
+      authModalOpenedForPathRef.current = requestedPath;
       openAuthModal();
     }
-  }, [isAuthReady, user, openAuthModal]);
+    if (user) {
+      authModalOpenedForPathRef.current = null;
+    }
+  }, [isAuthReady, openAuthModal, requestedPath, user]);
 
   if (!isAuthReady) {
-    return <PageLoader minHeight="22vh" title="Проверяем сессию..." />;
+    return <PageLoader minHeight="22vh" title={t("route.checkingSession")} />;
   }
 
   if (!user) {
@@ -28,13 +38,20 @@ export function RoleProtectedRoute({
       <Navigate
         to="/"
         replace
-        state={{ from: `${location.pathname}${location.search}` }}
+        state={{ from: requestedPath, authRequired: true }}
       />
     );
   }
 
   if (!allow.includes(user.role)) {
-    return <Navigate to="/" replace />;
+    const fallback = user.role === "teacher" ? "/teacher/profile" : "/student/profile";
+    return (
+      <Navigate
+        to={fallback}
+        replace
+        state={{ accessDeniedFrom: requestedPath }}
+      />
+    );
   }
 
   return <>{children}</>;

@@ -34,6 +34,8 @@ const normalizeState = (
           Number.isFinite(template.durationMinutes)
             ? Math.max(0, Math.floor(template.durationMinutes))
             : 0,
+        assessmentKind:
+          template.assessmentKind === "exam" ? "exam" : "credit",
       }))
     : [],
   courseContent: state.courseContent ?? {},
@@ -180,6 +182,7 @@ const toTemplateSnapshot = (template: TestTemplate): TestTemplateSnapshot => ({
     Number.isFinite(template.durationMinutes)
       ? Math.max(0, Math.floor(template.durationMinutes))
       : 0,
+  assessmentKind: template.assessmentKind === "exam" ? "exam" : "credit",
   questions: template.questions.map((question) => ({
     ...question,
     prompt: {
@@ -231,6 +234,8 @@ const resolveTemplateForTestItem = (
       createdByTeacherId: "",
       createdAt: item.createdAt,
       updatedAt: item.createdAt,
+      assessmentKind:
+        item.templateSnapshot.assessmentKind === "exam" ? "exam" : "credit",
       questions: item.templateSnapshot.questions,
       recommendationMap: item.templateSnapshot.recommendationMap,
       status: "published",
@@ -345,6 +350,7 @@ export const saveAssessmentTemplate = async (
       Number.isFinite(input.durationMinutes)
         ? Math.max(0, Math.floor(input.durationMinutes))
         : 0,
+    assessmentKind: input.assessmentKind === "exam" ? "exam" : "credit",
     createdByTeacherId: input.createdByTeacherId,
     createdAt: existing?.createdAt ?? timestamp,
     updatedAt: timestamp,

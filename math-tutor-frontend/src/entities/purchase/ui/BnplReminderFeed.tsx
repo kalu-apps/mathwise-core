@@ -49,7 +49,10 @@ const getClassName = (status: PurchaseFinancialStatus) => {
   return "is-info";
 };
 
-export function BnplReminderFeed({ items, onOpenPurchase }: Props) {
+export function BnplReminderFeed({
+  items,
+  onOpenPurchase,
+}: Props) {
   if (items.length === 0) return null;
 
   return (
@@ -71,17 +74,18 @@ export function BnplReminderFeed({ items, onOpenPurchase }: Props) {
               <strong>{getTitle(item)}</strong>
               <p>{getDescription(item)}</p>
             </div>
-            <Button
-              variant="text"
-              endIcon={<ArrowForwardRoundedIcon />}
-              onClick={() => onOpenPurchase(item.purchaseId)}
-            >
-              Детали оплаты
-            </Button>
+            <div className="bnpl-reminder-feed__actions">
+              <Button
+                variant="contained"
+                endIcon={<ArrowForwardRoundedIcon />}
+                onClick={() => onOpenPurchase(item.purchaseId)}
+              >
+                Перейти к оплате
+              </Button>
+            </div>
           </article>
         ))}
       </div>
     </section>
   );
 }
-

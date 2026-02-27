@@ -3,6 +3,7 @@ export const ru = {
     cancel: "Отмена",
     close: "Закрыть",
     save: "Сохранить",
+    loading: "Загрузка",
     confirm: "Подтвердить",
     delete: "Удалить",
     firstName: "Имя",
@@ -25,6 +26,21 @@ export const ru = {
   pagination: {
     desktopInfo: "Показаны {from}-{to} из {total}",
     mobileInfo: "Стр. {page} из {totalPages}",
+  },
+  header: {
+    navCourses: "Курсы",
+    navTeacher: "О преподавателе",
+    navBooking: "Индивидуальные занятия",
+    navContact: "Задать вопрос",
+    openNavigation: "Открыть меню навигации",
+    closeNavigation: "Закрыть навигацию",
+    switchLightTheme: "Включить светлую тему",
+    switchDarkTheme: "Включить тёмную тему",
+    profile: "Профиль",
+    login: "Войти",
+    logout: "Выйти",
+    assistant: "Аксиом",
+    assistantToggle: "Открыть или закрыть ассистента Аксиом",
   },
   auth: {
     emailRequired: "Введите email",
@@ -127,6 +143,31 @@ export const ru = {
   },
   errors: {
     defaultMessage: "Произошла ошибка. Попробуйте еще раз.",
+  },
+  route: {
+    checkingSession: "Проверяем сессию...",
+    loadingPage: "Загрузка страницы...",
+  },
+  workbookInvite: {
+    title: "Подключение к рабочей тетради",
+    checkingInvite: "Проверяем приглашение...",
+    invalidLink: "Некорректная ссылка приглашения.",
+    resolveError: "Не удалось проверить ссылку приглашения.",
+    ended:
+      "Ссылка приглашения неактивна: коллективный урок завершен преподавателем.",
+    inactive: "Ссылка приглашения недействительна.",
+    sessionLabel: "Сессия",
+    teacherLabel: "Преподаватель",
+    guestNameLabel: "Ваше имя",
+    guestNameHint: "Имя будет отображаться в списке участников урока.",
+    guestNameRequired: "Введите имя для входа в урок.",
+    openWorkbook: "К рабочим тетрадям",
+    join: "Подключиться",
+    popupBlocked:
+      "Подключение выполнено, но браузер заблокировал новую вкладку. Разрешите pop-up и откройте сессию из раздела рабочей тетради.",
+    manualOpen: "Открыть вручную",
+    manualOpenAction: "перейти в сессию в новой вкладке",
+    joinError: "Не удалось подключиться к коллективной сессии.",
   },
   legal: {
     consentRequired:
@@ -270,7 +311,7 @@ export const ru = {
     title: "Панель преподавателя",
     tabProfile: "Мой профиль",
     tabStudents: "Студенты",
-    tabCourses: "Курсы",
+    tabCourses: "Курсы и тесты",
     tabBooking: "Индивидуальные занятия",
     tabStudy: "Учебный кабинет",
     tabStats: "Статистика",

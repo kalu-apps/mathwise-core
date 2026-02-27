@@ -3,7 +3,6 @@ import {
   Alert,
   Button,
   Dialog,
-  DialogActions,
   DialogContent,
   IconButton,
   InputAdornment,
@@ -141,7 +140,8 @@ export function AddTestToCourseDialog({
                     <div>
                       <Typography fontWeight={700}>{template.title}</Typography>
                       <Typography color="text.secondary" variant="body2">
-                        Вопросов: {template.questions.length}
+                        {template.assessmentKind === "exam" ? "Экзамен" : "Зачет"} • Вопросов:{" "}
+                        {template.questions.length}
                       </Typography>
                     </div>
                     <div className="assessment-template-select__actions">
@@ -166,9 +166,6 @@ export function AddTestToCourseDialog({
             )}
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose}>Закрыть</Button>
-        </DialogActions>
       </Dialog>
       <TestTemplatePreviewDialog
         open={Boolean(previewTemplate)}

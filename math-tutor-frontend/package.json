@@ -13,8 +13,11 @@
     "audit:contrast": "node scripts/visual-contrast-audit.mjs",
     "audit:visual-performance": "node scripts/visual-performance-audit.mjs",
     "audit:reliability": "node scripts/reliability-slo-gate.mjs",
+    "audit:i18n": "node scripts/i18n-hardcoded-audit.mjs",
+    "audit:i18n:strict": "node scripts/i18n-hardcoded-audit.mjs --strict",
     "smoke:network": "node scripts/reliability-network-smoke.mjs",
     "smoke:visual": "node scripts/visual-smoke-static.mjs",
+    "smoke:cross-browser": "node scripts/smoke-cross-browser.mjs",
     "smoke:modal-mobile": "node scripts/modal-smoke-mobile.mjs",
     "visual:matrix": "node scripts/visual-regression-matrix.mjs",
     "visual:capture": "node scripts/visual-capture.mjs",
@@ -23,8 +26,22 @@
     "visual:diff": "node scripts/visual-diff-check.mjs",
     "visual:gate": "npm run build && npm run visual:matrix && VISUAL_CAPTURE_STRICT=1 node scripts/visual-capture.mjs && VISUAL_DIFF_STRICT=1 npm run visual:diff && npm run audit:visual-performance",
     "portfolio:export": "node ../portfolio/scripts/export-showcases.mjs",
-    "verify": "npm run lint && npm run audit:visual && npm run audit:contracts && npm run audit:contrast && npm run smoke:visual && npm run visual:matrix && npm run visual:diff && npm run build && npm run audit:visual-performance",
+    "verify": "npm run lint && npm run audit:visual && npm run audit:contracts && npm run audit:contrast && npm run smoke:visual && npm run visual:matrix && npm run visual:diff && npm run build && npm run audit:visual-performance && npm run audit:i18n",
     "preview": "vite preview"
+  },
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "last 2 versions",
+      "Firefox ESR",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -44,6 +61,7 @@
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-basic-ssl": "^2.1.4",
+    "@vitejs/plugin-legacy": "^7.2.1",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.23",
     "eslint": "^9.39.1",

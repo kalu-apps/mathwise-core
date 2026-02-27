@@ -1,5 +1,6 @@
 import { defineConfig, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
+import legacy from "@vitejs/plugin-legacy";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
@@ -13,6 +14,10 @@ export default defineConfig(() => {
   const useHttps = process.env.VITE_DEV_HTTPS === "1";
   const plugins: PluginOption[] = [
     react(),
+    legacy({
+      targets: ["defaults", "not IE 11"],
+      modernPolyfills: true,
+    }),
     ...(useHttps ? [basicSsl()] : []),
     {
       name: "mock-api",

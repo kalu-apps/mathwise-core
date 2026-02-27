@@ -12,6 +12,7 @@ import type {
 import type { User } from "@/entities/user/model/types";
 import { api } from "@/shared/api/client";
 import { buildIdempotencyHeaders } from "@/shared/lib/idempotency";
+import { dispatchDataUpdate } from "@/shared/lib/dataUpdateBus";
 import { buildBnplMockPurchaseData } from "./bnplMockAdapter";
 import type {
   ConsentScope,
@@ -354,6 +355,56 @@ export async function attachCheckoutPurchase(
   }, {
     headers: buildIdempotencyHeaders("checkout_attach", options?.idempotencyKey),
   });
+}
+
+export type BnplInstallmentPaymentResponse = {
+  ok: boolean;
+  purchaseId: string;
+  checkoutId: string;
+  checkoutState: string;
+  payment: {
+    provider: string;
+    status: string;
+    outcome: string;
+    paymentUrl?: string;
+    redirectUrl?: string;
+    returnUrl?: string;
+    providerPaymentId?: string;
+    requiresConfirmation: boolean;
+    lastProcessedAt: string | null;
+  };
+  bnpl: {
+    applied: boolean;
+    installmentsCount: number;
+    paidCount: number;
+    nextPaymentDate?: string;
+    completed: boolean;
+  };
+  purchase: Purchase;
+};
+
+export async function payBnplInstallment(
+  purchaseId: string,
+  payload?: { source?: string }
+): Promise<BnplInstallmentPaymentResponse> {
+  const response = await api.post<BnplInstallmentPaymentResponse>(
+    `/purchases/${encodeURIComponent(purchaseId)}/bnpl/pay-installment`,
+    payload ?? {}
+  );
+  dispatchDataUpdate("purchase_bnpl_installment_paid", { immediate: true });
+  return response;
+}
+
+export async function payBnplRemaining(
+  purchaseId: string,
+  payload?: { source?: string }
+): Promise<BnplInstallmentPaymentResponse> {
+  const response = await api.post<BnplInstallmentPaymentResponse>(
+    `/purchases/${encodeURIComponent(purchaseId)}/bnpl/pay-remaining`,
+    payload ?? {}
+  );
+  dispatchDataUpdate("purchase_bnpl_remaining_paid", { immediate: true });
+  return response;
 }
 
 export async function deletePurchasesByCourse(courseId: string): Promise<void> {

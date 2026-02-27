@@ -129,7 +129,7 @@ export function CourseCard({
         flexDirection: isTeacherView
           ? "row"
           : isPurchasedStudentCard
-          ? { xs: "column", md: "row" }
+          ? { xs: "column", lg: "row" }
           : "column",
         transition: "transform 0.3s, box-shadow 0.3s",
         "&:hover": {
@@ -319,7 +319,7 @@ export function CourseCard({
                 size="small"
                 label={
                   bnplFromAmount
-                    ? `Оплата частями: от ${bnplFromAmount} ₽/мес`
+                    ? `Оплата частями: от ${bnplFromAmount} ₽ в месяц`
                     : "Оплата частями доступна"
                 }
                 sx={{
@@ -425,10 +425,10 @@ export function CourseCard({
       {!isTeacherView && hasPurchasedProgress ? (
         <Box
           sx={{
-            width: { xs: "100%", md: 220 },
+            width: { xs: "100%", lg: 220 },
             flexShrink: 0,
-            mt: { xs: 1.25, md: 0.25 },
-            pl: { xs: 0, md: 1.25 },
+            mt: { xs: 1.25, lg: 0.25 },
+            pl: { xs: 0, lg: 1.25 },
             display: "grid",
             alignContent: "start",
           }}
@@ -436,12 +436,12 @@ export function CourseCard({
           <Stack
             direction="row"
             spacing={1}
-            sx={{
-              alignItems: "stretch",
-              flexWrap: "wrap",
-              justifyContent: { md: "flex-end", xs: "flex-start" },
-            }}
-          >
+              sx={{
+                alignItems: "stretch",
+                flexWrap: "wrap",
+                justifyContent: { lg: "flex-end", xs: "flex-start" },
+              }}
+            >
             <Box
               sx={{
                 flex: "1 1 96px",
@@ -492,7 +492,7 @@ export function CourseCard({
                 </Box>
               </Box>
               <Typography variant="caption" sx={{ color: learningVisual.color, fontWeight: 700 }}>
-                Изучение
+                Изучено
               </Typography>
             </Box>
             {progressDetails!.testsTotal > 0 ? (
@@ -546,7 +546,7 @@ export function CourseCard({
                   </Box>
                 </Box>
                 <Typography variant="caption" sx={{ color: knowledgeVisual.color, fontWeight: 700 }}>
-                  Тесты
+                  Сдано
                 </Typography>
               </Box>
             ) : null}

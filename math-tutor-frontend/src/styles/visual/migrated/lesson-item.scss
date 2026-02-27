@@ -86,25 +86,19 @@
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--brand-solid) 26%, transparent);
   background: color-mix(in srgb, var(--brand-solid) 10%, transparent);
-  display: inline-grid;
-  gap: 2px;
+  display: inline-flex;
+  align-items: center;
   padding: 7px 10px;
-  min-width: 98px;
-  text-align: right;
+  min-width: 146px;
+  text-align: left;
   flex-shrink: 0;
 
   strong {
     font-size: 13px;
     color: var(--accent-soft);
     line-height: 1.2;
+    font-weight: 700;
   }
-}
-
-.lesson-item__duration-label {
-  font-size: 10px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .lesson-item--locked {
@@ -155,7 +149,7 @@
   }
 
   .lesson-item__duration {
-    min-width: 90px;
+    min-width: 124px;
     padding: 6px 8px;
   }
 }

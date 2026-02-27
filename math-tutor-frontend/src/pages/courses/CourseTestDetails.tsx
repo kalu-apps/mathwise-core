@@ -151,6 +151,10 @@ export default function CourseTestDetails() {
                 title: item.templateSnapshot.title,
                 description: item.templateSnapshot.description ?? "",
                 durationMinutes: item.templateSnapshot.durationMinutes,
+                assessmentKind:
+                  item.templateSnapshot.assessmentKind === "exam"
+                    ? ("exam" as const)
+                    : ("credit" as const),
                 createdByTeacherId: "",
                 createdAt: item.createdAt,
                 updatedAt: item.createdAt,
@@ -827,7 +831,6 @@ export default function CourseTestDetails() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setResultDialogOpen(false)}>Закрыть</Button>
           <Button
             variant="contained"
             startIcon={<ReplayRoundedIcon />}
@@ -883,9 +886,6 @@ export default function CourseTestDetails() {
             </Stack>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setHistoryOpen(false)}>Закрыть</Button>
-        </DialogActions>
         </Dialog>
       )}
 

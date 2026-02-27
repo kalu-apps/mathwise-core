@@ -5,6 +5,8 @@ import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import { Typography } from "@mui/material";
 import {
+  useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -80,7 +82,7 @@ export function AssistantPanel({
     };
   }, [position]);
 
-  const clampPosition = (x: number, y: number) => {
+  const clampPosition = useCallback((x: number, y: number) => {
     const panel = panelRef.current;
     if (!panel) return { x, y };
     const rect = panel.getBoundingClientRect();
@@ -90,10 +92,13 @@ export function AssistantPanel({
       x: Math.min(Math.max(8, x), maxX),
       y: Math.min(Math.max(8, y), maxY),
     };
-  };
+  }, []);
 
   const handleDragStart = (event: ReactPointerEvent<HTMLElement>) => {
     if (event.button !== 0) return;
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches) {
+      return;
+    }
     const target = event.target as HTMLElement;
     if (target.closest("button")) return;
     const panel = panelRef.current;
@@ -126,6 +131,19 @@ export function AssistantPanel({
     setDragging(false);
     event.currentTarget.releasePointerCapture(event.pointerId);
   };
+
+  useEffect(() => {
+    if (!open) return;
+    const syncInViewport = () => {
+      setPosition((current) => {
+        if (!current) return current;
+        return clampPosition(current.x, current.y);
+      });
+    };
+    syncInViewport();
+    window.addEventListener("resize", syncInViewport);
+    return () => window.removeEventListener("resize", syncInViewport);
+  }, [clampPosition, open]);
 
   return (
     <aside

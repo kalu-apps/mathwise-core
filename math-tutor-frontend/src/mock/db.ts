@@ -101,6 +101,7 @@ export type WorkbookDraftRecord = {
   id: string;
   ownerUserId: string;
   sessionId: string;
+  redirectSessionId?: string | null;
   title: string;
   statusForCard: "draft" | "in_progress" | "ended";
   createdAt: string;

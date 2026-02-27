@@ -312,7 +312,7 @@ export const buildFunctionGraphPlots = (
   gridStep: number
 ): FunctionGraphPlot[] => {
   const safeGridStep = clamp(Math.round(gridStep), MIN_GRID_STEP, MAX_GRID_STEP);
-  const pxPerUnit = safeGridStep / 2;
+  const pxPerUnit = safeGridStep;
   const centerX = viewport.x + viewport.width / 2;
   const centerY = viewport.y + viewport.height / 2;
   const samplingStepPx = clamp(safeGridStep / 10, 0.9, 3.2);
@@ -379,7 +379,7 @@ export const buildFunctionGraphPlots = (
         }
         const point: WorkbookPoint = {
           x: canvasX,
-          y: clamp(canvasY, viewport.y, viewport.y + viewport.height),
+          y: canvasY,
         };
         if (previousPoint) {
           const dy = Math.abs(point.y - previousPoint.y);

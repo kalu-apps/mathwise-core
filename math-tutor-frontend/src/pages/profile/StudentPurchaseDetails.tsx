@@ -17,6 +17,8 @@ import { useAuth } from "@/features/auth/model/AuthContext";
 import {
   attachCheckoutPurchase,
   getPurchases,
+  payBnplInstallment,
+  payBnplRemaining,
 } from "@/entities/purchase/model/storage";
 import type { Purchase } from "@/entities/purchase/model/types";
 import { selectPurchaseFinancialView } from "@/entities/purchase/model/selectors";
@@ -83,6 +85,8 @@ export default function StudentPurchaseDetails() {
   const [attemptActionLoadingId, setAttemptActionLoadingId] = useState<
     string | null
   >(null);
+  const [installmentPaymentLoading, setInstallmentPaymentLoading] = useState(false);
+  const [remainingPaymentLoading, setRemainingPaymentLoading] = useState(false);
   const [paymentAttempts, setPaymentAttempts] = useState<PaymentAttempt[]>([]);
   const {
     state: accessNoticeState,
@@ -147,6 +151,19 @@ export default function StudentPurchaseDetails() {
     () => selectCheckoutPaymentView(paymentAttempts),
     [paymentAttempts]
   );
+  const canPayInstallment = useMemo(() => {
+    if (!financialView || financialView.paymentMethod !== "bnpl") return false;
+    const paidCount = financialView.paidCount ?? 0;
+    const installmentsCount = financialView.installmentsCount ?? 0;
+    return installmentsCount > 0 && paidCount < installmentsCount;
+  }, [financialView]);
+  const canPayRemaining = useMemo(() => {
+    if (!financialView || financialView.paymentMethod !== "bnpl") return false;
+    const outstanding = financialView.schedule
+      .filter((item) => item.status !== "paid")
+      .reduce((sum, item) => sum + Math.max(0, Number(item.amount) || 0), 0);
+    return outstanding > 0;
+  }, [financialView]);
 
   const handleAttachAndRecheck = useCallback(async () => {
     if (!purchase?.checkoutId) {
@@ -227,6 +244,53 @@ export default function StudentPurchaseDetails() {
     },
     [loadPurchase, purchase, refreshAttempts]
   );
+
+  const handlePayInstallment = useCallback(
+    async (source: "purchase_details" = "purchase_details") => {
+      if (!purchase) return;
+      try {
+        setInstallmentPaymentLoading(true);
+        setError(null);
+        const result = await payBnplInstallment(purchase.id, { source });
+        if (
+          result.payment.requiresConfirmation &&
+          typeof result.payment.redirectUrl === "string" &&
+          result.payment.redirectUrl
+        ) {
+          window.open(result.payment.redirectUrl, "_blank", "noopener,noreferrer");
+        }
+        await Promise.all([refreshAttempts(), loadPurchase()]);
+      } catch {
+        setError("Не удалось зафиксировать платеж. Попробуйте повторить действие.");
+      } finally {
+        setInstallmentPaymentLoading(false);
+      }
+    },
+    [loadPurchase, purchase, refreshAttempts]
+  );
+
+  const handlePayRemaining = useCallback(async () => {
+    if (!purchase) return;
+    try {
+      setRemainingPaymentLoading(true);
+      setError(null);
+      const result = await payBnplRemaining(purchase.id, {
+        source: "purchase_details",
+      });
+      if (
+        result.payment.requiresConfirmation &&
+        typeof result.payment.redirectUrl === "string" &&
+        result.payment.redirectUrl
+      ) {
+        window.open(result.payment.redirectUrl, "_blank", "noopener,noreferrer");
+      }
+      await Promise.all([refreshAttempts(), loadPurchase()]);
+    } catch {
+      setError("Не удалось провести оплату остатка. Попробуйте повторить действие.");
+    } finally {
+      setRemainingPaymentLoading(false);
+    }
+  }, [loadPurchase, purchase, refreshAttempts]);
 
   if (loading) {
     return (
@@ -550,9 +614,40 @@ export default function StudentPurchaseDetails() {
                   ))}
                 </div>
               )}
+              <div className="purchase-details-page__bnpl-actions-inline">
+                <Button
+                  variant="contained"
+                  startIcon={
+                    installmentPaymentLoading ? (
+                      <CircularProgress size={16} color="inherit" />
+                    ) : (
+                      <RefreshRoundedIcon />
+                    )
+                  }
+                  onClick={() => void handlePayInstallment("purchase_details")}
+                  disabled={!canPayInstallment || installmentPaymentLoading}
+                >
+                  {installmentPaymentLoading ? "Фиксируем..." : "Следующий взнос"}
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={
+                    remainingPaymentLoading ? (
+                      <CircularProgress size={16} color="inherit" />
+                    ) : (
+                      <CalendarMonthRoundedIcon />
+                    )
+                  }
+                  onClick={() => void handlePayRemaining()}
+                  disabled={!canPayRemaining || remainingPaymentLoading}
+                >
+                  {remainingPaymentLoading ? "Фиксируем..." : "Весь остаток"}
+                </Button>
+              </div>
               <Alert severity="info" className="ui-alert">
-                Логика доступа: 1-3 дня просрочки — льготный период, 4-9 — блок
-                новых уроков, 10+ — временная приостановка доступа.
+                Логика оплаты как у сплит-провайдеров (Подели/Долями): можно оплатить
+                ближайший взнос либо погасить весь остаток. Доступ обновляется сразу после
+                подтверждения платежа.
               </Alert>
               <Button
                 variant="outlined"

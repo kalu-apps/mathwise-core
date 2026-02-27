@@ -33,6 +33,7 @@ import type { ProjectedSolidVertex, SolidSurfacePick } from "../model/solid3dGeo
 import {
   buildFunctionGraphPlots,
   getAutoGraphGridStep,
+  sanitizeFunctionGraphDrafts,
   type GraphFunctionDraft,
 } from "../model/functionGraph";
 
@@ -238,6 +239,14 @@ type Solid3dResizeHandle = {
 type PanState = {
   start: WorkbookPoint;
   baseOffset: WorkbookPoint;
+};
+
+type GraphPanState = {
+  object: WorkbookBoardObject;
+  start: WorkbookPoint;
+  current: WorkbookPoint;
+  initialFunctions: GraphFunctionDraft[];
+  pxPerUnit: number;
 };
 
 type AreaSelectionDraft = {
@@ -798,6 +807,9 @@ const mapConstraintLabel = (type: WorkbookConstraint["type"]) => {
   return "Связь";
 };
 
+const clampGraphOffsetValue = (value: number) =>
+  Math.max(-999, Math.min(999, Number.isFinite(value) ? value : 0));
+
 const getPointObjectCenter = (object: WorkbookBoardObject) => ({
   x: object.x + object.width / 2,
   y: object.y + object.height / 2,
@@ -893,12 +905,15 @@ export function WorkbookCanvas({
   const [containerNode, setContainerNode] = useState<HTMLDivElement | null>(null);
   const pointerIdRef = useRef<number | null>(null);
   const [points, setPoints] = useState<WorkbookPoint[]>([]);
+  const strokePointsRef = useRef<WorkbookPoint[]>([]);
+  const strokeFlushFrameRef = useRef<number | null>(null);
   const [shapeDraft, setShapeDraft] = useState<ShapeDraft | null>(null);
   const [polygonPointDraft, setPolygonPointDraft] = useState<WorkbookPoint[]>([]);
   const [polygonHoverPoint, setPolygonHoverPoint] = useState<WorkbookPoint | null>(null);
   const [moving, setMoving] = useState<MovingState | null>(null);
   const [resizing, setResizing] = useState<ResizeState | null>(null);
   const [panning, setPanning] = useState<PanState | null>(null);
+  const [graphPan, setGraphPan] = useState<GraphPanState | null>(null);
   const [solid3dGesture, setSolid3dGesture] = useState<Solid3dGestureState | null>(null);
   const [solid3dResize, setSolid3dResize] = useState<Solid3dResizeState | null>(null);
   const [areaSelectionDraft, setAreaSelectionDraft] = useState<AreaSelectionDraft | null>(null);
@@ -916,6 +931,31 @@ export function WorkbookCanvas({
   const safeZoom = Math.max(
     0.3,
     Math.min(3, Number.isFinite(viewportZoom) ? viewportZoom : 1)
+  );
+
+  const flushStrokePointsToState = useCallback(() => {
+    strokeFlushFrameRef.current = null;
+    setPoints([...strokePointsRef.current]);
+  }, []);
+
+  const enqueueStrokePoints = useCallback(
+    (nextPoints: WorkbookPoint[]) => {
+      if (nextPoints.length === 0) return;
+      strokePointsRef.current.push(...nextPoints);
+      if (strokeFlushFrameRef.current !== null) return;
+      strokeFlushFrameRef.current = window.requestAnimationFrame(flushStrokePointsToState);
+    },
+    [flushStrokePointsToState]
+  );
+
+  useEffect(
+    () => () => {
+      if (strokeFlushFrameRef.current !== null) {
+        window.cancelAnimationFrame(strokeFlushFrameRef.current);
+        strokeFlushFrameRef.current = null;
+      }
+    },
+    []
   );
 
   const snapPoint = useCallback(
@@ -1016,6 +1056,45 @@ export function WorkbookCanvas({
       height: moving.object.height,
     };
   }, [moving]);
+
+  const resolveFunctionGraphScale = useCallback(
+    (object: WorkbookBoardObject) => {
+      const autoStep = getAutoGraphGridStep({
+        width: Math.max(1, Math.abs(object.width)),
+        height: Math.max(1, Math.abs(object.height)),
+      });
+      const step = Math.max(
+        12,
+        Math.min(
+          64,
+          Math.round(Number.isFinite(gridSize) && gridSize > 0 ? gridSize : autoStep)
+        )
+      );
+      return {
+        pxPerUnit: Math.max(0.0001, step),
+      };
+    },
+    [gridSize]
+  );
+
+  const applyGraphPanToFunctions = useCallback(
+    (
+      functions: GraphFunctionDraft[],
+      deltaX: number,
+      deltaY: number,
+      pxPerUnit: number
+    ): GraphFunctionDraft[] => {
+      if (functions.length === 0 || pxPerUnit <= 0) return functions;
+      const offsetXShift = deltaX / pxPerUnit;
+      const offsetYShift = -deltaY / pxPerUnit;
+      return functions.map((entry) => ({
+        ...entry,
+        offsetX: clampGraphOffsetValue((entry.offsetX ?? 0) + offsetXShift),
+        offsetY: clampGraphOffsetValue((entry.offsetY ?? 0) + offsetYShift),
+      }));
+    },
+    []
+  );
 
   const mapPointer = (
     svg: SVGSVGElement | null,
@@ -1519,6 +1598,11 @@ export function WorkbookCanvas({
   const startStroke = (event: PointerEvent<SVGSVGElement>, svg: SVGSVGElement) => {
     pointerIdRef.current = event.pointerId;
     const start = mapPointer(svg, event.clientX, event.clientY);
+    if (strokeFlushFrameRef.current !== null) {
+      window.cancelAnimationFrame(strokeFlushFrameRef.current);
+      strokeFlushFrameRef.current = null;
+    }
+    strokePointsRef.current = [start];
     setPoints([start]);
     svg.setPointerCapture(event.pointerId);
   };
@@ -1680,6 +1764,31 @@ export function WorkbookCanvas({
     svg.setPointerCapture(event.pointerId);
   };
 
+  const startGraphPan = (
+    object: WorkbookBoardObject,
+    event: PointerEvent<SVGSVGElement>,
+    svg: SVGSVGElement
+  ) => {
+    if (object.type !== "function_graph") return;
+    pointerIdRef.current = event.pointerId;
+    const start = mapPointer(svg, event.clientX, event.clientY);
+    const rawFunctions = Array.isArray(object.meta?.functions)
+      ? (object.meta.functions as GraphFunctionDraft[])
+      : [];
+    const initialFunctions = sanitizeFunctionGraphDrafts(rawFunctions, {
+      ensureNonEmpty: false,
+    });
+    const { pxPerUnit } = resolveFunctionGraphScale(object);
+    setGraphPan({
+      object,
+      start,
+      current: start,
+      initialFunctions,
+      pxPerUnit,
+    });
+    svg.setPointerCapture(event.pointerId);
+  };
+
   const commitPolygonByPoints = useCallback((sourcePoints: WorkbookPoint[]) => {
     if (sourcePoints.length < 3) return;
     const xs = sourcePoints.map((point) => point.x);
@@ -1752,6 +1861,12 @@ export function WorkbookCanvas({
         onSelectedConstraintChange(null);
         onSelectedObjectChange(target.id);
         startSolid3dGesture(target, "rotate", event, svg);
+        return;
+      }
+      if (target && target.type === "function_graph" && !target.pinned) {
+        onSelectedConstraintChange(null);
+        onSelectedObjectChange(target.id);
+        startGraphPan(target, event, svg);
         return;
       }
       if (target && (target.type === "line" || target.type === "arrow") && !target.pinned) {
@@ -2069,6 +2184,11 @@ export function WorkbookCanvas({
       onViewportOffsetChange?.(nextOffset);
       return;
     }
+    if (graphPan) {
+      const point = mapPointer(svg, event.clientX, event.clientY, false, false);
+      setGraphPan((prev) => (prev ? { ...prev, current: point } : prev));
+      return;
+    }
     const requiresUnclampedPointer = Boolean(solid3dGesture || solid3dResize || moving);
     const point = mapPointer(
       svg,
@@ -2119,8 +2239,28 @@ export function WorkbookCanvas({
       return;
     }
 
-    if (points.length > 0) {
-      setPoints((prev) => [...prev, point]);
+    if (strokePointsRef.current.length > 0) {
+      const nativeEvent = event.nativeEvent;
+      const coalesced =
+        typeof nativeEvent.getCoalescedEvents === "function"
+          ? nativeEvent.getCoalescedEvents()
+          : [];
+      const sourceEvents =
+        coalesced.length > 0
+          ? coalesced
+          : [nativeEvent as globalThis.PointerEvent];
+      const nextPoints: WorkbookPoint[] = [];
+      sourceEvents.forEach((pointerEvent) => {
+        const nextPoint = mapPointer(svg, pointerEvent.clientX, pointerEvent.clientY);
+        const last =
+          nextPoints.length > 0
+            ? nextPoints[nextPoints.length - 1]
+            : strokePointsRef.current[strokePointsRef.current.length - 1];
+        if (!last || Math.hypot(nextPoint.x - last.x, nextPoint.y - last.y) >= 0.18) {
+          nextPoints.push(nextPoint);
+        }
+      });
+      enqueueStrokePoints(nextPoints);
       return;
     }
 
@@ -2164,8 +2304,22 @@ export function WorkbookCanvas({
     event: PointerEvent<SVGSVGElement>,
     svg: SVGSVGElement
   ) => {
+    if (strokeFlushFrameRef.current !== null) {
+      window.cancelAnimationFrame(strokeFlushFrameRef.current);
+      strokeFlushFrameRef.current = null;
+    }
+    const fallbackPoint = mapPointer(svg, event.clientX, event.clientY);
+    const bufferedPoints =
+      strokePointsRef.current.length > 0
+        ? strokePointsRef.current
+        : points.length > 0
+          ? points
+          : [fallbackPoint];
+    const lastPoint = bufferedPoints[bufferedPoints.length - 1];
     const finalPoints =
-      points.length > 0 ? points : [mapPointer(svg, event.clientX, event.clientY)];
+      !lastPoint || Math.hypot(fallbackPoint.x - lastPoint.x, fallbackPoint.y - lastPoint.y) > 0.12
+        ? [...bufferedPoints, fallbackPoint]
+        : [...bufferedPoints];
     if (finalPoints.length === 0) return;
     const strokeTool = tool === "eraser" ? "pen" : tool;
     onStrokeCommit({
@@ -2178,6 +2332,7 @@ export function WorkbookCanvas({
       authorUserId,
       createdAt: new Date().toISOString(),
     });
+    strokePointsRef.current = [];
     setPoints([]);
   };
 
@@ -2323,6 +2478,8 @@ export function WorkbookCanvas({
           : shapeDraft.tool === "function_graph"
             ? {
                 functions: graphFunctions,
+                axisColor: "#ff8e3c",
+                planeColor: "#8ea7ff",
               }
             : shapeDraft.tool === "line" || shapeDraft.tool === "arrow"
               ? {
@@ -2671,7 +2828,7 @@ export function WorkbookCanvas({
       pointerIdRef.current = null;
       return;
     }
-    if (points.length > 0) {
+    if (strokePointsRef.current.length > 0 || points.length > 0) {
       finishStroke(event, svg);
     } else if (shapeDraft) {
       finishShape();
@@ -2711,6 +2868,22 @@ export function WorkbookCanvas({
       setAreaSelectionDraft(null);
     } else if (panning) {
       setPanning(null);
+    } else if (graphPan) {
+      const deltaX = graphPan.current.x - graphPan.start.x;
+      const deltaY = graphPan.current.y - graphPan.start.y;
+      const shiftedFunctions = applyGraphPanToFunctions(
+        graphPan.initialFunctions,
+        deltaX,
+        deltaY,
+        graphPan.pxPerUnit
+      );
+      onObjectUpdate(graphPan.object.id, {
+        meta: {
+          ...(graphPan.object.meta ?? {}),
+          functions: shiftedFunctions,
+        },
+      });
+      setGraphPan(null);
     } else if (solid3dGesture) {
       const previewMeta = solid3dPreviewMetaById[solid3dGesture.object.id];
       if (previewMeta) {
@@ -3382,19 +3555,36 @@ export function WorkbookCanvas({
       const functions = Array.isArray(object.meta?.functions)
         ? (object.meta?.functions as GraphFunctionDraft[])
         : [];
-      const step = getAutoGraphGridStep({
+      const axisColorRaw = object.meta?.axisColor;
+      const axisColor =
+        typeof axisColorRaw === "string" && axisColorRaw.startsWith("#")
+          ? axisColorRaw
+          : "#ff8e3c";
+      const planeColorRaw = object.meta?.planeColor;
+      const planeColor =
+        typeof planeColorRaw === "string" && planeColorRaw.startsWith("#")
+          ? planeColorRaw
+          : "#8ea7ff";
+      const autoStep = getAutoGraphGridStep({
         width: normalized.width,
         height: normalized.height,
       });
+      const step = Math.max(
+        12,
+        Math.min(64, Math.round(Number.isFinite(gridSize) && gridSize > 0 ? gridSize : autoStep))
+      );
       const centerX = normalized.x + normalized.width / 2;
       const centerY = normalized.y + normalized.height / 2;
       const lines: ReactNode[] = [];
       const labels: ReactNode[] = [];
 
-      for (let x = centerX; x <= normalized.x + normalized.width; x += step) {
+      const startGridX = Math.floor(normalized.x / step) * step;
+      const endGridX = normalized.x + normalized.width;
+      for (let x = startGridX; x <= endGridX + 0.5; x += step) {
+        if (x < normalized.x - 0.5) continue;
         lines.push(
           <line
-            key={`fn-grid-x-pos-${object.id}-${x}`}
+            key={`fn-grid-x-${object.id}-${x}`}
             x1={x}
             y1={normalized.y}
             x2={x}
@@ -3404,36 +3594,14 @@ export function WorkbookCanvas({
           />
         );
       }
-      for (let x = centerX - step; x >= normalized.x; x -= step) {
+
+      const startGridY = Math.floor(normalized.y / step) * step;
+      const endGridY = normalized.y + normalized.height;
+      for (let y = startGridY; y <= endGridY + 0.5; y += step) {
+        if (y < normalized.y - 0.5) continue;
         lines.push(
           <line
-            key={`fn-grid-x-neg-${object.id}-${x}`}
-            x1={x}
-            y1={normalized.y}
-            x2={x}
-            y2={normalized.y + normalized.height}
-            stroke="rgba(94, 113, 181, 0.24)"
-            strokeWidth={0.8}
-          />
-        );
-      }
-      for (let y = centerY; y <= normalized.y + normalized.height; y += step) {
-        lines.push(
-          <line
-            key={`fn-grid-y-pos-${object.id}-${y}`}
-            x1={normalized.x}
-            y1={y}
-            x2={normalized.x + normalized.width}
-            y2={y}
-            stroke="rgba(94, 113, 181, 0.24)"
-            strokeWidth={0.8}
-          />
-        );
-      }
-      for (let y = centerY - step; y >= normalized.y; y -= step) {
-        lines.push(
-          <line
-            key={`fn-grid-y-neg-${object.id}-${y}`}
+            key={`fn-grid-y-${object.id}-${y}`}
             x1={normalized.x}
             y1={y}
             x2={normalized.x + normalized.width}
@@ -3444,108 +3612,34 @@ export function WorkbookCanvas({
         );
       }
 
-      for (
-        let tickX = centerX, value = 0;
-        tickX <= normalized.x + normalized.width;
-        tickX += step, value += 2
-      ) {
-        if (value === 0) continue;
-        labels.push(
-          <text
-            key={`fn-label-x-pos-${object.id}-${value}`}
-            x={tickX + 2}
-            y={centerY + 12}
-            fill="#3d4e8a"
-            fontSize={10}
-            fontWeight={600}
-          >
-            {value}
-          </text>
-        );
-      }
-      for (
-        let tickX = centerX - step, value = -2;
-        tickX >= normalized.x;
-        tickX -= step, value -= 2
-      ) {
-        labels.push(
-          <text
-            key={`fn-label-x-neg-${object.id}-${value}`}
-            x={tickX + 2}
-            y={centerY + 12}
-            fill="#3d4e8a"
-            fontSize={10}
-            fontWeight={600}
-          >
-            {value}
-          </text>
-        );
-      }
-      for (
-        let tickY = centerY - step, value = 2;
-        tickY >= normalized.y;
-        tickY -= step, value += 2
-      ) {
-        labels.push(
-          <text
-            key={`fn-label-y-pos-${object.id}-${value}`}
-            x={centerX + 4}
-            y={tickY - 3}
-            fill="#3d4e8a"
-            fontSize={10}
-            fontWeight={600}
-          >
-            {value}
-          </text>
-        );
-      }
-      for (
-        let tickY = centerY + step, value = -2;
-        tickY <= normalized.y + normalized.height;
-        tickY += step, value -= 2
-      ) {
-        labels.push(
-          <text
-            key={`fn-label-y-neg-${object.id}-${value}`}
-            x={centerX + 4}
-            y={tickY - 3}
-            fill="#3d4e8a"
-            fontSize={10}
-            fontWeight={600}
-          >
-            {value}
-          </text>
-        );
-      }
-
-        lines.push(
-          <line
-            key={`fn-axis-x-${object.id}`}
-            x1={normalized.x}
-            y1={centerY}
-            x2={normalized.x + normalized.width}
-            y2={centerY}
-            stroke="#ff8e3c"
-            strokeWidth={1.35}
-          />
-        );
-        lines.push(
-          <line
-            key={`fn-axis-y-${object.id}`}
-            x1={centerX}
-            y1={normalized.y}
-            x2={centerX}
-            y2={normalized.y + normalized.height}
-            stroke="#ff8e3c"
-            strokeWidth={1.35}
-          />
-        );
+      lines.push(
+        <line
+          key={`fn-axis-x-${object.id}`}
+          x1={normalized.x}
+          y1={centerY}
+          x2={normalized.x + normalized.width}
+          y2={centerY}
+          stroke={axisColor}
+          strokeWidth={1.35}
+        />
+      );
+      lines.push(
+        <line
+          key={`fn-axis-y-${object.id}`}
+          x1={centerX}
+          y1={normalized.y}
+          x2={centerX}
+          y2={normalized.y + normalized.height}
+          stroke={axisColor}
+          strokeWidth={1.35}
+        />
+      );
       labels.push(
         <text
           key={`fn-label-axis-x-${object.id}`}
           x={normalized.x + normalized.width - 14}
           y={centerY - 6}
-          fill="#ff8e3c"
+          fill={axisColor}
           fontSize={11}
           fontWeight={700}
         >
@@ -3557,7 +3651,7 @@ export function WorkbookCanvas({
           key={`fn-label-axis-y-${object.id}`}
           x={centerX + 6}
           y={normalized.y + 12}
-          fill="#ff8e3c"
+          fill={axisColor}
           fontSize={11}
           fontWeight={700}
         >
@@ -3585,8 +3679,6 @@ export function WorkbookCanvas({
                 y={normalized.y}
                 width={normalized.width}
                 height={normalized.height}
-                rx={8}
-                ry={8}
               />
             </clipPath>
           </defs>
@@ -3595,11 +3687,10 @@ export function WorkbookCanvas({
             y={normalized.y}
             width={normalized.width}
             height={normalized.height}
-            rx={8}
-            ry={8}
-            fill="rgba(243, 247, 255, 0.95)"
-            stroke={object.color ?? "#6b78bd"}
-            strokeWidth={object.strokeWidth ?? 2}
+            fill={planeColor}
+            fillOpacity={0.14}
+            stroke="none"
+            strokeWidth={0}
           />
           <g clipPath={`url(#fn-clip-${object.id})`}>
             {lines}
@@ -4889,6 +4980,22 @@ export function WorkbookCanvas({
           : selectedObject.points,
       };
     }
+    if (graphPan && graphPan.object.id === selectedObject.id) {
+      const deltaX = graphPan.current.x - graphPan.start.x;
+      const deltaY = graphPan.current.y - graphPan.start.y;
+      preview = {
+        ...preview,
+        meta: {
+          ...(preview.meta ?? {}),
+          functions: applyGraphPanToFunctions(
+            graphPan.initialFunctions,
+            deltaX,
+            deltaY,
+            graphPan.pxPerUnit
+          ),
+        },
+      };
+    }
     if (resizing && resizing.object.id === selectedObject.id) {
       if (resizing.mode === "line-start") {
         preview = {
@@ -5192,10 +5299,19 @@ export function WorkbookCanvas({
     if (!markerSource?.objectId) {
       return [] as Array<{ index: number; x: number; y: number; label: string }>;
     }
-    const sourceObject = boardObjects.find((item) => item.id === markerSource.objectId);
+    const sourceObject =
+      selectedPreviewObject?.id === markerSource.objectId
+        ? selectedPreviewObject
+        : boardObjects.find((item) => item.id === markerSource.objectId);
     if (!sourceObject) return [] as Array<{ index: number; x: number; y: number; label: string }>;
     return resolveSolid3dPickMarkersForObject(sourceObject, markerSource.selectedPoints);
-  }, [boardObjects, resolveSolid3dPickMarkersForObject, solid3dPointPick, solid3dSectionMarkers]);
+  }, [
+    boardObjects,
+    resolveSolid3dPickMarkersForObject,
+    selectedPreviewObject,
+    solid3dPointPick,
+    solid3dSectionMarkers,
+  ]);
 
   const canvasStyle: CSSProperties = {
     "--workbook-grid-size": `${Math.max(8, Math.min(96, Math.floor(gridSize || 22)))}px`,
@@ -5244,10 +5360,13 @@ export function WorkbookCanvas({
   };
 
   const panModeEnabled = tool === "pan" || forcePanMode;
+  const graphModeEnabled = tool === "function_graph";
 
   return (
     <div
-      className={`workbook-session__canvas ${panModeEnabled ? "is-pan-mode" : ""}`}
+      className={`workbook-session__canvas ${panModeEnabled ? "is-pan-mode" : ""} ${
+        graphModeEnabled ? "is-graph-mode" : ""
+      }`}
       ref={setContainerNode}
       style={canvasStyle}
     >
@@ -5255,7 +5374,12 @@ export function WorkbookCanvas({
         className="workbook-session__canvas-svg"
         viewBox={`0 0 ${Math.max(1, size.width)} ${Math.max(1, size.height)}`}
         preserveAspectRatio="none"
-        style={{ textRendering: "geometricPrecision" }}
+        style={{
+          textRendering: "geometricPrecision",
+          touchAction: "none",
+          userSelect: "none",
+          WebkitUserSelect: "none",
+        }}
         onPointerDown={startInteraction}
         onPointerMove={continueInteraction}
         onPointerUp={finishInteraction}
@@ -5467,7 +5591,10 @@ export function WorkbookCanvas({
           ? solid3dPickMarkers.map((marker) => {
               const markerObjectId =
                 solid3dSectionMarkers?.objectId ?? solid3dPointPick?.objectId ?? "";
-              const markerObject = boardObjects.find((item) => item.id === markerObjectId);
+              const markerObject =
+                selectedPreviewObject?.id === markerObjectId
+                  ? selectedPreviewObject
+                  : boardObjects.find((item) => item.id === markerObjectId);
               const showMarkerLabels = markerObject?.meta?.showLabels !== false;
               const isTarget =
                 solid3dPointPick?.objectId === markerObjectId &&
