@@ -12,6 +12,11 @@ export type Lesson = {
   order: number;
   duration: number;
   videoUrl?: string;
+  videoStreamUrl?: string;
+  videoPosterUrl?: string;
+  mediaJobId?: string;
+  mediaJobStatus?: "queued" | "processing" | "ready" | "failed";
+  mediaJobError?: string;
   materials?: LessonMaterial[];
   settings?: {
     disablePrintableDownloads?: boolean;

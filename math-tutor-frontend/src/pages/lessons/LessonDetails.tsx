@@ -276,11 +276,31 @@ export default function LessonDetails() {
     navigate(`/courses/${lesson.courseId}`, { state: backState });
   };
   const durationText = formatLessonDuration(lesson.duration);
+  const hasPlayableVideo = Boolean(lesson.videoUrl || lesson.videoStreamUrl);
+  const mediaStatusBanner =
+    lesson.mediaJobStatus === "queued" || lesson.mediaJobStatus === "processing"
+      ? {
+          severity: "info" as const,
+          message: hasPlayableVideo
+            ? "Видео еще оптимизируется. Пока доступен резервный источник, качество может улучшиться после завершения обработки."
+            : "Видео для урока еще подготавливается. Обновите страницу чуть позже.",
+        }
+      : lesson.mediaJobStatus === "failed"
+        ? {
+            severity: "warning" as const,
+            message:
+              lesson.mediaJobError ||
+              "Автоматическая обработка видео завершилась с ошибкой. Используется резервный источник, если он доступен.",
+          }
+        : null;
 
   return (
     <section className="lesson-details">
       <Container maxWidth="lg" className="lesson-details__container">
         {error && <Alert severity="error">{error}</Alert>}
+        {mediaStatusBanner ? (
+          <Alert severity={mediaStatusBanner.severity}>{mediaStatusBanner.message}</Alert>
+        ) : null}
         <div className="lesson-details__top-nav">
           <BackNavButton onClick={handleBackToCourse} />
         </div>
@@ -293,10 +313,12 @@ export default function LessonDetails() {
         </header>
 
         <div className="lesson-details__video-card">
-          {lesson.videoUrl ? (
+          {hasPlayableVideo ? (
             <div className="lesson-details__video">
               <VideoPlayer
                 src={lesson.videoUrl}
+                streamSrc={lesson.videoStreamUrl}
+                poster={lesson.videoPosterUrl}
                 onEnded={handleEnded}
                 watermarkText={
                   user
@@ -307,7 +329,9 @@ export default function LessonDetails() {
             </div>
           ) : (
             <div className="lesson-details__video-empty">
-              Видео для этого урока пока не добавлено
+              {lesson.mediaJobStatus === "queued" || lesson.mediaJobStatus === "processing"
+                ? "Видео для этого урока подготавливается"
+                : "Видео для этого урока пока не добавлено"}
             </div>
           )}
         </div>

@@ -3,8 +3,11 @@ const roundToSecondMinutes = (minutes: number) => {
   return Math.round(minutes * 60);
 };
 
+export const lessonDurationToSeconds = (durationInMinutes: number) =>
+  roundToSecondMinutes(Number(durationInMinutes));
+
 export const formatLessonDuration = (durationInMinutes: number) => {
-  const totalSeconds = roundToSecondMinutes(Number(durationInMinutes));
+  const totalSeconds = lessonDurationToSeconds(durationInMinutes);
   if (totalSeconds <= 0) return "0 сек";
 
   const hours = Math.floor(totalSeconds / 3600);

@@ -11,6 +11,7 @@ import {
   resetDb,
   type ChatMessageRecord,
   type ChatThreadRecord,
+  type MediaPipelineJobRecord,
   type WorkbookDraftRecord,
   type WorkbookEventRecord,
   type WorkbookInviteRecord,
@@ -91,6 +92,7 @@ import {
   type AssessmentSession,
   type AssessmentStorageState,
 } from "../features/assessments/model/types";
+import { createMediaStorageAdapter } from "./mediaStorage";
 
 const json = (res: import("http").ServerResponse, status: number, data: unknown) => {
   res.statusCode = status;
@@ -889,6 +891,291 @@ const renderPdfPagesViaPoppler = async (params: {
   } finally {
     await fsPromises.rm(tempRoot, { recursive: true, force: true });
   }
+};
+
+const MEDIA_STORAGE_ROOT = path.resolve(
+  process.cwd(),
+  ".runtime",
+  "media-assets"
+);
+const MEDIA_PIPELINE_WORKSPACE_ROOT = path.resolve(
+  process.cwd(),
+  ".runtime",
+  "media-workspace"
+);
+const mediaStorage = createMediaStorageAdapter(MEDIA_STORAGE_ROOT);
+
+type MediaPipelineRequestPayload = {
+  lessonTitle?: string;
+  uploadDataUrl?: string;
+  fallbackUrl?: string;
+  streamUrl?: string;
+  posterUrl?: string;
+};
+
+const mediaMimeToExtension = (mimeType: string) => {
+  const normalized = mimeType.toLowerCase();
+  if (normalized === "video/mp4") return "mp4";
+  if (normalized === "video/webm") return "webm";
+  if (normalized === "video/quicktime") return "mov";
+  if (normalized === "video/x-matroska") return "mkv";
+  if (normalized === "video/ogg") return "ogv";
+  return "bin";
+};
+
+const parseDataUrlBuffer = (value: unknown) => {
+  if (typeof value !== "string") return null;
+  const match = value.match(/^data:([^;,]+);base64,(.+)$/s);
+  if (!match) return null;
+  try {
+    return {
+      mimeType: match[1],
+      extension: mediaMimeToExtension(match[1]),
+      buffer: Buffer.from(match[2], "base64"),
+    };
+  } catch {
+    return null;
+  }
+};
+
+const ensureMediaPipelineWorkspace = async (assetId: string) => {
+  await fsPromises.mkdir(MEDIA_PIPELINE_WORKSPACE_ROOT, { recursive: true });
+  const workspaceId = mediaStorage.sanitizeSegment(assetId);
+  const workspaceDir = path.join(MEDIA_PIPELINE_WORKSPACE_ROOT, workspaceId);
+  await fsPromises.rm(workspaceDir, { recursive: true, force: true });
+  await fsPromises.mkdir(workspaceDir, { recursive: true });
+  return workspaceDir;
+};
+
+const removeMediaPipelineWorkspace = async (workspaceDir: string) => {
+  await fsPromises.rm(workspaceDir, { recursive: true, force: true });
+};
+
+const createVideoPosterPlaceholderDataUrl = (title: string) => {
+  const safeTitle = (title.trim() || "Видеоурок")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .slice(0, 64);
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#142347"/>
+      <stop offset="55%" stop-color="#1f4b7f"/>
+      <stop offset="100%" stop-color="#34d7c7"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="18%" cy="24%" r="58%">
+      <stop offset="0%" stop-color="rgba(122,92,255,0.45)"/>
+      <stop offset="100%" stop-color="rgba(122,92,255,0)"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <rect width="1280" height="720" fill="url(#glow)"/>
+  <rect x="132" y="132" width="1016" height="456" rx="36" fill="rgba(8,14,29,0.52)" stroke="rgba(255,255,255,0.16)" stroke-width="2"/>
+  <circle cx="640" cy="360" r="84" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.28)" stroke-width="4"/>
+  <polygon points="620,320 620,400 692,360" fill="#ffffff"/>
+  <text x="640" y="520" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="700" fill="#f6fbff">${safeTitle}</text>
+  <text x="640" y="570" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="500" fill="rgba(246,251,255,0.82)">Постер подготовлен медиа-пайплайном</text>
+</svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+};
+
+const createFallbackVideoAsset = async (inputPath: string, outputPath: string) => {
+  if (inputPath.toLowerCase().endsWith(".mp4")) {
+    await fsPromises.copyFile(inputPath, outputPath);
+    return;
+  }
+  await execFileAsync("ffmpeg", [
+    "-y",
+    "-i",
+    inputPath,
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-crf",
+    "23",
+    "-c:a",
+    "aac",
+    "-movflags",
+    "+faststart",
+    outputPath,
+  ]);
+};
+
+const createHlsAssets = async (inputPath: string, outputDir: string) => {
+  const playlistPath = path.join(outputDir, "master.m3u8");
+  const segmentPattern = path.join(outputDir, "segment-%03d.ts");
+  await execFileAsync("ffmpeg", [
+    "-y",
+    "-i",
+    inputPath,
+    "-c:v",
+    "copy",
+    "-c:a",
+    "copy",
+    "-hls_time",
+    "6",
+    "-hls_playlist_type",
+    "vod",
+    "-hls_list_size",
+    "0",
+    "-hls_segment_filename",
+    segmentPattern,
+    playlistPath,
+  ]);
+  const segmentFileNames = (await fsPromises.readdir(outputDir))
+    .filter((entry) => /^segment-\d{3}\.ts$/i.test(entry))
+    .sort();
+  return {
+    playlistPath,
+    segmentFileNames,
+  };
+};
+
+const createPosterAsset = async (inputPath: string, outputPath: string) => {
+  await execFileAsync("ffmpeg", [
+    "-y",
+    "-ss",
+    "0.2",
+    "-i",
+    inputPath,
+    "-frames:v",
+    "1",
+    "-q:v",
+    "2",
+    outputPath,
+  ]);
+};
+
+const processMediaVideoPipeline = async (payload: MediaPipelineRequestPayload | null) => {
+  const lessonTitle = typeof payload?.lessonTitle === "string" ? payload.lessonTitle : "";
+  const fallbackUrl =
+    typeof payload?.fallbackUrl === "string" ? payload.fallbackUrl.trim() : "";
+  const streamUrl =
+    typeof payload?.streamUrl === "string" ? payload.streamUrl.trim() : "";
+  const posterUrl =
+    typeof payload?.posterUrl === "string" ? payload.posterUrl.trim() : "";
+  const upload = parseDataUrlBuffer(payload?.uploadDataUrl);
+
+  if (!upload) {
+    return {
+      videoUrl: fallbackUrl,
+      videoStreamUrl: streamUrl || undefined,
+      videoPosterUrl: posterUrl || createVideoPosterPlaceholderDataUrl(lessonTitle),
+      pipelineMode: "passthrough" as const,
+    };
+  }
+
+  const assetId = mediaStorage.sanitizeSegment(ensureId());
+  const workspaceDir = await ensureMediaPipelineWorkspace(assetId);
+  const sourcePath = path.join(workspaceDir, `source.${upload.extension}`);
+  const fallbackPath = path.join(workspaceDir, "fallback.mp4");
+  const posterPath = path.join(workspaceDir, "poster.jpg");
+  await fsPromises.writeFile(sourcePath, upload.buffer);
+
+  try {
+    await createFallbackVideoAsset(sourcePath, fallbackPath);
+    const hlsAssets = await createHlsAssets(fallbackPath, workspaceDir);
+    const fallbackAssetUrl = await mediaStorage.persistFile(
+      assetId,
+      "fallback.mp4",
+      fallbackPath
+    );
+    const playlistAssetUrl = await mediaStorage.persistFile(
+      assetId,
+      "master.m3u8",
+      hlsAssets.playlistPath
+    );
+    await Promise.all(
+      hlsAssets.segmentFileNames.map((segmentFileName) =>
+        mediaStorage.persistFile(
+          assetId,
+          segmentFileName,
+          path.join(workspaceDir, segmentFileName)
+        )
+      )
+    );
+    let posterAssetUrl = posterUrl;
+    if (!posterUrl) {
+      await createPosterAsset(fallbackPath, posterPath);
+      posterAssetUrl = await mediaStorage.persistFile(assetId, "poster.jpg", posterPath);
+    }
+    return {
+      videoUrl: fallbackAssetUrl,
+      videoStreamUrl: playlistAssetUrl,
+      videoPosterUrl: posterAssetUrl || createVideoPosterPlaceholderDataUrl(lessonTitle),
+      pipelineMode: "ffmpeg" as const,
+    };
+  } catch {
+    return {
+      videoUrl: payload?.uploadDataUrl ?? fallbackUrl,
+      videoStreamUrl: streamUrl || undefined,
+      videoPosterUrl: posterUrl || createVideoPosterPlaceholderDataUrl(lessonTitle),
+      pipelineMode: "passthrough" as const,
+    };
+  } finally {
+    await removeMediaPipelineWorkspace(workspaceDir);
+  }
+};
+
+const createMediaJobRecord = (
+  lessonTitle?: string | null
+): MediaPipelineJobRecord => ({
+  id: ensureId(),
+  status: "queued",
+  lessonTitle: lessonTitle?.trim() || null,
+  createdAt: nowIso(),
+  updatedAt: nowIso(),
+  result: null,
+  error: null,
+});
+
+const updateMediaJobRecord = (
+  db: ReturnType<typeof getDb>,
+  jobId: string,
+  patch: Partial<MediaPipelineJobRecord>
+) => {
+  db.mediaJobs = db.mediaJobs.map((job) =>
+    job.id === jobId
+      ? {
+          ...job,
+          ...patch,
+          updatedAt: nowIso(),
+        }
+      : job
+  );
+  saveDb();
+};
+
+const scheduleMediaPipelineJob = (
+  db: ReturnType<typeof getDb>,
+  jobId: string,
+  payload: MediaPipelineRequestPayload | null
+) => {
+  void (async () => {
+    updateMediaJobRecord(db, jobId, {
+      status: "processing",
+      error: null,
+    });
+    try {
+      const result = await processMediaVideoPipeline(payload);
+      updateMediaJobRecord(db, jobId, {
+        status: "ready",
+        result: safeStringify(result),
+        error: null,
+      });
+    } catch (error) {
+      updateMediaJobRecord(db, jobId, {
+        status: "failed",
+        error:
+          error instanceof Error
+            ? error.message
+            : "media_pipeline_failed",
+      });
+    }
+  })();
 };
 
 const sanitizeWorkbookTitle = (
@@ -8174,6 +8461,53 @@ export function setupMockServer(server: ServerWithMiddlewares) {
           saveDb();
           return json(res, 200, { ok: true });
         }
+      }
+
+      const mediaAssetMatch = path.match(/^\/api\/media\/assets\/([^/]+)\/([^/]+)$/);
+      if (mediaAssetMatch && method === "GET") {
+        const assetId = mediaStorage.sanitizeSegment(
+          decodeURIComponent(mediaAssetMatch[1])
+        );
+        const fileName = mediaStorage.sanitizeSegment(
+          decodeURIComponent(mediaAssetMatch[2])
+        );
+        if (!assetId || !fileName) {
+          return json(res, 400, { error: "invalid media asset path" });
+        }
+        const asset = await mediaStorage.readAsset(assetId, fileName);
+        if (!asset) {
+          return json(res, 404, { error: "media asset not found" });
+        }
+        res.statusCode = 200;
+        res.setHeader("Content-Type", asset.contentType);
+        res.setHeader("Cache-Control", "public, max-age=3600");
+        res.end(asset.buffer);
+        return;
+      }
+
+      if (path === "/api/media/video-pipeline" && method === "POST") {
+        const payload = (await readBody(req)) as MediaPipelineRequestPayload | null;
+        const result = await processMediaVideoPipeline(payload);
+        return json(res, 200, result);
+      }
+
+      if (path === "/api/media/video-jobs" && method === "POST") {
+        const payload = (await readBody(req)) as MediaPipelineRequestPayload | null;
+        const job = createMediaJobRecord(payload?.lessonTitle);
+        db.mediaJobs.push(job);
+        saveDb();
+        scheduleMediaPipelineJob(db, job.id, payload);
+        return json(res, 202, job);
+      }
+
+      const mediaJobMatch = path.match(/^\/api\/media\/video-jobs\/([^/]+)$/);
+      if (mediaJobMatch && method === "GET") {
+        const jobId = decodeURIComponent(mediaJobMatch[1]);
+        const job = db.mediaJobs.find((entry) => entry.id === jobId) ?? null;
+        if (!job) {
+          return json(res, 404, { error: "media job not found" });
+        }
+        return json(res, 200, job);
       }
 
       // ================= LESSONS =================

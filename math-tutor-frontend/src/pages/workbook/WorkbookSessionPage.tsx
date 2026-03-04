@@ -87,6 +87,8 @@ import FormatAlignRightRoundedIcon from "@mui/icons-material/FormatAlignRightRou
 import FormatColorTextRoundedIcon from "@mui/icons-material/FormatColorTextRounded";
 import FormatColorFillRoundedIcon from "@mui/icons-material/FormatColorFillRounded";
 import KeyboardDoubleArrowDownRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowDownRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import {
   appendWorkbookEvents,
@@ -608,6 +610,46 @@ const is2dFigureObject = (object: WorkbookBoardObject | null) =>
       (object.type === "rectangle" || object.type === "triangle" || object.type === "polygon")
   );
 
+const TRANSFORM_PANEL_OBJECT_TYPES = new Set<WorkbookBoardObject["type"]>([
+  "solid3d",
+  "rectangle",
+  "triangle",
+  "polygon",
+  "ellipse",
+  "line",
+  "arrow",
+  "section_divider",
+  "point",
+  "text",
+]);
+
+const supportsTransformUtilityPanel = (object: WorkbookBoardObject | null) =>
+  Boolean(object && TRANSFORM_PANEL_OBJECT_TYPES.has(object.type));
+
+const supportsGraphUtilityPanel = (object: WorkbookBoardObject | null) =>
+  Boolean(object && object.type === "function_graph");
+
+const supportsObjectLabelMarkers = (object: WorkbookBoardObject | null) => {
+  if (!object) return false;
+  if (object.type === "solid3d") {
+    const presetId = resolveSolid3dPresetId(
+      typeof object.meta?.presetId === "string" ? object.meta.presetId : "cube"
+    );
+    return !CURVED_SURFACE_ONLY_SOLID_PRESETS.has(presetId);
+  }
+  if (object.type === "point") return true;
+  if (object.type === "rectangle" || object.type === "triangle" || object.type === "polygon") {
+    return true;
+  }
+  if (
+    (object.type === "line" || object.type === "arrow") &&
+    object.meta?.lineKind === "segment"
+  ) {
+    return true;
+  }
+  return false;
+};
+
 const is2dFigureClosed = (object: WorkbookBoardObject) => {
   if (object.type !== "polygon") return true;
   if (!Array.isArray(object.points) || object.points.length < 2) return true;
@@ -653,6 +695,15 @@ const resolve2dFigureVertices = (object: WorkbookBoardObject): WorkbookPoint[] =
 };
 
 const ROUND_SOLID_PRESETS = new Set([
+  "cylinder",
+  "cone",
+  "truncated_cone",
+  "sphere",
+  "hemisphere",
+  "torus",
+]);
+
+const CURVED_SURFACE_ONLY_SOLID_PRESETS = new Set([
   "cylinder",
   "cone",
   "truncated_cone",
@@ -1147,10 +1198,10 @@ export default function WorkbookSessionPage() {
     zoom: 1,
     annotations: [],
   });
-  const [tool, setTool] = useState<WorkbookTool>("pen");
+  const [tool, setTool] = useState<WorkbookTool>("select");
   const [layer] = useState<WorkbookLayer>("board");
   const [strokeColor] = useState(defaultColorByLayer.board);
-  const [strokeWidth, setStrokeWidth] = useState(getDefaultToolWidth("pen"));
+  const [strokeWidth, setStrokeWidth] = useState(getDefaultToolWidth("select"));
   const [polygonSides, setPolygonSides] = useState(5);
   const [polygonMode, setPolygonMode] = useState<"regular" | "points">("regular");
   const [polygonPreset, setPolygonPreset] = useState<
@@ -1176,6 +1227,12 @@ export default function WorkbookSessionPage() {
   const [solid3dInspectorTab, setSolid3dInspectorTab] = useState<"figure" | "section">(
     "section"
   );
+  const [solid3dFigureTab, setSolid3dFigureTab] = useState<
+    "display" | "surface" | "faces" | "edges" | "angles"
+  >("display");
+  const [shape2dInspectorTab, setShape2dInspectorTab] = useState<
+    "display" | "vertices" | "angles" | "segments"
+  >("display");
   const [activeSolidSectionId, setActiveSolidSectionId] = useState<string | null>(null);
   const [solid3dSectionPointCollecting, setSolid3dSectionPointCollecting] = useState<
     string | null
@@ -1429,6 +1486,11 @@ export default function WorkbookSessionPage() {
   }, [chatMessages, sessionChatReadAt, user?.id]);
   const sessionChatUnreadCount = unreadSessionChatMessages.length;
   const firstUnreadSessionChatMessageId = unreadSessionChatMessages[0]?.id ?? null;
+
+  useEffect(() => {
+    setTool("select");
+    setStrokeWidth(getDefaultToolWidth("select"));
+  }, [sessionId]);
 
   useEffect(() => {
     latestSeqRef.current = latestSeq;
@@ -3266,6 +3328,16 @@ export default function WorkbookSessionPage() {
         toggle?: boolean;
       }
     ) => {
+      const selectedUtilityObject =
+        boardObjects.find((item) => item.id === selectedObjectId) ?? null;
+      const canOpenTransformPanel = supportsTransformUtilityPanel(selectedUtilityObject);
+      const canOpenGraphPanel = supportsGraphUtilityPanel(selectedUtilityObject);
+      if (tab === "transform" && !canOpenTransformPanel) {
+        return;
+      }
+      if (tab === "graph" && !canOpenGraphPanel) {
+        return;
+      }
       const allowToggle = options?.toggle ?? true;
       if (allowToggle && isUtilityPanelOpen && utilityTab === tab) {
         const isSolid3dSelected = Boolean(
@@ -3692,53 +3764,64 @@ export default function WorkbookSessionPage() {
     }
   };
 
-  const commitObjectCreate = async (object: WorkbookBoardObject) => {
-    if (!sessionId || !canDraw) return;
-    const currentMeta =
-      object.meta && typeof object.meta === "object" ? object.meta : {};
-    const objectWithPage: WorkbookBoardObject = {
-      ...object,
-      page: object.page ?? boardSettings.currentPage,
-      meta: {
-        ...currentMeta,
-        sceneLayerId: activeSceneLayerId,
-      },
-    };
-    setBoardObjects((current) =>
-      current.some((item) => item.id === objectWithPage.id)
-        ? current
-        : [...current, objectWithPage]
-    );
-    try {
-      await appendEventsAndApply([
-        {
-          type: "board.object.create",
-          payload: { object: objectWithPage },
+  const commitObjectCreate = useCallback(
+    async (object: WorkbookBoardObject) => {
+      if (!sessionId || !canDraw) return;
+      const currentMeta =
+        object.meta && typeof object.meta === "object" ? object.meta : {};
+      const objectWithPage: WorkbookBoardObject = {
+        ...object,
+        page: object.page ?? boardSettings.currentPage,
+        meta: {
+          ...currentMeta,
+          sceneLayerId: activeSceneLayerId,
         },
-      ]);
-      if (objectWithPage.type === "image" && objectWithPage.imageUrl) {
-        const now = new Date().toISOString();
-        void upsertLibraryItem({
-          id: generateId(),
-          name: objectWithPage.imageName || "Изображение с доски",
-          type: "image",
-          ownerUserId: user?.id ?? "unknown",
-          sourceUrl: objectWithPage.imageUrl,
-          createdAt: now,
-          updatedAt: now,
-          folderId: null,
-        });
-      }
-    } catch {
+      };
       setBoardObjects((current) =>
-        current.filter((item) => item.id !== objectWithPage.id)
+        current.some((item) => item.id === objectWithPage.id)
+          ? current
+          : [...current, objectWithPage]
       );
-      setSelectedObjectId((current) =>
-        current === objectWithPage.id ? null : current
-      );
-      setError("Не удалось создать объект.");
-    }
-  };
+      try {
+        await appendEventsAndApply([
+          {
+            type: "board.object.create",
+            payload: { object: objectWithPage },
+          },
+        ]);
+        if (objectWithPage.type === "image" && objectWithPage.imageUrl) {
+          const now = new Date().toISOString();
+          void upsertLibraryItem({
+            id: generateId(),
+            name: objectWithPage.imageName || "Изображение с доски",
+            type: "image",
+            ownerUserId: user?.id ?? "unknown",
+            sourceUrl: objectWithPage.imageUrl,
+            createdAt: now,
+            updatedAt: now,
+            folderId: null,
+          });
+        }
+      } catch {
+        setBoardObjects((current) =>
+          current.filter((item) => item.id !== objectWithPage.id)
+        );
+        setSelectedObjectId((current) =>
+          current === objectWithPage.id ? null : current
+        );
+        setError("Не удалось создать объект.");
+      }
+    },
+    [
+      activeSceneLayerId,
+      appendEventsAndApply,
+      boardSettings.currentPage,
+      canDraw,
+      sessionId,
+      upsertLibraryItem,
+      user?.id,
+    ]
+  );
 
   const commitObjectUpdate = useCallback(
     async (objectId: string, patch: Partial<WorkbookBoardObject>) => {
@@ -4920,12 +5003,53 @@ export default function WorkbookSessionPage() {
     }));
   };
 
+  const updateSelectedSolid3dSurfaceColor = async (color: string) => {
+    if (!canSelect || !selectedObjectId) return;
+    const targetObject = boardObjects.find(
+      (item): item is WorkbookBoardObject & { type: "solid3d" } =>
+        item.id === selectedObjectId && item.type === "solid3d"
+    );
+    if (!targetObject) return;
+    await commitObjectUpdate(targetObject.id, {
+      fill: color || "#5f6aa0",
+    });
+  };
+
+  const setSolid3dEdgeColor = async (edgeKey: string, color: string) => {
+    if (!edgeKey.trim()) return;
+    await updateSelectedSolid3dState((state) => ({
+      ...state,
+      edgeColors: {
+        ...(state.edgeColors ?? {}),
+        [edgeKey]: color || "#4f63ff",
+      },
+    }));
+  };
+
+  const resetSolid3dEdgeColors = async () => {
+    await updateSelectedSolid3dState((state) => ({
+      ...state,
+      edgeColors: {},
+    }));
+  };
+
   const addSolid3dAngleMark = async () => {
     if (!selectedSolidMesh) return;
     const existing = selectedSolid3dState?.angleMarks ?? [];
-    const used = new Set(existing.map((mark) => mark.vertexIndex));
-    const vertexIndex = selectedSolidMesh.vertices.findIndex((_, index) => !used.has(index));
-    if (vertexIndex < 0) {
+    const used = new Set(
+      existing.map((mark) => `${Number.isInteger(mark.faceIndex) ? mark.faceIndex : -1}:${mark.vertexIndex}`)
+    );
+    let nextFaceIndex = -1;
+    let nextVertexIndex = -1;
+    selectedSolidMesh.faces.some((face, faceIndex) => {
+      if (face.length < 3) return false;
+      const vertexIndex = face.find((index) => !used.has(`${faceIndex}:${index}`));
+      if (vertexIndex === undefined) return false;
+      nextFaceIndex = faceIndex;
+      nextVertexIndex = vertexIndex;
+      return true;
+    });
+    if (nextFaceIndex < 0 || nextVertexIndex < 0) {
       setError("Для этой фигуры уже добавлены все возможные пометки углов.");
       return;
     }
@@ -4935,7 +5059,8 @@ export default function WorkbookSessionPage() {
         ...(state.angleMarks ?? []),
         {
           id: generateId(),
-          vertexIndex,
+          faceIndex: nextFaceIndex,
+          vertexIndex: nextVertexIndex,
           label: "",
           color: "#ff8e3c",
           visible: true,
@@ -4946,20 +5071,46 @@ export default function WorkbookSessionPage() {
 
   const updateSolid3dAngleMark = async (
     markId: string,
-    patch: Partial<{ vertexIndex: number; label: string; color: string; visible: boolean }>
+    patch: Partial<{
+      faceIndex: number;
+      vertexIndex: number;
+      label: string;
+      color: string;
+      visible: boolean;
+    }>
   ) => {
     await updateSelectedSolid3dState((state) => ({
       ...state,
       angleMarks: (state.angleMarks ?? []).map((mark) =>
         mark.id === markId
-          ? {
-              ...mark,
-              ...patch,
-              label:
-                typeof patch.label === "string"
-                  ? patch.label.trim().slice(0, 64)
-                  : mark.label,
-            }
+          ? (() => {
+              const next = {
+                ...mark,
+                ...patch,
+                label:
+                  typeof patch.label === "string"
+                    ? patch.label.trim().slice(0, 64)
+                    : mark.label,
+              };
+              if (!selectedSolidMesh) return next;
+              const requestedFaceIndex =
+                typeof next.faceIndex === "number" &&
+                Number.isInteger(next.faceIndex) &&
+                next.faceIndex >= 0
+                  ? next.faceIndex
+                  : null;
+              const face =
+                requestedFaceIndex !== null ? selectedSolidMesh.faces[requestedFaceIndex] : null;
+              if (requestedFaceIndex !== null && face && face.length >= 3) {
+                if (!face.includes(next.vertexIndex)) {
+                  next.vertexIndex = face[0];
+                }
+                next.faceIndex = requestedFaceIndex;
+              } else {
+                delete next.faceIndex;
+              }
+              return next;
+            })()
           : mark
       ),
     }));
@@ -5359,7 +5510,7 @@ export default function WorkbookSessionPage() {
       meta: {
         functions: [],
         axisColor: "#ff8e3c",
-        planeColor: "#8ea7ff",
+        planeColor: "transparent",
       },
       authorUserId: user?.id ?? "unknown",
       createdAt: new Date().toISOString(),
@@ -6141,14 +6292,50 @@ export default function WorkbookSessionPage() {
     }
   };
 
+  const resolveExportFileBaseName = useCallback(() => {
+    const fallback = `workbook-${sessionId || "session"}`;
+    const source = session?.title?.trim() || fallback;
+    const cleaned = source
+      .replace(/[\\/:*?"<>|]+/g, "-")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/[. ]+$/g, "");
+    return cleaned || fallback;
+  }, [session?.title, sessionId]);
+
+  const requestExportFileName = useCallback(
+    (extension: "png" | "pdf") => {
+      const fallback = resolveExportFileBaseName();
+      if (typeof window === "undefined") {
+        return `${fallback}.${extension}`;
+      }
+      const entered = window.prompt(
+        `Введите имя файла (${extension.toUpperCase()})`,
+        fallback
+      );
+      if (entered === null) return null;
+      const normalized = entered
+        .trim()
+        .replace(/[\\/:*?"<>|]+/g, "-")
+        .replace(/\s+/g, " ")
+        .replace(new RegExp(`\\.${extension}$`, "i"), "")
+        .replace(/[. ]+$/g, "");
+      const base = normalized || fallback;
+      return `${base}.${extension}`;
+    },
+    [resolveExportFileBaseName]
+  );
+
   const exportBoardAsPng = async () => {
     try {
+      const fileName = requestExportFileName("png");
+      if (!fileName) return;
       const rendered = await renderBoardToCanvas(2.2);
       if (!rendered) return;
       const png = rendered.canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.href = png;
-      link.download = `workbook-${sessionId || "session"}.png`;
+      link.download = fileName;
       link.click();
     } catch {
       setError("Не удалось экспортировать PNG.");
@@ -6159,6 +6346,8 @@ export default function WorkbookSessionPage() {
     if (exportingSections) return;
     setExportingSections(true);
     try {
+      const fileName = requestExportFileName("pdf");
+      if (!fileName) return;
       const rendered = await renderBoardToCanvas(2);
       if (!rendered) return;
       const width = Math.max(1, Math.round(rendered.width));
@@ -6170,7 +6359,7 @@ export default function WorkbookSessionPage() {
       });
       const dataUrl = rendered.canvas.toDataURL("image/png");
       pdf.addImage(dataUrl, "PNG", 0, 0, width, height);
-      pdf.save(`workbook-${sessionId || "session"}.pdf`);
+      pdf.save(fileName);
     } catch {
       setError("Не удалось экспортировать PDF.");
     } finally {
@@ -6444,19 +6633,38 @@ export default function WorkbookSessionPage() {
     () => boardObjects.find((item) => item.id === selectedObjectId) ?? null,
     [boardObjects, selectedObjectId]
   );
+  const selectedObjectSupportsTransformPanel = useMemo(
+    () => supportsTransformUtilityPanel(selectedObject),
+    [selectedObject]
+  );
+  const selectedObjectSupportsGraphPanel = useMemo(
+    () => supportsGraphUtilityPanel(selectedObject),
+    [selectedObject]
+  );
   const handleCanvasSelectedObjectChange = useCallback(
     (nextObjectId: string | null) => {
       const suppressedObjectId = suppressAutoPanelSelectionRef.current;
+      if (!nextObjectId) {
+        setSelectedObjectId(null);
+        return;
+      }
       setSelectedObjectId(nextObjectId);
-      if (!nextObjectId) return;
       if (suppressedObjectId === nextObjectId) {
         suppressAutoPanelSelectionRef.current = null;
         return;
       }
-      const target = boardObjects.find((item) => item.id === nextObjectId);
-      openUtilityPanel(target?.type === "function_graph" ? "graph" : "transform", {
-        toggle: false,
-      });
+      const target = boardObjects.find((item) => item.id === nextObjectId) ?? null;
+      if (supportsGraphUtilityPanel(target)) {
+        openUtilityPanel("graph", {
+          toggle: false,
+        });
+        return;
+      }
+      if (supportsTransformUtilityPanel(target)) {
+        openUtilityPanel("transform", {
+          toggle: false,
+        });
+      }
     },
     [boardObjects, openUtilityPanel]
   );
@@ -6579,6 +6787,37 @@ export default function WorkbookSessionPage() {
       typeof raw[index] === "string" && raw[index] ? raw[index] : fallback
     );
   }, [selectedShape2dObject, selectedShape2dSegments]);
+  useEffect(() => {
+    if (selectedObject?.type !== "solid3d") {
+      setSolid3dFigureTab("display");
+    }
+  }, [selectedObject?.id, selectedObject?.type]);
+
+  useEffect(() => {
+    if (!selectedShape2dObject) {
+      setShape2dInspectorTab("display");
+      return;
+    }
+    if (!selectedShape2dHasAngles && shape2dInspectorTab === "angles") {
+      setShape2dInspectorTab("display");
+    }
+  }, [selectedShape2dHasAngles, selectedShape2dObject, shape2dInspectorTab]);
+
+  useEffect(() => {
+    if (!isUtilityPanelOpen) return;
+    if (utilityTab === "transform" && !selectedObjectSupportsTransformPanel) {
+      setIsUtilityPanelOpen(false);
+    }
+    if (utilityTab === "graph" && !selectedObjectSupportsGraphPanel) {
+      setIsUtilityPanelOpen(false);
+    }
+  }, [
+    isUtilityPanelOpen,
+    selectedObjectSupportsGraphPanel,
+    selectedObjectSupportsTransformPanel,
+    utilityTab,
+  ]);
+
   const selectedLineObject = useMemo(
     () =>
       selectedObject &&
@@ -6614,14 +6853,7 @@ export default function WorkbookSessionPage() {
     [selectedLineObject?.meta?.lineKind]
   );
   const canToggleSelectedObjectLabels = useMemo(() => {
-    if (!selectedObject) return false;
-    if (
-      (selectedObject.type === "line" || selectedObject.type === "arrow") &&
-      selectedObject.meta?.lineKind !== "segment"
-    ) {
-      return false;
-    }
-    return true;
+    return supportsObjectLabelMarkers(selectedObject);
   }, [selectedObject]);
   const selectedLineColor = useMemo(
     () => selectedLineObject?.color || "#4f63ff",
@@ -6670,7 +6902,7 @@ export default function WorkbookSessionPage() {
   }, [selectedFunctionGraphObject]);
   const selectedFunctionGraphPlaneColor = useMemo(() => {
     const raw = selectedFunctionGraphObject?.meta?.planeColor;
-    return typeof raw === "string" && raw.startsWith("#") ? raw : "#8ea7ff";
+    return typeof raw === "string" && raw.startsWith("#") ? raw : "#ffffff";
   }, [selectedFunctionGraphObject]);
   const selectedTextColor = useMemo(() => {
     if (!selectedTextObject) return "#172039";
@@ -6821,6 +7053,25 @@ export default function WorkbookSessionPage() {
       ? selectedObject.meta.presetId
       : "cube";
   }, [selectedObject]);
+  const selectedSolidIsCurved = useMemo(
+    () => Boolean(selectedSolidPresetId && CURVED_SURFACE_ONLY_SOLID_PRESETS.has(selectedSolidPresetId)),
+    [selectedSolidPresetId]
+  );
+  useEffect(() => {
+    if (selectedSolidIsCurved) {
+      if (
+        solid3dFigureTab === "faces" ||
+        solid3dFigureTab === "edges" ||
+        solid3dFigureTab === "angles"
+      ) {
+        setSolid3dFigureTab("surface");
+      }
+      return;
+    }
+    if (solid3dFigureTab === "surface") {
+      setSolid3dFigureTab("display");
+    }
+  }, [selectedSolidIsCurved, solid3dFigureTab]);
   const selectedSolidMesh = useMemo(() => {
     if (!selectedObject || selectedObject.type !== "solid3d") return null;
     if (!selectedSolidPresetId) return null;
@@ -6842,6 +7093,35 @@ export default function WorkbookSessionPage() {
     () => selectedSolid3dState?.faceColors ?? {},
     [selectedSolid3dState?.faceColors]
   );
+  const selectedSolidSurfaceColor = useMemo(
+    () =>
+      selectedObject?.type === "solid3d" && typeof selectedObject.fill === "string" && selectedObject.fill
+        ? selectedObject.fill
+        : "#5f6aa0",
+    [selectedObject]
+  );
+  const selectedSolidEdgeColors = useMemo(
+    () => selectedSolid3dState?.edgeColors ?? {},
+    [selectedSolid3dState?.edgeColors]
+  );
+  const selectedSolidEdges = useMemo(() => {
+    if (!selectedSolidMesh) return [] as Array<{ key: string; label: string }>;
+    const seen = new Set<string>();
+    return selectedSolidMesh.faces.reduce<Array<{ key: string; label: string }>>((acc, face) => {
+      if (face.length < 2) return acc;
+      face.forEach((fromIndex, localIndex) => {
+        const toIndex = face[(localIndex + 1) % face.length];
+        const min = Math.min(fromIndex, toIndex);
+        const max = Math.max(fromIndex, toIndex);
+        const key = `${min}:${max}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        const label = `${selectedSolidVertexLabels[min] || getSolidVertexLabel(min)}-${selectedSolidVertexLabels[max] || getSolidVertexLabel(max)}`;
+        acc.push({ key, label });
+      });
+      return acc;
+    }, []);
+  }, [selectedSolidMesh, selectedSolidVertexLabels]);
   const selectedSolidAngleMarks = useMemo(
     () => selectedSolid3dState?.angleMarks ?? [],
     [selectedSolid3dState?.angleMarks]
@@ -7182,10 +7462,8 @@ export default function WorkbookSessionPage() {
   );
 
   const saveStatusLabel = useMemo(() => {
-    if (saveIndicatorState === "saving") return "Сохранение";
     if (saveIndicatorState === "error") return "Ошибка сохранения";
-    if (saveIndicatorState === "unsaved") return "Черновик не сохранен";
-    if (!lastSavedAt) return "Сохранено";
+    if (!lastSavedAt) return "Автосохранение";
     return `Сохранено ${new Intl.DateTimeFormat("ru-RU", {
       hour: "2-digit",
       minute: "2-digit",
@@ -7280,15 +7558,9 @@ export default function WorkbookSessionPage() {
                   ) : undefined
                 }
                 color={
-                  saveIndicatorState === "error"
-                    ? "error"
-                    : saveIndicatorState === "saved"
-                      ? "success"
-                      : saveIndicatorState === "saving"
-                        ? "info"
-                        : "warning"
+                  saveIndicatorState === "error" ? "error" : "default"
                 }
-                variant={saveIndicatorState === "saved" ? "outlined" : "filled"}
+                variant={saveIndicatorState === "error" ? "filled" : "outlined"}
               />
             </div>
           </div>
@@ -7303,7 +7575,9 @@ export default function WorkbookSessionPage() {
               Пригласить участника
             </Button>
           ) : null}
-          {canManageSession && session.status !== "ended" ? (
+          {canManageSession &&
+          session.status !== "ended" &&
+          session.kind === "CLASS" ? (
             <Button color="error" variant="outlined" onClick={() => void handleFinishSession()}>
               Завершить
             </Button>
@@ -7425,6 +7699,7 @@ export default function WorkbookSessionPage() {
                   className={`workbook-session__toolbar-icon ${
                     isUtilityPanelOpen && utilityTab === "graph" ? "is-active" : ""
                   }`}
+                  disabled={!selectedObjectSupportsGraphPanel}
                   onClick={() => openUtilityPanel("graph")}
                 >
                   <ShowChartRoundedIcon />
@@ -7438,6 +7713,7 @@ export default function WorkbookSessionPage() {
                   className={`workbook-session__toolbar-icon ${
                     isUtilityPanelOpen && utilityTab === "transform" ? "is-active" : ""
                   }`}
+                  disabled={!selectedObjectSupportsTransformPanel}
                   onClick={() => openUtilityPanel("transform")}
                 >
                   <AutoFixHighRoundedIcon />
@@ -7492,9 +7768,15 @@ export default function WorkbookSessionPage() {
                 </IconButton>
               </span>
             </Tooltip>
-            <span className="workbook-session__zoom-badge">
-              {Math.round(viewportZoom * 100)}%
-            </span>
+            <Tooltip title="Сбросить масштаб до 100%" placement="bottom" arrow>
+              <button
+                type="button"
+                className="workbook-session__zoom-badge"
+                onClick={resetZoom}
+              >
+                {Math.round(viewportZoom * 100)}%
+              </button>
+            </Tooltip>
             <Tooltip title="Увеличить масштаб" placement="bottom" arrow>
               <span>
                 <IconButton
@@ -7562,6 +7844,7 @@ export default function WorkbookSessionPage() {
                   size="small"
                   variant="outlined"
                   startIcon={<ShowChartRoundedIcon />}
+                  disabled={!selectedObjectSupportsGraphPanel}
                   onClick={() => openUtilityPanel("graph", { toggle: false })}
                 >
                   Открыть модуль
@@ -8149,10 +8432,10 @@ export default function WorkbookSessionPage() {
           <div
             className="workbook-session__utility-float"
             style={{ left: utilityPanelPosition.x, top: utilityPanelPosition.y }}
-            onPointerDown={handleUtilityPanelDragStart}
           >
             <div
               className="workbook-session__utility-float-head"
+              onPointerDown={handleUtilityPanelDragStart}
             >
               <h3>
                 <TuneRoundedIcon fontSize="small" />
@@ -8188,7 +8471,7 @@ export default function WorkbookSessionPage() {
               </div>
             </div>
             {!isUtilityPanelCollapsed ? (
-            <>
+              <div className="workbook-session__utility-float-body">
           {utilityTab === "settings" ? (
           <div className="workbook-session__card workbook-session__board-settings">
             <div className="workbook-session__board-settings-head">
@@ -8566,7 +8849,7 @@ export default function WorkbookSessionPage() {
           </div>
           ) : null}
 
-          {utilityTab === "graph" ? (
+          {utilityTab === "graph" && selectedObjectSupportsGraphPanel ? (
           <div className="workbook-session__card">
             <h3>График функции</h3>
             <div className="workbook-session__settings workbook-session__graph-tab">
@@ -8630,15 +8913,30 @@ export default function WorkbookSessionPage() {
                     </label>
                     <label>
                       <span>Цвет плоскости</span>
-                      <input
-                        type="color"
-                        value={selectedFunctionGraphPlaneColor}
-                        onChange={(event) =>
-                          updateSelectedFunctionGraphAppearance({
-                            planeColor: event.target.value || "#8ea7ff",
-                          })
-                        }
-                      />
+                      <span className="workbook-session__graph-appearance-tools">
+                        <input
+                          type="color"
+                          value={selectedFunctionGraphPlaneColor}
+                          onChange={(event) =>
+                            updateSelectedFunctionGraphAppearance({
+                              planeColor: event.target.value || "#8ea7ff",
+                            })
+                          }
+                        />
+                        <Tooltip title="Убрать фон" arrow>
+                          <IconButton
+                            size="small"
+                            onClick={() =>
+                              updateSelectedFunctionGraphAppearance({
+                                planeColor: "transparent",
+                              })
+                            }
+                            aria-label="Убрать фон плоскости"
+                          >
+                            <CloseRoundedIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </span>
                     </label>
                   </div>
 
@@ -8730,20 +9028,23 @@ export default function WorkbookSessionPage() {
                               key={`graph-builder-${item.id}`}
                               className="workbook-session__graph-builder-item workbook-session__graph-builder-item--work"
                             >
-                              <div className="workbook-session__graph-builder-item-main">
-                                <input
-                                  type="color"
-                                  value={item.color}
-                                  onChange={(event) => {
-                                    const nextColor = event.target.value || item.color;
-                                    updateSelectedGraphFunction(item.id, { color: nextColor });
-                                  }}
-                                />
+                              <div className="workbook-session__graph-builder-item-main workbook-session__graph-builder-item-main--inline">
+                                <label className="workbook-session__graph-swatch" title="Цвет графика">
+                                  <input
+                                    type="color"
+                                    value={item.color}
+                                    onChange={(event) => {
+                                      const nextColor = event.target.value || item.color;
+                                      updateSelectedGraphFunction(item.id, { color: nextColor });
+                                    }}
+                                  />
+                                </label>
                                 <TextField
                                   size="small"
                                   value={item.expression}
                                   error={!isFunctionExpressionValid(item.expression)}
                                   placeholder="f(x)"
+                                  inputProps={{ title: item.expression }}
                                   onChange={(event) =>
                                     normalizeGraphExpressionDraft(item.id, event.target.value, true)
                                   }
@@ -8751,16 +9052,9 @@ export default function WorkbookSessionPage() {
                                     commitSelectedGraphExpressions();
                                   }}
                                 />
-                                <Switch
-                                  size="small"
-                                  checked={item.visible !== false}
-                                  onChange={(event) => {
-                                    const visible = event.target.checked;
-                                    updateSelectedGraphFunction(item.id, { visible });
-                                  }}
-                                />
                                 <IconButton
                                   size="small"
+                                  className="workbook-session__graph-delete-btn"
                                   onClick={() => {
                                     removeSelectedGraphFunction(item.id);
                                   }}
@@ -8769,81 +9063,41 @@ export default function WorkbookSessionPage() {
                                   <CloseRoundedIcon fontSize="small" />
                                 </IconButton>
                               </div>
-                              <div className="workbook-session__graph-transform-row">
-                                <TextField
-                                  size="small"
-                                  type="number"
-                                  label="Δx"
-                                  value={item.offsetX ?? 0}
-                                  onChange={(event) => {
-                                    const next = Number(event.target.value);
-                                    const safe = Number.isFinite(next)
-                                      ? clampGraphOffset(next)
-                                      : clampGraphOffset(item.offsetX ?? 0);
-                                    updateSelectedGraphFunction(item.id, { offsetX: safe });
+                              <div className="workbook-session__graph-card-actions">
+                                <button
+                                  type="button"
+                                  className="workbook-session__graph-inline-action"
+                                  onClick={() => {
+                                    updateSelectedGraphFunction(item.id, {
+                                      visible: item.visible === false,
+                                    });
                                   }}
-                                />
-                                <TextField
-                                  size="small"
-                                  type="number"
-                                  label="Δy"
-                                  value={item.offsetY ?? 0}
-                                  onChange={(event) => {
-                                    const next = Number(event.target.value);
-                                    const safe = Number.isFinite(next)
-                                      ? clampGraphOffset(next)
-                                      : clampGraphOffset(item.offsetY ?? 0);
-                                    updateSelectedGraphFunction(item.id, { offsetY: safe });
-                                  }}
-                                />
-                                <TextField
-                                  size="small"
-                                  type="number"
-                                  label="Kx"
-                                  value={item.scaleX ?? 1}
-                                  inputProps={{ step: 0.1, min: -12, max: 12 }}
-                                  onChange={(event) => {
-                                    const next = Number(event.target.value);
-                                    const safe = Number.isFinite(next)
-                                      ? normalizeGraphScale(next, item.scaleX ?? 1)
-                                      : normalizeGraphScale(item.scaleX ?? 1, 1);
-                                    updateSelectedGraphFunction(item.id, { scaleX: safe });
-                                  }}
-                                />
-                                <TextField
-                                  size="small"
-                                  type="number"
-                                  label="Ky"
-                                  value={item.scaleY ?? 1}
-                                  inputProps={{ step: 0.1, min: -12, max: 12 }}
-                                  onChange={(event) => {
-                                    const next = Number(event.target.value);
-                                    const safe = Number.isFinite(next)
-                                      ? normalizeGraphScale(next, item.scaleY ?? 1)
-                                      : normalizeGraphScale(item.scaleY ?? 1, 1);
-                                    updateSelectedGraphFunction(item.id, { scaleY: safe });
-                                  }}
-                                />
-                              </div>
-                              <div className="workbook-session__graph-transform-actions">
-                                <Tooltip title="Отразить график по оси X" arrow>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => reflectGraphFunctionByAxis(item.id, "x")}
-                                    aria-label="Отразить график по оси X"
-                                  >
-                                    <SwapVertRoundedIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Отразить график по оси Y" arrow>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => reflectGraphFunctionByAxis(item.id, "y")}
-                                    aria-label="Отразить график по оси Y"
-                                  >
-                                    <SwapHorizRoundedIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
+                                >
+                                  {item.visible !== false ? (
+                                    <VisibilityRoundedIcon fontSize="small" />
+                                  ) : (
+                                    <VisibilityOffRoundedIcon fontSize="small" />
+                                  )}
+                                  <span>{item.visible !== false ? "Скрыть" : "Показать"}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="workbook-session__graph-inline-action"
+                                  onClick={() => reflectGraphFunctionByAxis(item.id, "x")}
+                                  aria-label="Зеркало относительно OX"
+                                >
+                                  <SwapVertRoundedIcon fontSize="small" />
+                                  <span>OX</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="workbook-session__graph-inline-action"
+                                  onClick={() => reflectGraphFunctionByAxis(item.id, "y")}
+                                  aria-label="Зеркало относительно OY"
+                                >
+                                  <SwapHorizRoundedIcon fontSize="small" />
+                                  <span>OY</span>
+                                </button>
                               </div>
                             </div>
                           ))}
@@ -8950,7 +9204,7 @@ export default function WorkbookSessionPage() {
           </div>
           ) : null}
 
-          {utilityTab === "transform" ? (
+          {utilityTab === "transform" && selectedObjectSupportsTransformPanel ? (
           <div className="workbook-session__card">
             <h3>Трансформации</h3>
             <div className="workbook-session__geometry">
@@ -9031,155 +9285,342 @@ export default function WorkbookSessionPage() {
                   {solid3dInspectorTab === "figure" ? (
                     selectedSolidMesh ? (
                       <div className="workbook-session__solid-card-list workbook-session__solid-card-list--figure">
-                        <article className="workbook-session__solid-card">
-                          <div className="workbook-session__solid-card-row">
-                            <span>Скрыть пунктирные линии</span>
-                            <Switch
-                              size="small"
-                              checked={selectedSolidHiddenEdges}
-                              onChange={(event) =>
-                                void setSolid3dHiddenEdges(event.target.checked)
-                              }
-                            />
-                          </div>
-                        </article>
-
-                        <article className="workbook-session__solid-card">
-                          <div className="workbook-session__solid-card-head">
-                            <span className="workbook-session__solid-card-title">
-                              Окрашивание граней
-                            </span>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              onClick={() => void resetSolid3dFaceColors()}
+                        <div className="workbook-session__solid-subtabs">
+                          <button
+                            type="button"
+                            className={solid3dFigureTab === "display" ? "is-active" : ""}
+                            onClick={() => setSolid3dFigureTab("display")}
+                          >
+                            Вид
+                          </button>
+                          {selectedSolidIsCurved ? (
+                            <button
+                              type="button"
+                              className={solid3dFigureTab === "surface" ? "is-active" : ""}
+                              onClick={() => setSolid3dFigureTab("surface")}
                             >
-                              Сбросить
-                            </Button>
-                          </div>
-                          <div className="workbook-session__solid-face-grid">
-                            {selectedSolidMesh.faces.slice(0, 24).map((_, faceIndex) => (
-                              <div
-                                key={`solid-face-color-${faceIndex}`}
-                                className="workbook-session__solid-face-row"
+                              Поверхность
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                className={solid3dFigureTab === "faces" ? "is-active" : ""}
+                                onClick={() => setSolid3dFigureTab("faces")}
                               >
-                                <span>
-                                  {`Грань ${
-                                    selectedSolidMesh.faces[faceIndex]
-                                      .map(
-                                        (vertexIndex) =>
-                                          selectedSolidVertexLabels[vertexIndex] ||
-                                          getSolidVertexLabel(vertexIndex)
-                                      )
-                                      .join("-") || faceIndex + 1
-                                  }`}
-                                </span>
+                                Грани
+                              </button>
+                              <button
+                                type="button"
+                                className={solid3dFigureTab === "edges" ? "is-active" : ""}
+                                onClick={() => setSolid3dFigureTab("edges")}
+                              >
+                                Ребра
+                              </button>
+                              <button
+                                type="button"
+                                className={solid3dFigureTab === "angles" ? "is-active" : ""}
+                                onClick={() => setSolid3dFigureTab("angles")}
+                              >
+                                Углы
+                              </button>
+                            </>
+                          )}
+                        </div>
+
+                        {solid3dFigureTab === "display" ? (
+                          <article className="workbook-session__solid-card">
+                            <div className="workbook-session__solid-card-row">
+                              <span>
+                                {selectedSolidIsCurved
+                                  ? "Скрыть вспомогательные контуры"
+                                  : "Пунктир скрыт"}
+                              </span>
+                              <Switch
+                                size="small"
+                                checked={selectedSolidHiddenEdges}
+                                onChange={(event) =>
+                                  void setSolid3dHiddenEdges(event.target.checked)
+                                }
+                              />
+                            </div>
+                          </article>
+                        ) : null}
+
+                        {solid3dFigureTab === "surface" && selectedSolidIsCurved ? (
+                          <article className="workbook-session__solid-card">
+                            <div className="workbook-session__solid-card-head">
+                              <span className="workbook-session__solid-card-title">
+                                Поверхность тела
+                              </span>
+                            </div>
+                            <div className="workbook-session__solid-face-grid">
+                              <div className="workbook-session__solid-face-row">
+                                <span>Заливка</span>
                                 <input
                                   type="color"
                                   className="workbook-session__solid-color"
-                                  value={
-                                    selectedSolidFaceColors[String(faceIndex)] ||
-                                    "#5f6aa0"
-                                  }
+                                  value={selectedSolidSurfaceColor}
                                   onChange={(event) =>
-                                    void setSolid3dFaceColor(
-                                      faceIndex,
+                                    void updateSelectedSolid3dSurfaceColor(
                                       event.target.value || "#5f6aa0"
                                     )
                                   }
                                 />
                               </div>
-                            ))}
-                          </div>
-                          {selectedSolidMesh.faces.length > 24 ? (
+                            </div>
                             <p className="workbook-session__hint">
-                              Для этой фигуры доступно много граней. Показаны первые 24.
+                              Для тел с круговым основанием доступны управление поверхностью и
+                              служебными контурами.
                             </p>
-                          ) : null}
-                        </article>
+                          </article>
+                        ) : null}
 
-                        <article className="workbook-session__solid-card">
-                          <div className="workbook-session__solid-card-head">
-                            <span className="workbook-session__solid-card-title">
-                              Пометки углов
-                            </span>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              onClick={() => void addSolid3dAngleMark()}
-                            >
-                              Добавить
-                            </Button>
-                          </div>
-                          {selectedSolidAngleMarks.length ? (
-                            <div className="workbook-session__solid-angle-list">
-                              {selectedSolidAngleMarks.map((mark) => (
+                        {solid3dFigureTab === "faces" && !selectedSolidIsCurved ? (
+                          <article className="workbook-session__solid-card">
+                            <div className="workbook-session__solid-card-head">
+                              <span className="workbook-session__solid-card-title">
+                                Окрашивание граней
+                              </span>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => void resetSolid3dFaceColors()}
+                              >
+                                Сбросить
+                              </Button>
+                            </div>
+                            <div className="workbook-session__solid-face-grid">
+                              {selectedSolidMesh.faces.slice(0, 24).map((_, faceIndex) => (
                                 <div
-                                  key={mark.id}
-                                  className="workbook-session__solid-angle-row"
+                                  key={`solid-face-color-${faceIndex}`}
+                                  className="workbook-session__solid-face-row"
                                 >
-                                  <Select
-                                    native
-                                    size="small"
-                                    value={String(mark.vertexIndex)}
-                                    onChange={(event) =>
-                                      void updateSolid3dAngleMark(mark.id, {
-                                        vertexIndex: Number(event.target.value),
-                                      })
-                                    }
-                                  >
-                                    {selectedSolidMesh.vertices.map((_, index) => (
-                                      <option key={`vertex-opt-${index}`} value={index}>
-                                        {selectedSolidVertexLabels[index] ||
-                                          getSolidVertexLabel(index)}
-                                      </option>
-                                    ))}
-                                  </Select>
-                                  <TextField
-                                    size="small"
-                                    className="workbook-session__solid-input"
-                                    placeholder="Значение/комментарий угла"
-                                    value={mark.label}
-                                    onChange={(event) =>
-                                      void updateSolid3dAngleMark(mark.id, {
-                                        label: event.target.value,
-                                      })
-                                    }
-                                  />
+                                  <span>
+                                    {`Грань ${
+                                      selectedSolidMesh.faces[faceIndex]
+                                        .map(
+                                          (vertexIndex) =>
+                                            selectedSolidVertexLabels[vertexIndex] ||
+                                            getSolidVertexLabel(vertexIndex)
+                                        )
+                                        .join("-") || faceIndex + 1
+                                    }`}
+                                  </span>
                                   <input
                                     type="color"
                                     className="workbook-session__solid-color"
-                                    value={mark.color || "#ff8e3c"}
+                                    value={selectedSolidFaceColors[String(faceIndex)] || "#5f6aa0"}
                                     onChange={(event) =>
-                                      void updateSolid3dAngleMark(mark.id, {
-                                        color: event.target.value || "#ff8e3c",
-                                      })
+                                      void setSolid3dFaceColor(
+                                        faceIndex,
+                                        event.target.value || "#5f6aa0"
+                                      )
                                     }
                                   />
-                                  <Switch
-                                    size="small"
-                                    checked={mark.visible !== false}
-                                    onChange={(event) =>
-                                      void updateSolid3dAngleMark(mark.id, {
-                                        visible: event.target.checked,
-                                      })
-                                    }
-                                  />
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => void deleteSolid3dAngleMark(mark.id)}
-                                  >
-                                    <CloseRoundedIcon />
-                                  </IconButton>
                                 </div>
                               ))}
                             </div>
-                          ) : (
-                            <p className="workbook-session__hint">
-                              Добавьте пометку угла и задайте комментарий вручную.
-                            </p>
-                          )}
-                        </article>
+                            {selectedSolidMesh.faces.length > 24 ? (
+                              <p className="workbook-session__hint">
+                                Для этой фигуры доступно много граней. Показаны первые 24.
+                              </p>
+                            ) : null}
+                          </article>
+                        ) : null}
+
+                        {solid3dFigureTab === "edges" && !selectedSolidIsCurved ? (
+                          <article className="workbook-session__solid-card">
+                            <div className="workbook-session__solid-card-head">
+                              <span className="workbook-session__solid-card-title">
+                                Окрашивание ребер
+                              </span>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => void resetSolid3dEdgeColors()}
+                              >
+                                Сбросить
+                              </Button>
+                            </div>
+                            <div className="workbook-session__solid-face-grid">
+                              {selectedSolidEdges.slice(0, 24).map((edge) => (
+                                <div
+                                  key={`solid-edge-color-${edge.key}`}
+                                  className="workbook-session__solid-face-row"
+                                >
+                                  <span>{`Ребро ${edge.label}`}</span>
+                                  <input
+                                    type="color"
+                                    className="workbook-session__solid-color"
+                                    value={selectedSolidEdgeColors[edge.key] || "#4f63ff"}
+                                    onChange={(event) =>
+                                      void setSolid3dEdgeColor(
+                                        edge.key,
+                                        event.target.value || "#4f63ff"
+                                      )
+                                    }
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            {selectedSolidEdges.length > 24 ? (
+                              <p className="workbook-session__hint">
+                                Для этой фигуры доступно много ребер. Показаны первые 24.
+                              </p>
+                            ) : null}
+                          </article>
+                        ) : null}
+
+                        {solid3dFigureTab === "angles" && !selectedSolidIsCurved ? (
+                          <article className="workbook-session__solid-card">
+                            <div className="workbook-session__solid-card-head">
+                              <span className="workbook-session__solid-card-title">
+                                Пометки углов
+                              </span>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => void addSolid3dAngleMark()}
+                              >
+                                Добавить
+                              </Button>
+                            </div>
+                            {selectedSolidAngleMarks.length ? (
+                              <div className="workbook-session__solid-angle-list">
+                                {selectedSolidAngleMarks.map((mark) => (
+                                  <div key={mark.id} className="workbook-session__solid-angle-card">
+                                    {(() => {
+                                      const fallbackFaceIndex = selectedSolidMesh.faces.findIndex((face) =>
+                                        face.includes(mark.vertexIndex)
+                                      );
+                                      const storedFaceIndex =
+                                        typeof mark.faceIndex === "number" &&
+                                        Number.isInteger(mark.faceIndex) &&
+                                        mark.faceIndex >= 0
+                                          ? mark.faceIndex
+                                          : null;
+                                      const activeFaceIndex =
+                                        storedFaceIndex !== null &&
+                                        selectedSolidMesh.faces[storedFaceIndex]
+                                          ? storedFaceIndex
+                                          : Math.max(0, fallbackFaceIndex);
+                                      const activeFace =
+                                        selectedSolidMesh.faces[activeFaceIndex] ?? [];
+                                      const activeVertexValue = activeFace.includes(mark.vertexIndex)
+                                        ? mark.vertexIndex
+                                        : (activeFace[0] ?? mark.vertexIndex);
+                                      return (
+                                        <>
+                                          <div className="workbook-session__solid-angle-top">
+                                            <input
+                                              type="color"
+                                              className="workbook-session__solid-color"
+                                              value={mark.color || "#ff8e3c"}
+                                              onChange={(event) =>
+                                                void updateSolid3dAngleMark(mark.id, {
+                                                  color: event.target.value || "#ff8e3c",
+                                                })
+                                              }
+                                            />
+                                            <Select
+                                              native
+                                              size="small"
+                                              value={String(activeFaceIndex)}
+                                              onChange={(event) => {
+                                                const nextFaceIndex = Number(event.target.value);
+                                                const nextFace =
+                                                  selectedSolidMesh.faces[nextFaceIndex] ?? [];
+                                                void updateSolid3dAngleMark(mark.id, {
+                                                  faceIndex: nextFaceIndex,
+                                                  vertexIndex:
+                                                    nextFace.includes(mark.vertexIndex)
+                                                      ? mark.vertexIndex
+                                                      : (nextFace[0] ?? mark.vertexIndex),
+                                                });
+                                              }}
+                                            >
+                                              {selectedSolidMesh.faces.map((face, faceIndex) => (
+                                                <option
+                                                  key={`face-opt-${mark.id}-${faceIndex}`}
+                                                  value={faceIndex}
+                                                >
+                                                  {face
+                                                    .map(
+                                                      (vertexIndex) =>
+                                                        selectedSolidVertexLabels[vertexIndex] ||
+                                                        getSolidVertexLabel(vertexIndex)
+                                                    )
+                                                    .join("-")}
+                                                </option>
+                                              ))}
+                                            </Select>
+                                            <Select
+                                              native
+                                              size="small"
+                                              value={String(activeVertexValue)}
+                                              onChange={(event) =>
+                                                void updateSolid3dAngleMark(mark.id, {
+                                                  vertexIndex: Number(event.target.value),
+                                                })
+                                              }
+                                            >
+                                              {activeFace.map((vertexIndex: number) => (
+                                                <option
+                                                  key={`vertex-opt-${mark.id}-${vertexIndex}`}
+                                                  value={vertexIndex}
+                                                >
+                                                  {selectedSolidVertexLabels[vertexIndex] ||
+                                                    getSolidVertexLabel(vertexIndex)}
+                                                </option>
+                                              ))}
+                                            </Select>
+                                            <IconButton
+                                              size="small"
+                                              className="workbook-session__solid-angle-delete"
+                                              onClick={() => void deleteSolid3dAngleMark(mark.id)}
+                                            >
+                                              <CloseRoundedIcon />
+                                            </IconButton>
+                                          </div>
+                                          <div className="workbook-session__solid-angle-bottom">
+                                            <TextField
+                                              size="small"
+                                              className="workbook-session__solid-input"
+                                              placeholder="Значение угла"
+                                              value={mark.label}
+                                              onChange={(event) =>
+                                                void updateSolid3dAngleMark(mark.id, {
+                                                  label: event.target.value,
+                                                })
+                                              }
+                                            />
+                                            <div className="workbook-session__solid-angle-visibility">
+                                              <span>Скрыть</span>
+                                              <Switch
+                                                size="small"
+                                                checked={mark.visible === false}
+                                                onChange={(event) =>
+                                                  void updateSolid3dAngleMark(mark.id, {
+                                                    visible: !event.target.checked,
+                                                  })
+                                                }
+                                              />
+                                            </div>
+                                          </div>
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="workbook-session__hint">
+                                Добавьте пометку угла и задайте комментарий вручную.
+                              </p>
+                            )}
+                          </article>
+                        ) : null}
                       </div>
                     ) : (
                       <p className="workbook-session__hint">
@@ -9836,29 +10277,64 @@ export default function WorkbookSessionPage() {
                 </div>
               ) : selectedShape2dObject ? (
                 <div className="workbook-session__solid-inspector">
+                  <div className="workbook-session__solid-subtabs">
+                    <button
+                      type="button"
+                      className={shape2dInspectorTab === "display" ? "is-active" : ""}
+                      onClick={() => setShape2dInspectorTab("display")}
+                    >
+                      Вид
+                    </button>
+                    <button
+                      type="button"
+                      className={shape2dInspectorTab === "vertices" ? "is-active" : ""}
+                      onClick={() => setShape2dInspectorTab("vertices")}
+                    >
+                      Вершины
+                    </button>
+                    {selectedShape2dHasAngles ? (
+                      <button
+                        type="button"
+                        className={shape2dInspectorTab === "angles" ? "is-active" : ""}
+                        onClick={() => setShape2dInspectorTab("angles")}
+                      >
+                        Углы
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className={shape2dInspectorTab === "segments" ? "is-active" : ""}
+                      onClick={() => setShape2dInspectorTab("segments")}
+                    >
+                      Отрезки
+                    </button>
+                  </div>
                   <div className="workbook-session__solid-card-list workbook-session__solid-card-list--figure">
-                    <article className="workbook-session__solid-card">
-                      <div className="workbook-session__solid-card-head">
-                        <span className="workbook-session__solid-card-title">Фигура</span>
-                        <Chip size="small" label={selectedObjectLabel} />
-                      </div>
-                      {selectedShape2dHasAngles ? (
-                        <div className="workbook-session__solid-card-row">
-                          <span>Показывать углы</span>
-                          <Switch
-                            size="small"
-                            checked={selectedShape2dShowAngles}
-                            onChange={(event) =>
-                              void updateSelectedShape2dMeta({
-                                showAngles: event.target.checked,
-                              })
-                            }
-                          />
+                    {shape2dInspectorTab === "display" ? (
+                      <article className="workbook-session__solid-card">
+                        <div className="workbook-session__solid-card-head">
+                          <span className="workbook-session__solid-card-title">Фигура</span>
+                          <Chip size="small" label={selectedObjectLabel} />
                         </div>
-                      ) : (
-                        <p className="workbook-session__hint">У выбранного объекта нет углов.</p>
-                      )}
-                    </article>
+                        {selectedShape2dHasAngles ? (
+                          <div className="workbook-session__solid-card-row">
+                            <span>Показывать углы</span>
+                            <Switch
+                              size="small"
+                              checked={selectedShape2dShowAngles}
+                              onChange={(event) =>
+                                void updateSelectedShape2dMeta({
+                                  showAngles: event.target.checked,
+                                })
+                              }
+                            />
+                          </div>
+                        ) : (
+                          <p className="workbook-session__hint">У выбранного объекта нет углов.</p>
+                        )}
+                      </article>
+                    ) : null}
+                    {shape2dInspectorTab === "vertices" ? (
                     <article className="workbook-session__solid-card">
                       <div className="workbook-session__solid-card-head">
                         <span className="workbook-session__solid-card-title">Вершины</span>
@@ -9907,7 +10383,8 @@ export default function WorkbookSessionPage() {
                         ))}
                       </div>
                     </article>
-                    {selectedShape2dHasAngles ? (
+                    ) : null}
+                    {shape2dInspectorTab === "angles" && selectedShape2dHasAngles ? (
                       <article className="workbook-session__solid-card">
                         <div className="workbook-session__solid-card-head">
                           <span className="workbook-session__solid-card-title">Углы</span>
@@ -9954,10 +10431,11 @@ export default function WorkbookSessionPage() {
                                 }
                               />
                             </div>
-                          ))}
-                        </div>
-                      </article>
+                        ))}
+                      </div>
+                    </article>
                     ) : null}
+                    {shape2dInspectorTab === "segments" ? (
                     <article className="workbook-session__solid-card">
                       <div className="workbook-session__solid-card-head">
                         <span className="workbook-session__solid-card-title">Отрезки</span>
@@ -10007,6 +10485,7 @@ export default function WorkbookSessionPage() {
                         ))}
                       </div>
                     </article>
+                    ) : null}
                   </div>
                 </div>
               ) : (
@@ -10016,7 +10495,7 @@ export default function WorkbookSessionPage() {
           </div>
           ) : null}
 
-          </>
+              </div>
           ) : null}
 
           </div>

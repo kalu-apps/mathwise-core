@@ -32,9 +32,6 @@ import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
 import AttachFileRoundedIcon from "@mui/icons-material/AttachFileRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
-import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
-import TipsAndUpdatesRoundedIcon from "@mui/icons-material/TipsAndUpdatesRounded";
 import AppsRoundedIcon from "@mui/icons-material/AppsRounded";
 
 import { StudentCard } from "@/entities/student/ui/StudentCard";
@@ -68,7 +65,6 @@ import {
   deleteCourseContentItems,
   getCourseContentItems,
 } from "@/features/assessments/model/storage";
-import { getWorkbookDrafts } from "@/features/workbook/model/api";
 import { deleteProgressByCourse } from "@/entities/progress/model/storage";
 import {
   getTeacherAvailability,
@@ -181,10 +177,6 @@ export default function TeacherDashboard() {
   const [studentsPage, setStudentsPage] = useState(1);
   const [coursesPage, setCoursesPage] = useState(1);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
-  const [studyDrafts, setStudyDrafts] = useState<
-    Awaited<ReturnType<typeof getWorkbookDrafts>>["items"]
-  >([]);
-  const [studyDraftsLoading, setStudyDraftsLoading] = useState(false);
   const [studyNotes, setStudyNotes] = useState<StudyCabinetNote[]>([]);
   const [studyActivityVersion, setStudyActivityVersion] = useState(0);
   const [studyReminderCount, setStudyReminderCount] = useState(0);
@@ -321,22 +313,6 @@ export default function TeacherDashboard() {
     setStudyReminderCount(countDueSoonStudyCabinetReminders(notes, 90));
   }, [userId, isTeacher]);
 
-  const loadStudyDrafts = useCallback(async () => {
-    if (!userId || !isTeacher) {
-      setStudyDrafts([]);
-      return;
-    }
-    try {
-      setStudyDraftsLoading(true);
-      const drafts = await getWorkbookDrafts("all");
-      setStudyDrafts(drafts.items);
-    } catch {
-      setStudyDrafts([]);
-    } finally {
-      setStudyDraftsLoading(false);
-    }
-  }, [userId, isTeacher]);
-
   useEffect(() => {
     Promise.resolve().then(() => void refreshAll());
     const unsubscribe = subscribeAppDataUpdates(() => {
@@ -374,15 +350,13 @@ export default function TeacherDashboard() {
   useEffect(() => {
     if (tab !== 4) return;
     syncStudyNotes();
-    void loadStudyDrafts();
     const unsubscribe = subscribeAppDataUpdates(() => {
       syncStudyNotes();
-      void loadStudyDrafts();
     });
     return () => {
       unsubscribe();
     };
-  }, [tab, syncStudyNotes, loadStudyDrafts]);
+  }, [tab, syncStudyNotes]);
 
   useEffect(() => {
     if (tab !== 4 || !userId || !isTeacher) return;
@@ -536,171 +510,6 @@ export default function TeacherDashboard() {
     if (!userId) return [];
     return buildStudyCabinetWeekActivity("teacher", userId);
   }, [userId, studyActivityVersion]);
-
-  const teacherStudyStats = useMemo(() => {
-    const weeklyMinutes = teacherStudyActivityDays.reduce(
-      (sum, day) => sum + day.minutes,
-      0
-    );
-    const activeClassSessions = studyDrafts.filter(
-      (draft) => draft.kind === "CLASS" && draft.statusForCard !== "ended"
-    ).length;
-    const completedClassSessions = new Set(
-      studyDrafts
-        .filter((draft) => draft.kind === "CLASS" && draft.statusForCard === "ended")
-        .map((draft) => draft.sessionId)
-    ).size;
-    const notesWithReminder = studyNotes.filter(
-      (note) => note.remind && !note.done
-    ).length;
-
-    return [
-      {
-        id: "weekly-minutes",
-        label: "Минут в кабинете",
-        value: weeklyMinutes,
-        accent: true,
-        icon: <AccessTimeRoundedIcon fontSize="small" />,
-      },
-      {
-        id: "completed-individual-bookings",
-        label: "Проведено индивидуальных",
-        value: completedBookings.length,
-        icon: <EventAvailableRoundedIcon fontSize="small" />,
-      },
-      {
-        id: "completed-class-bookings",
-        label: "Проведено коллективных на доске",
-        value: completedClassSessions,
-        icon: <GroupsRoundedIcon fontSize="small" />,
-      },
-      {
-        id: "class-sessions-active",
-        label: "Активные коллективные",
-        value: activeClassSessions,
-        icon: <AutoStoriesRoundedIcon fontSize="small" />,
-      },
-      {
-        id: "notes-reminders",
-        label: "Заметок с напоминанием",
-        value: notesWithReminder,
-        icon: <TipsAndUpdatesRoundedIcon fontSize="small" />,
-      },
-    ].filter((entry) => entry.value > 0);
-  }, [teacherStudyActivityDays, studyDrafts, studyNotes, completedBookings.length]);
-
-  const teacherStudyCalendarEvents = useMemo(() => {
-    const now = Date.now();
-    const events: Array<{
-      id: string;
-      title: string;
-      description?: string;
-      startAt: string;
-      endAt?: string;
-      color?: string;
-      badge?: string;
-      highlighted?: boolean;
-      noteId?: string;
-    }> = [];
-
-    scheduledBookings.forEach((booking) => {
-      const start = getBookingStart(booking);
-      const end = getBookingEnd(booking);
-      if (!Number.isFinite(start) || start <= now) return;
-      events.push({
-        id: `teacher-booking-${booking.id}`,
-        title: `Занятие со студентом ${booking.studentName}`,
-        description:
-          booking.lessonKind === "trial" ? "Пробное занятие" : "Индивидуальный урок",
-        startAt: new Date(start).toISOString(),
-        endAt: Number.isFinite(end) ? new Date(end).toISOString() : undefined,
-        badge: "Индивидуальное",
-      });
-    });
-
-    studyNotes
-      .filter((note) => note.remind && !note.done && note.dueAt)
-      .forEach((note) => {
-        const dueAt = note.dueAt ? new Date(note.dueAt).getTime() : now;
-        if (!Number.isFinite(dueAt)) return;
-        events.push({
-          id: `teacher-note-${note.id}`,
-          title: note.title,
-          startAt: new Date(dueAt).toISOString(),
-          endAt: note.endAt
-            ? new Date(note.endAt).toISOString()
-            : new Date(dueAt + 30 * 60 * 1000).toISOString(),
-          description: note.body || undefined,
-          color: note.color,
-          highlighted: dueAt - now <= 90 * 60 * 1000,
-          noteId: note.id,
-        });
-      });
-
-    return events.sort(
-      (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()
-    );
-  }, [scheduledBookings, studyNotes]);
-
-  const teacherStudyGeneralReminders = useMemo(() => {
-    const now = Date.now();
-    const reminders: Array<{
-      id: string;
-      title: string;
-      subtitle?: string;
-      badge?: string;
-      highlighted?: boolean;
-      source: "system" | "manual";
-      sortKey: number;
-    }> = [];
-
-    studyNotes
-      .filter((note) => note.remind && !note.done && note.dueAt)
-      .forEach((note) => {
-        const dueAt = note.dueAt ? new Date(note.dueAt).getTime() : now;
-        if (!Number.isFinite(dueAt)) return;
-        reminders.push({
-          id: `teacher-reminder-${note.id}`,
-          title: note.title,
-          subtitle: note.body || undefined,
-          badge: "Напоминание",
-          highlighted: dueAt - now <= 90 * 60 * 1000,
-          source: "manual",
-          sortKey: dueAt,
-        });
-      });
-
-    return reminders
-      .sort((a, b) => {
-        if (a.source !== b.source) {
-          return a.source === "system" ? -1 : 1;
-        }
-        if (a.source === "manual") {
-          return a.sortKey - b.sortKey;
-        }
-        return b.sortKey - a.sortKey;
-      })
-      .map((item) => {
-        const sortKey = item.sortKey;
-        void sortKey;
-        const source = item.source;
-        void source;
-        return {
-          id: item.id,
-          title: item.title,
-          subtitle: item.subtitle,
-          badge: item.badge,
-          highlighted: item.highlighted,
-        };
-      });
-  }, [studyNotes]);
-
-  const studyReminderHint = useMemo(() => {
-    if (studyReminderCount <= 0) return null;
-    return studyReminderCount === 1
-      ? "Есть 1 напоминание в ближайшее время."
-      : `Есть ${studyReminderCount} напоминания в ближайшее время.`;
-  }, [studyReminderCount]);
 
   const availabilityDateGroups = useMemo(() => {
     const visibleDates = new Set(buildCalendarDays(21).map((day) => day.value));
@@ -858,6 +667,8 @@ export default function TeacherDashboard() {
       endAt: string | null;
       remind: boolean;
       color: string;
+      kind?: "prep" | "followup" | "focus" | "break" | "custom";
+      linkedBookingId?: string | null;
     }) => {
       if (!userId || !isTeacher) return;
       createStudyCabinetNote({
@@ -869,6 +680,8 @@ export default function TeacherDashboard() {
         endAt: payload.endAt,
         remind: payload.remind,
         color: payload.color,
+        kind: payload.kind,
+        linkedBookingId: payload.linkedBookingId,
       });
       syncStudyNotes();
     },
@@ -884,6 +697,8 @@ export default function TeacherDashboard() {
       endAt: string | null;
       remind: boolean;
       color: string;
+      kind?: "prep" | "followup" | "focus" | "break" | "custom";
+      linkedBookingId?: string | null;
     }) => {
       if (!userId || !isTeacher) return;
       updateStudyCabinetNote({
@@ -896,6 +711,8 @@ export default function TeacherDashboard() {
         endAt: payload.endAt,
         remind: payload.remind,
         color: payload.color,
+        kind: payload.kind,
+        linkedBookingId: payload.linkedBookingId,
       });
       syncStudyNotes();
     },
@@ -909,6 +726,29 @@ export default function TeacherDashboard() {
       syncStudyNotes();
     },
     [userId, isTeacher, syncStudyNotes]
+  );
+
+  const handleTeacherOpenSchedule = useCallback(() => {
+    setTab(3);
+    setSearchParams({ tab: TAB_KEYS[3] });
+  }, [setSearchParams]);
+
+  const handleTeacherOpenStudentChat = useCallback(
+    (studentId: string) => {
+      const params = new URLSearchParams(searchParams);
+      params.set("tab", TAB_KEYS[5]);
+      const threadId = chatThreadIdsByStudentId[studentId];
+      if (threadId) {
+        params.set("threadId", threadId);
+        params.delete("studentId");
+      } else {
+        params.set("studentId", studentId);
+        params.delete("threadId");
+      }
+      setTab(5);
+      setSearchParams(params);
+    },
+    [chatThreadIdsByStudentId, searchParams, setSearchParams]
   );
 
   const deleteCourseFull = async (courseId: string) => {
@@ -2102,6 +1942,10 @@ export default function TeacherDashboard() {
       <div style={{ display: tab === 4 ? "block" : "none" }} aria-hidden={tab !== 4}>
         <StudyCabinetPanel
           role="teacher"
+          userId={user.id}
+          bookings={bookings}
+          availability={availability}
+          notes={studyNotes}
           onWorkbookClick={() => {
             navigate(
               `/workbook?from=${encodeURIComponent("/teacher/profile?tab=study")}`
@@ -2112,20 +1956,12 @@ export default function TeacherDashboard() {
             setSearchParams({ tab: TAB_KEYS[5] });
           }}
           activityDays={teacherStudyActivityDays}
-          activityStats={teacherStudyStats}
-          calendarEvents={teacherStudyCalendarEvents}
-          generalReminders={teacherStudyGeneralReminders}
-          notes={studyNotes}
-          allowNoteEditor
+          chatUnreadCount={chatUnreadCount}
+          onOpenSchedule={handleTeacherOpenSchedule}
+          onOpenStudentChat={handleTeacherOpenStudentChat}
           onCreateNote={handleTeacherCreateNote}
           onUpdateNote={handleTeacherUpdateNote}
           onDeleteNote={handleTeacherDeleteNote}
-          reminderAccent={studyReminderCount > 0}
-          reminderHint={
-            studyDraftsLoading
-              ? "Обновляем календарь и заметки..."
-              : studyReminderHint
-          }
         />
       </div>
 

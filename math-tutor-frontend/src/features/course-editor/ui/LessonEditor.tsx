@@ -10,6 +10,7 @@ import {
   Box,
   Checkbox,
   FormControlLabel,
+  Alert,
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
@@ -25,6 +26,10 @@ import { useActionGuard } from "@/shared/lib/useActionGuard";
 import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { ButtonPending } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
+import {
+  preflightLessonVideo,
+  type MediaJobStatus,
+} from "@/shared/lib/mediaPipeline";
 
 export type LessonMaterial = {
   id: string;
@@ -48,6 +53,11 @@ export type LessonDraft = {
   duration: number;
   videoFile: File | null;
   videoUrl?: string;
+  videoStreamUrl?: string;
+  videoPosterUrl?: string;
+  mediaJobId?: string;
+  mediaJobStatus?: MediaJobStatus;
+  mediaJobError?: string;
   materials: EditableLessonMaterial[];
   settings?: {
     disablePrintableDownloads?: boolean;
@@ -60,12 +70,17 @@ type Props = {
     title: string;
     duration: number;
     videoUrl?: string;
+    videoStreamUrl?: string;
+    videoPosterUrl?: string;
+    mediaJobId?: string;
+    mediaJobStatus?: MediaJobStatus;
+    mediaJobError?: string;
     materials: LessonMaterial[];
     settings?: {
       disablePrintableDownloads?: boolean;
     };
   };
-  onSave: (lesson: LessonDraft) => void;
+  onSave: (lesson: LessonDraft) => Promise<void> | void;
   onCancel: () => void;
 };
 
@@ -87,15 +102,26 @@ const getVideoDuration = (src: string) =>
       reject(new Error("Video metadata error"));
     };
     video.preload = "metadata";
+    video.playsInline = true;
+    video.muted = true;
     video.addEventListener("loadedmetadata", onLoaded);
     video.addEventListener("error", onError);
     video.src = src;
+    video.load();
   });
+
+const isLikelyHlsSource = (src?: string) =>
+  Boolean(src && /\.m3u8(?:$|[?#])/i.test(src.trim()));
 
 const toComparableLessonSnapshot = (input: {
   title: string;
   videoFile: File | null;
   videoUrl?: string;
+  videoStreamUrl?: string;
+  videoPosterUrl?: string;
+  mediaJobId?: string;
+  mediaJobStatus?: MediaJobStatus;
+  mediaJobError?: string;
   duration: number;
   materials: EditableLessonMaterial[];
   disablePrintableDownloads: boolean;
@@ -103,6 +129,11 @@ const toComparableLessonSnapshot = (input: {
   title: input.title.trim(),
   hasVideoFile: Boolean(input.videoFile),
   videoUrl: input.videoUrl ?? "",
+  videoStreamUrl: input.videoStreamUrl ?? "",
+  videoPosterUrl: input.videoPosterUrl ?? "",
+  mediaJobId: input.mediaJobId ?? "",
+  mediaJobStatus: input.mediaJobStatus ?? "",
+  mediaJobError: input.mediaJobError ?? "",
   duration: input.duration,
   materials: input.materials.map((material) => ({
     id: material.id,
@@ -133,6 +164,22 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
   const [videoUrl, setVideoUrl] = useState<string | undefined>(
     initialLesson?.videoUrl
   );
+  const [videoStreamUrl, setVideoStreamUrl] = useState<string | undefined>(
+    initialLesson?.videoStreamUrl
+  );
+  const [videoPosterUrl, setVideoPosterUrl] = useState<string | undefined>(
+    initialLesson?.videoPosterUrl
+  );
+  const [mediaJobId, setMediaJobId] = useState<string | undefined>(
+    initialLesson?.mediaJobId
+  );
+  const [mediaJobStatus, setMediaJobStatus] = useState<MediaJobStatus | undefined>(
+    initialLesson?.mediaJobStatus
+  );
+  const [mediaJobError, setMediaJobError] = useState<string | undefined>(
+    initialLesson?.mediaJobError
+  );
+  const [videoPreflightNote, setVideoPreflightNote] = useState<string | null>(null);
   const [duration, setDuration] = useState<number>(
     initialLesson?.duration ?? 0
   );
@@ -155,6 +202,11 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
         title: initialLesson?.title ?? "",
         videoFile: null,
         videoUrl: initialLesson?.videoUrl,
+        videoStreamUrl: initialLesson?.videoStreamUrl,
+        videoPosterUrl: initialLesson?.videoPosterUrl,
+        mediaJobId: initialLesson?.mediaJobId,
+        mediaJobStatus: initialLesson?.mediaJobStatus,
+        mediaJobError: initialLesson?.mediaJobError,
         duration: initialLesson?.duration ?? 0,
         materials: initialMaterials,
         disablePrintableDownloads: Boolean(
@@ -171,12 +223,30 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
           title,
           videoFile,
           videoUrl,
+          videoStreamUrl,
+          videoPosterUrl,
+          mediaJobId,
+          mediaJobStatus,
+          mediaJobError,
           duration,
           materials,
           disablePrintableDownloads,
         })
       ) !== initialSnapshot,
-    [initialSnapshot, title, videoFile, videoUrl, duration, materials, disablePrintableDownloads]
+    [
+      initialSnapshot,
+      title,
+      videoFile,
+      videoUrl,
+      videoStreamUrl,
+      videoPosterUrl,
+      mediaJobId,
+      mediaJobStatus,
+      mediaJobError,
+      duration,
+      materials,
+      disablePrintableDownloads,
+    ]
   );
 
   const handleAddMaterial = (file: File) => {
@@ -200,53 +270,84 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
       setSaveError(t("lessonEditor.requiredTitleError"));
       return;
     }
-    if (!videoFile && !videoUrl) {
+    if (!videoFile && !videoUrl && !videoStreamUrl) {
       setWarningOpen(true);
       setSaveError(t("lessonEditor.requiredVideoError"));
       return;
     }
+    const preflight = preflightLessonVideo({
+      lessonTitle: title.trim(),
+      videoFile,
+      videoUrl,
+      videoStreamUrl,
+      videoPosterUrl,
+    });
+    if (!preflight.ok) {
+      setSaveError(preflight.error ?? "Не удалось подготовить видео.");
+      return;
+    }
+    setVideoPreflightNote(preflight.note ?? null);
     setSaveError(null);
-    const saved = await saveGuard.run(
-      async () => {
-        let finalDuration = duration;
-        if (finalDuration === 0) {
-          try {
-            if (videoFile) {
-              const objectUrl = URL.createObjectURL(videoFile);
-              finalDuration = await getVideoDuration(objectUrl);
-              URL.revokeObjectURL(objectUrl);
-            } else if (videoUrl) {
-              finalDuration = await getVideoDuration(videoUrl);
+    try {
+      const saved = await saveGuard.run(
+        async () => {
+          let finalDuration = duration;
+          if (finalDuration === 0) {
+            try {
+              if (videoFile) {
+                const objectUrl = URL.createObjectURL(videoFile);
+                finalDuration = await getVideoDuration(objectUrl);
+                URL.revokeObjectURL(objectUrl);
+              } else if (videoUrl && !isLikelyHlsSource(videoUrl)) {
+                finalDuration = await getVideoDuration(videoUrl);
+              } else if (videoStreamUrl && !isLikelyHlsSource(videoStreamUrl)) {
+                finalDuration = await getVideoDuration(videoStreamUrl);
+              }
+            } catch {
+              finalDuration = duration;
             }
-          } catch {
-            finalDuration = duration;
           }
-        }
 
-        onSave({
-          id: lessonId,
-          title: title.trim(),
-          duration: finalDuration,
-          videoFile,
-          videoUrl,
-          materials,
-          settings: {
-            disablePrintableDownloads,
-          },
-        });
-      },
-      {
-        lockKey: `lesson-save:${lessonId ?? "new"}:${title.trim()}`,
-        retry: { label: t("common.retryLessonSaveAction") },
-      }
-    );
-    if (saved === undefined) return;
+          await onSave({
+            id: lessonId,
+            title: title.trim(),
+            duration: finalDuration,
+            videoFile,
+            videoUrl,
+            videoStreamUrl,
+            videoPosterUrl,
+            mediaJobId,
+            mediaJobStatus,
+            mediaJobError,
+            materials,
+            settings: {
+              disablePrintableDownloads,
+            },
+          });
+        },
+        {
+          lockKey: `lesson-save:${lessonId ?? "new"}:${title.trim()}`,
+          retry: { label: t("common.retryLessonSaveAction") },
+        }
+      );
+      if (saved === undefined) return;
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "Не удалось сохранить урок."
+      );
+    }
   };
 
   useEffect(() => {
-    if (!videoUrl) return;
+    if (videoFile) return;
+    const metadataSource = videoUrl && !isLikelyHlsSource(videoUrl)
+      ? videoUrl
+      : videoStreamUrl && !isLikelyHlsSource(videoStreamUrl)
+      ? videoStreamUrl
+      : "";
+    if (!metadataSource) return;
     let active = true;
-    void getVideoDuration(videoUrl)
+    void getVideoDuration(metadataSource)
       .then((value) => {
         if (active) setDuration(value);
       })
@@ -254,7 +355,37 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
     return () => {
       active = false;
     };
-  }, [videoUrl]);
+  }, [videoFile, videoUrl, videoStreamUrl]);
+
+  const mediaStatusAlert = useMemo(() => {
+    if (mediaJobStatus === "queued") {
+      return {
+        severity: "info" as const,
+        message: "Видео поставлено в очередь на подготовку. Курс можно сохранить как черновик.",
+      };
+    }
+    if (mediaJobStatus === "processing") {
+      return {
+        severity: "info" as const,
+        message: "Видео обрабатывается. Дождитесь статуса «Готово» перед публикацией курса.",
+      };
+    }
+    if (mediaJobStatus === "ready") {
+      return {
+        severity: "success" as const,
+        message: "Видео подготовлено. Поток и постер готовы к показу.",
+      };
+    }
+    if (mediaJobStatus === "failed") {
+      return {
+        severity: "warning" as const,
+        message:
+          mediaJobError ||
+          "Не удалось завершить обработку видео. Для урока будет использован резервный источник.",
+      };
+    }
+    return null;
+  }, [mediaJobError, mediaJobStatus]);
 
   const handleCloseRequest = () => {
     if (!hasUnsavedChanges) {
@@ -301,6 +432,38 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
               <Typography variant="subtitle2">
                 {t("lessonEditor.videoRequiredTitle")}
               </Typography>
+              {mediaStatusAlert ? (
+                <Alert severity={mediaStatusAlert.severity}>{mediaStatusAlert.message}</Alert>
+              ) : null}
+              {videoPreflightNote ? (
+                <Alert severity="info">{videoPreflightNote}</Alert>
+              ) : null}
+              <Button component="label" variant="outlined">
+                {videoFile ? "Заменить MP4-файл" : t("lessonEditor.uploadVideo")}
+                <input
+                  hidden
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setVideoFile(file);
+                      setVideoUrl(undefined);
+                      setVideoStreamUrl(undefined);
+                      setMediaJobId(undefined);
+                      setMediaJobStatus(undefined);
+                      setMediaJobError(undefined);
+                      setVideoPreflightNote(null);
+                      if (saveError) setSaveError(null);
+                      const objectUrl = URL.createObjectURL(file);
+                      void getVideoDuration(objectUrl)
+                        .then((value) => setDuration(value))
+                        .finally(() => URL.revokeObjectURL(objectUrl));
+                    }
+                    e.target.value = "";
+                  }}
+                />
+              </Button>
               {videoFile ? (
                 <Chip
                   icon={<VideoLibraryIcon />}
@@ -308,43 +471,59 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                   onDelete={() => {
                     setVideoFile(null);
                     setDuration(0);
+                    setMediaJobId(undefined);
+                    setMediaJobStatus(undefined);
+                    setMediaJobError(undefined);
+                    setVideoPreflightNote(null);
                   }}
                   color="primary"
                 />
-              ) : videoUrl ? (
-                <Chip
-                  icon={<VideoLibraryIcon />}
-                  label={t("lessonEditor.videoUploaded")}
-                  onDelete={() => {
-                    setVideoUrl(undefined);
-                    setDuration(0);
-                  }}
-                  color="primary"
-                  variant="outlined"
-                />
-              ) : (
-                <Button component="label" variant="outlined">
-                  {t("lessonEditor.uploadVideo")}
-                  <input
-                    hidden
-                    type="file"
-                    accept="video/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setVideoFile(file);
-                        setVideoUrl(undefined);
-                        if (saveError) setSaveError(null);
-                        const objectUrl = URL.createObjectURL(file);
-                        void getVideoDuration(objectUrl)
-                          .then((value) => setDuration(value))
-                          .finally(() => URL.revokeObjectURL(objectUrl));
-                      }
-                      e.target.value = "";
-                    }}
-                  />
-                </Button>
-              )}
+              ) : null}
+              <TextField
+                label="Поток HLS / adaptive URL"
+                value={videoStreamUrl ?? ""}
+                onChange={(event) => {
+                  setVideoStreamUrl(event.target.value || undefined);
+                  setMediaJobId(undefined);
+                  setMediaJobStatus(undefined);
+                  setMediaJobError(undefined);
+                  setVideoPreflightNote(null);
+                  if (saveError) setSaveError(null);
+                }}
+                fullWidth
+                placeholder="https://cdn.example.com/course/lesson/master.m3u8"
+              />
+              <TextField
+                label="Резервный MP4 URL"
+                value={videoUrl ?? ""}
+                onChange={(event) => {
+                  setVideoUrl(event.target.value || undefined);
+                  setMediaJobId(undefined);
+                  setMediaJobStatus(undefined);
+                  setMediaJobError(undefined);
+                  setVideoPreflightNote(null);
+                  if (saveError) setSaveError(null);
+                }}
+                fullWidth
+                disabled={Boolean(videoFile)}
+                placeholder="https://cdn.example.com/course/lesson/fallback.mp4"
+                helperText={
+                  videoFile
+                    ? "Резервный mp4 будет взят из загруженного файла."
+                    : "Используется как fallback для браузеров без нативного HLS."
+                }
+              />
+              <TextField
+                label="Poster URL"
+                value={videoPosterUrl ?? ""}
+                onChange={(event) => {
+                  setVideoPosterUrl(event.target.value || undefined);
+                  setMediaJobError(undefined);
+                }}
+                fullWidth
+                placeholder="https://cdn.example.com/course/lesson/poster.jpg"
+                helperText="Постер показывается до запуска плеера и при ленивой инициализации."
+              />
               {duration > 0 && (
                 <Typography variant="caption" color="text.secondary">
                   {t("lessonEditor.durationMinutes", {
@@ -352,6 +531,10 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                   })}
                 </Typography>
               )}
+              <Typography variant="caption" color="text.secondary">
+                HLS используется как основной поток. Если браузер не поддерживает его нативно,
+                плеер переключится на mp4 fallback.
+              </Typography>
             </Stack>
 
             <Stack spacing={1}>

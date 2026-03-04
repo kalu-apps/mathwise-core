@@ -180,6 +180,16 @@ export type AssistantEventRecord = {
   createdAt: string;
 };
 
+export type MediaPipelineJobRecord = {
+  id: string;
+  status: "queued" | "processing" | "ready" | "failed";
+  lessonTitle?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  result?: string | null;
+  error?: string | null;
+};
+
 export type MockDb = {
   users: StoredUser[];
   courses: Course[];
@@ -219,6 +229,7 @@ export type MockDb = {
   assistantSessions: AssistantSessionRecord[];
   assistantMessages: AssistantMessageRecord[];
   assistantEvents: AssistantEventRecord[];
+  mediaJobs: MediaPipelineJobRecord[];
   assessments: AssessmentStorageState;
   assessmentSessions: Record<string, AssessmentSession>;
 };
@@ -261,6 +272,7 @@ const createDefaultDb = (): MockDb => ({
   assistantSessions: [],
   assistantMessages: [],
   assistantEvents: [],
+  mediaJobs: [],
   assessments: {
     templates: [],
     courseContent: {},

@@ -183,9 +183,12 @@ export const selectPurchaseFinancialView = (
       : baseStatus;
 
   const isScheduleKnown = schedule.length > 0;
+  const isFullyPaid = installmentsCount > 0 && paidCount >= installmentsCount;
   return {
     paymentMethod: "bnpl",
-    paymentLabel: `Оплата частями • ${paidCount}/${installmentsCount}`,
+    paymentLabel: isFullyPaid
+      ? "Оплачено полностью"
+      : `Оплата частями • ${paidCount}/${installmentsCount}`,
     providerLabel: getProviderLabel(purchase.bnpl?.provider),
     paidCount,
     installmentsCount,

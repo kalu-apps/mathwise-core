@@ -50,6 +50,7 @@ export type Solid3dMeasurementState = {
 
 export type Solid3dAngleMark = {
   id: string;
+  faceIndex?: number;
   vertexIndex: number;
   label: string;
   color: string;
@@ -75,6 +76,7 @@ export type Solid3dState = {
   clippingPreset: Solid3dClippingPreset;
   hiddenFaceIds: string[];
   faceColors: Record<string, string>;
+  edgeColors: Record<string, string>;
   angleMarks: Solid3dAngleMark[];
   measurements: Solid3dMeasurementState[];
 };
@@ -128,6 +130,7 @@ export const DEFAULT_SOLID3D_STATE: Solid3dState = {
   clippingPreset: "none",
   hiddenFaceIds: [],
   faceColors: {},
+  edgeColors: {},
   angleMarks: [],
   measurements: [],
 };
@@ -230,8 +233,13 @@ const readAngleMark = (value: unknown): Solid3dAngleMark | null => {
   if (!id) return null;
   const vertexIndex = Number(source.vertexIndex);
   if (!Number.isInteger(vertexIndex) || vertexIndex < 0) return null;
+  const faceIndex =
+    Number.isInteger(source.faceIndex) && Number(source.faceIndex) >= 0
+      ? Number(source.faceIndex)
+      : undefined;
   return {
     id,
+    faceIndex,
     vertexIndex,
     label: toString(source.label, "").trim().slice(0, 64),
     color: toString(source.color, "#ff8e3c"),
@@ -294,6 +302,19 @@ export const readSolid3dState = (
         )
       : {};
 
+  const edgeColors =
+    meta?.edgeColors && typeof meta.edgeColors === "object"
+      ? Object.entries(meta.edgeColors as Record<string, unknown>).reduce<Record<string, string>>(
+          (acc, [edgeId, rawColor]) => {
+            if (!edgeId.trim()) return acc;
+            if (typeof rawColor !== "string" || !rawColor.trim()) return acc;
+            acc[edgeId] = rawColor;
+            return acc;
+          },
+          {}
+        )
+      : {};
+
   const angleMarks = Array.isArray(meta?.angleMarks)
     ? meta.angleMarks
         .map(readAngleMark)
@@ -316,6 +337,7 @@ export const readSolid3dState = (
       : "none",
     hiddenFaceIds,
     faceColors,
+    edgeColors,
     angleMarks,
     measurements,
   };
@@ -406,10 +428,23 @@ export const writeSolid3dState = (
             return acc;
           }, {})
         : {},
+    edgeColors:
+      state.edgeColors && typeof state.edgeColors === "object"
+        ? Object.entries(state.edgeColors).reduce<Record<string, string>>((acc, [edgeId, color]) => {
+            if (!edgeId.trim()) return acc;
+            if (typeof color !== "string" || !color.trim()) return acc;
+            acc[edgeId] = color;
+            return acc;
+          }, {})
+        : {},
     angleMarks: Array.isArray(state.angleMarks)
-      ? state.angleMarks
+        ? state.angleMarks
           .map((mark) => ({
             id: toString(mark.id),
+            faceIndex:
+              Number.isInteger(mark.faceIndex) && Number(mark.faceIndex) >= 0
+                ? Number(mark.faceIndex)
+                : undefined,
             vertexIndex: Number(mark.vertexIndex),
             label: toString(mark.label, "").trim().slice(0, 64),
             color: toString(mark.color, "#ff8e3c"),

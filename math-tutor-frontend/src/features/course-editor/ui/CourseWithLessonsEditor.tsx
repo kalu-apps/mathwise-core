@@ -37,6 +37,9 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import ArrowUpwardRoundedIcon from "@mui/icons-material/ArrowUpwardRounded";
 import ArrowDownwardRoundedIcon from "@mui/icons-material/ArrowDownwardRounded";
+import SyncRoundedIcon from "@mui/icons-material/SyncRounded";
+import CloudDoneRoundedIcon from "@mui/icons-material/CloudDoneRounded";
+import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 
 import { createCourse, updateCourse, getCourseById } from "@/entities/course/model/storage";
 import {
@@ -48,6 +51,12 @@ import type { Course } from "@/entities/course/model/types";
 import type { LessonDraft } from "./LessonEditor";
 import { LessonEditor } from "./LessonEditor";
 import { fileToDataUrl } from "@/shared/lib/files";
+import {
+  pollLessonVideoPipeline,
+  preflightLessonVideo,
+  startLessonVideoPipeline,
+  type LessonMediaJobState,
+} from "@/shared/lib/mediaPipeline";
 import { generateId } from "@/shared/lib/id";
 import { t } from "@/shared/i18n";
 import { useActionGuard } from "@/shared/lib/useActionGuard";
@@ -113,6 +122,11 @@ const toComparableSnapshot = (snapshot: CourseDraftSnapshot) => {
       duration: lesson.duration,
       hasVideoFile: Boolean(lesson.videoFile),
       videoUrl: lesson.videoUrl ?? "",
+      videoStreamUrl: lesson.videoStreamUrl ?? "",
+      videoPosterUrl: lesson.videoPosterUrl ?? "",
+      mediaJobId: lesson.mediaJobId ?? "",
+      mediaJobStatus: lesson.mediaJobStatus ?? "",
+      mediaJobError: lesson.mediaJobError ?? "",
       settings: lesson.settings ?? null,
       materials: lesson.materials.map((material) => ({
         id: material.id,
@@ -154,6 +168,37 @@ const normalizeQueue = (items: CourseContentItem[]) =>
   [...items]
     .sort((a, b) => a.order - b.order)
     .map((item, index) => ({ ...item, order: index + 1 }));
+
+const getLessonMediaChipConfig = (lesson: LessonDraft) => {
+  if (lesson.mediaJobStatus === "queued" || lesson.mediaJobStatus === "processing") {
+    return {
+      icon: <SyncRoundedIcon />,
+      label: "Видео готовится",
+      color: "warning" as const,
+      title:
+        "Видео обрабатывается в фоне. Курс можно сохранять как черновик, но для публикации лучше дождаться завершения.",
+    };
+  }
+  if (lesson.mediaJobStatus === "ready") {
+    return {
+      icon: <CloudDoneRoundedIcon />,
+      label: "Видео готово",
+      color: "success" as const,
+      title: "Поток, fallback и постер уже готовы к показу в уроке.",
+    };
+  }
+  if (lesson.mediaJobStatus === "failed") {
+    return {
+      icon: <ErrorOutlineRoundedIcon />,
+      label: "Ошибка видео",
+      color: "error" as const,
+      title:
+        lesson.mediaJobError ||
+        "Фоновая обработка не завершилась. Для урока будет использован резервный источник.",
+    };
+  }
+  return null;
+};
 
 const getTestAttachmentItems = (item: CourseContentTestItem) => {
   const attachments =
@@ -242,6 +287,7 @@ export function CourseWithLessonsEditor({
   const committedRef = useRef(false);
   const skipAutoSaveOnUnmountRef = useRef(false);
   const autosaveInFlightRef = useRef(false);
+  const activeMediaPollsRef = useRef(new Set<string>());
   const initialDraftRef = useRef<CourseDraftSnapshot>({
     title: "",
     description: "",
@@ -283,6 +329,12 @@ export function CourseWithLessonsEditor({
           duration: l.duration,
           videoFile: null,
           videoUrl: l.videoUrl,
+          videoStreamUrl: l.videoStreamUrl,
+          videoPosterUrl: l.videoPosterUrl,
+          mediaJobId: l.mediaJobId,
+          mediaJobStatus:
+            l.mediaJobStatus ?? (l.videoUrl || l.videoStreamUrl ? "ready" : undefined),
+          mediaJobError: l.mediaJobError,
           settings: l.settings,
           materials: (l.materials ?? [])
             .filter(
@@ -425,7 +477,9 @@ export function CourseWithLessonsEditor({
     lessons.every(
       (lesson) =>
         lesson.title.trim().length > 0 &&
-        (Boolean(lesson.videoFile) || Boolean(lesson.videoUrl))
+        (Boolean(lesson.videoFile) ||
+          Boolean(lesson.videoUrl) ||
+          Boolean(lesson.videoStreamUrl))
     );
   const canOpenConfirm = hasMainFields && hasValidLessons;
 
@@ -484,26 +538,124 @@ export function CourseWithLessonsEditor({
     };
   }, [hasUnsavedChanges]);
 
-  const handleSaveLesson = (lesson: LessonDraft) => {
+  const applyMediaJobStateToLesson = useCallback(
+    (lessonId: string, nextState: LessonMediaJobState) => {
+      setLessons((prev) =>
+        prev.map((lesson) =>
+          lesson.id === lessonId
+            ? {
+                ...lesson,
+                videoFile: null,
+                videoUrl: nextState.videoUrl,
+                videoStreamUrl: nextState.videoStreamUrl,
+                videoPosterUrl: nextState.videoPosterUrl,
+                mediaJobId: nextState.jobId,
+                mediaJobStatus: nextState.status,
+                mediaJobError: nextState.error,
+              }
+            : lesson
+        )
+      );
+    },
+    []
+  );
+
+  const queueLessonVideoProcessing = useCallback(
+    async (lesson: LessonDraft): Promise<LessonDraft> => {
+      const preflight = preflightLessonVideo({
+        lessonTitle: lesson.title,
+        videoFile: lesson.videoFile,
+        videoUrl: lesson.videoUrl,
+        videoStreamUrl: lesson.videoStreamUrl,
+        videoPosterUrl: lesson.videoPosterUrl,
+      });
+      if (!preflight.ok) {
+        throw new Error(preflight.error ?? "Не удалось подготовить видео.");
+      }
+      const started = await startLessonVideoPipeline({
+        lessonTitle: lesson.title,
+        videoFile: lesson.videoFile,
+        videoUrl: lesson.videoUrl,
+        videoStreamUrl: lesson.videoStreamUrl,
+        videoPosterUrl: lesson.videoPosterUrl,
+      });
+      return {
+        ...lesson,
+        videoFile: null,
+        videoUrl: started.videoUrl,
+        videoStreamUrl: started.videoStreamUrl,
+        videoPosterUrl: started.videoPosterUrl,
+        mediaJobId: started.jobId,
+        mediaJobStatus: started.status,
+        mediaJobError: started.error,
+      };
+    },
+    []
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    lessons.forEach((lesson) => {
+      if (!lesson.id || !lesson.mediaJobId) return;
+      if (
+        lesson.mediaJobStatus !== "queued" &&
+        lesson.mediaJobStatus !== "processing"
+      ) {
+        return;
+      }
+      if (activeMediaPollsRef.current.has(lesson.mediaJobId)) return;
+      activeMediaPollsRef.current.add(lesson.mediaJobId);
+      void pollLessonVideoPipeline(lesson.mediaJobId, {
+        videoUrl: lesson.videoUrl ?? "",
+        videoStreamUrl: lesson.videoStreamUrl,
+        videoPosterUrl: lesson.videoPosterUrl,
+      })
+        .then((result) => {
+          if (cancelled) return;
+          applyMediaJobStateToLesson(lesson.id!, result);
+        })
+        .finally(() => {
+          activeMediaPollsRef.current.delete(lesson.mediaJobId!);
+        });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [applyMediaJobStateToLesson, lessons]);
+
+  const handleSaveLesson = async (lesson: LessonDraft) => {
     setSaveError(null);
-    const normalizedLesson: LessonDraft = {
+    const normalizedLessonBase: LessonDraft = {
       ...lesson,
       id: lesson.id ?? generateId(),
     };
-    setLessons((prev) => {
-      const nextLessons =
-        editingIndex === null
-          ? [...prev, normalizedLesson]
-          : prev.map((l, i) => (i === editingIndex ? normalizedLesson : l));
-      const nextQueue = syncQueueWithLessons(
-        courseContentItems,
-        resolvedCourseId,
-        nextLessons,
-        defaultBlockId
-      );
-      setCourseContentItems(nextQueue);
-      return nextLessons;
-    });
+    const normalizedLesson = await queueLessonVideoProcessing(normalizedLessonBase);
+    const nextLessons =
+      editingIndex === null
+        ? [...lessons, normalizedLesson]
+        : lessons.map((existingLesson, index) =>
+            index === editingIndex ? normalizedLesson : existingLesson
+          );
+    const nextQueue = syncQueueWithLessons(
+      courseContentItems,
+      resolvedCourseId,
+      nextLessons,
+      defaultBlockId
+    );
+    setLessons(nextLessons);
+    setCourseContentItems(nextQueue);
+    if (!isEditMode) {
+      void autoSaveDraftBeforeClose({
+        title,
+        description,
+        level,
+        priceGuided,
+        priceSelf,
+        lessons: nextLessons,
+        courseContentItems: nextQueue,
+        courseBlocks,
+      });
+    }
     setEditingIndex(null);
     setLessonEditorOpen(false);
   };
@@ -760,6 +912,7 @@ export function CourseWithLessonsEditor({
           lesson.title.trim().length > 0 ||
           Boolean(lesson.videoFile) ||
           Boolean(lesson.videoUrl) ||
+          Boolean(lesson.videoStreamUrl) ||
           lesson.materials.length > 0
       ) ||
       snapBlocks.length > 1 ||
@@ -796,29 +949,42 @@ export function CourseWithLessonsEditor({
       }));
 
       const normalizedLessons = await Promise.all(
-        lessonsWithIds.map(async (lesson, index) => ({
-          id: lesson.id!,
-          courseId: courseDraftId,
-          order: index + 1,
-          title: lesson.title || `Урок ${index + 1}`,
-          duration: lesson.duration,
-          videoUrl: lesson.videoFile
-            ? await fileToDataUrl(lesson.videoFile)
-            : lesson.videoUrl ?? "",
-          materials: (
-            await Promise.all(
-              lesson.materials.map(async (material) => ({
-                id: material.id,
-                name: material.name,
-                type: material.type,
-                url:
-                  material.url ??
-                  (material.file ? await fileToDataUrl(material.file) : ""),
-              }))
-            )
-          ).filter((material) => material.url),
-          settings: lesson.settings,
-        }))
+        lessonsWithIds.map(async (lesson, index) => {
+          const preparedLesson = lesson.videoFile
+            ? await queueLessonVideoProcessing(lesson)
+            : lesson;
+
+          return {
+            id: preparedLesson.id!,
+            courseId: courseDraftId,
+            order: index + 1,
+            title: preparedLesson.title || `Урок ${index + 1}`,
+            duration: preparedLesson.duration,
+            videoUrl: preparedLesson.videoUrl ?? "",
+            videoStreamUrl: preparedLesson.videoStreamUrl,
+            videoPosterUrl: preparedLesson.videoPosterUrl,
+            mediaJobId: preparedLesson.mediaJobId,
+            mediaJobStatus:
+              preparedLesson.mediaJobStatus ??
+              (preparedLesson.videoUrl || preparedLesson.videoStreamUrl
+                ? "ready"
+                : undefined),
+            mediaJobError: preparedLesson.mediaJobError,
+            materials: (
+              await Promise.all(
+                preparedLesson.materials.map(async (material) => ({
+                  id: material.id,
+                  name: material.name,
+                  type: material.type,
+                  url:
+                    material.url ??
+                    (material.file ? await fileToDataUrl(material.file) : ""),
+                }))
+              )
+            ).filter((material) => material.url),
+            settings: preparedLesson.settings,
+          };
+        })
       );
 
       const snapshotDefaultBlockId =
@@ -979,13 +1145,13 @@ export function CourseWithLessonsEditor({
 
           const normalizedLessons = await Promise.all(
             orderedLessons.map(async (lesson, index) => {
-              const videoUrl = lesson.videoFile
-                ? await fileToDataUrl(lesson.videoFile)
-                : lesson.videoUrl ?? "";
+              const preparedLesson = lesson.videoFile
+                ? await queueLessonVideoProcessing(lesson)
+                : lesson;
 
               const materials = (
                 await Promise.all(
-                  lesson.materials.map(async (m) => ({
+                  preparedLesson.materials.map(async (m) => ({
                     id: m.id,
                     name: m.name,
                     type: m.type,
@@ -995,14 +1161,23 @@ export function CourseWithLessonsEditor({
               ).filter((m) => m.url);
 
               return {
-                id: lesson.id ?? generateId(),
+                id: preparedLesson.id ?? generateId(),
                 courseId: id,
                 order: index + 1,
-                title: lesson.title,
-                duration: lesson.duration,
-                videoUrl,
+                title: preparedLesson.title,
+                duration: preparedLesson.duration,
+                videoUrl: preparedLesson.videoUrl ?? "",
+                videoStreamUrl: preparedLesson.videoStreamUrl,
+                videoPosterUrl: preparedLesson.videoPosterUrl,
+                mediaJobId: preparedLesson.mediaJobId,
+                mediaJobStatus:
+                  preparedLesson.mediaJobStatus ??
+                  (preparedLesson.videoUrl || preparedLesson.videoStreamUrl
+                    ? "ready"
+                    : undefined),
+                mediaJobError: preparedLesson.mediaJobError,
                 materials,
-                settings: lesson.settings,
+                settings: preparedLesson.settings,
               };
             })
           );
@@ -1474,6 +1649,7 @@ export function CourseWithLessonsEditor({
                         );
                         const lesson = lessonIndex >= 0 ? lessons[lessonIndex] : null;
                         if (!lesson) return null;
+                        const mediaChip = getLessonMediaChipConfig(lesson);
 
                         return (
                           <div
@@ -1502,7 +1678,9 @@ export function CourseWithLessonsEditor({
                               <div className="course-editor-dialog__queue-item-meta">
                                 <Tooltip
                                   title={
-                                    lesson.videoFile || lesson.videoUrl
+                                    lesson.videoFile ||
+                                    lesson.videoUrl ||
+                                    lesson.videoStreamUrl
                                       ? t("courseEditor.videoExists")
                                       : t("courseEditor.videoMissing")
                                   }
@@ -1511,12 +1689,27 @@ export function CourseWithLessonsEditor({
                                     size="small"
                                     icon={<PlayCircleOutlineIcon />}
                                     label={
-                                      lesson.videoFile || lesson.videoUrl
+                                      lesson.videoFile ||
+                                      lesson.videoUrl ||
+                                      lesson.videoStreamUrl
                                         ? t("courseEditor.videoYes")
                                         : t("courseEditor.videoDash")
                                     }
                                   />
                                 </Tooltip>
+                                {mediaChip ? (
+                                  <Tooltip title={mediaChip.title}>
+                                    <Chip
+                                      size="small"
+                                      icon={mediaChip.icon}
+                                      label={mediaChip.label}
+                                      color={mediaChip.color}
+                                      variant={
+                                        mediaChip.color === "warning" ? "filled" : "outlined"
+                                      }
+                                    />
+                                  </Tooltip>
+                                ) : null}
                                 {lesson.materials.map((m) => (
                                   <Tooltip key={m.id} title={m.name}>
                                     <Chip

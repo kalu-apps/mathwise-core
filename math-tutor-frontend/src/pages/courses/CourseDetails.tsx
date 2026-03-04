@@ -43,9 +43,11 @@ import {
   HourglassTopRounded,
   AssignmentTurnedInRounded,
   GavelRounded,
+  BoltRounded,
+  TrendingUpRounded,
+  FlagRounded,
 } from "@mui/icons-material";
 import { ListPagination } from "@/shared/ui/ListPagination";
-import { formatLessonDuration } from "@/shared/lib/duration";
 import type {
   CourseContentItem,
   CourseContentTestItem,
@@ -256,6 +258,8 @@ const hasLessonChangedFromPurchaseSnapshot = (
     currentLesson.title !== purchasedLesson.title ||
     currentLesson.duration !== purchasedLesson.duration ||
     (currentLesson.videoUrl ?? "") !== (purchasedLesson.videoUrl ?? "") ||
+    (currentLesson.videoStreamUrl ?? "") !== (purchasedLesson.videoStreamUrl ?? "") ||
+    (currentLesson.videoPosterUrl ?? "") !== (purchasedLesson.videoPosterUrl ?? "") ||
     JSON.stringify(currentLesson.settings ?? null) !==
       JSON.stringify(purchasedLesson.settings ?? null) ||
     JSON.stringify(currentMaterials) !== JSON.stringify(purchasedMaterials)
@@ -308,6 +312,7 @@ export default function CourseDetails() {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isDesktopCourseLayout = useMediaQuery(theme.breakpoints.up("lg"));
   const courseId = courseIdParam ?? "";
   const { user, openAuthModal, openRecoverModal, updateUser } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
@@ -317,12 +322,13 @@ export default function CourseDetails() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [courseBlocks, setCourseBlocks] = useState<CourseMaterialBlock[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [roadmapFocusBlockId, setRoadmapFocusBlockId] = useState<string | null>(null);
   const [courseContentItems, setCourseContentItems] = useState<CourseContentItem[]>([]);
   const [testTitleByItemId, setTestTitleByItemId] = useState<Record<string, string>>({});
   const [latestTestAttemptByItemId, setLatestTestAttemptByItemId] = useState<
     Record<string, { percent: number; submittedAt?: string }>
   >({});
-  const [testsProgress, setTestsProgress] = useState({
+  const [, setTestsProgress] = useState({
     totalTests: 0,
     completedTests: 0,
     averageLatestPercent: 0,
@@ -386,6 +392,16 @@ export default function CourseDetails() {
   const effectiveSelectedBlockId = hasMultipleBlocks ? selectedBlockId : null;
   const selectedBlock = effectiveSelectedBlockId
     ? courseBlocks.find((block) => block.id === effectiveSelectedBlockId) ?? null
+    : null;
+  const effectiveRoadmapFocusBlockId = hasMultipleBlocks
+    ? roadmapFocusBlockId && courseBlocks.some((block) => block.id === roadmapFocusBlockId)
+      ? roadmapFocusBlockId
+      : selectedBlockId && courseBlocks.some((block) => block.id === selectedBlockId)
+      ? selectedBlockId
+      : courseBlocks[0]?.id ?? null
+    : null;
+  const roadmapFocusBlock = effectiveRoadmapFocusBlockId
+    ? courseBlocks.find((block) => block.id === effectiveRoadmapFocusBlockId) ?? null
     : null;
   const visibleCourseItems = effectiveSelectedBlockId
     ? courseContentItems.filter((item) => item.blockId === effectiveSelectedBlockId)
@@ -453,13 +469,14 @@ export default function CourseDetails() {
           if (!active) return;
           setCourseContentItems(effectiveQueue);
           setCourseBlocks(blocks);
-          setSelectedBlockId(
+          const initialBlockSelection =
             blocks.length > 1 &&
               expandedBlockFromState &&
               blocks.some((block) => block.id === expandedBlockFromState)
               ? expandedBlockFromState
-              : null
-          );
+              : null;
+          setSelectedBlockId(initialBlockSelection);
+          setRoadmapFocusBlockId(initialBlockSelection ?? blocks[0]?.id ?? null);
           setHasPurchase(purchased);
           setCoursePurchase(purchase ?? null);
           const purchasedCourseForTariffCheck =
@@ -544,13 +561,14 @@ export default function CourseDetails() {
           if (!active) return;
           setCourseContentItems(queue);
           setCourseBlocks(blocks);
-          setSelectedBlockId(
+          const initialBlockSelection =
             blocks.length > 1 &&
               expandedBlockFromState &&
               blocks.some((block) => block.id === expandedBlockFromState)
               ? expandedBlockFromState
-              : null
-          );
+              : null;
+          setSelectedBlockId(initialBlockSelection);
+          setRoadmapFocusBlockId(initialBlockSelection ?? blocks[0]?.id ?? null);
           const testItems = queue.filter(
             (item): item is CourseContentTestItem => item.type === "test"
           );
@@ -589,6 +607,7 @@ export default function CourseDetails() {
         setLessons([]);
         setCourseBlocks([]);
         setSelectedBlockId(null);
+        setRoadmapFocusBlockId(null);
         setCourseContentItems([]);
         setTestTitleByItemId({});
         setLatestTestAttemptByItemId({});
@@ -1048,6 +1067,8 @@ export default function CourseDetails() {
   const canAccessAll = hasDomainAccess && !isBnplSuspended;
   const showPurchaseSection = isTeacher || (!canAccessAll && !hasPurchase);
   const showRoadmapSection = user?.role === "student" && hasPurchase;
+  const showDesktopRoadmapSection = showRoadmapSection && isDesktopCourseLayout;
+  const showInlineRoadmapProgress = showRoadmapSection && !isDesktopCourseLayout;
   const bnplStatusBanner =
     purchaseFinancialView?.paymentMethod === "bnpl"
       ? getBnplStatusBanner(purchaseFinancialView.financialStatus, {
@@ -1451,6 +1472,11 @@ export default function CourseDetails() {
       : 0;
   const hasCourseTests = courseTestItems.length > 0;
   const selectedBlockHasTests = selectedBlockTestIds.length > 0;
+  const roadmapBlockItems = roadmapFocusBlock
+    ? courseContentItems
+        .filter((item) => item.blockId === roadmapFocusBlock.id)
+        .sort((a, b) => a.order - b.order)
+    : [];
   const lessonsTotalLabel = selectedBlock
     ? selectedBlockHasTests
       ? `Уроков: ${selectedBlockLessonIds.length} • Тестов: ${selectedBlockTestIds.length}`
@@ -1459,7 +1485,7 @@ export default function CourseDetails() {
       ? `Уроков: ${lessons.length} • Тестов: ${courseTestItems.length}`
       : `Уроков: ${lessons.length}`;
 
-  const lessonsSection = (
+  const lessonsSection = () => (
     <div className="course-details__lessons">
       <header className="course-details__hero">
         <div className="course-details__hero-main">
@@ -1477,6 +1503,7 @@ export default function CourseDetails() {
           </div>
         </div>
       </header>
+      {showInlineRoadmapProgress ? roadmapProgressSection : null}
       <div className="course-details__lessons-head">
         <h2 className="course-details__lessons-title">Материалы курса</h2>
         <div className="course-details__lessons-head-right">
@@ -1541,7 +1568,10 @@ export default function CourseDetails() {
                 </span>
                 <Button
                   variant="contained"
-                  onClick={() => setSelectedBlockId(block.id)}
+                  onClick={() => {
+                    setRoadmapFocusBlockId(block.id);
+                    setSelectedBlockId(block.id);
+                  }}
                 >
                   Перейти к изучению блока
                 </Button>
@@ -1816,7 +1846,9 @@ export default function CourseDetails() {
     </div>
   );
 
-  const roadmapItems = effectiveSelectedBlockId
+  const roadmapItems = roadmapFocusBlock
+    ? roadmapBlockItems
+    : effectiveSelectedBlockId
     ? visibleCourseItems
     : courseContentItems;
   const blockTitleById = courseBlocks.reduce<Record<string, string>>(
@@ -1834,11 +1866,11 @@ export default function CourseDetails() {
     {}
   );
   const roadmapGroups = (() => {
-    if (selectedBlock) {
+    if (roadmapFocusBlock) {
       return [
         {
-          id: selectedBlock.id,
-          title: selectedBlock.title,
+          id: roadmapFocusBlock.id,
+          title: roadmapFocusBlock.title,
           items: roadmapItems,
         },
       ];
@@ -1879,25 +1911,58 @@ export default function CourseDetails() {
   const knowledgeProgressPercent = testsKnowledgeProgress.averageBestPercent;
   const learningProgressVisual = buildProgressVisual(learningProgressPercent);
   const knowledgeProgressVisual = buildProgressVisual(knowledgeProgressPercent);
-  const roadmapLessonProgressLabel = selectedBlock
-    ? user?.role === "student" && !hasPurchase
-      ? `${selectedBlockLessonIds.length}`
-      : `${selectedBlockLessonsViewed}/${selectedBlockLessonIds.length}`
-    : user?.role === "student" && !hasPurchase
-    ? `${lessons.length}`
-    : `${viewedLessonsCount}/${lessons.length}`;
-  const roadmapTestProgressLabel = selectedBlock
-    ? selectedBlockTestIds.length > 0
-      ? user?.role === "student" && !hasPurchase
-        ? `${selectedBlockTestIds.length}`
-        : `${selectedBlockCompletedTests}/${selectedBlockTestIds.length}`
-      : null
-    : hasCourseTests
-    ? user?.role === "student" && !hasPurchase
-      ? `${courseTestItems.length}`
-      : `${testsProgress.completedTests}/${testsProgress.totalTests}`
-    : null;
-
+  const roadmapProgressSection = user?.role === "student" && hasPurchase ? (
+    <div
+      className={`course-details__roadmap-progress ${
+        hasCourseTests ? "" : "course-details__roadmap-progress--single"
+      } ${showInlineRoadmapProgress ? "course-details__roadmap-progress--inline" : ""}`}
+    >
+      <article
+        className="course-details__roadmap-progress-card"
+        style={
+          {
+            "--progress-color": learningProgressVisual.color,
+            "--progress-glow": learningProgressVisual.glow,
+          } as CSSProperties
+        }
+      >
+        <div className="course-details__roadmap-progress-ring">
+          <CircularProgress
+            variant="determinate"
+            value={learningProgressPercent}
+            size={74}
+            thickness={4.8}
+            sx={{ color: "var(--progress-color)" }}
+          />
+          <span>{learningProgressPercent}%</span>
+        </div>
+        <strong>Изучено</strong>
+      </article>
+      {hasCourseTests ? (
+        <article
+          className="course-details__roadmap-progress-card"
+          style={
+            {
+              "--progress-color": knowledgeProgressVisual.color,
+              "--progress-glow": knowledgeProgressVisual.glow,
+            } as CSSProperties
+          }
+        >
+          <div className="course-details__roadmap-progress-ring">
+            <CircularProgress
+              variant="determinate"
+              value={knowledgeProgressPercent}
+              size={74}
+              thickness={4.8}
+              sx={{ color: "var(--progress-color)" }}
+            />
+            <span>{knowledgeProgressPercent}%</span>
+          </div>
+          <strong>Сдано</strong>
+        </article>
+      ) : null}
+    </div>
+  ) : null;
   const getLessonLockedState = (
     contentItem: Extract<CourseContentItem, { type: "lesson" }>
   ) => {
@@ -2018,167 +2083,209 @@ export default function CourseDetails() {
     });
   };
 
-  const roadmapSection = (
-    <aside className="course-details__layout-side course-details__layout-side--roadmap">
-      {user?.role === "student" && hasPurchase ? (
-        <div
-          className={`course-details__roadmap-progress ${
-            hasCourseTests ? "" : "course-details__roadmap-progress--single"
-          }`}
-        >
-          <article
-            className="course-details__roadmap-progress-card"
-            style={
-              {
-                "--progress-color": learningProgressVisual.color,
-                "--progress-glow": learningProgressVisual.glow,
-              } as CSSProperties
-            }
-          >
-            <div className="course-details__roadmap-progress-ring">
-              <CircularProgress
-                variant="determinate"
-                value={learningProgressPercent}
-                size={74}
-                thickness={4.8}
-                sx={{ color: "var(--progress-color)" }}
-              />
-              <span>{learningProgressPercent}%</span>
-            </div>
-            <strong>Изучено</strong>
-          </article>
-          {hasCourseTests ? (
-            <article
-              className="course-details__roadmap-progress-card"
-              style={
-                {
-                  "--progress-color": knowledgeProgressVisual.color,
-                  "--progress-glow": knowledgeProgressVisual.glow,
-                } as CSSProperties
-              }
-            >
-              <div className="course-details__roadmap-progress-ring">
-                <CircularProgress
-                  variant="determinate"
-                  value={knowledgeProgressPercent}
-                  size={74}
-                  thickness={4.8}
-                  sx={{ color: "var(--progress-color)" }}
-                />
-                <span>{knowledgeProgressPercent}%</span>
-              </div>
-              <strong>Сдано</strong>
-            </article>
-          ) : null}
-        </div>
-      ) : null}
-      <div className="course-details__roadmap">
-        <div className="course-details__roadmap-header">
-          <h3>{selectedBlock ? `Мой путь к успеху: ${selectedBlock.title}` : "Мой путь к успеху"}</h3>
-          <span>
-            {roadmapTestProgressLabel
-              ? `Уроков: ${roadmapLessonProgressLabel} • Тестов: ${roadmapTestProgressLabel}`
-              : `Уроков: ${roadmapLessonProgressLabel}`}
-          </span>
-        </div>
-        <div className="course-details__roadmap-groups">
-          {roadmapGroups.map((group) => {
-            const groupLessonIds = group.items
-              .filter(
-                (
-                  item
-                ): item is Extract<
-                  CourseContentItem,
-                  {
-                    type: "lesson";
-                  }
-                > => item.type === "lesson"
-              )
-              .map((item) => item.lessonId);
-            const groupTestIds = group.items
-              .filter((item): item is CourseContentTestItem => item.type === "test")
-              .map((item) => item.id);
-            const groupViewedLessons = groupLessonIds.filter((lessonId) =>
-              viewedLessonIdSet.has(lessonId)
-            ).length;
-            const groupCompletedTests = groupTestIds.filter((testId) =>
-              Boolean(latestTestAttemptByItemId[testId])
-            ).length;
+  const roadmapLanesSection = (
+    <div className="course-details__roadmap-groups">
+      {roadmapGroups.map((group) => {
+        const roadmapLaneChunkSize = hasMultipleBlocks ? 4 : 1;
+        const roadmapRows = group.items.reduce<CourseContentItem[][]>((acc, item, index) => {
+          const rowIndex = Math.floor(index / roadmapLaneChunkSize);
+          if (!acc[rowIndex]) {
+            acc[rowIndex] = [];
+          }
+          acc[rowIndex].push(item);
+          return acc;
+        }, []);
 
-            return (
-              <section key={group.id} className="course-details__roadmap-group">
-                {(hasMultipleBlocks || effectiveSelectedBlockId) && (
-                  <header className="course-details__roadmap-group-head">
-                    <strong>{group.title}</strong>
-                    <span className="course-details__roadmap-group-meta">
-                      {groupTestIds.length > 0
-                        ? `Уроков: ${groupViewedLessons}/${groupLessonIds.length} • Тестов: ${groupCompletedTests}/${groupTestIds.length}`
-                        : `Уроков: ${groupViewedLessons}/${groupLessonIds.length}`}
-                    </span>
-                  </header>
-                )}
-                <div className="course-details__roadmap-track">
-                  {group.items.map((item) => {
-                    const isTest = item.type === "test";
-                    const viewed = isTest
-                      ? Boolean(latestTestAttemptByItemId[item.id])
-                      : viewedLessonIdSet.has(item.lessonId);
-                    const itemIndex = roadmapIndexById[item.id] ?? 0;
-                    const isActive =
-                      !viewed &&
-                      (firstIncompleteContentIndex === -1
-                        ? itemIndex === roadmapItems.length - 1
-                        : itemIndex === firstIncompleteContentIndex);
+        return (
+          <section key={group.id} className="course-details__roadmap-group">
+            {roadmapGroups.length > 1 && (
+              <header className="course-details__roadmap-group-head">
+                <strong>{group.title}</strong>
+              </header>
+            )}
+            <div className="course-details__roadmap-lanes">
+              {roadmapRows.map((row, rowIndex) => {
+                const isReverse = rowIndex % 2 === 1;
+                const visualRow = isReverse ? [...row].reverse() : row;
+                return (
+                  <div
+                    key={`${group.id}-row-${rowIndex}`}
+                    className={`course-details__roadmap-lane ${
+                      isReverse ? "is-reverse" : ""
+                    }`}
+                  >
+                    <div className="course-details__roadmap-lane-line" />
+                    <div className="course-details__roadmap-lane-items">
+                      {visualRow.map((item) => {
+                        const isTest = item.type === "test";
+                        const viewed = isTest
+                          ? Boolean(latestTestAttemptByItemId[item.id])
+                          : viewedLessonIdSet.has(item.lessonId);
+                        const itemIndex = roadmapIndexById[item.id] ?? 0;
+                        const isActive =
+                          !viewed &&
+                          (firstIncompleteContentIndex === -1
+                            ? itemIndex === roadmapItems.length - 1
+                            : itemIndex === firstIncompleteContentIndex);
 
-                    const lesson =
-                      item.type === "lesson" ? lessonsById[item.lessonId] : null;
-                    const title =
-                      item.type === "test"
-                        ? `Тест: ${testTitleByItemId[item.id] ?? item.titleSnapshot}`
-                        : lesson?.title ?? "Урок";
-                    const subtitle =
-                      item.type === "test"
-                        ? viewed
-                          ? `Результат: ${latestTestAttemptByItemId[item.id]?.percent ?? 0}%`
-                          : "Тест не пройден"
-                        : formatLessonDuration(lesson?.duration ?? 0);
+                        const lesson =
+                          item.type === "lesson" ? lessonsById[item.lessonId] : null;
+                        const title =
+                          item.type === "test"
+                            ? `Тест: ${testTitleByItemId[item.id] ?? item.titleSnapshot}`
+                            : lesson?.title ?? "Урок";
+                        const StatusIcon = isActive
+                          ? BoltRounded
+                          : viewed
+                          ? CheckCircleRounded
+                          : isTest
+                          ? FlagRounded
+                          : TrendingUpRounded;
 
-                    return (
-                      <div
-                        key={item.id}
-                        className={`course-details__roadmap-item ${
-                          viewed ? "is-complete" : isActive ? "is-active" : "is-pending"
-                        } ${isTest ? "is-test" : "is-lesson"} ${
-                          newMaterialItemIds.has(item.id) ? "is-new" : ""
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          className="course-details__roadmap-node course-details__roadmap-node--action"
-                          onClick={() => handleRoadmapItemOpen(item)}
-                          aria-label={`Открыть: ${title}`}
-                        />
-                        <div className="course-details__roadmap-content">
-                          <button
-                            type="button"
-                            className="course-details__roadmap-title"
-                            onClick={() => handleRoadmapItemOpen(item)}
+                        return (
+                          <div
+                            key={item.id}
+                            className={`course-details__roadmap-lane-item ${
+                              viewed
+                                ? "is-complete"
+                                : isActive
+                                ? "is-active"
+                                : "is-pending"
+                            } ${isTest ? "is-test" : "is-lesson"} ${
+                              newMaterialItemIds.has(item.id) ? "is-new" : ""
+                            }`}
                           >
-                            {itemIndex + 1}. {title}
-                          </button>
-                          <span>{subtitle}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      </div>
-    </aside>
+                            <button
+                              type="button"
+                              className="course-details__roadmap-node course-details__roadmap-node--action"
+                              onClick={() => handleRoadmapItemOpen(item)}
+                              aria-label={`Открыть: ${title}`}
+                            >
+                              <StatusIcon
+                                fontSize="inherit"
+                                className="course-details__roadmap-node-icon"
+                              />
+                            </button>
+                            <button
+                              type="button"
+                              className="course-details__roadmap-lane-label"
+                              onClick={() => handleRoadmapItemOpen(item)}
+                            >
+                              <span>{title}</span>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </div>
   );
+
+  const roadmapDetailSection = showDesktopRoadmapSection && hasMultipleBlocks ? (
+    <section className="course-details__roadmap course-details__roadmap--detail">
+      {roadmapLanesSection}
+    </section>
+  ) : null;
+
+  const roadmapSidebarSection = showDesktopRoadmapSection && !hasMultipleBlocks ? (
+    <section className="course-details__roadmap course-details__roadmap--sidebar">
+      {roadmapLanesSection}
+    </section>
+  ) : null;
+
+  const roadmapSection = showDesktopRoadmapSection ? (
+    <aside className="course-details__layout-side course-details__layout-side--roadmap">
+      {roadmapProgressSection}
+      {hasMultipleBlocks ? (
+        <div className="course-details__roadmap course-details__roadmap--navigator">
+          <div className="course-details__roadmap-header course-details__roadmap-header--navigator">
+            <h3>Навигатор курса</h3>
+          </div>
+          <div className="course-details__roadmap-nav-list">
+            {courseBlocks.map((block) => {
+              const blockId = block.id;
+              const blockItems = courseContentItems.filter(
+                (item) => item.blockId === blockId
+              );
+              const blockLessons = blockItems.filter(
+                (item): item is Extract<CourseContentItem, { type: "lesson" }> =>
+                  item.type === "lesson"
+              );
+              const blockTests = blockItems.filter(
+                (item): item is CourseContentTestItem => item.type === "test"
+              );
+              const viewedLessons = blockLessons.filter((item) =>
+                viewedLessonIdSet.has(item.lessonId)
+              ).length;
+              const completedTests = blockTests.filter((item) =>
+                Boolean(latestTestAttemptByItemId[item.id])
+              ).length;
+              const isActive = blockId === effectiveRoadmapFocusBlockId;
+              const blockProgressPercent =
+                blockLessons.length > 0
+                  ? Math.round((viewedLessons / blockLessons.length) * 100)
+                  : 0;
+
+              return (
+                <article
+                  key={block.id}
+                  className={`course-details__roadmap-nav-card ${
+                    isActive ? "is-active" : ""
+                  }`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setRoadmapFocusBlockId(blockId);
+                    setSelectedBlockId(blockId);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setRoadmapFocusBlockId(blockId);
+                      setSelectedBlockId(blockId);
+                    }
+                  }}
+                >
+                  <div className="course-details__roadmap-nav-card-top">
+                    <strong>{block.title}</strong>
+                    <span>{blockProgressPercent}%</span>
+                  </div>
+                  <p>
+                    {blockTests.length > 0
+                      ? `Уроков: ${viewedLessons}/${blockLessons.length} • Тестов: ${completedTests}/${blockTests.length}`
+                      : `Уроков: ${viewedLessons}/${blockLessons.length}`}
+                  </p>
+                  <div className="course-details__roadmap-nav-actions">
+                    <button
+                      type="button"
+                      className="course-details__roadmap-nav-link"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setRoadmapFocusBlockId(blockId);
+                        setSelectedBlockId(blockId);
+                      }}
+                    >
+                      {selectedBlockId === blockId
+                        ? "Материалы открыты"
+                        : "Открыть материалы"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        roadmapSidebarSection
+      )}
+    </aside>
+  ) : null;
 
   return (
     <section className="course-details">
@@ -2287,16 +2394,19 @@ export default function CourseDetails() {
 
       {showPurchaseSection ? (
         <div className="course-details__layout">
-          <div className="course-details__layout-main">{lessonsSection}</div>
+          <div className="course-details__layout-main">{lessonsSection()}</div>
           <aside className="course-details__layout-side">{purchaseSection}</aside>
         </div>
-      ) : showRoadmapSection ? (
+      ) : showDesktopRoadmapSection ? (
         <div className="course-details__layout">
-          <div className="course-details__layout-main">{lessonsSection}</div>
+          <div className="course-details__layout-main course-details__layout-main--stacked">
+            {lessonsSection()}
+            {roadmapDetailSection}
+          </div>
           {roadmapSection}
         </div>
       ) : (
-        lessonsSection
+        lessonsSection()
       )}
 
       <Dialog

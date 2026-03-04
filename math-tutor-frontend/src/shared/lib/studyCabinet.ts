@@ -11,6 +11,8 @@ export type StudyCabinetNote = {
   endAt: string | null;
   remind: boolean;
   color: string;
+  kind?: "prep" | "followup" | "focus" | "break" | "custom";
+  linkedBookingId?: string | null;
   done: boolean;
   createdAt: string;
   updatedAt: string;
@@ -18,7 +20,6 @@ export type StudyCabinetNote = {
 
 type StudyActivityByDay = Record<string, number>;
 
-const ACTIVITY_TTL_MS = 1000 * 60 * 60 * 24 * 120;
 const NOTES_TTL_MS = 1000 * 60 * 60 * 24 * 365;
 const DEFAULT_NOTE_COLOR = "#f59e0b";
 
@@ -106,7 +107,7 @@ export const getStudyCabinetActivity = (
     mergedKeys.length > 0 &&
     JSON.stringify(merged) !== JSON.stringify(normalizedPrimary)
   ) {
-    writeStorage(primaryKey, merged, { ttlMs: ACTIVITY_TTL_MS });
+    writeStorage(primaryKey, merged);
   }
   return merged;
 };
@@ -123,7 +124,7 @@ export const recordStudyCabinetActivity = (params: {
   const key = toDateKey(params.at ?? new Date());
   const current = getStudyCabinetActivity(role, userId);
   current[key] = normalizeMinutes((current[key] ?? 0) + minutes);
-  writeStorage(activityKey(role, userId), current, { ttlMs: ACTIVITY_TTL_MS });
+  writeStorage(activityKey(role, userId), current);
 };
 
 export const buildStudyCabinetWeekActivity = (
@@ -175,6 +176,18 @@ export const getStudyCabinetNotes = (
           : null,
       remind: Boolean(entry.remind),
       color: normalizeNoteColor(entry.color),
+      kind:
+        entry.kind === "prep" ||
+        entry.kind === "followup" ||
+        entry.kind === "focus" ||
+        entry.kind === "break" ||
+        entry.kind === "custom"
+          ? entry.kind
+          : undefined,
+      linkedBookingId:
+        typeof entry.linkedBookingId === "string" && entry.linkedBookingId.trim().length > 0
+          ? entry.linkedBookingId.trim()
+          : null,
       done: Boolean(entry.done),
       createdAt: entry.createdAt ?? new Date().toISOString(),
       updatedAt: entry.updatedAt ?? new Date().toISOString(),
@@ -207,6 +220,8 @@ export const createStudyCabinetNote = (params: {
   endAt?: string | null;
   remind?: boolean;
   color?: string;
+  kind?: StudyCabinetNote["kind"];
+  linkedBookingId?: string | null;
 }) => {
   const { role, userId } = params;
   const title = params.title.trim();
@@ -231,6 +246,11 @@ export const createStudyCabinetNote = (params: {
         : null,
     remind: Boolean(params.remind),
     color: normalizeNoteColor(params.color),
+    kind: params.kind,
+    linkedBookingId:
+      typeof params.linkedBookingId === "string" && params.linkedBookingId.trim().length > 0
+        ? params.linkedBookingId.trim()
+        : null,
     done: false,
     createdAt: now,
     updatedAt: now,
@@ -274,6 +294,8 @@ export const updateStudyCabinetNote = (params: {
   endAt?: string | null;
   remind?: boolean;
   color?: string;
+  kind?: StudyCabinetNote["kind"];
+  linkedBookingId?: string | null;
 }) => {
   const { role, userId, noteId } = params;
   const title = params.title.trim();
@@ -298,6 +320,11 @@ export const updateStudyCabinetNote = (params: {
           : null,
       remind: Boolean(params.remind),
       color: normalizeNoteColor(params.color),
+      kind: params.kind,
+      linkedBookingId:
+        typeof params.linkedBookingId === "string" && params.linkedBookingId.trim().length > 0
+          ? params.linkedBookingId.trim()
+          : null,
       updatedAt: new Date().toISOString(),
     };
   });

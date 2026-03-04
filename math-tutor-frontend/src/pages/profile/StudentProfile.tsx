@@ -44,13 +44,10 @@ import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import CreditCardRoundedIcon from "@mui/icons-material/CreditCardRounded";
-import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
-import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import AppsRoundedIcon from "@mui/icons-material/AppsRounded";
 import {
   getPurchases,
 } from "@/entities/purchase/model/storage";
-import type { Purchase } from "@/entities/purchase/model/types";
 import { getCourses } from "@/entities/course/model/storage";
 import { getLessonsByCourse } from "@/entities/lesson/model/storage";
 import { getViewedLessonIds } from "@/entities/progress/model/storage";
@@ -63,7 +60,6 @@ import {
 import type { Booking } from "@/entities/booking/model/types";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
-import type { Course } from "@/entities/course/model/types";
 import { fileToDataUrl } from "@/shared/lib/files";
 import { getUsers, updateUserProfile } from "@/features/auth/model/api";
 import { NewsFeedPanel } from "@/features/news-feed/ui/NewsFeedPanel";
@@ -72,15 +68,16 @@ import { getTeacherAvailability } from "@/features/teacher-availability/api";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
 import type { User } from "@/entities/user/model/types";
 import { StudyCabinetPanel } from "@/shared/ui/StudyCabinetPanel";
+import type { StudentStudyCabinetCourseItem } from "@/features/study-cabinet/student/model/types";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { selectPurchaseFinancialView } from "@/entities/purchase/model/selectors";
 import { BnplReminderFeed } from "@/entities/purchase/ui/BnplReminderFeed";
 import {
   getAssessmentCourseProgress,
   getAssessmentKnowledgeProgress,
+  getBestAssessmentAttemptsMap,
   getCourseContentItems,
 } from "@/features/assessments/model/storage";
-import { getWorkbookDrafts } from "@/features/workbook/model/api";
 import {
   getTeacherChatEligibility,
   getTeacherChatThreads,
@@ -113,13 +110,11 @@ import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { ListSkeleton, SectionLoader } from "@/shared/ui/loading";
 import {
   buildStudyCabinetWeekActivity,
-  createStudyCabinetNote,
-  deleteStudyCabinetNote,
   getStudyCabinetNotes,
   recordStudyCabinetActivity,
-  updateStudyCabinetNote,
   type StudyCabinetNote,
 } from "@/shared/lib/studyCabinet";
+import { lessonDurationToSeconds } from "@/shared/lib/duration";
 
 const clampPercent = (value: number) =>
   Math.max(0, Math.min(100, Math.round(value)));
@@ -181,10 +176,6 @@ export default function StudentProfile() {
     useState<TeacherChatEligibility | null>(null);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [tabMenuOpen, setTabMenuOpen] = useState(false);
-  const [studyDrafts, setStudyDrafts] = useState<
-    Awaited<ReturnType<typeof getWorkbookDrafts>>["items"]
-  >([]);
-  const [studyDraftsLoading, setStudyDraftsLoading] = useState(false);
   const [studyNotes, setStudyNotes] = useState<StudyCabinetNote[]>([]);
   const [studyActivityVersion, setStudyActivityVersion] = useState(0);
   const [coursesPage, setCoursesPage] = useState(1);
@@ -203,21 +194,7 @@ export default function StudentProfile() {
       role: user?.role,
     });
 
-  const [items, setItems] = useState<
-    {
-      course: Course;
-      purchase: Purchase;
-      progress: number;
-      viewedCount: number;
-      totalLessons: number;
-      totalTests: number;
-      completedTests: number;
-      testsAveragePercent: number;
-      testsKnowledgePercent: number;
-      isPremium: boolean;
-      purchasedAt: string;
-    }[]
-  >([]);
+  const [items, setItems] = useState<StudentStudyCabinetCourseItem[]>([]);
 
   const [profileDraft, setProfileDraft] = useState({
     firstName: "",
@@ -353,7 +330,7 @@ export default function StudentProfile() {
             lessons.length === 0
               ? 0
               : Math.round((viewed.length / lessons.length) * 100);
-          const [testsProgress, testsKnowledgeProgress] = await Promise.all([
+          const [testsProgress, testsKnowledgeProgress, bestAttempts] = await Promise.all([
             getAssessmentCourseProgress({
               studentId: userId,
               courseId: course.id,
@@ -364,15 +341,57 @@ export default function StudentProfile() {
               courseId: course.id,
               testItemIds: testItems.map((item) => item.id),
             }),
+            getBestAssessmentAttemptsMap({
+              studentId: userId,
+              courseId: course.id,
+            }),
           ]);
+          const viewedSet = new Set(viewed);
+          const remainingLessons = lessons.reduce(
+            (sum, lesson) => sum + (viewedSet.has(lesson.id) ? 0 : 1),
+            0
+          );
+          const viewedLessonSeconds = lessons.reduce((sum, lesson) => {
+            if (!viewedSet.has(lesson.id)) return sum;
+            const duration = Number.isFinite(lesson.duration)
+              ? lessonDurationToSeconds(lesson.duration)
+              : 0;
+            return sum + duration;
+          }, 0);
+          const remainingLessonSeconds = lessons.reduce((sum, lesson) => {
+            if (viewedSet.has(lesson.id)) return sum;
+            const duration = Number.isFinite(lesson.duration)
+              ? lessonDurationToSeconds(lesson.duration)
+              : 0;
+            return sum + duration;
+          }, 0);
+          const remainingTests = testItems.reduce((sum, item) => {
+            const bestAttempt = bestAttempts.get(item.id);
+            return sum + (bestAttempt && bestAttempt.score.percent > 0 ? 0 : 1);
+          }, 0);
+          const remainingTestSeconds = testItems.reduce((sum, item) => {
+            const bestAttempt = bestAttempts.get(item.id);
+            if (bestAttempt && bestAttempt.score.percent > 0) return sum;
+            const durationMinutes =
+              item.templateSnapshot?.durationMinutes && Number.isFinite(item.templateSnapshot.durationMinutes)
+                ? Math.max(0, Math.round(item.templateSnapshot.durationMinutes))
+                : 0;
+            return sum + durationMinutes * 60;
+          }, 0);
           return {
             course,
             purchase,
             progress,
             viewedCount: viewed.length,
+            viewedLessonSeconds,
             totalLessons: lessons.length,
+            remainingLessons,
+            remainingLessonSeconds,
             totalTests: testsProgress.totalTests,
             completedTests: testsProgress.completedTests,
+            remainingTests,
+            remainingTestSeconds,
+            remainingSeconds: remainingLessonSeconds + remainingTestSeconds,
             testsAveragePercent: testsProgress.averageLatestPercent,
             testsKnowledgePercent: testsKnowledgeProgress.averageBestPercent,
             isPremium: purchase.price === course.priceGuided,
@@ -382,19 +401,7 @@ export default function StudentProfile() {
       );
 
       setItems(
-        (resolved.filter(Boolean) as {
-          course: Course;
-          purchase: Purchase;
-          progress: number;
-          viewedCount: number;
-          totalLessons: number;
-          totalTests: number;
-          completedTests: number;
-          testsAveragePercent: number;
-          testsKnowledgePercent: number;
-          isPremium: boolean;
-          purchasedAt: string;
-        }[]).sort((a, b) => {
+        (resolved.filter(Boolean) as StudentStudyCabinetCourseItem[]).sort((a, b) => {
           if (a.progress !== b.progress) return a.progress - b.progress;
           return b.purchasedAt.localeCompare(a.purchasedAt);
         })
@@ -552,22 +559,6 @@ export default function StudentProfile() {
     setStudyNotes(getStudyCabinetNotes("student", userId));
   }, [userId]);
 
-  const loadStudyDrafts = useCallback(async () => {
-    if (!userId) {
-      setStudyDrafts([]);
-      return;
-    }
-    try {
-      setStudyDraftsLoading(true);
-      const drafts = await getWorkbookDrafts("all");
-      setStudyDrafts(drafts.items);
-    } catch {
-      setStudyDrafts([]);
-    } finally {
-      setStudyDraftsLoading(false);
-    }
-  }, [userId]);
-
   useEffect(() => {
     void loadChatEligibility();
     const unsubscribe = subscribeAppDataUpdates(() => {
@@ -611,15 +602,13 @@ export default function StudentProfile() {
   useEffect(() => {
     if (tab !== 3) return;
     syncStudyNotes();
-    void loadStudyDrafts();
     const unsubscribe = subscribeAppDataUpdates(() => {
       syncStudyNotes();
-      void loadStudyDrafts();
     });
     return () => {
       unsubscribe();
     };
-  }, [tab, syncStudyNotes, loadStudyDrafts]);
+  }, [tab, syncStudyNotes]);
 
   useEffect(() => {
     if (tab !== 3 || !userId) return;
@@ -862,286 +851,6 @@ export default function StudentProfile() {
     if (!userId) return [];
     return buildStudyCabinetWeekActivity("student", userId);
   }, [userId, studyActivityVersion]);
-
-  const studyStats = useMemo(() => {
-    const weeklyMinutes = studyActivityDays.reduce(
-      (sum, day) => sum + day.minutes,
-      0
-    );
-    const totalViewedLessons = items.reduce(
-      (sum, item) => sum + Math.max(0, item.viewedCount),
-      0
-    );
-    const totalCompletedTests = items.reduce(
-      (sum, item) => sum + Math.max(0, item.completedTests),
-      0
-    );
-    const totalWorkbookSessions = studyDrafts.length;
-    const totalClassSessions = studyDrafts.filter((draft) => draft.kind === "CLASS")
-      .length;
-    const totalPersonalSessions = studyDrafts.filter(
-      (draft) => draft.kind === "PERSONAL"
-    ).length;
-
-    return [
-      {
-        id: "weekly-minutes",
-        label: "Минут в кабинете",
-        value: weeklyMinutes,
-        accent: true,
-        icon: <AccessTimeRoundedIcon fontSize="small" />,
-      },
-      {
-        id: "lessons-viewed",
-        label: "Просмотрено уроков",
-        value: totalViewedLessons,
-        icon: <MenuBookRoundedIcon fontSize="small" />,
-      },
-      {
-        id: "tests-done",
-        label: "Решено тестов",
-        value: totalCompletedTests,
-        icon: <TaskAltRoundedIcon fontSize="small" />,
-      },
-      {
-        id: "bookings-done",
-        label: "Инд. занятий",
-        value: completedBookings.length,
-        icon: <EventAvailableRoundedIcon fontSize="small" />,
-      },
-      {
-        id: "workbook-total",
-        label: "Сессий в тетради",
-        value: totalWorkbookSessions,
-        icon: <AutoStoriesRoundedIcon fontSize="small" />,
-      },
-      {
-        id: "workbook-personal",
-        label: "Личные сессии",
-        value: totalPersonalSessions,
-        icon: <SpaceDashboardRoundedIcon fontSize="small" />,
-      },
-      {
-        id: "workbook-class",
-        label: "Коллективные",
-        value: totalClassSessions,
-        icon: <GroupsRoundedIcon fontSize="small" />,
-      },
-    ].filter((entry) => entry.value > 0);
-  }, [studyActivityDays, items, studyDrafts, completedBookings.length]);
-
-  const studyCalendarEvents = useMemo(() => {
-    const now = Date.now();
-    const events: Array<{
-      id: string;
-      title: string;
-      description?: string;
-      startAt: string;
-      endAt?: string;
-      color?: string;
-      badge?: string;
-      highlighted?: boolean;
-      noteId?: string;
-      onClick?: () => void;
-    }> = [];
-
-    scheduledBookings.forEach((booking) => {
-      const start = getBookingStartTimestamp(booking);
-      const end = getBookingEndTimestamp(booking);
-      if (!Number.isFinite(start) || start <= now) return;
-        events.push({
-          id: `booking-${booking.id}`,
-          title: "Индивидуальное занятие",
-          description: booking.teacherName ? `С преподавателем ${booking.teacherName}` : undefined,
-          startAt: new Date(start).toISOString(),
-          endAt: Number.isFinite(end) ? new Date(end).toISOString() : undefined,
-          badge: "Занятие",
-        });
-    });
-
-    studyNotes
-      .filter((note) => note.dueAt && !note.done)
-      .forEach((note) => {
-        if (!note.dueAt) return;
-        const dueMs = new Date(note.dueAt).getTime();
-        if (!Number.isFinite(dueMs)) return;
-        events.push({
-          id: `note-event-${note.id}`,
-          title: note.title,
-          startAt: new Date(dueMs).toISOString(),
-          endAt: note.endAt
-            ? new Date(note.endAt).toISOString()
-            : new Date(dueMs + 30 * 60 * 1000).toISOString(),
-          description: note.body || undefined,
-          color: note.color,
-          highlighted: note.remind,
-          noteId: note.id,
-        });
-      });
-
-    return events.sort(
-      (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()
-    );
-  }, [scheduledBookings, studyNotes]);
-
-  const studyGeneralReminders = useMemo(() => {
-    const now = Date.now();
-    const reminders: Array<{
-      id: string;
-      title: string;
-      subtitle?: string;
-      badge?: string;
-      highlighted?: boolean;
-      onClick?: () => void;
-      source: "system" | "manual";
-      sortKey: number;
-    }> = [];
-
-    studyDrafts
-      .filter((draft) => draft.kind === "CLASS")
-      .slice(0, 3)
-      .forEach((draft) => {
-        const updatedAt = new Date(draft.updatedAt).getTime();
-        reminders.push({
-          id: `class-${draft.sessionId}`,
-          title: draft.title || "Коллективный урок",
-          subtitle: `Последняя активность: ${new Date(draft.updatedAt).toLocaleString("ru-RU", {
-            day: "2-digit",
-            month: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}`,
-          badge: "Коллектив",
-          source: "system",
-          sortKey: Number.isFinite(updatedAt) ? updatedAt : now,
-        });
-      });
-
-    items
-      .filter((item) => item.progress < 100)
-      .forEach((item) => {
-        const daysSincePurchase = Math.floor(
-          (now - new Date(item.purchasedAt).getTime()) / (1000 * 60 * 60 * 24)
-        );
-        if (!Number.isFinite(daysSincePurchase) || daysSincePurchase < 10) return;
-        reminders.push({
-          id: `stale-${item.course.id}`,
-          title: `Вернитесь к курсу «${item.course.title}»`,
-          subtitle: `Есть непройденные материалы (${item.progress}% завершено).`,
-          badge: "Напоминание",
-          highlighted: true,
-          onClick: () =>
-            navigate(`/courses/${item.course.id}`, {
-              state: { from: "/student/profile?tab=study" },
-            }),
-          source: "system",
-          sortKey: now - daysSincePurchase * 60_000,
-        });
-      });
-
-    studyNotes
-      .filter((note) => note.remind && !note.done && note.dueAt)
-      .forEach((note) => {
-        if (!note.dueAt) return;
-        const dueMs = new Date(note.dueAt).getTime();
-        if (!Number.isFinite(dueMs)) return;
-        reminders.push({
-          id: `manual-note-${note.id}`,
-          title: note.title,
-          subtitle: note.body || undefined,
-          badge: "Заметка",
-          highlighted: dueMs >= now && dueMs - now <= 90 * 60 * 1000,
-          source: "manual",
-          sortKey: dueMs,
-        });
-      });
-
-    return reminders
-      .sort((a, b) => {
-        if (a.source !== b.source) {
-          return a.source === "system" ? -1 : 1;
-        }
-        if (a.source === "manual") {
-          return a.sortKey - b.sortKey;
-        }
-        return b.sortKey - a.sortKey;
-      })
-      .map((item) => {
-        const sortKey = item.sortKey;
-        void sortKey;
-        const source = item.source;
-        void source;
-        return {
-          id: item.id,
-          title: item.title,
-          subtitle: item.subtitle,
-          badge: item.badge,
-          highlighted: item.highlighted,
-          onClick: item.onClick,
-        };
-      });
-  }, [studyDrafts, items, navigate, studyNotes]);
-
-  const handleStudentCreateNote = useCallback(
-    (payload: {
-      title: string;
-      body: string;
-      dueAt: string | null;
-      endAt: string | null;
-      remind: boolean;
-      color: string;
-    }) => {
-      if (!userId) return;
-      createStudyCabinetNote({
-        role: "student",
-        userId,
-        title: payload.title,
-        body: payload.body,
-        dueAt: payload.dueAt,
-        endAt: payload.endAt,
-        remind: payload.remind,
-        color: payload.color,
-      });
-      syncStudyNotes();
-    },
-    [userId, syncStudyNotes]
-  );
-
-  const handleStudentUpdateNote = useCallback(
-    (payload: {
-      noteId: string;
-      title: string;
-      body: string;
-      dueAt: string | null;
-      endAt: string | null;
-      remind: boolean;
-      color: string;
-    }) => {
-      if (!userId) return;
-      updateStudyCabinetNote({
-        role: "student",
-        userId,
-        noteId: payload.noteId,
-        title: payload.title,
-        body: payload.body,
-        dueAt: payload.dueAt,
-        endAt: payload.endAt,
-        remind: payload.remind,
-        color: payload.color,
-      });
-      syncStudyNotes();
-    },
-    [userId, syncStudyNotes]
-  );
-
-  const handleStudentDeleteNote = useCallback(
-    (noteId: string) => {
-      if (!userId) return;
-      deleteStudyCabinetNote({ role: "student", userId, noteId });
-      syncStudyNotes();
-    },
-    [userId, syncStudyNotes]
-  );
 
   const openRescheduleDialog = (booking: Booking) => {
     setBookingToReschedule(booking);
@@ -2512,27 +2221,53 @@ export default function StudentProfile() {
       <div style={{ display: tab === 3 ? "block" : "none" }} aria-hidden={tab !== 3}>
         <StudyCabinetPanel
           role="student"
+          userId={user.id}
+          courses={items}
+          bookings={bookings}
+          notes={studyNotes}
+          activityDays={studyActivityDays}
           onWorkbookClick={() => {
             void handleOpenWorkbook();
           }}
           onChatClick={() => {
             void handleOpenTeacherChat();
           }}
+          onBrowseCourses={() => {
+            navigate("/courses", {
+              state: { from: "/student/profile?tab=study" },
+            });
+          }}
+          onOpenBooking={() => {
+            setTabWithQuery(2);
+          }}
+          onOpenCourse={(courseId, options) => {
+            navigate(`/courses/${courseId}`, {
+              state: {
+                from: "/student/profile?tab=study",
+                focusBlockId: options?.blockId,
+                source: options?.source,
+              },
+            });
+          }}
+          onOpenLesson={(lessonId, options) => {
+            navigate(`/lessons/${lessonId}`, {
+              state: {
+                from: "/student/profile?tab=study",
+                courseId: options?.courseId,
+                source: options?.source,
+              },
+            });
+          }}
+          onOpenTest={(courseId, testItemId, options) => {
+            navigate(`/courses/${courseId}/tests/${testItemId}`, {
+              state: {
+                from: "/student/profile?tab=study",
+                source: options?.source,
+              },
+            });
+          }}
           chatLocked={chatEligibility?.available === false}
-          activityDays={studyActivityDays}
-          activityStats={studyStats}
-          calendarEvents={studyCalendarEvents}
-          generalReminders={studyGeneralReminders}
-          notes={studyNotes}
-          allowNoteEditor
-          onCreateNote={handleStudentCreateNote}
-          onUpdateNote={handleStudentUpdateNote}
-          onDeleteNote={handleStudentDeleteNote}
-          reminderHint={
-            studyDraftsLoading
-              ? "Обновляем данные учебного кабинета..."
-              : null
-          }
+          chatDisabled={!chatAccessAvailable}
         />
       </div>
 

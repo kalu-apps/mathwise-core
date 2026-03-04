@@ -243,6 +243,7 @@ type PanState = {
 
 type GraphPanState = {
   object: WorkbookBoardObject;
+  targetFunctionId: string | null;
   start: WorkbookPoint;
   current: WorkbookPoint;
   initialFunctions: GraphFunctionDraft[];
@@ -1057,6 +1058,30 @@ export function WorkbookCanvas({
     };
   }, [moving]);
 
+  const applyGraphPanToFunctions = useCallback(
+    (
+      functions: GraphFunctionDraft[],
+      deltaX: number,
+      deltaY: number,
+      pxPerUnit: number,
+      targetFunctionId: string | null = null
+    ): GraphFunctionDraft[] => {
+      if (functions.length === 0 || pxPerUnit <= 0) return functions;
+      const offsetXShift = deltaX / pxPerUnit;
+      const offsetYShift = -deltaY / pxPerUnit;
+      return functions.map((entry) =>
+        targetFunctionId && entry.id !== targetFunctionId
+          ? entry
+          : {
+              ...entry,
+              offsetX: clampGraphOffsetValue((entry.offsetX ?? 0) + offsetXShift),
+              offsetY: clampGraphOffsetValue((entry.offsetY ?? 0) + offsetYShift),
+            }
+      );
+    },
+    []
+  );
+
   const resolveFunctionGraphScale = useCallback(
     (object: WorkbookBoardObject) => {
       const autoStep = getAutoGraphGridStep({
@@ -1077,23 +1102,67 @@ export function WorkbookCanvas({
     [gridSize]
   );
 
-  const applyGraphPanToFunctions = useCallback(
-    (
-      functions: GraphFunctionDraft[],
-      deltaX: number,
-      deltaY: number,
-      pxPerUnit: number
-    ): GraphFunctionDraft[] => {
-      if (functions.length === 0 || pxPerUnit <= 0) return functions;
-      const offsetXShift = deltaX / pxPerUnit;
-      const offsetYShift = -deltaY / pxPerUnit;
-      return functions.map((entry) => ({
-        ...entry,
-        offsetX: clampGraphOffsetValue((entry.offsetX ?? 0) + offsetXShift),
-        offsetY: clampGraphOffsetValue((entry.offsetY ?? 0) + offsetYShift),
-      }));
+  const distancePointToSegment = useCallback(
+    (point: WorkbookPoint, start: WorkbookPoint, end: WorkbookPoint) => {
+      const vx = end.x - start.x;
+      const vy = end.y - start.y;
+      const lengthSq = vx * vx + vy * vy;
+      if (lengthSq <= 1e-6) {
+        return Math.hypot(point.x - start.x, point.y - start.y);
+      }
+      const px = point.x - start.x;
+      const py = point.y - start.y;
+      const rawT = (px * vx + py * vy) / lengthSq;
+      const t = Math.max(0, Math.min(1, rawT));
+      const closestX = start.x + vx * t;
+      const closestY = start.y + vy * t;
+      return Math.hypot(point.x - closestX, point.y - closestY);
     },
     []
+  );
+
+  const resolveGraphFunctionHit = useCallback(
+    (object: WorkbookBoardObject, point: WorkbookPoint) => {
+      if (object.type !== "function_graph") return null;
+      const rawFunctions = Array.isArray(object.meta?.functions)
+        ? (object.meta.functions as GraphFunctionDraft[])
+        : [];
+      const functions = sanitizeFunctionGraphDrafts(rawFunctions, {
+        ensureNonEmpty: false,
+      }).filter((entry) => entry.visible !== false);
+      if (functions.length === 0) return null;
+      const { pxPerUnit } = resolveFunctionGraphScale(object);
+      const plots = buildFunctionGraphPlots(
+        functions,
+        {
+          x: object.x,
+          y: object.y,
+          width: object.width,
+          height: object.height,
+        },
+        pxPerUnit
+      );
+      let bestMatch: { id: string; distance: number } | null = null;
+      plots.forEach((plot) => {
+        plot.segments.forEach((segment) => {
+          for (let index = 0; index < segment.length - 1; index += 1) {
+            const current = segment[index];
+            const next = segment[index + 1];
+            const distance = distancePointToSegment(point, current, next);
+            const threshold = Math.max(5.5, Math.min(9.5, plot.width * 2.2));
+            if (distance > threshold) continue;
+            if (!bestMatch || distance < bestMatch.distance) {
+              bestMatch = {
+                id: plot.id,
+                distance,
+              };
+            }
+          }
+        });
+      });
+      return (bestMatch as { id: string; distance: number } | null)?.id ?? null;
+    },
+    [distancePointToSegment, resolveFunctionGraphScale]
   );
 
   const mapPointer = (
@@ -1408,17 +1477,12 @@ export function WorkbookCanvas({
     const right = bounds.maxX;
     const top = bounds.minY;
     const bottom = bounds.maxY;
-    const midX = (left + right) / 2;
-    const midY = (top + bottom) / 2;
+    const padding = 12;
     const handles: Solid3dResizeHandle[] = [
-      { mode: "nw", x: left, y: top },
-      { mode: "n", x: midX, y: top },
-      { mode: "ne", x: right, y: top },
-      { mode: "e", x: right, y: midY },
-      { mode: "se", x: right, y: bottom },
-      { mode: "s", x: midX, y: bottom },
-      { mode: "sw", x: left, y: bottom },
-      { mode: "w", x: left, y: midY },
+      { mode: "nw", x: left - padding, y: top - padding },
+      { mode: "ne", x: right + padding, y: top - padding },
+      { mode: "se", x: right + padding, y: bottom + padding },
+      { mode: "sw", x: left - padding, y: bottom + padding },
     ];
     return handles;
   }, []);
@@ -1621,11 +1685,12 @@ export function WorkbookCanvas({
   const startMoving = (
     object: WorkbookBoardObject,
     event: PointerEvent<SVGSVGElement>,
-    svg: SVGSVGElement
+    svg: SVGSVGElement,
+    groupOverride?: WorkbookBoardObject[]
   ) => {
     pointerIdRef.current = event.pointerId;
     const start = mapPointer(svg, event.clientX, event.clientY, false, false);
-    const groupObjects = resolveMovingGroup(object);
+    const groupObjects = groupOverride ?? resolveMovingGroup(object);
     setMoving({
       object,
       groupObjects,
@@ -1766,12 +1831,13 @@ export function WorkbookCanvas({
 
   const startGraphPan = (
     object: WorkbookBoardObject,
+    targetFunctionId: string,
+    start: WorkbookPoint,
     event: PointerEvent<SVGSVGElement>,
     svg: SVGSVGElement
   ) => {
     if (object.type !== "function_graph") return;
     pointerIdRef.current = event.pointerId;
-    const start = mapPointer(svg, event.clientX, event.clientY);
     const rawFunctions = Array.isArray(object.meta?.functions)
       ? (object.meta.functions as GraphFunctionDraft[])
       : [];
@@ -1781,6 +1847,7 @@ export function WorkbookCanvas({
     const { pxPerUnit } = resolveFunctionGraphScale(object);
     setGraphPan({
       object,
+      targetFunctionId,
       start,
       current: start,
       initialFunctions,
@@ -1866,15 +1933,22 @@ export function WorkbookCanvas({
       if (target && target.type === "function_graph" && !target.pinned) {
         onSelectedConstraintChange(null);
         onSelectedObjectChange(target.id);
-        startGraphPan(target, event, svg);
+        const targetFunctionId = resolveGraphFunctionHit(target, point);
+        if (targetFunctionId) {
+          startGraphPan(target, targetFunctionId, point, event, svg);
+        } else {
+          startMoving(target, event, svg);
+        }
         return;
       }
-      if (target && (target.type === "line" || target.type === "arrow") && !target.pinned) {
+      if (target && !target.pinned) {
         onSelectedConstraintChange(null);
         onSelectedObjectChange(target.id);
-        startResizing(target, "rotate", event, svg);
+        startMoving(target, event, svg);
         return;
       }
+      onSelectedConstraintChange(null);
+      onSelectedObjectChange(null);
       pointerIdRef.current = event.pointerId;
       setPanning({
         start: { x: event.clientX, y: event.clientY },
@@ -2084,11 +2158,11 @@ export function WorkbookCanvas({
       const selected = selectedObjectId
         ? boardObjects.find((object) => object.id === selectedObjectId) ?? null
         : null;
-      if (selected && !selected.pinned) {
+      if (tool === "select" && selected && !selected.pinned) {
         if (selected.type === "solid3d") {
           const handles = resolveSolid3dResizeHandles(selected);
           const hit = handles.find(
-            (handle) => Math.hypot(handle.x - point.x, handle.y - point.y) <= 7
+            (handle) => Math.hypot(handle.x - point.x, handle.y - point.y) <= 8.5
           );
           if (hit) {
             pointerIdRef.current = event.pointerId;
@@ -2116,11 +2190,48 @@ export function WorkbookCanvas({
           }
         }
       }
+      if (
+        areaSelection &&
+        areaSelection.objectIds.length > 0 &&
+        isInsideRect(point, areaSelection.rect)
+      ) {
+        const groupedTargets = boardObjects.filter((object) =>
+          areaSelection.objectIds.includes(object.id)
+        );
+        if (groupedTargets.length > 0) {
+          const proxyObject: WorkbookBoardObject = {
+            id: "__area-selection__",
+            type: "frame",
+            layer,
+            x: areaSelection.rect.x,
+            y: areaSelection.rect.y,
+            width: areaSelection.rect.width,
+            height: areaSelection.rect.height,
+            color: "#4f63ff",
+            fill: "transparent",
+            strokeWidth: 1,
+            opacity: 1,
+            authorUserId,
+            createdAt: new Date().toISOString(),
+          };
+          onSelectedConstraintChange(null);
+          startMoving(proxyObject, event, svg, groupedTargets);
+          return;
+        }
+      }
       const target = resolveTopObject(point);
       onSelectedConstraintChange(null);
-      onSelectedObjectChange(target?.id ?? null);
       if (target && !target.pinned) {
+        onSelectedObjectChange(target.id);
         startMoving(target, event, svg);
+      } else {
+        onSelectedObjectChange(null);
+        pointerIdRef.current = event.pointerId;
+        setAreaSelectionDraft({
+          start: point,
+          current: point,
+        });
+        svg.setPointerCapture(event.pointerId);
       }
       return;
     }
@@ -2479,7 +2590,7 @@ export function WorkbookCanvas({
             ? {
                 functions: graphFunctions,
                 axisColor: "#ff8e3c",
-                planeColor: "#8ea7ff",
+                planeColor: "transparent",
               }
             : shapeDraft.tool === "line" || shapeDraft.tool === "arrow"
               ? {
@@ -2541,6 +2652,17 @@ export function WorkbookCanvas({
         }
         onObjectUpdate(target.id, patch);
       });
+      if (moving.object.id === "__area-selection__" && areaSelection) {
+        onAreaSelectionChange?.({
+          objectIds: targets.map((target) => target.id),
+          rect: {
+            x: areaSelection.rect.x + deltaX,
+            y: areaSelection.rect.y + deltaY,
+            width: areaSelection.rect.width,
+            height: areaSelection.rect.height,
+          },
+        });
+      }
     }
     setMoving(null);
   };
@@ -2845,10 +2967,14 @@ export function WorkbookCanvas({
         const objectIds = boardObjects
           .filter((object) => rectIntersects(getObjectRect(object), nextRect))
           .map((object) => object.id);
-        onAreaSelectionChange?.({
-          objectIds,
-          rect: nextRect,
-        });
+        onAreaSelectionChange?.(
+          objectIds.length > 0
+            ? {
+                objectIds,
+                rect: nextRect,
+              }
+            : null
+        );
       }
       setAreaSelectionResize(null);
     } else if (areaSelectionDraft) {
@@ -2860,10 +2986,14 @@ export function WorkbookCanvas({
         const objectIds = boardObjects
           .filter((object) => rectIntersects(getObjectRect(object), nextRect))
           .map((object) => object.id);
-        onAreaSelectionChange?.({
-          objectIds,
-          rect: nextRect,
-        });
+        onAreaSelectionChange?.(
+          objectIds.length > 0
+            ? {
+                objectIds,
+                rect: nextRect,
+              }
+            : null
+        );
       }
       setAreaSelectionDraft(null);
     } else if (panning) {
@@ -2875,7 +3005,8 @@ export function WorkbookCanvas({
         graphPan.initialFunctions,
         deltaX,
         deltaY,
-        graphPan.pxPerUnit
+        graphPan.pxPerUnit,
+        graphPan.targetFunctionId
       );
       onObjectUpdate(graphPan.object.id, {
         meta: {
@@ -3555,6 +3686,8 @@ export function WorkbookCanvas({
       const functions = Array.isArray(object.meta?.functions)
         ? (object.meta?.functions as GraphFunctionDraft[])
         : [];
+      const graphPanPreviewActive = Boolean(graphPan && graphPan.object.id === object.id);
+      const activeGraphPan = graphPanPreviewActive ? graphPan : null;
       const axisColorRaw = object.meta?.axisColor;
       const axisColor =
         typeof axisColorRaw === "string" && axisColorRaw.startsWith("#")
@@ -3562,8 +3695,10 @@ export function WorkbookCanvas({
           : "#ff8e3c";
       const planeColorRaw = object.meta?.planeColor;
       const planeColor =
-        typeof planeColorRaw === "string" && planeColorRaw.startsWith("#")
-          ? planeColorRaw
+        typeof planeColorRaw === "string"
+          ? planeColorRaw === "transparent" || planeColorRaw.startsWith("#")
+            ? planeColorRaw
+            : "#8ea7ff"
           : "#8ea7ff";
       const autoStep = getAutoGraphGridStep({
         width: normalized.width,
@@ -3577,40 +3712,6 @@ export function WorkbookCanvas({
       const centerY = normalized.y + normalized.height / 2;
       const lines: ReactNode[] = [];
       const labels: ReactNode[] = [];
-
-      const startGridX = Math.floor(normalized.x / step) * step;
-      const endGridX = normalized.x + normalized.width;
-      for (let x = startGridX; x <= endGridX + 0.5; x += step) {
-        if (x < normalized.x - 0.5) continue;
-        lines.push(
-          <line
-            key={`fn-grid-x-${object.id}-${x}`}
-            x1={x}
-            y1={normalized.y}
-            x2={x}
-            y2={normalized.y + normalized.height}
-            stroke="rgba(94, 113, 181, 0.24)"
-            strokeWidth={0.8}
-          />
-        );
-      }
-
-      const startGridY = Math.floor(normalized.y / step) * step;
-      const endGridY = normalized.y + normalized.height;
-      for (let y = startGridY; y <= endGridY + 0.5; y += step) {
-        if (y < normalized.y - 0.5) continue;
-        lines.push(
-          <line
-            key={`fn-grid-y-${object.id}-${y}`}
-            x1={normalized.x}
-            y1={y}
-            x2={normalized.x + normalized.width}
-            y2={y}
-            stroke="rgba(94, 113, 181, 0.24)"
-            strokeWidth={0.8}
-          />
-        );
-      }
 
       lines.push(
         <line
@@ -3669,7 +3770,22 @@ export function WorkbookCanvas({
         },
         step
       );
-
+      const ghostPlots =
+        activeGraphPan
+          ? buildFunctionGraphPlots(
+              activeGraphPan.initialFunctions.filter(
+                (entry) =>
+                  !activeGraphPan.targetFunctionId || entry.id === activeGraphPan.targetFunctionId
+              ),
+              {
+                x: normalized.x,
+                y: normalized.y,
+                width: normalized.width,
+                height: normalized.height,
+              },
+              step
+            )
+          : [];
       return (
         <g transform={transform}>
           <defs>
@@ -3688,13 +3804,28 @@ export function WorkbookCanvas({
             width={normalized.width}
             height={normalized.height}
             fill={planeColor}
-            fillOpacity={0.14}
+            fillOpacity={planeColor === "transparent" ? 0 : 0.14}
             stroke="none"
             strokeWidth={0}
           />
           <g clipPath={`url(#fn-clip-${object.id})`}>
             {lines}
             {labels}
+            {ghostPlots.flatMap((plot) =>
+              plot.segments.map((segment, segmentIndex) =>
+                segment.length > 1 ? (
+                  <path
+                    key={`${object.id}-graph-ghost-${plot.id}-${segmentIndex}`}
+                    d={toPath(segment)}
+                    stroke={plot.color}
+                    strokeWidth={Math.max(1, plot.width * 0.9)}
+                    strokeDasharray="7 5"
+                    strokeOpacity={0.24}
+                    fill="none"
+                  />
+                ) : null
+              )
+            )}
             {plottedFunctions.flatMap((plot) =>
               plot.segments.map((segment, segmentIndex) =>
                 segment.length > 1 ? (
@@ -3953,6 +4084,7 @@ export function WorkbookCanvas({
               : 1;
       const hideHiddenEdges = solidState.hiddenFaceIds.includes("hidden_edges");
       const faceColors = solidState.faceColors ?? {};
+      const edgeColors = solidState.edgeColors ?? {};
       const angleMarks = Array.isArray(solidState.angleMarks)
         ? solidState.angleMarks.filter((mark) => mark.visible !== false)
         : [];
@@ -4215,7 +4347,7 @@ export function WorkbookCanvas({
       const measurementLabels = solidState.measurements.filter((measurement) => measurement.visible);
       const faceFill = object.fill ?? "rgba(95, 106, 160, 0.16)";
       const vertexLabels = solidState.vertexLabels ?? [];
-      const showVertexLabels = object.meta?.showLabels !== false;
+      const showVertexLabels = object.meta?.showLabels !== false && !isRoundPreset;
       const vertexAdjacency = mesh
         ? mesh.edges.reduce<Map<number, number[]>>((acc, [a, b]) => {
             const neighboursA = acc.get(a) ?? [];
@@ -4266,7 +4398,27 @@ export function WorkbookCanvas({
         .map((mark) => {
           const center = projectedVertexByIndex.get(mark.vertexIndex);
           if (!center) return null;
-          const neighbours = vertexAdjacency.get(mark.vertexIndex) ?? [];
+          const activeFaceIndex =
+            typeof mark.faceIndex === "number" &&
+            Number.isInteger(mark.faceIndex) &&
+            mark.faceIndex >= 0 &&
+            mesh?.faces[mark.faceIndex]
+              ? mark.faceIndex
+              : null;
+          const faceVertices =
+            activeFaceIndex !== null && mesh ? mesh.faces[activeFaceIndex] : null;
+          const faceVertexIndex =
+            faceVertices?.findIndex((vertexIndex: number) => vertexIndex === mark.vertexIndex) ??
+            -1;
+          const neighbours =
+            faceVertices && faceVertexIndex >= 0 && faceVertices.length >= 3
+              ? [
+                  faceVertices[
+                    (faceVertexIndex - 1 + faceVertices.length) % faceVertices.length
+                  ],
+                  faceVertices[(faceVertexIndex + 1) % faceVertices.length],
+                ]
+              : vertexAdjacency.get(mark.vertexIndex) ?? [];
           if (neighbours.length < 2) return null;
           const first = projectedVertexByIndex.get(neighbours[0]);
           const second = projectedVertexByIndex.get(neighbours[1]);
@@ -4709,7 +4861,7 @@ export function WorkbookCanvas({
                     y1={edge.from.y}
                     x2={edge.to.x}
                     y2={edge.to.y}
-                    stroke={color}
+                    stroke={edgeColors[edge.key] || color}
                     strokeWidth={strokeWidth}
                     strokeDasharray={edge.dashed ? "7 6" : undefined}
                     strokeOpacity={edge.dashed ? 0.55 : 1}
@@ -4991,7 +5143,8 @@ export function WorkbookCanvas({
             graphPan.initialFunctions,
             deltaX,
             deltaY,
-            graphPan.pxPerUnit
+            graphPan.pxPerUnit,
+            graphPan.targetFunctionId
           ),
         },
       };
@@ -5353,6 +5506,11 @@ export function WorkbookCanvas({
     if (!svg) return;
     const point = mapPointer(svg, event.clientX, event.clientY, true);
     const target = resolveTopObject(point);
+    if (!target && tool === "select") {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     if (!target || target.type !== "text" || target.pinned) return;
     event.preventDefault();
     event.stopPropagation();
@@ -5584,9 +5742,11 @@ export function WorkbookCanvas({
               }
             )
           : null}
-        {boardObjects.map((object) => (
-          <g key={object.id}>{renderObject(object)}</g>
-        ))}
+        {boardObjects.map((object) => {
+          const renderSource =
+            selectedPreviewObject?.id === object.id ? selectedPreviewObject : object;
+          return <g key={object.id}>{renderObject(renderSource)}</g>;
+        })}
         {(solid3dSectionMarkers?.objectId || solid3dPointPick?.objectId)
           ? solid3dPickMarkers.map((marker) => {
               const markerObjectId =
@@ -5850,6 +6010,19 @@ export function WorkbookCanvas({
           />
         ) : null}
 
+        {tool === "select" && areaSelectionDraft ? (
+          <rect
+            x={Math.min(areaSelectionDraft.start.x, areaSelectionDraft.current.x)}
+            y={Math.min(areaSelectionDraft.start.y, areaSelectionDraft.current.y)}
+            width={Math.max(1, Math.abs(areaSelectionDraft.current.x - areaSelectionDraft.start.x))}
+            height={Math.max(1, Math.abs(areaSelectionDraft.current.y - areaSelectionDraft.start.y))}
+            fill="none"
+            stroke="#4f63ff"
+            strokeWidth={1.2}
+            strokeDasharray="7 5"
+          />
+        ) : null}
+
         {tool === "area_select" && areaSelectionResize ? (
           (() => {
             const nextRect = resizeAreaSelectionRect(
@@ -5872,10 +6045,22 @@ export function WorkbookCanvas({
           })()
         ) : null}
 
-        {selectedRect ? (
+        {tool === "select" && selectedRect ? (
           <>
             {selectedPreviewObject?.type === "solid3d" ? (
               <g>
+                {selectedSolidResizeHandles.length >= 2 ? (
+                  <path
+                    d={`${toPath(
+                      selectedSolidResizeHandles.map((handle) => ({ x: handle.x, y: handle.y }))
+                    )} Z`}
+                    fill="none"
+                    stroke="#4f63ff"
+                    strokeWidth={1}
+                    strokeDasharray="4 4"
+                    strokeOpacity={0.72}
+                  />
+                ) : null}
                 {selectedSolidResizeHandles.map((handle, index) => (
                   <circle
                     key={`solid3d-resize-handle-${selectedPreviewObject.id}-${handle.mode}-${index}`}

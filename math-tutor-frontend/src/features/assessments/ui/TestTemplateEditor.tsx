@@ -542,6 +542,7 @@ export function TestTemplateEditor({
   const detectedAnswerType = activeQuestion
     ? detectAssessmentAnswerType(String(activeQuestion.answerSpec.expected ?? ""))
     : "text";
+  const pinnedLabelProps = useMemo(() => ({ shrink: true }), []);
 
   return (
     <div className="assessment-editor">
@@ -586,6 +587,7 @@ export function TestTemplateEditor({
               label="Тема теста"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
+              InputLabelProps={pinnedLabelProps}
               fullWidth
               disabled={readOnly}
               size="small"
@@ -596,6 +598,7 @@ export function TestTemplateEditor({
               onChange={(event) => setDescription(event.target.value)}
               multiline
               minRows={2}
+              InputLabelProps={pinnedLabelProps}
               fullWidth
               disabled={readOnly}
               size="small"
@@ -628,6 +631,7 @@ export function TestTemplateEditor({
                 setDurationMinutes(event.target.value.replace(/[^\d]/g, ""))
               }
               inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+              InputLabelProps={pinnedLabelProps}
               fullWidth
               disabled={readOnly}
               size="small"
@@ -741,6 +745,7 @@ export function TestTemplateEditor({
                 }
                 multiline
                 minRows={4}
+                InputLabelProps={pinnedLabelProps}
                 fullWidth
                 disabled={readOnly}
                 className="assessment-editor__field-compact"
@@ -794,6 +799,7 @@ export function TestTemplateEditor({
                 label="Правильный ответ"
                 value={String(activeQuestion.answerSpec.expected ?? "")}
                 onChange={(event) => updateActiveExpected(event.target.value)}
+                InputLabelProps={pinnedLabelProps}
                 fullWidth
                 disabled={readOnly}
                 className="assessment-editor__field-compact"
@@ -804,6 +810,7 @@ export function TestTemplateEditor({
                   label="Допуск (опционально)"
                   value={String(activeQuestion.answerSpec.tolerance?.value ?? "")}
                   onChange={(event) => updateActiveTolerance(event.target.value)}
+                  InputLabelProps={pinnedLabelProps}
                   fullWidth
                   disabled={readOnly}
                   className="assessment-editor__field-compact"
@@ -823,6 +830,7 @@ export function TestTemplateEditor({
                 }
                 multiline
                 minRows={3}
+                InputLabelProps={pinnedLabelProps}
                 fullWidth
                 disabled={readOnly}
                 className="assessment-editor__field-compact"

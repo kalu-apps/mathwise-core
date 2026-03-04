@@ -177,9 +177,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout();
     };
 
+    const resolveLastActivityTimestamp = () => {
+      const storedTimestamp = readIdleActivityTimestamp();
+      if (
+        storedTimestamp &&
+        (!lastActivityRef.current || storedTimestamp > lastActivityRef.current)
+      ) {
+        lastActivityRef.current = storedTimestamp;
+      }
+      return lastActivityRef.current ?? storedTimestamp ?? Date.now();
+    };
+
+    const hasExceededIdleTimeout = () =>
+      Date.now() - resolveLastActivityTimestamp() >= AUTH_IDLE_TIMEOUT_MS;
+
     const scheduleIdleLogout = () => {
       clearIdleTimer();
-      const lastActivityTs = lastActivityRef.current ?? Date.now();
+      const lastActivityTs = resolveLastActivityTimestamp();
       const elapsedMs = Date.now() - lastActivityTs;
       const remainingMs = AUTH_IDLE_TIMEOUT_MS - elapsedMs;
       if (remainingMs <= 0) {
@@ -201,22 +215,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const markActivity = (forcePersist = false) => {
+      if (hasExceededIdleTimeout()) {
+        triggerAutoLogout();
+        return;
+      }
       const timestamp = Date.now();
       lastActivityRef.current = timestamp;
       persistActivity(timestamp, forcePersist);
       scheduleIdleLogout();
     };
 
-    const storedLastActivity = readIdleActivityTimestamp();
-    if (
-      storedLastActivity &&
-      Date.now() - storedLastActivity > AUTH_IDLE_TIMEOUT_MS
-    ) {
+    if (hasExceededIdleTimeout()) {
       triggerAutoLogout();
       return;
     }
 
-    lastActivityRef.current = storedLastActivity ?? Date.now();
+    lastActivityRef.current = resolveLastActivityTimestamp();
     persistActivity(lastActivityRef.current, true);
     scheduleIdleLogout();
 
@@ -226,8 +240,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") {
+        if (hasExceededIdleTimeout()) {
+          triggerAutoLogout();
+          return;
+        }
         markActivity(true);
       }
+    };
+
+    const onWindowFocus = () => {
+      if (hasExceededIdleTimeout()) {
+        triggerAutoLogout();
+        return;
+      }
+      markActivity(true);
     };
 
     const onStorageChange = (event: StorageEvent) => {
@@ -250,6 +276,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.addEventListener("wheel", onActivity, { passive: true });
     window.addEventListener("touchstart", onActivity, { passive: true });
     document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", onWindowFocus);
     window.addEventListener("storage", onStorageChange);
 
     return () => {
@@ -258,6 +285,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("wheel", onActivity);
       window.removeEventListener("touchstart", onActivity);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onWindowFocus);
       window.removeEventListener("storage", onStorageChange);
       clearIdleTimer();
     };
