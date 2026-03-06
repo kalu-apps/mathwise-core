@@ -9,7 +9,6 @@ import { AxiomAssistant } from "@/features/assistant/ui/AxiomAssistant";
 import type { AssistantMode } from "@/shared/api/assistant-contracts";
 
 const resolveAssistantMode = (pathname: string): AssistantMode => {
-  if (pathname.startsWith("/workbook/session/")) return "whiteboard";
   if (pathname.startsWith("/lessons/")) return "lesson";
   if (pathname.startsWith("/courses/")) return "course";
   if (pathname.startsWith("/teacher/profile")) return "teacher-dashboard";

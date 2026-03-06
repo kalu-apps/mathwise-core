@@ -68,6 +68,7 @@ import { getTeacherAvailability } from "@/features/teacher-availability/api";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
 import type { User } from "@/entities/user/model/types";
 import { StudyCabinetPanel } from "@/shared/ui/StudyCabinetPanel";
+import { openExternalWhiteboard } from "@/shared/lib/openExternalWhiteboard";
 import type { StudentStudyCabinetCourseItem } from "@/features/study-cabinet/student/model/types";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { selectPurchaseFinancialView } from "@/entities/purchase/model/selectors";
@@ -1122,9 +1123,7 @@ export default function StudentProfile() {
         return;
       }
       setChatEligibility(eligibility);
-      navigate(
-        `/workbook?from=${encodeURIComponent("/student/profile?tab=study")}`
-      );
+      openExternalWhiteboard({ from: "/student/profile?tab=study" });
     } catch (error) {
       setChatNotice({
         severity: "error",

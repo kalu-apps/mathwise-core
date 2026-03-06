@@ -6,7 +6,6 @@ export const resolveAssistantModeByPath = (pathname: string): AssistantMode => {
   if (pathname.startsWith("/courses/") && pathname.includes("/tests/")) return "lesson";
   if (pathname.startsWith("/courses/")) return "course";
   if (pathname.startsWith("/lessons/")) return "lesson";
-  if (pathname.startsWith("/workbook")) return "whiteboard";
   return "study-cabinet";
 };
 

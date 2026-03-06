@@ -42,6 +42,7 @@ import { TeacherProfile } from "@/features/teacher-profile/ui/TeacherProfile";
 import { NewsFeedPanel } from "@/features/news-feed/ui/NewsFeedPanel";
 import { ListPagination } from "@/shared/ui/ListPagination";
 import { StudyCabinetPanel } from "@/shared/ui/StudyCabinetPanel";
+import { openExternalWhiteboard } from "@/shared/lib/openExternalWhiteboard";
 import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { ListSkeleton } from "@/shared/ui/loading";
 
@@ -1947,9 +1948,7 @@ export default function TeacherDashboard() {
           availability={availability}
           notes={studyNotes}
           onWorkbookClick={() => {
-            navigate(
-              `/workbook?from=${encodeURIComponent("/teacher/profile?tab=study")}`
-            );
+            openExternalWhiteboard({ from: "/teacher/profile?tab=study" });
           }}
           onChatClick={() => {
             setTab(5);

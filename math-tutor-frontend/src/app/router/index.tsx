@@ -28,13 +28,6 @@ const TeacherStudentProfile = lazy(
   () => import("@/pages/teacher/TeacherStudentProfile")
 );
 const ChatPage = lazy(() => import("@/pages/chat/ChatPage"));
-const WorkbookHubPage = lazy(() => import("@/pages/workbook/WorkbookHubPage"));
-const WorkbookSessionPage = lazy(
-  () => import("@/pages/workbook/WorkbookSessionPage")
-);
-const WorkbookInviteJoinPage = lazy(
-  () => import("@/pages/workbook/WorkbookInviteJoinPage")
-);
 
 const routeSuspenseFallback = (
   <PageLoader
@@ -143,26 +136,6 @@ export const router = createBrowserRouter([
             {withSuspense(<ChatPage />)}
           </RoleProtectedRoute>
         ),
-      },
-      {
-        path: "/workbook",
-        element: (
-          <RoleProtectedRoute allow={["student", "teacher"]}>
-            {withSuspense(<WorkbookHubPage />)}
-          </RoleProtectedRoute>
-        ),
-      },
-      {
-        path: "/workbook/session/:sessionId",
-        element: (
-          <RoleProtectedRoute allow={["student", "teacher"]}>
-            {withSuspense(<WorkbookSessionPage />)}
-          </RoleProtectedRoute>
-        ),
-      },
-      {
-        path: "/workbook/invite/:token",
-        element: withSuspense(<WorkbookInviteJoinPage />),
       },
     ],
   },
