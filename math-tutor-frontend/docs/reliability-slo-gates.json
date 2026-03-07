@@ -1,7 +1,0 @@
-{
-  "inpP75Max": 500,
-  "apiErrorRateMax": 0.12,
-  "duplicateSubmitRateMax": 0.08,
-  "minInpSamples": 5,
-  "minApiRequests": 10
-}
