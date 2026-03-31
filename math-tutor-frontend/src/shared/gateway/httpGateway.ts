@@ -7,7 +7,18 @@ import type {
   CourseByIdResponseContract,
   CourseCatalogResponseContract,
 } from "@/shared/contracts/course.contract";
-import type { AuthGateway, CoursesGateway } from "./types";
+import type { Lesson } from "@/entities/lesson/model/types";
+import type {
+  CourseAccessDecision,
+  CourseAccessListResponse,
+  LessonAccessDecision,
+} from "@/domain/auth-payments/model/access";
+import type {
+  AccessGateway,
+  AuthGateway,
+  CoursesGateway,
+  LessonsGateway,
+} from "./types";
 
 const readNodeEnv = (name: string) => {
   if (typeof process === "undefined") return undefined;
@@ -62,6 +73,11 @@ const requestHttpJson = async <T>(path: string): Promise<T> => {
   return payload as T;
 };
 
+const buildQuerySuffix = (query: URLSearchParams) => {
+  const serialized = query.toString();
+  return serialized ? `?${serialized}` : "";
+};
+
 const probeAuthSession = async (signal?: AbortSignal) => {
   const response = await fetch(buildHttpApiUrl("/auth/session"), {
     method: "GET",
@@ -104,5 +120,80 @@ export const httpCoursesGateway: CoursesGateway = {
     }
     const encodedId = encodeURIComponent(id);
     return requestHttpJson<CourseByIdResponseContract>(`/courses/${encodedId}`);
+  },
+};
+
+export const httpLessonsGateway: LessonsGateway = {
+  async getLessons(options): Promise<Lesson[]> {
+    if (isDefaultApiBase()) {
+      return api.get<Lesson[]>("/lessons", {
+        dedupe: options?.forceFresh ? false : undefined,
+        cacheTtlMs: options?.forceFresh ? 0 : undefined,
+      });
+    }
+    return requestHttpJson<Lesson[]>("/lessons");
+  },
+  async getLessonById(id, options): Promise<Lesson | null> {
+    if (isDefaultApiBase()) {
+      return api.get<Lesson | null>(`/lessons/${id}`, {
+        dedupe: options?.forceFresh ? false : undefined,
+        cacheTtlMs: options?.forceFresh ? 0 : undefined,
+      });
+    }
+    return requestHttpJson<Lesson | null>(`/lessons/${encodeURIComponent(id)}`);
+  },
+  async getLessonsByCourse(courseId, options): Promise<Lesson[]> {
+    const encodedCourseId = encodeURIComponent(courseId);
+    if (isDefaultApiBase()) {
+      return api.get<Lesson[]>(`/lessons?courseId=${encodedCourseId}`, {
+        dedupe: options?.forceFresh ? false : undefined,
+        cacheTtlMs: options?.forceFresh ? 0 : undefined,
+      });
+    }
+    return requestHttpJson<Lesson[]>(`/courses/${encodedCourseId}/lessons`);
+  },
+};
+
+export const httpAccessGateway: AccessGateway = {
+  async getCourseAccessDecision(params): Promise<CourseAccessDecision> {
+    const query = new URLSearchParams();
+    if (params.userId) {
+      query.set("userId", params.userId);
+    }
+    const suffix = buildQuerySuffix(query);
+    if (isDefaultApiBase()) {
+      return api.get<CourseAccessDecision>(
+        `/access/courses/${encodeURIComponent(params.courseId)}${suffix}`
+      );
+    }
+    return requestHttpJson<CourseAccessDecision>(
+      `/access/courses/${encodeURIComponent(params.courseId)}${suffix}`
+    );
+  },
+  async getCourseAccessList(params): Promise<CourseAccessListResponse> {
+    const query = new URLSearchParams();
+    if (params?.userId) {
+      query.set("userId", params.userId);
+    }
+    const suffix = buildQuerySuffix(query);
+    if (isDefaultApiBase()) {
+      return api.get<CourseAccessListResponse>(`/access/courses${suffix}`);
+    }
+    return requestHttpJson<CourseAccessListResponse>(`/access/courses${suffix}`);
+  },
+  async getLessonAccessDecision(params): Promise<LessonAccessDecision> {
+    const query = new URLSearchParams();
+    if (params.userId) {
+      query.set("userId", params.userId);
+    }
+    const suffix = buildQuerySuffix(query);
+    if (isDefaultApiBase()) {
+      return api.get<LessonAccessDecision>(
+        `/access/lessons/${encodeURIComponent(params.lessonId)}${suffix}`
+      );
+    }
+    return requestHttpJson<LessonAccessDecision>(
+      `/access/lessons/${encodeURIComponent(params.lessonId)}${suffix}`
+    );
   },
 };

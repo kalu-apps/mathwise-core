@@ -1,15 +1,29 @@
 import {
+  createHybridAccessGateway,
   createHybridAuthGateway,
   createHybridCoursesGateway,
+  createHybridLessonsGateway,
 } from "./hybridGateway";
-import { httpCoursesGateway, httpGateway } from "./httpGateway";
-import { mockCoursesGateway, mockGateway } from "./mockGateway";
+import {
+  httpAccessGateway,
+  httpCoursesGateway,
+  httpGateway,
+  httpLessonsGateway,
+} from "./httpGateway";
+import {
+  mockAccessGateway,
+  mockCoursesGateway,
+  mockGateway,
+  mockLessonsGateway,
+} from "./mockGateway";
 import type {
+  AccessGateway,
   AuthGateway,
   CoursesGateway,
   GatewayMode,
   GatewayRuntimeConfig,
   GatewayTransport,
+  LessonsGateway,
 } from "./types";
 
 const normalizeMode = (
@@ -46,10 +60,22 @@ export const resolveGatewayRuntimeConfig = (): GatewayRuntimeConfig => {
   );
 
   if (mode === "mock") {
-    return { mode, authTransport: "mock", coursesTransport: "mock" };
+    return {
+      mode,
+      authTransport: "mock",
+      coursesTransport: "mock",
+      lessonsTransport: "mock",
+      accessTransport: "mock",
+    };
   }
   if (mode === "http") {
-    return { mode, authTransport: "http", coursesTransport: "http" };
+    return {
+      mode,
+      authTransport: "http",
+      coursesTransport: "http",
+      lessonsTransport: "http",
+      accessTransport: "http",
+    };
   }
 
   const isDev = Boolean(import.meta.env.DEV);
@@ -63,8 +89,24 @@ export const resolveGatewayRuntimeConfig = (): GatewayRuntimeConfig => {
       readNodeEnv("GATEWAY_COURSES_MODE"),
     "http"
   );
+  const lessonsTransport = normalizeTransport(
+    import.meta.env.VITE_GATEWAY_LESSONS_MODE ??
+      readNodeEnv("GATEWAY_LESSONS_MODE"),
+    coursesTransport
+  );
+  const accessTransport = normalizeTransport(
+    import.meta.env.VITE_GATEWAY_ACCESS_MODE ??
+      readNodeEnv("GATEWAY_ACCESS_MODE"),
+    coursesTransport
+  );
 
-  return { mode: "hybrid", authTransport, coursesTransport };
+  return {
+    mode: "hybrid",
+    authTransport,
+    coursesTransport,
+    lessonsTransport,
+    accessTransport,
+  };
 };
 
 const gatewayRuntimeConfig = resolveGatewayRuntimeConfig();
@@ -74,6 +116,12 @@ const hybridAuthGateway = createHybridAuthGateway(
 );
 const hybridCoursesGateway = createHybridCoursesGateway(
   () => gatewayRuntimeConfig.coursesTransport
+);
+const hybridLessonsGateway = createHybridLessonsGateway(
+  () => gatewayRuntimeConfig.lessonsTransport
+);
+const hybridAccessGateway = createHybridAccessGateway(
+  () => gatewayRuntimeConfig.accessTransport
 );
 
 const selectAuthGateway = (config: GatewayRuntimeConfig): AuthGateway => {
@@ -88,8 +136,22 @@ const selectCoursesGateway = (config: GatewayRuntimeConfig): CoursesGateway => {
   return hybridCoursesGateway;
 };
 
+const selectLessonsGateway = (config: GatewayRuntimeConfig): LessonsGateway => {
+  if (config.mode === "mock") return mockLessonsGateway;
+  if (config.mode === "http") return httpLessonsGateway;
+  return hybridLessonsGateway;
+};
+
+const selectAccessGateway = (config: GatewayRuntimeConfig): AccessGateway => {
+  if (config.mode === "mock") return mockAccessGateway;
+  if (config.mode === "http") return httpAccessGateway;
+  return hybridAccessGateway;
+};
+
 export const authGateway = selectAuthGateway(gatewayRuntimeConfig);
 export const coursesGateway = selectCoursesGateway(gatewayRuntimeConfig);
+export const lessonsGateway = selectLessonsGateway(gatewayRuntimeConfig);
+export const accessGateway = selectAccessGateway(gatewayRuntimeConfig);
 
 export { gatewayRuntimeConfig };
 export type { GatewayMode, GatewayRuntimeConfig, GatewayTransport } from "./types";

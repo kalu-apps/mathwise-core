@@ -58,6 +58,21 @@ export class CoursesRepository {
     return rows.map((row) => this.mapRow(row));
   }
 
+  async findAllIds(): Promise<string[]> {
+    const rows = await this.databaseService.query<{ id: string }>(
+      "SELECT id FROM courses_catalog ORDER BY title ASC"
+    );
+    return rows.map((row) => row.id);
+  }
+
+  async existsById(courseId: string): Promise<boolean> {
+    const rows = await this.databaseService.query<{ id: string }>(
+      "SELECT id FROM courses_catalog WHERE id = $1 LIMIT 1",
+      [courseId]
+    );
+    return rows.length > 0;
+  }
+
   async findById(courseId: string): Promise<CourseCatalogItemDto | null> {
     const rows = await this.databaseService.query<CourseRow>(
       `

@@ -1,4 +1,5 @@
 import { api } from "@/shared/api/client";
+import { accessGateway } from "@/shared/gateway";
 import type {
   CourseAccessDecision,
   CourseAccessListResponse,
@@ -11,39 +12,20 @@ export async function getCourseAccessDecision(params: {
   courseId: string;
   userId?: string;
 }): Promise<CourseAccessDecision> {
-  const query = new URLSearchParams();
-  if (params.userId) {
-    query.set("userId", params.userId);
-  }
-  const suffix = query.toString() ? `?${query.toString()}` : "";
-  return api.get<CourseAccessDecision>(
-    `/access/courses/${encodeURIComponent(params.courseId)}${suffix}`
-  );
+  return accessGateway.getCourseAccessDecision(params);
 }
 
 export async function getCourseAccessList(params?: {
   userId?: string;
 }): Promise<CourseAccessListResponse> {
-  const query = new URLSearchParams();
-  if (params?.userId) {
-    query.set("userId", params.userId);
-  }
-  const suffix = query.toString() ? `?${query.toString()}` : "";
-  return api.get<CourseAccessListResponse>(`/access/courses${suffix}`);
+  return accessGateway.getCourseAccessList(params);
 }
 
 export async function getLessonAccessDecision(params: {
   lessonId: string;
   userId?: string;
 }): Promise<LessonAccessDecision> {
-  const query = new URLSearchParams();
-  if (params.userId) {
-    query.set("userId", params.userId);
-  }
-  const suffix = query.toString() ? `?${query.toString()}` : "";
-  return api.get<LessonAccessDecision>(
-    `/access/lessons/${encodeURIComponent(params.lessonId)}${suffix}`
-  );
+  return accessGateway.getLessonAccessDecision(params);
 }
 
 export type CardWebhookStatus =

@@ -31,6 +31,8 @@ describe("gateway mode runtime config", () => {
     expect(mod.gatewayRuntimeConfig.mode).toBe("mock");
     expect(mod.gatewayRuntimeConfig.authTransport).toBe("mock");
     expect(mod.gatewayRuntimeConfig.coursesTransport).toBe("mock");
+    expect(mod.gatewayRuntimeConfig.lessonsTransport).toBe("mock");
+    expect(mod.gatewayRuntimeConfig.accessTransport).toBe("mock");
   });
 
   it("uses hybrid auth transport override when configured", async () => {
@@ -43,6 +45,8 @@ describe("gateway mode runtime config", () => {
     expect(mod.gatewayRuntimeConfig.mode).toBe("hybrid");
     expect(mod.gatewayRuntimeConfig.authTransport).toBe("http");
     expect(mod.gatewayRuntimeConfig.coursesTransport).toBe("http");
+    expect(mod.gatewayRuntimeConfig.lessonsTransport).toBe("http");
+    expect(mod.gatewayRuntimeConfig.accessTransport).toBe("http");
   });
 
   it("routes courses through http in hybrid mode by default", async () => {
@@ -53,5 +57,7 @@ describe("gateway mode runtime config", () => {
     const mod = await import("../../shared/gateway");
     expect(mod.gatewayRuntimeConfig.mode).toBe("hybrid");
     expect(mod.gatewayRuntimeConfig.coursesTransport).toBe("http");
+    expect(mod.gatewayRuntimeConfig.lessonsTransport).toBe("http");
+    expect(mod.gatewayRuntimeConfig.accessTransport).toBe("http");
   });
 });

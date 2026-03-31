@@ -1,26 +1,24 @@
 import type { Lesson } from "./types";
 import { api } from "@/shared/api/client";
 import { buildIdempotencyHeaders } from "@/shared/lib/idempotency";
+import { lessonsGateway } from "@/shared/gateway";
 
 export async function getLessons(options?: { forceFresh?: boolean }): Promise<Lesson[]> {
-  return api.get<Lesson[]>("/lessons", {
-    dedupe: options?.forceFresh ? false : undefined,
-    cacheTtlMs: options?.forceFresh ? 0 : undefined,
-  });
+  return lessonsGateway.getLessons(options);
 }
 
-export async function getLessonById(id: string): Promise<Lesson | null> {
-  return api.get<Lesson | null>(`/lessons/${id}`);
+export async function getLessonById(
+  id: string,
+  options?: { forceFresh?: boolean }
+): Promise<Lesson | null> {
+  return lessonsGateway.getLessonById(id, options);
 }
 
 export async function getLessonsByCourse(
   courseId: string,
   options?: { forceFresh?: boolean }
 ): Promise<Lesson[]> {
-  return api.get<Lesson[]>(`/lessons?courseId=${encodeURIComponent(courseId)}`, {
-    dedupe: options?.forceFresh ? false : undefined,
-    cacheTtlMs: options?.forceFresh ? 0 : undefined,
-  });
+  return lessonsGateway.getLessonsByCourse(courseId, options);
 }
 
 export async function saveLesson(

@@ -7,7 +7,18 @@ import type {
   CourseByIdResponseContract,
   CourseCatalogResponseContract,
 } from "@/shared/contracts/course.contract";
-import type { AuthGateway, CoursesGateway } from "./types";
+import type { Lesson } from "@/entities/lesson/model/types";
+import type {
+  CourseAccessDecision,
+  CourseAccessListResponse,
+  LessonAccessDecision,
+} from "@/domain/auth-payments/model/access";
+import type {
+  AccessGateway,
+  AuthGateway,
+  CoursesGateway,
+  LessonsGateway,
+} from "./types";
 
 const probeAuthSession = async (signal?: AbortSignal) => {
   const response = await fetch("/api/auth/session", {
@@ -44,5 +55,57 @@ export const mockCoursesGateway: CoursesGateway = {
       dedupe: options?.forceFresh ? false : undefined,
       cacheTtlMs: options?.forceFresh ? 0 : undefined,
     });
+  },
+};
+
+export const mockLessonsGateway: LessonsGateway = {
+  async getLessons(options): Promise<Lesson[]> {
+    return api.get<Lesson[]>("/lessons", {
+      dedupe: options?.forceFresh ? false : undefined,
+      cacheTtlMs: options?.forceFresh ? 0 : undefined,
+    });
+  },
+  async getLessonById(id, options): Promise<Lesson | null> {
+    return api.get<Lesson | null>(`/lessons/${id}`, {
+      dedupe: options?.forceFresh ? false : undefined,
+      cacheTtlMs: options?.forceFresh ? 0 : undefined,
+    });
+  },
+  async getLessonsByCourse(courseId, options): Promise<Lesson[]> {
+    return api.get<Lesson[]>(`/lessons?courseId=${encodeURIComponent(courseId)}`, {
+      dedupe: options?.forceFresh ? false : undefined,
+      cacheTtlMs: options?.forceFresh ? 0 : undefined,
+    });
+  },
+};
+
+export const mockAccessGateway: AccessGateway = {
+  async getCourseAccessDecision(params): Promise<CourseAccessDecision> {
+    const query = new URLSearchParams();
+    if (params.userId) {
+      query.set("userId", params.userId);
+    }
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return api.get<CourseAccessDecision>(
+      `/access/courses/${encodeURIComponent(params.courseId)}${suffix}`
+    );
+  },
+  async getCourseAccessList(params): Promise<CourseAccessListResponse> {
+    const query = new URLSearchParams();
+    if (params?.userId) {
+      query.set("userId", params.userId);
+    }
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return api.get<CourseAccessListResponse>(`/access/courses${suffix}`);
+  },
+  async getLessonAccessDecision(params): Promise<LessonAccessDecision> {
+    const query = new URLSearchParams();
+    if (params.userId) {
+      query.set("userId", params.userId);
+    }
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return api.get<LessonAccessDecision>(
+      `/access/lessons/${encodeURIComponent(params.lessonId)}${suffix}`
+    );
   },
 };
