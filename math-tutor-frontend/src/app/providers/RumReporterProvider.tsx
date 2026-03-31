@@ -13,6 +13,7 @@ import {
   APP_ACTION_GUARD_EVENT,
   type ActionGuardEventDetail,
 } from "@/shared/lib/useActionGuard";
+import { subscribePageLifecycleFlush } from "@/shared/lib/performanceLifecycle";
 
 type RumEvent = {
   type: "performance" | "api_failure" | "api_success" | "action_guard";
@@ -80,8 +81,12 @@ const createRumReporterSession = () => {
     }
   };
 
-  const flushOnHidden = () => {
-    if (typeof document !== "undefined" && document.visibilityState === "visible") {
+  const flushOnLifecycle = (reason: "hidden" | "pagehide") => {
+    if (
+      reason === "hidden" &&
+      typeof document !== "undefined" &&
+      document.visibilityState === "visible"
+    ) {
       return;
     }
     if (buffer.length === 0) return;
@@ -157,24 +162,28 @@ const createRumReporterSession = () => {
     void flushBatch();
   };
 
+  const unsubscribeLifecycle = subscribePageLifecycleFlush(
+    (reason) => {
+      flushOnLifecycle(reason);
+    },
+    { dedupeWindowMs: 250 }
+  );
+
   window.addEventListener(APP_PERFORMANCE_EVENT, onPerf as EventListener);
   window.addEventListener(APP_API_FAILURE_EVENT, onApiFailure as EventListener);
   window.addEventListener(APP_API_SUCCESS_EVENT, onApiSuccess as EventListener);
   window.addEventListener(APP_ACTION_GUARD_EVENT, onActionGuard as EventListener);
   window.addEventListener("online", onOnline);
-  window.addEventListener("visibilitychange", flushOnHidden);
-  window.addEventListener("pagehide", flushOnHidden);
 
   return () => {
     window.clearInterval(flushTimer);
+    unsubscribeLifecycle();
     window.removeEventListener(APP_PERFORMANCE_EVENT, onPerf as EventListener);
     window.removeEventListener(APP_API_FAILURE_EVENT, onApiFailure as EventListener);
     window.removeEventListener(APP_API_SUCCESS_EVENT, onApiSuccess as EventListener);
     window.removeEventListener(APP_ACTION_GUARD_EVENT, onActionGuard as EventListener);
     window.removeEventListener("online", onOnline);
-    window.removeEventListener("visibilitychange", flushOnHidden);
-    window.removeEventListener("pagehide", flushOnHidden);
-    flushOnHidden();
+    flushOnLifecycle("pagehide");
   };
 };
 

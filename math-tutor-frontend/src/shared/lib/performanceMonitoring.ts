@@ -1,3 +1,5 @@
+import { subscribePageLifecycleFlush } from "@/shared/lib/performanceLifecycle";
+
 export const APP_PERFORMANCE_EVENT = "app-performance";
 
 type MetricName = "INP" | "LCP" | "CLS" | "LONG_TASK";
@@ -208,18 +210,12 @@ const createMonitoringSession = () => {
     }
   };
 
-  const onHidden = () => {
-    if (document.visibilityState === "hidden") {
-      flush();
-    }
-  };
-
-  window.addEventListener("visibilitychange", onHidden, true);
-  window.addEventListener("pagehide", flush, true);
+  const unsubscribeLifecycle = subscribePageLifecycleFlush(() => {
+    flush();
+  });
 
   return () => {
-    window.removeEventListener("visibilitychange", onHidden, true);
-    window.removeEventListener("pagehide", flush, true);
+    unsubscribeLifecycle();
     flush();
     observers.forEach((observer) => {
       try {

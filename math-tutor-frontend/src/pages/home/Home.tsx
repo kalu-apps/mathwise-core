@@ -28,6 +28,11 @@ export default function Home() {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [resetting, setResetting] = useState(false);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+  const showDevReset =
+    import.meta.env.DEV &&
+    String(import.meta.env.VITE_ENABLE_DEV_RESET_UI ?? "")
+      .trim()
+      .toLowerCase() === "true";
 
   const handleDevReset = async () => {
     if (resetting) return;
@@ -50,7 +55,7 @@ export default function Home() {
       <BenefitsSection />
       <CoursesPreview />
       <CTASection />
-      {import.meta.env.DEV && (
+      {showDevReset && (
         <div className="home-dev-reset">
           <Tooltip title="Сбросить демо-данные">
             <span>

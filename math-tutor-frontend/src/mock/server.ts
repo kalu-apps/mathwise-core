@@ -93,6 +93,13 @@ import {
   type AssessmentStorageState,
 } from "../features/assessments/model/types";
 import { createMediaStorageAdapter } from "./mediaStorage";
+import { SERVER_RUNTIME_ENV } from "./runtime/serverEnv";
+import {
+  type AuthCookiePolicy,
+  buildSessionClearCookie,
+  buildSessionSetCookie,
+} from "./runtime/cookiePolicy";
+import { verifyCardWebhookRequest } from "./runtime/webhookGuards";
 
 const json = (res: import("http").ServerResponse, status: number, data: unknown) => {
   res.statusCode = status;
@@ -485,11 +492,13 @@ const teacherEmailSet = new Set(
   TEACHER_EMAILS.map((email) => normalizeEmail(email)).filter(Boolean)
 );
 const primaryTeacherEmail = normalizeEmail(TEACHER_EMAILS[0] ?? "");
+const isTeacherShortcutEmail = (email: string) =>
+  SERVER_RUNTIME_ENV.allowTeacherShortcuts && teacherEmailSet.has(email);
 const canonicalizeTeacherLoginEmail = (email: string) =>
-  teacherEmailSet.has(email) ? primaryTeacherEmail : email;
+  isTeacherShortcutEmail(email) ? primaryTeacherEmail : email;
 const LEGAL_DOCUMENT_VERSION = "ru-legal-v1";
 const AUTH_SESSION_COOKIE = "mt_auth_session";
-const AUTH_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+const AUTH_SESSION_TTL_MS = SERVER_RUNTIME_ENV.authSessionTtlMs;
 const AUTH_SESSION_IDLE_TTL_MS = 1000 * 60 * 60;
 const AUTH_PASSWORD_PEPPER = process.env.AUTH_PASSWORD_PEPPER ?? "mock-pepper-v1";
 const AUTH_PASSWORD_MAX_FAILED_ATTEMPTS = 5;
@@ -500,11 +509,18 @@ const AUTH_MAGIC_CODE_MAX_ATTEMPTS = 5;
 const EMAIL_RUNTIME = createEmailRuntimeConfig();
 const AUTH_DEBUG_TOKENS = EMAIL_RUNTIME.allowAuthDebugTokens;
 const OUTBOX_DEFAULT_MAX_ATTEMPTS = Number(process.env.OUTBOX_MAX_ATTEMPTS ?? 4);
-const CARD_WEBHOOK_SECRET = "mock-card-webhook-secret-v1";
 const CARD_AUTO_CAPTURE = false;
 const CHECKOUT_TTL_MS = 1000 * 60 * 30;
 const IDEMPOTENCY_RECORD_TTL_MS = 1000 * 60 * 60 * 12;
 const IDEMPOTENCY_HEADER_NAME = "x-idempotency-key";
+const AUTH_COOKIE_POLICY: AuthCookiePolicy = {
+  secure: SERVER_RUNTIME_ENV.authCookieSecure,
+  httpOnly: SERVER_RUNTIME_ENV.authCookieHttpOnly,
+  sameSite: SERVER_RUNTIME_ENV.authCookieSameSite,
+  domain: SERVER_RUNTIME_ENV.authCookieDomain,
+  path: SERVER_RUNTIME_ENV.authCookiePath,
+  maxAgeSec: SERVER_RUNTIME_ENV.authCookieMaxAgeSec,
+};
 
 const nowIso = () => new Date().toISOString();
 const nowTs = () => Date.now();
@@ -1785,21 +1801,11 @@ const setSessionCookie = (
   res: import("http").ServerResponse,
   sessionId: string
 ) => {
-  res.setHeader(
-    "Set-Cookie",
-    `${AUTH_SESSION_COOKIE}=${encodeURIComponent(
-      sessionId
-    )}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.floor(
-      AUTH_SESSION_TTL_MS / 1000
-    )}`
-  );
+  res.setHeader("Set-Cookie", buildSessionSetCookie(AUTH_SESSION_COOKIE, sessionId, AUTH_COOKIE_POLICY));
 };
 
 const clearSessionCookie = (res: import("http").ServerResponse) => {
-  res.setHeader(
-    "Set-Cookie",
-    `${AUTH_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
-  );
+  res.setHeader("Set-Cookie", buildSessionClearCookie(AUTH_SESSION_COOKIE, AUTH_COOKIE_POLICY));
 };
 
 const normalizeIdempotencyMethod = (method: string) =>
@@ -3328,26 +3334,6 @@ const serializeEventPayload = (payload: unknown) => {
   } catch {
     return undefined;
   }
-};
-
-const getCardWebhookSignature = (
-  rawBody: string,
-  timestamp: string,
-  secret = CARD_WEBHOOK_SECRET
-) =>
-  crypto.createHmac("sha256", secret).update(`${timestamp}.${rawBody}`).digest("hex");
-
-const hasValidCardWebhookSignature = (
-  rawBody: string,
-  timestamp: string,
-  signature: string
-) => {
-  if (!rawBody || !timestamp || !signature) return false;
-  const expected = getCardWebhookSignature(rawBody, timestamp);
-  const expectedBuffer = Buffer.from(expected, "utf-8");
-  const actualBuffer = Buffer.from(signature, "utf-8");
-  if (expectedBuffer.length !== actualBuffer.length) return false;
-  return crypto.timingSafeEqual(expectedBuffer, actualBuffer);
 };
 
 type CardWebhookStatus =
@@ -4981,7 +4967,7 @@ const resolveUserForEmailAuth = (
 ):
   | { ok: true; user: ReturnType<typeof getDb>["users"][number] }
   | { ok: false; status: number; error: string } => {
-  const isTeacher = teacherEmailSet.has(email);
+  const isTeacher = isTeacherShortcutEmail(email);
   const sameEmailUsers = db.users.filter(
     (candidate) => normalizeEmail(candidate.email) === email
   );
@@ -5258,7 +5244,9 @@ export function setupMockServer(server: ServerWithMiddlewares) {
     const method = req.method ?? "GET";
     const db = getDb();
     ensureDomainCollections(db);
-    enforceSingleTeacherIdentity(db);
+    if (SERVER_RUNTIME_ENV.allowTeacherShortcuts) {
+      enforceSingleTeacherIdentity(db);
+    }
     pruneWorkbookArtifacts(db);
     pruneAuthSessions(db);
     pruneTeacherAvailability(db);
@@ -5282,6 +5270,11 @@ export function setupMockServer(server: ServerWithMiddlewares) {
     try {
       // ================= AUTH =================
       if (path === "/api/dev/reset" && method === "POST") {
+        if (!SERVER_RUNTIME_ENV.allowDevReset) {
+          return json(res, 403, {
+            error: "Dev reset endpoint disabled for current runtime policy.",
+          });
+        }
         resetDb();
         clearSessionCookie(res);
         return json(res, 200, { ok: true });
@@ -5609,7 +5602,7 @@ export function setupMockServer(server: ServerWithMiddlewares) {
         }
 
         clearAuthCredentialLock(credential, timestamp);
-        const isTeacher = teacherEmailSet.has(email);
+        const isTeacher = isTeacherShortcutEmail(email);
         if (isTeacher && user.role !== "teacher") {
           return json(res, 403, {
             error: "Доступ преподавателя недоступен для этого аккаунта.",
@@ -5979,7 +5972,7 @@ export function setupMockServer(server: ServerWithMiddlewares) {
         if (newEmail === email) {
           return json(res, 400, { error: "Новый email должен отличаться от текущего." });
         }
-        if (teacherEmailSet.has(newEmail)) {
+        if (isTeacherShortcutEmail(newEmail)) {
           return json(res, 400, {
             error:
               "Этот email зарезервирован для преподавателя. Используйте email ученика.",
@@ -8809,7 +8802,7 @@ export function setupMockServer(server: ServerWithMiddlewares) {
           return json(res, 400, { error: "Данные не заполнены" });
         }
 
-        if (email && teacherEmailSet.has(email)) {
+        if (email && isTeacherShortcutEmail(email)) {
           return json(res, 400, {
             error:
               "Этот email зарезервирован для кабинета преподавателя. Используйте email ученика.",
@@ -9861,8 +9854,20 @@ export function setupMockServer(server: ServerWithMiddlewares) {
         const timestamp = Array.isArray(timestampHeader)
           ? timestampHeader[0] ?? ""
           : timestampHeader ?? "";
-        if (!hasValidCardWebhookSignature(rawBody, String(timestamp), String(signature))) {
-          return json(res, 401, { error: "Некорректная подпись webhook." });
+        const webhookValidation = verifyCardWebhookRequest(
+          {
+            secret: SERVER_RUNTIME_ENV.cardWebhookSecret,
+            maxSkewSec: SERVER_RUNTIME_ENV.cardWebhookMaxSkewSec,
+            replayTtlSec: SERVER_RUNTIME_ENV.cardWebhookReplayTtlSec,
+          },
+          {
+            rawBody,
+            timestampHeader: String(timestamp),
+            signatureHeader: String(signature),
+          }
+        );
+        if (!webhookValidation.ok) {
+          return json(res, webhookValidation.status, { error: webhookValidation.error });
         }
 
         type CardWebhookBody = {
@@ -11015,7 +11020,7 @@ export function setupMockServer(server: ServerWithMiddlewares) {
         if (!studentEmail) {
           return json(res, 400, { error: "Email обязателен" });
         }
-        if (teacherEmailSet.has(studentEmail)) {
+        if (isTeacherShortcutEmail(studentEmail)) {
           return json(res, 400, {
             error:
               "Этот email зарезервирован для преподавателя. Используйте email ученика.",

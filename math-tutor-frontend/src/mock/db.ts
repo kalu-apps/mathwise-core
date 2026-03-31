@@ -234,7 +234,10 @@ export type MockDb = {
   assessmentSessions: Record<string, AssessmentSession>;
 };
 
-const DB_FILE = path.resolve(process.cwd(), "mock-db.json");
+const DB_FILE = path.resolve(
+  process.cwd(),
+  process.env.MOCK_DB_FILE?.trim() || "mock-db.json"
+);
 
 const createDefaultDb = (): MockDb => ({
   users: [],

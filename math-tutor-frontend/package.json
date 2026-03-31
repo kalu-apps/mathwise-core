@@ -6,8 +6,11 @@
   "scripts": {
     "dev": "vite",
     "dev:https": "VITE_DEV_HTTPS=1 vite",
+    "typecheck": "tsc -b --pretty false",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "verify": "npm run lint && npm run build",
     "preview": "vite preview"
   },
@@ -54,6 +57,7 @@
     "sass-embedded": "^1.97.3",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vitest": "^4.1.2"
   }
 }

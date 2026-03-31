@@ -10,6 +10,7 @@ on:
       - 'math-tutor-frontend/tsconfig*.json'
       - 'math-tutor-frontend/eslint.config.js'
       - 'math-tutor-frontend/vite.config.ts'
+      - 'math-tutor-frontend/vitest.config.ts'
 
 jobs:
   frontend-checks:
@@ -35,5 +36,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Build
         run: npm run build
+
+      - name: Test
+        run: npm run test

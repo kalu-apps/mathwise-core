@@ -5,6 +5,7 @@ import basicSsl from "@vitejs/plugin-basic-ssl";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 import { setupMockServer } from "./src/mock/server";
+import { shouldEnableMockRuntime } from "./src/mock/runtime/serverEnv";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -12,6 +13,8 @@ const __dirname = dirname(__filename);
 // https://vite.dev/config/
 export default defineConfig(() => {
   const useHttps = process.env.VITE_DEV_HTTPS === "1";
+  const mockEnabledInDev = shouldEnableMockRuntime("dev-server");
+  const mockEnabledInPreview = shouldEnableMockRuntime("preview-server");
   const plugins: PluginOption[] = [
     react(),
     legacy({
@@ -22,9 +25,11 @@ export default defineConfig(() => {
     {
       name: "mock-api",
       configureServer(server) {
+        if (!mockEnabledInDev) return;
         setupMockServer(server);
       },
       configurePreviewServer(server) {
+        if (!mockEnabledInPreview) return;
         setupMockServer(server);
       },
     },

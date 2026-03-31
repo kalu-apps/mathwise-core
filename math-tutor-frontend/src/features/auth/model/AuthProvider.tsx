@@ -58,10 +58,17 @@ const clearIdleActivityTimestamp = () => {
   }
 };
 
-const SHOWCASE_AUTO_LOGIN_EMAIL =
-  import.meta.env.VITE_SHOWCASE_AUTO_LOGIN_EMAIL?.trim().toLowerCase() ?? "";
-const SHOWCASE_AUTO_LOGIN_PASSWORD =
-  import.meta.env.VITE_SHOWCASE_AUTO_LOGIN_PASSWORD ?? "magic";
+const SHOWCASE_AUTO_LOGIN_ENABLED =
+  import.meta.env.DEV &&
+  String(import.meta.env.VITE_ENABLE_SHOWCASE_AUTO_LOGIN ?? "")
+    .trim()
+    .toLowerCase() === "true";
+const SHOWCASE_AUTO_LOGIN_EMAIL = SHOWCASE_AUTO_LOGIN_ENABLED
+  ? import.meta.env.VITE_SHOWCASE_AUTO_LOGIN_EMAIL?.trim().toLowerCase() ?? ""
+  : "";
+const SHOWCASE_AUTO_LOGIN_PASSWORD = SHOWCASE_AUTO_LOGIN_ENABLED
+  ? import.meta.env.VITE_SHOWCASE_AUTO_LOGIN_PASSWORD ?? "magic"
+  : "";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() =>
@@ -78,6 +85,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authModalEmail, setAuthModalEmail] = useState("");
   const showcaseAutoLoginStartedRef = useRef(false);
 
+  const clearLocalAuthState = useCallback(() => {
+    setUser(null);
+    removeStorage(AUTH_STORAGE_KEY);
+    clearIdleActivityTimestamp();
+  }, []);
+
   const syncSession = useCallback(async () => {
     try {
       const sessionUser = await getAuthSession();
@@ -88,12 +101,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         removeStorage(AUTH_STORAGE_KEY);
       }
     } catch {
-      setUser(null);
-      removeStorage(AUTH_STORAGE_KEY);
+      clearLocalAuthState();
     } finally {
       setAuthReady(true);
     }
-  }, []);
+  }, [clearLocalAuthState]);
 
   useEffect(() => {
     let active = true;
@@ -110,14 +122,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (!active) return;
-        setUser(null);
-        removeStorage(AUTH_STORAGE_KEY);
+        clearLocalAuthState();
         setAuthReady(true);
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [clearLocalAuthState]);
 
   useEffect(() => {
     if (!SHOWCASE_AUTO_LOGIN_EMAIL) return;
@@ -147,11 +158,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isAuthReady, syncSession, user]);
 
   const logout = useCallback(() => {
-    setUser(null);
-    removeStorage(AUTH_STORAGE_KEY);
-    clearIdleActivityTimestamp();
-    void logoutAuthSession();
-  }, []);
+    clearLocalAuthState();
+    void logoutAuthSession().catch(() => undefined);
+  }, [clearLocalAuthState]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
@@ -266,8 +275,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (event.key === AUTH_STORAGE_KEY && event.newValue === null) {
         clearIdleTimer();
-        setUser(null);
-        removeStorage(AUTH_STORAGE_KEY);
+        clearLocalAuthState();
       }
     };
 
@@ -289,7 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("storage", onStorageChange);
       clearIdleTimer();
     };
-  }, [logout, user]);
+  }, [clearLocalAuthState, logout, user]);
 
   /* ================= LOGIN ================= */
 

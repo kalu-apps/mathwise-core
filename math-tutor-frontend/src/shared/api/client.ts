@@ -1,4 +1,5 @@
 import { dispatchDataUpdate } from "@/shared/lib/dataUpdateBus";
+import { computeRetryDelayMs } from "@/shared/api/retryPolicy";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -142,15 +143,6 @@ const classifyStatusCode = (status: number): ApiErrorCode => {
 
 const isStatusRetryable = (status: number, retryOnStatuses: number[]) =>
   retryOnStatuses.includes(status);
-
-const getRetryDelayMs = (attemptNumber: number, policy: Required<RetryPolicy>) => {
-  const base = Math.min(
-    policy.maxDelayMs,
-    policy.baseDelayMs * Math.pow(2, Math.max(0, attemptNumber - 1))
-  );
-  const jitter = Math.floor(base * (0.2 + Math.random() * 0.4));
-  return Math.min(policy.maxDelayMs + jitter, base + jitter);
-};
 
 const clampNumber = (value: unknown, fallback: number, min: number, max: number) => {
   const normalized =
@@ -575,7 +567,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
           throw apiError;
         }
 
-        const delayMs = getRetryDelayMs(attempt + 1, retryPolicy);
+        const delayMs = computeRetryDelayMs(attempt + 1, {
+          baseDelayMs: retryPolicy.baseDelayMs,
+          maxDelayMs: retryPolicy.maxDelayMs,
+        });
         await wait(delayMs);
       } finally {
         clearTimeout(timeoutId);
