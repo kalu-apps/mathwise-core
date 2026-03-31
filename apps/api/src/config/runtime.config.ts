@@ -11,6 +11,10 @@ export type ApiRuntimeConfig = {
   redisUrl: string;
   coursesSeedOnBoot: boolean;
   coursesSeedSourceFile: string;
+  authSessionCookieName: string;
+  authSessionTtlSec: number;
+  authDebugTokens: boolean;
+  authPasswordPepper: string;
 };
 
 type RuntimeConfigOptions = {
@@ -39,6 +43,14 @@ const parseBoolean = (raw: string | undefined, fallback: boolean) => {
   if (["1", "true", "yes", "on"].includes(normalized)) return true;
   if (["0", "false", "no", "off"].includes(normalized)) return false;
   return fallback;
+};
+
+const parsePositiveInteger = (raw: string | undefined, fallback: number) => {
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return fallback;
+  const normalized = Math.floor(parsed);
+  if (normalized <= 0) return fallback;
+  return normalized;
 };
 
 const ensureRequiredEnv = (name: string, value: string | undefined) => {
@@ -88,5 +100,11 @@ export const getApiRuntimeConfig = (
     coursesSeedSourceFile: resolveCoursesSeedSourceFile(
       process.env.COURSES_SEED_SOURCE_FILE ?? process.env.COURSES_SOURCE_FILE
     ),
+    authSessionCookieName:
+      process.env.AUTH_SESSION_COOKIE_NAME?.trim() || "mt_auth_session",
+    authSessionTtlSec: parsePositiveInteger(process.env.AUTH_SESSION_TTL_SEC, 30 * 24 * 60 * 60),
+    authDebugTokens: parseBoolean(process.env.AUTH_DEBUG_TOKENS, appEnv === "local"),
+    authPasswordPepper:
+      process.env.AUTH_PASSWORD_PEPPER?.trim() || "api-auth-pepper-v1",
   };
 };

@@ -1,5 +1,6 @@
 import type {
   AuthLogoutResponseContract,
+  AuthMagicLinkRequestResponseContract,
   AuthSessionProbeResultContract,
   AuthSessionResponseContract,
 } from "@/shared/contracts/auth.contract";
@@ -26,6 +27,17 @@ export type GatewayRuntimeConfig = {
 };
 
 export type AuthGateway = {
+  requestMagicLink: (
+    email: string
+  ) => Promise<AuthMagicLinkRequestResponseContract>;
+  confirmMagicLink: (params: {
+    email: string;
+    code: string;
+  }) => Promise<AuthSessionResponseContract>;
+  passwordLogin: (params: {
+    email: string;
+    password: string;
+  }) => Promise<AuthSessionResponseContract>;
   getSession: () => Promise<AuthSessionResponseContract>;
   logout: () => Promise<AuthLogoutResponseContract>;
   probeSession: (signal?: AbortSignal) => Promise<AuthSessionProbeResultContract>;

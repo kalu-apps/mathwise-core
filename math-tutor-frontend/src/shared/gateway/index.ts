@@ -80,7 +80,9 @@ export const resolveGatewayRuntimeConfig = (): GatewayRuntimeConfig => {
 
   const isDev = Boolean(import.meta.env.DEV);
   const authTransport = normalizeTransport(
-    import.meta.env.VITE_GATEWAY_AUTH_TRANSPORT ??
+    import.meta.env.VITE_GATEWAY_AUTH_MODE ??
+      import.meta.env.VITE_GATEWAY_AUTH_TRANSPORT ??
+      readNodeEnv("GATEWAY_AUTH_MODE") ??
       readNodeEnv("GATEWAY_AUTH_TRANSPORT"),
     isDev ? "mock" : "http"
   );

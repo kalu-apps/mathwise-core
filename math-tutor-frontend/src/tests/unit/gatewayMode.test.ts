@@ -37,7 +37,8 @@ describe("gateway mode runtime config", () => {
 
   it("uses hybrid auth transport override when configured", async () => {
     process.env.GATEWAY_MODE = "hybrid";
-    process.env.GATEWAY_AUTH_TRANSPORT = "http";
+    process.env.GATEWAY_AUTH_MODE = "http";
+    delete process.env.GATEWAY_AUTH_TRANSPORT;
     process.env.GATEWAY_COURSES_MODE = "http";
 
     vi.resetModules();

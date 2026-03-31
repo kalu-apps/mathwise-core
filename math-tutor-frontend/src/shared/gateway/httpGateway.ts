@@ -1,6 +1,7 @@
 import { api } from "@/shared/api/client";
 import type {
   AuthLogoutResponseContract,
+  AuthMagicLinkRequestResponseContract,
   AuthSessionResponseContract,
 } from "@/shared/contracts/auth.contract";
 import type {
@@ -54,10 +55,21 @@ const parseJson = async (response: Response) => {
   }
 };
 
-const requestHttpJson = async <T>(path: string): Promise<T> => {
+const requestHttpJson = async <T>(
+  path: string,
+  options?: { method?: "GET" | "POST"; body?: unknown; signal?: AbortSignal }
+): Promise<T> => {
   const response = await fetch(buildHttpApiUrl(path), {
-    method: "GET",
+    method: options?.method ?? "GET",
     credentials: "include",
+    headers:
+      options?.body !== undefined
+        ? {
+            "Content-Type": "application/json",
+          }
+        : undefined,
+    body: options?.body !== undefined ? JSON.stringify(options.body) : undefined,
+    signal: options?.signal,
   });
   const payload = await parseJson(response);
   if (!response.ok) {
@@ -88,15 +100,34 @@ const probeAuthSession = async (signal?: AbortSignal) => {
 };
 
 export const httpGateway: AuthGateway = {
+  async requestMagicLink(
+    email: string
+  ): Promise<AuthMagicLinkRequestResponseContract> {
+    return requestHttpJson<AuthMagicLinkRequestResponseContract>("/auth/magic-link", {
+      method: "POST",
+      body: { email },
+    });
+  },
+  async confirmMagicLink(params): Promise<AuthSessionResponseContract> {
+    return requestHttpJson<AuthSessionResponseContract>("/auth/magic-link/confirm", {
+      method: "POST",
+      body: params,
+    });
+  },
+  async passwordLogin(params): Promise<AuthSessionResponseContract> {
+    return requestHttpJson<AuthSessionResponseContract>("/auth/password/login", {
+      method: "POST",
+      body: params,
+    });
+  },
   async getSession(): Promise<AuthSessionResponseContract> {
-    return api.get<AuthSessionResponseContract>("/auth/session");
+    return requestHttpJson<AuthSessionResponseContract>("/auth/session");
   },
   async logout(): Promise<AuthLogoutResponseContract> {
-    return api.post<AuthLogoutResponseContract>(
-      "/auth/logout",
-      {},
-      { notifyDataUpdate: false }
-    );
+    return requestHttpJson<AuthLogoutResponseContract>("/auth/logout", {
+      method: "POST",
+      body: {},
+    });
   },
   probeSession: probeAuthSession,
 };

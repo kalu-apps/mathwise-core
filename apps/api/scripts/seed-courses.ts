@@ -6,6 +6,8 @@ import {
   upsertCourses,
   upsertLessons,
 } from "../src/seed/readSlice.seed";
+import { hashPassword } from "../src/auth/auth.password";
+import { readAuthSeedUsers, upsertAuthUsers } from "../src/auth/auth.seed";
 
 type SeedExecutor = {
   execute: (text: string, params?: unknown[]) => Promise<void>;
@@ -73,6 +75,22 @@ const ensureAccessSchema = async (executor: SeedExecutor) => {
   `);
 };
 
+const ensureAuthSchema = async (executor: SeedExecutor) => {
+  await executor.execute(`
+    CREATE TABLE IF NOT EXISTS auth_users (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      first_name TEXT NOT NULL DEFAULT '',
+      last_name TEXT NOT NULL DEFAULT '',
+      role TEXT NOT NULL CHECK (role IN ('student', 'teacher')),
+      phone TEXT,
+      photo TEXT,
+      password_hash TEXT,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+};
+
 async function main() {
   const runtimeConfig = getApiRuntimeConfig({ requireRedis: false });
   const pool = new Pool({ connectionString: runtimeConfig.databaseUrl });
@@ -87,15 +105,23 @@ async function main() {
     await ensureCoursesSchema(executor);
     await ensureLessonsSchema(executor);
     await ensureAccessSchema(executor);
+    await ensureAuthSchema(executor);
 
     const seed = readReadSliceSeedData(runtimeConfig.coursesSeedSourceFile);
+    const authUsers = readAuthSeedUsers(runtimeConfig.coursesSeedSourceFile).map((user) => ({
+      ...user,
+      passwordHash: user.password
+        ? hashPassword(user.password, runtimeConfig.authPasswordPepper)
+        : null,
+    }));
     await upsertCourses(executor, seed.courses);
     await upsertLessons(executor, seed.lessons);
     await upsertAccessReadModel(executor, seed.access);
+    await upsertAuthUsers(executor, authUsers);
 
     // eslint-disable-next-line no-console
     console.log(
-      `[seed:courses] upserted courses=${seed.courses.length}, lessons=${seed.lessons.length}, accessUsers=${seed.access.users.length}, accessLinks=${seed.access.courseAccess.length}`
+      `[seed:courses] upserted courses=${seed.courses.length}, lessons=${seed.lessons.length}, accessUsers=${seed.access.users.length}, accessLinks=${seed.access.courseAccess.length}, authUsers=${authUsers.length}`
     );
   } finally {
     await pool.end();

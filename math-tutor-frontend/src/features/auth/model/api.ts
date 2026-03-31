@@ -16,30 +16,26 @@ export type RequestMagicCodeResponse = {
 export async function requestMagicLink(
   email: string
 ): Promise<RequestMagicCodeResponse> {
-  return api.post<RequestMagicCodeResponse>(
-    "/auth/magic-link",
-    { email },
-    { notifyDataUpdate: false }
-  );
+  return authGateway.requestMagicLink(email);
 }
 
 export async function confirmMagicLink(email: string, code: string): Promise<User> {
-  return api.post<User>(
-    "/auth/magic-link/confirm",
-    { email, code },
-    { notifyDataUpdate: false }
-  );
+  const user = await authGateway.confirmMagicLink({ email, code });
+  if (!user) {
+    throw new Error("Не удалось подтвердить вход.");
+  }
+  return user;
 }
 
 export async function requestPasswordLogin(
   email: string,
   password: string
 ): Promise<User> {
-  return api.post<User>(
-    "/auth/password/login",
-    { email, password },
-    { notifyDataUpdate: false }
-  );
+  const user = await authGateway.passwordLogin({ email, password });
+  if (!user) {
+    throw new Error("Не удалось выполнить вход.");
+  }
+  return user;
 }
 
 export async function getAuthSession(): Promise<User | null> {

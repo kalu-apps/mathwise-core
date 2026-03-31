@@ -6,6 +6,13 @@ export type AuthLogoutResponseContract = {
   ok: boolean;
 };
 
+export type AuthMagicLinkRequestResponseContract = {
+  ok: boolean;
+  message: string;
+  expiresAt?: string | null;
+  debugCode?: string | null;
+};
+
 export type AuthSessionProbeResultContract = {
   status: number;
 };

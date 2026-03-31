@@ -44,6 +44,15 @@ export const createHybridAuthGateway = (
   resolveAuthTransport: () => GatewayTransport
 ): AuthGateway => {
   return {
+    requestMagicLink(email: string) {
+      return resolveGatewayByTransport(resolveAuthTransport()).requestMagicLink(email);
+    },
+    confirmMagicLink(params) {
+      return resolveGatewayByTransport(resolveAuthTransport()).confirmMagicLink(params);
+    },
+    passwordLogin(params) {
+      return resolveGatewayByTransport(resolveAuthTransport()).passwordLogin(params);
+    },
     getSession() {
       return resolveGatewayByTransport(resolveAuthTransport()).getSession();
     },

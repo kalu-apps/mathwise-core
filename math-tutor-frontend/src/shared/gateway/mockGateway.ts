@@ -1,6 +1,7 @@
 import { api } from "@/shared/api/client";
 import type {
   AuthLogoutResponseContract,
+  AuthMagicLinkRequestResponseContract,
   AuthSessionResponseContract,
 } from "@/shared/contracts/auth.contract";
 import type {
@@ -30,6 +31,29 @@ const probeAuthSession = async (signal?: AbortSignal) => {
 };
 
 export const mockGateway: AuthGateway = {
+  async requestMagicLink(
+    email: string
+  ): Promise<AuthMagicLinkRequestResponseContract> {
+    return api.post<AuthMagicLinkRequestResponseContract>(
+      "/auth/magic-link",
+      { email },
+      { notifyDataUpdate: false }
+    );
+  },
+  async confirmMagicLink(params): Promise<AuthSessionResponseContract> {
+    return api.post<AuthSessionResponseContract>(
+      "/auth/magic-link/confirm",
+      params,
+      { notifyDataUpdate: false }
+    );
+  },
+  async passwordLogin(params): Promise<AuthSessionResponseContract> {
+    return api.post<AuthSessionResponseContract>(
+      "/auth/password/login",
+      params,
+      { notifyDataUpdate: false }
+    );
+  },
   async getSession(): Promise<AuthSessionResponseContract> {
     return api.get<AuthSessionResponseContract>("/auth/session");
   },
