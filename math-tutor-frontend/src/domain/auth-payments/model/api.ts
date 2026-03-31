@@ -1,5 +1,5 @@
 import { api } from "@/shared/api/client";
-import { accessGateway } from "@/shared/gateway";
+import { accessGateway, purchaseGateway } from "@/shared/gateway";
 import type {
   CourseAccessDecision,
   CourseAccessListResponse,
@@ -106,11 +106,7 @@ export async function retryNotificationOutbox(id: string) {
 }
 
 export async function cancelCheckout(checkoutId: string) {
-  return api.post<{
-    ok: boolean;
-    idempotent?: boolean;
-    checkout: { id: string; state: string } | null;
-  }>(`/checkouts/${encodeURIComponent(checkoutId)}/cancel`, {});
+  return purchaseGateway.cancelCheckout(checkoutId);
 }
 
 export async function runSupportReconciliation(params?: {
@@ -169,55 +165,19 @@ export type CheckoutStatusResponse = {
 };
 
 export async function getCheckoutStatus(checkoutId: string) {
-  return api.get<CheckoutStatusResponse>(
-    `/checkouts/${encodeURIComponent(checkoutId)}/status`
-  );
+  return purchaseGateway.getCheckoutStatus(checkoutId);
 }
 
 export async function retryCheckout(checkoutId: string) {
-  return api.post<{
-    ok: boolean;
-    checkoutId: string;
-    checkoutState: string;
-    payment: {
-      provider: string;
-      status: string;
-      outcome: string;
-      paymentUrl?: string;
-      redirectUrl?: string;
-      returnUrl?: string;
-      providerPaymentId?: string;
-      requiresConfirmation: boolean;
-      lastProcessedAt: string | null;
-      sbp?: {
-        qrUrl?: string;
-        deepLinkUrl?: string;
-        expiresAt?: string;
-      };
-    };
-  }>(`/checkouts/${encodeURIComponent(checkoutId)}/retry`, {});
+  return purchaseGateway.retryCheckout(checkoutId);
 }
 
 export async function confirmCheckoutPaid(checkoutId: string) {
-  return api.post<{
-    ok: boolean;
-    checkoutId: string;
-    checkoutState: string;
-    payment: CheckoutStatusResponse["payment"];
-    access: CheckoutStatusResponse["access"];
-  }>(`/checkouts/${encodeURIComponent(checkoutId)}/confirm-paid`, {});
+  return purchaseGateway.confirmCheckoutPaid(checkoutId);
 }
 
 export async function getCheckoutTimeline(checkoutId: string) {
-  return api.get<{
-    checkoutId: string;
-    state: string;
-    timeline: Array<{
-      at: string;
-      type: string;
-      details: Record<string, unknown>;
-    }>;
-  }>(`/checkouts/${encodeURIComponent(checkoutId)}/timeline`);
+  return purchaseGateway.getCheckoutTimeline(checkoutId);
 }
 
 export type CheckoutListItem = {
@@ -238,10 +198,5 @@ export async function getCheckouts(params?: {
   email?: string;
   courseId?: string;
 }) {
-  const query = new URLSearchParams();
-  if (params?.userId) query.set("userId", params.userId);
-  if (params?.email) query.set("email", params.email);
-  if (params?.courseId) query.set("courseId", params.courseId);
-  const suffix = query.toString() ? `?${query.toString()}` : "";
-  return api.get<CheckoutListItem[]>(`/checkouts${suffix}`);
+  return purchaseGateway.getCheckouts(params);
 }

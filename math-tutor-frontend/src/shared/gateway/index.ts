@@ -1,30 +1,44 @@
 import {
   createHybridAccessGateway,
   createHybridAuthGateway,
+  createHybridBookingsGateway,
   createHybridCoursesGateway,
   createHybridLessonsGateway,
+  createHybridProfileGateway,
+  createHybridPurchasesGateway,
 } from "./hybridGateway";
 import {
   httpAccessGateway,
+  httpBookingsGateway,
   httpCoursesGateway,
   httpGateway,
   httpLessonsGateway,
+  httpProfileGateway,
+  httpPurchasesGateway,
 } from "./httpGateway";
 import {
   mockAccessGateway,
+  mockBookingsGateway,
   mockCoursesGateway,
   mockGateway,
   mockLessonsGateway,
+  mockProfileGateway,
+  mockPurchasesGateway,
 } from "./mockGateway";
 import type {
   AccessGateway,
   AuthGateway,
+  BookingsGateway,
   CoursesGateway,
   GatewayMode,
   GatewayRuntimeConfig,
   GatewayTransport,
   LessonsGateway,
+  ProfileGateway,
+  PurchasesGateway,
 } from "./types";
+
+type FrontendAppEnv = "local" | "preview" | "stage" | "prod";
 
 const normalizeMode = (
   value: string | undefined,
@@ -53,6 +67,17 @@ const readNodeEnv = (name: string) => {
   return process.env?.[name];
 };
 
+const normalizeFrontendAppEnv = (
+  raw: string | undefined
+): FrontendAppEnv => {
+  const value = (raw ?? "local").trim().toLowerCase();
+  if (value === "local") return "local";
+  if (value === "preview") return "preview";
+  if (value === "stage" || value === "staging") return "stage";
+  if (value === "prod" || value === "production") return "prod";
+  return "local";
+};
+
 export const resolveGatewayRuntimeConfig = (): GatewayRuntimeConfig => {
   const mode = normalizeMode(
     import.meta.env.VITE_GATEWAY_MODE ?? readNodeEnv("GATEWAY_MODE"),
@@ -66,6 +91,9 @@ export const resolveGatewayRuntimeConfig = (): GatewayRuntimeConfig => {
       coursesTransport: "mock",
       lessonsTransport: "mock",
       accessTransport: "mock",
+      profileTransport: "mock",
+      purchasesTransport: "mock",
+      bookingsTransport: "mock",
     };
   }
   if (mode === "http") {
@@ -75,6 +103,9 @@ export const resolveGatewayRuntimeConfig = (): GatewayRuntimeConfig => {
       coursesTransport: "http",
       lessonsTransport: "http",
       accessTransport: "http",
+      profileTransport: "http",
+      purchasesTransport: "http",
+      bookingsTransport: "http",
     };
   }
 
@@ -101,6 +132,21 @@ export const resolveGatewayRuntimeConfig = (): GatewayRuntimeConfig => {
       readNodeEnv("GATEWAY_ACCESS_MODE"),
     coursesTransport
   );
+  const profileTransport = normalizeTransport(
+    import.meta.env.VITE_GATEWAY_PROFILE_MODE ??
+      readNodeEnv("GATEWAY_PROFILE_MODE"),
+    authTransport
+  );
+  const purchasesTransport = normalizeTransport(
+    import.meta.env.VITE_GATEWAY_PURCHASES_MODE ??
+      readNodeEnv("GATEWAY_PURCHASES_MODE"),
+    coursesTransport
+  );
+  const bookingsTransport = normalizeTransport(
+    import.meta.env.VITE_GATEWAY_BOOKINGS_MODE ??
+      readNodeEnv("GATEWAY_BOOKINGS_MODE"),
+    profileTransport
+  );
 
   return {
     mode: "hybrid",
@@ -108,10 +154,41 @@ export const resolveGatewayRuntimeConfig = (): GatewayRuntimeConfig => {
     coursesTransport,
     lessonsTransport,
     accessTransport,
+    profileTransport,
+    purchasesTransport,
+    bookingsTransport,
   };
 };
 
 const gatewayRuntimeConfig = resolveGatewayRuntimeConfig();
+const frontendAppEnv = normalizeFrontendAppEnv(
+  import.meta.env.VITE_APP_ENV ?? readNodeEnv("APP_ENV")
+);
+
+const hasMockTransportInRuntime = (config: GatewayRuntimeConfig) =>
+  [
+    config.authTransport,
+    config.coursesTransport,
+    config.lessonsTransport,
+    config.accessTransport,
+    config.profileTransport,
+    config.purchasesTransport,
+    config.bookingsTransport,
+  ].some((transport) => transport === "mock");
+
+if (
+  (frontendAppEnv === "stage" || frontendAppEnv === "prod") &&
+  hasMockTransportInRuntime(gatewayRuntimeConfig)
+) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    "[gateway-runtime] mock transport active in non-local app env",
+    {
+      appEnv: frontendAppEnv,
+      mode: gatewayRuntimeConfig.mode,
+    }
+  );
+}
 
 const hybridAuthGateway = createHybridAuthGateway(
   () => gatewayRuntimeConfig.authTransport
@@ -124,6 +201,15 @@ const hybridLessonsGateway = createHybridLessonsGateway(
 );
 const hybridAccessGateway = createHybridAccessGateway(
   () => gatewayRuntimeConfig.accessTransport
+);
+const hybridProfileGateway = createHybridProfileGateway(
+  () => gatewayRuntimeConfig.profileTransport
+);
+const hybridPurchasesGateway = createHybridPurchasesGateway(
+  () => gatewayRuntimeConfig.purchasesTransport
+);
+const hybridBookingsGateway = createHybridBookingsGateway(
+  () => gatewayRuntimeConfig.bookingsTransport
 );
 
 const selectAuthGateway = (config: GatewayRuntimeConfig): AuthGateway => {
@@ -150,10 +236,35 @@ const selectAccessGateway = (config: GatewayRuntimeConfig): AccessGateway => {
   return hybridAccessGateway;
 };
 
+const selectProfileGateway = (config: GatewayRuntimeConfig): ProfileGateway => {
+  if (config.mode === "mock") return mockProfileGateway;
+  if (config.mode === "http") return httpProfileGateway;
+  return hybridProfileGateway;
+};
+
+const selectPurchasesGateway = (
+  config: GatewayRuntimeConfig
+): PurchasesGateway => {
+  if (config.mode === "mock") return mockPurchasesGateway;
+  if (config.mode === "http") return httpPurchasesGateway;
+  return hybridPurchasesGateway;
+};
+
+const selectBookingsGateway = (
+  config: GatewayRuntimeConfig
+): BookingsGateway => {
+  if (config.mode === "mock") return mockBookingsGateway;
+  if (config.mode === "http") return httpBookingsGateway;
+  return hybridBookingsGateway;
+};
+
 export const authGateway = selectAuthGateway(gatewayRuntimeConfig);
 export const coursesGateway = selectCoursesGateway(gatewayRuntimeConfig);
 export const lessonsGateway = selectLessonsGateway(gatewayRuntimeConfig);
 export const accessGateway = selectAccessGateway(gatewayRuntimeConfig);
+export const profileGateway = selectProfileGateway(gatewayRuntimeConfig);
+export const purchaseGateway = selectPurchasesGateway(gatewayRuntimeConfig);
+export const bookingGateway = selectBookingsGateway(gatewayRuntimeConfig);
 
 export { gatewayRuntimeConfig };
 export type { GatewayMode, GatewayRuntimeConfig, GatewayTransport } from "./types";

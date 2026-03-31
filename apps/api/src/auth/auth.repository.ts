@@ -84,6 +84,27 @@ export class AuthRepository {
     return row ? this.mapRow(row) : null;
   }
 
+  async findByRole(role: "student" | "teacher"): Promise<AuthUserDto[]> {
+    const rows = await this.databaseService.query<AuthUserRow>(
+      `
+        SELECT
+          id,
+          email,
+          first_name AS "firstName",
+          last_name AS "lastName",
+          role,
+          phone,
+          photo,
+          password_hash AS "passwordHash"
+        FROM auth_users
+        WHERE role = $1
+        ORDER BY last_name ASC, first_name ASC, id ASC
+      `,
+      [role]
+    );
+    return rows.map((row) => this.mapRow(row));
+  }
+
   private mapRowWithPassword(
     row: AuthUserRow
   ): AuthUserDto & { passwordHash: string | null } {

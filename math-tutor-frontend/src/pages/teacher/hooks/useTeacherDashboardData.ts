@@ -3,17 +3,8 @@ import type { Dispatch, SetStateAction } from "react";
 import type { Course } from "@/entities/course/model/types";
 import type { Booking } from "@/entities/booking/model/types";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
-import {
-  getCourses,
-} from "@/entities/course/model/storage";
-import { getLessons } from "@/entities/lesson/model/storage";
-import { getUsers } from "@/features/auth/model/api";
 import { getCourseContentItems } from "@/features/assessments/model/storage";
 import { getTeacherChatThreads } from "@/features/chat/model/api";
-import {
-  getTeacherAvailability,
-} from "@/features/teacher-availability/api";
-import { getBookings } from "@/entities/booking/model/storage";
 import {
   countDueSoonStudyCabinetReminders,
   getStudyCabinetNotes,
@@ -24,6 +15,7 @@ import { normalizeFutureSlots } from "@/features/booking/lib/schedule";
 import { dispatchDataUpdate } from "@/shared/lib/dataUpdateBus";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { t } from "@/shared/i18n";
+import { getTeacherDashboardContext } from "@/entities/profile/model/storage";
 
 export type TeacherDashboardStudentCardData = {
   id: string;
@@ -91,13 +83,10 @@ export const useTeacherDashboardData = ({
     try {
       setDashboardLoading(true);
       setDashboardError(null);
-      const [allCourses, allLessons, studentUsers] = await Promise.all([
-        getCourses(),
-        getLessons(),
-        getUsers("student"),
-      ]);
-
-      const teacherCourses = allCourses.filter((course) => course.teacherId === userId);
+      const context = await getTeacherDashboardContext();
+      const teacherCourses = context.courses;
+      const allLessons = context.lessons;
+      const studentUsers = context.students;
       const counts = allLessons.reduce<Record<string, number>>((acc, lesson) => {
         acc[lesson.courseId] = (acc[lesson.courseId] ?? 0) + 1;
         return acc;
@@ -277,7 +266,8 @@ export const useTeacherDashboardData = ({
       setAvailabilityLoading(true);
       setAvailabilityError(null);
       try {
-        const slots = await getTeacherAvailability(userId);
+        const context = await getTeacherDashboardContext();
+        const slots = context.availability;
         if (!active) return;
         const normalized = slots.map((slot) => ({
           id: slot.id,
@@ -322,10 +312,9 @@ export const useTeacherDashboardData = ({
       setBookingLoading(true);
       setBookingError(null);
       try {
-        const [data, students] = await Promise.all([
-          getBookings({ teacherId: userId }),
-          getUsers("student"),
-        ]);
+        const context = await getTeacherDashboardContext();
+        const data = context.bookings;
+        const students = context.students;
         if (!active) return;
         const studentsById = new Map(students.map((student) => [student.id, student]));
         const normalized = data.map((booking) => {

@@ -1,7 +1,12 @@
 .DS_Store
-0
 portfolio-repos/
 
 # local credentials
 **/.env
+**/.env.local
+**/.env.development
+**/.env.stage
+**/.env.production
 **/.env.*.local
+!**/.env.example
+!**/.env.stage.example

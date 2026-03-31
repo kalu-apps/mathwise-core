@@ -1,5 +1,4 @@
-import { api } from "@/shared/api/client";
-import { buildIdempotencyHeaders } from "@/shared/lib/idempotency";
+import { bookingGateway } from "@/shared/gateway";
 import type {
   Booking,
   BookingLessonKind,
@@ -33,20 +32,14 @@ export async function getBookings(params?: {
   teacherId?: string;
   studentId?: string;
 }): Promise<Booking[]> {
-  const query = new URLSearchParams();
-  if (params?.teacherId) query.set("teacherId", params.teacherId);
-  if (params?.studentId) query.set("studentId", params.studentId);
-  const suffix = query.toString() ? `?${query.toString()}` : "";
-  return api.get<Booking[]>(`/bookings${suffix}`);
+  return bookingGateway.getBookings(params);
 }
 
 export async function createBooking(
   payload: CreateBookingPayload,
   options?: { idempotencyKey?: string }
 ): Promise<Booking> {
-  return api.post<Booking>("/bookings", payload, {
-    headers: buildIdempotencyHeaders("booking", options?.idempotencyKey),
-  });
+  return bookingGateway.createBooking(payload, options);
 }
 
 export async function updateBooking(
@@ -60,20 +53,18 @@ export async function updateBooking(
     }
   >
 ): Promise<Booking> {
-  return api.put<Booking>(`/bookings/${id}`, patch);
+  return bookingGateway.updateBooking(id, patch);
 }
 
 export async function deleteBooking(id: string): Promise<{ id: string }> {
-  return api.del<{ id: string }>(`/bookings/${id}`);
+  return bookingGateway.deleteBooking(id);
 }
 
 export async function rescheduleBooking(
   id: string,
   slotId: string
 ): Promise<Booking> {
-  return api.put<Booking>(`/bookings/${id}`, {
-    reschedule: { slotId },
-  });
+  return bookingGateway.rescheduleBooking(id, slotId);
 }
 
 export type BookingMaterialInput = {

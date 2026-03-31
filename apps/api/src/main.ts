@@ -3,6 +3,40 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { getApiRuntimeConfig } from "./config/runtime.config";
 
+const asConfigured = (value: string) => (value ? "configured" : "missing");
+
+const logStartupDiagnostics = (runtimeConfig: ReturnType<typeof getApiRuntimeConfig>) => {
+  const payload = {
+    event: "api_startup",
+    service: "mathwise-api-pilot",
+    appEnv: runtimeConfig.appEnv,
+    releaseVersion: runtimeConfig.releaseVersion,
+    host: runtimeConfig.host,
+    port: runtimeConfig.port,
+    corsOrigin: runtimeConfig.corsOrigin,
+    dependencies: {
+      postgres: asConfigured(runtimeConfig.databaseUrl),
+      redis: asConfigured(runtimeConfig.redisUrl),
+      media: runtimeConfig.mediaStorageEnabled ? "enabled" : "disabled",
+      s3: runtimeConfig.mediaStorageEnabled
+        ? {
+            endpointConfigured: asConfigured(runtimeConfig.s3Endpoint),
+            bucketConfigured: asConfigured(runtimeConfig.s3Bucket),
+          }
+        : "disabled",
+    },
+    security: {
+      authCookieSecure: runtimeConfig.authCookieSecure,
+      authCookieHttpOnly: runtimeConfig.authCookieHttpOnly,
+      authCookieSameSite: runtimeConfig.authCookieSameSite,
+      authDebugTokens: runtimeConfig.authDebugTokens,
+    },
+    timestamp: new Date().toISOString(),
+  };
+  // eslint-disable-next-line no-console
+  console.log(JSON.stringify(payload));
+};
+
 async function bootstrap() {
   const runtimeConfig = getApiRuntimeConfig();
   const app = await NestFactory.create(AppModule, {
@@ -14,6 +48,7 @@ async function bootstrap() {
     credentials: runtimeConfig.corsOrigin !== "*",
   });
 
+  logStartupDiagnostics(runtimeConfig);
   await app.listen(runtimeConfig.port, runtimeConfig.host);
 }
 

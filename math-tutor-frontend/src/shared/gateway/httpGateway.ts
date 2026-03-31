@@ -17,9 +17,32 @@ import type {
 import type {
   AccessGateway,
   AuthGateway,
+  BookingsGateway,
   CoursesGateway,
   LessonsGateway,
+  PurchasesGateway,
+  ProfileGateway,
 } from "./types";
+import type {
+  ProfileMeResponseContract,
+  StudentProfileContextResponseContract,
+  TeacherDashboardContextResponseContract,
+} from "@/shared/contracts/profile.contract";
+import type { Booking } from "@/entities/booking/model/types";
+import type { Purchase } from "@/entities/purchase/model/types";
+import { buildIdempotencyHeaders } from "@/shared/lib/idempotency";
+import type {
+  DeleteBookingResponseContract,
+} from "@/shared/contracts/booking.contract";
+import type {
+  BnplInstallmentPaymentResponseContract,
+  CancelCheckoutResponseContract,
+  CheckoutActionResponseContract,
+  CheckoutListItemContract,
+  CheckoutPurchaseResponseContract,
+  CheckoutStatusResponseContract,
+  CheckoutTimelineResponseContract,
+} from "@/shared/contracts/purchase.contract";
 
 const readNodeEnv = (name: string) => {
   if (typeof process === "undefined") return undefined;
@@ -41,6 +64,8 @@ const getHttpApiBase = () => {
   return `${normalized}/api`;
 };
 
+export const resolveHttpApiBase = () => getHttpApiBase();
+
 const buildHttpApiUrl = (path: string) => `${getHttpApiBase()}${path}`;
 
 const isDefaultApiBase = () => getHttpApiBase() === "/api";
@@ -57,17 +82,23 @@ const parseJson = async (response: Response) => {
 
 const requestHttpJson = async <T>(
   path: string,
-  options?: { method?: "GET" | "POST"; body?: unknown; signal?: AbortSignal }
+  options?: {
+    method?: "GET" | "POST" | "PUT" | "DELETE";
+    body?: unknown;
+    signal?: AbortSignal;
+    headers?: Record<string, string>;
+  }
 ): Promise<T> => {
+  const headers: Record<string, string> = {
+    ...(options?.headers ?? {}),
+  };
+  if (options?.body !== undefined && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
   const response = await fetch(buildHttpApiUrl(path), {
     method: options?.method ?? "GET",
     credentials: "include",
-    headers:
-      options?.body !== undefined
-        ? {
-            "Content-Type": "application/json",
-          }
-        : undefined,
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
     body: options?.body !== undefined ? JSON.stringify(options.body) : undefined,
     signal: options?.signal,
   });
@@ -226,5 +257,185 @@ export const httpAccessGateway: AccessGateway = {
     return requestHttpJson<LessonAccessDecision>(
       `/access/lessons/${encodeURIComponent(params.lessonId)}${suffix}`
     );
+  },
+};
+
+export const httpProfileGateway: ProfileGateway = {
+  async getProfileMe(): Promise<ProfileMeResponseContract> {
+    return requestHttpJson<ProfileMeResponseContract>("/profile/me");
+  },
+  async getStudentProfileContext(): Promise<StudentProfileContextResponseContract> {
+    return requestHttpJson<StudentProfileContextResponseContract>("/student/context");
+  },
+  async getTeacherDashboardContext(): Promise<TeacherDashboardContextResponseContract> {
+    return requestHttpJson<TeacherDashboardContextResponseContract>("/teacher/context");
+  },
+};
+
+export const httpPurchasesGateway: PurchasesGateway = {
+  async getPurchases(params, options): Promise<Purchase[]> {
+    const query = new URLSearchParams();
+    if (params?.userId) query.set("userId", params.userId);
+    const suffix = buildQuerySuffix(query);
+    if (isDefaultApiBase()) {
+      return api.get<Purchase[]>(`/purchases${suffix}`, {
+        dedupe: options?.forceFresh ? false : undefined,
+        cacheTtlMs: options?.forceFresh ? 0 : undefined,
+      });
+    }
+    return requestHttpJson<Purchase[]>(`/purchases${suffix}`);
+  },
+  async savePurchases(purchases): Promise<void> {
+    await requestHttpJson<void>("/purchases", {
+      method: "PUT",
+      body: purchases,
+    });
+  },
+  async deletePurchasesByCourse(courseId): Promise<void> {
+    await requestHttpJson<void>(
+      `/purchases?courseId=${encodeURIComponent(courseId)}`,
+      { method: "DELETE" }
+    );
+  },
+  async checkoutPurchase(payload, options): Promise<CheckoutPurchaseResponseContract> {
+    return requestHttpJson<CheckoutPurchaseResponseContract>("/purchases/checkout", {
+      method: "POST",
+      body: payload,
+      headers: buildIdempotencyHeaders("checkout", options?.idempotencyKey),
+    });
+  },
+  async attachCheckoutPurchase(
+    checkoutId,
+    options
+  ): Promise<CheckoutPurchaseResponseContract> {
+    return requestHttpJson<CheckoutPurchaseResponseContract>(
+      "/purchases/checkout/attach",
+      {
+        method: "POST",
+        body: { checkoutId },
+        headers: buildIdempotencyHeaders(
+          "checkout_attach",
+          options?.idempotencyKey
+        ),
+      }
+    );
+  },
+  async payBnplInstallment(
+    purchaseId,
+    payload
+  ): Promise<BnplInstallmentPaymentResponseContract> {
+    return requestHttpJson<BnplInstallmentPaymentResponseContract>(
+      `/purchases/${encodeURIComponent(purchaseId)}/bnpl/pay-installment`,
+      {
+        method: "POST",
+        body: payload ?? {},
+      }
+    );
+  },
+  async payBnplRemaining(
+    purchaseId,
+    payload
+  ): Promise<BnplInstallmentPaymentResponseContract> {
+    return requestHttpJson<BnplInstallmentPaymentResponseContract>(
+      `/purchases/${encodeURIComponent(purchaseId)}/bnpl/pay-remaining`,
+      {
+        method: "POST",
+        body: payload ?? {},
+      }
+    );
+  },
+  async cancelCheckout(checkoutId): Promise<CancelCheckoutResponseContract> {
+    return requestHttpJson<CancelCheckoutResponseContract>(
+      `/checkouts/${encodeURIComponent(checkoutId)}/cancel`,
+      {
+        method: "POST",
+        body: {},
+        headers: buildIdempotencyHeaders("checkout_cancel"),
+      }
+    );
+  },
+  async getCheckoutStatus(
+    checkoutId
+  ): Promise<CheckoutStatusResponseContract> {
+    return requestHttpJson<CheckoutStatusResponseContract>(
+      `/checkouts/${encodeURIComponent(checkoutId)}/status`
+    );
+  },
+  async retryCheckout(checkoutId): Promise<CheckoutActionResponseContract> {
+    return requestHttpJson<CheckoutActionResponseContract>(
+      `/checkouts/${encodeURIComponent(checkoutId)}/retry`,
+      {
+        method: "POST",
+        body: {},
+        headers: buildIdempotencyHeaders("checkout_retry"),
+      }
+    );
+  },
+  async confirmCheckoutPaid(
+    checkoutId
+  ): Promise<CheckoutActionResponseContract> {
+    return requestHttpJson<CheckoutActionResponseContract>(
+      `/checkouts/${encodeURIComponent(checkoutId)}/confirm-paid`,
+      {
+        method: "POST",
+        body: {},
+        headers: buildIdempotencyHeaders("checkout_confirm"),
+      }
+    );
+  },
+  async getCheckoutTimeline(
+    checkoutId
+  ): Promise<CheckoutTimelineResponseContract> {
+    return requestHttpJson<CheckoutTimelineResponseContract>(
+      `/checkouts/${encodeURIComponent(checkoutId)}/timeline`
+    );
+  },
+  async getCheckouts(params): Promise<CheckoutListItemContract[]> {
+    const query = new URLSearchParams();
+    if (params?.userId) query.set("userId", params.userId);
+    if (params?.email) query.set("email", params.email);
+    if (params?.courseId) query.set("courseId", params.courseId);
+    const suffix = buildQuerySuffix(query);
+    return requestHttpJson<CheckoutListItemContract[]>(`/checkouts${suffix}`);
+  },
+};
+
+export const httpBookingsGateway: BookingsGateway = {
+  async getBookings(params): Promise<Booking[]> {
+    const query = new URLSearchParams();
+    if (params?.teacherId) query.set("teacherId", params.teacherId);
+    if (params?.studentId) query.set("studentId", params.studentId);
+    const suffix = buildQuerySuffix(query);
+    return requestHttpJson<Booking[]>(`/bookings${suffix}`);
+  },
+  async createBooking(payload, options): Promise<Booking> {
+    return requestHttpJson<Booking>("/bookings", {
+      method: "POST",
+      body: payload,
+      headers: buildIdempotencyHeaders("booking", options?.idempotencyKey),
+    });
+  },
+  async updateBooking(id, patch): Promise<Booking> {
+    return requestHttpJson<Booking>(`/bookings/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: patch,
+      headers: buildIdempotencyHeaders("booking_update"),
+    });
+  },
+  async deleteBooking(id): Promise<DeleteBookingResponseContract> {
+    return requestHttpJson<DeleteBookingResponseContract>(
+      `/bookings/${encodeURIComponent(id)}`,
+      {
+        method: "DELETE",
+        headers: buildIdempotencyHeaders("booking_delete"),
+      }
+    );
+  },
+  async rescheduleBooking(id, slotId): Promise<Booking> {
+    return requestHttpJson<Booking>(`/bookings/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: { reschedule: { slotId } },
+      headers: buildIdempotencyHeaders("booking_reschedule"),
+    });
   },
 };

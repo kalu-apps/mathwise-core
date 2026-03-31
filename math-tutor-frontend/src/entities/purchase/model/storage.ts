@@ -10,8 +10,7 @@ import type {
   PurchasePaymentMethod,
 } from "./types";
 import type { User } from "@/entities/user/model/types";
-import { api } from "@/shared/api/client";
-import { buildIdempotencyHeaders } from "@/shared/lib/idempotency";
+import { purchaseGateway } from "@/shared/gateway";
 import { dispatchDataUpdate } from "@/shared/lib/dataUpdateBus";
 import { buildBnplMockPurchaseData } from "./bnplMockAdapter";
 import type {
@@ -264,21 +263,12 @@ export async function getPurchases(
   params?: { userId?: string },
   options?: { forceFresh?: boolean }
 ): Promise<Purchase[]> {
-  const query = new URLSearchParams();
-  if (params?.userId) {
-    query.set("userId", params.userId);
-  }
-  const suffix = query.toString() ? `?${query.toString()}` : "";
-  const purchases = await api.get<Purchase[]>(`/purchases${suffix}`, {
-    dedupe: options?.forceFresh ? false : undefined,
-    cacheTtlMs: options?.forceFresh ? 0 : undefined,
-  });
+  const purchases = await purchaseGateway.getPurchases(params, options);
   return purchases.map(normalizePurchase);
 }
 
 export async function savePurchases(purchases: Purchase[]): Promise<void> {
-  await api.put(
-    "/purchases",
+  await purchaseGateway.savePurchases(
     purchases.map((item) => normalizePurchase(item))
   );
 }
@@ -341,20 +331,14 @@ export async function checkoutPurchase(
   payload: CheckoutPayload,
   options?: { idempotencyKey?: string }
 ): Promise<CheckoutPurchaseResponse> {
-  return api.post<CheckoutPurchaseResponse>("/purchases/checkout", payload, {
-    headers: buildIdempotencyHeaders("checkout", options?.idempotencyKey),
-  });
+  return purchaseGateway.checkoutPurchase(payload, options);
 }
 
 export async function attachCheckoutPurchase(
   checkoutId: string,
   options?: { idempotencyKey?: string }
 ): Promise<CheckoutPurchaseResponse> {
-  return api.post<CheckoutPurchaseResponse>("/purchases/checkout/attach", {
-    checkoutId,
-  }, {
-    headers: buildIdempotencyHeaders("checkout_attach", options?.idempotencyKey),
-  });
+  return purchaseGateway.attachCheckoutPurchase(checkoutId, options);
 }
 
 export type BnplInstallmentPaymentResponse = {
@@ -387,9 +371,9 @@ export async function payBnplInstallment(
   purchaseId: string,
   payload?: { source?: string }
 ): Promise<BnplInstallmentPaymentResponse> {
-  const response = await api.post<BnplInstallmentPaymentResponse>(
-    `/purchases/${encodeURIComponent(purchaseId)}/bnpl/pay-installment`,
-    payload ?? {}
+  const response = await purchaseGateway.payBnplInstallment(
+    purchaseId,
+    payload
   );
   dispatchDataUpdate("purchase_bnpl_installment_paid", { immediate: true });
   return response;
@@ -399,14 +383,11 @@ export async function payBnplRemaining(
   purchaseId: string,
   payload?: { source?: string }
 ): Promise<BnplInstallmentPaymentResponse> {
-  const response = await api.post<BnplInstallmentPaymentResponse>(
-    `/purchases/${encodeURIComponent(purchaseId)}/bnpl/pay-remaining`,
-    payload ?? {}
-  );
+  const response = await purchaseGateway.payBnplRemaining(purchaseId, payload);
   dispatchDataUpdate("purchase_bnpl_remaining_paid", { immediate: true });
   return response;
 }
 
 export async function deletePurchasesByCourse(courseId: string): Promise<void> {
-  await api.del(`/purchases?courseId=${encodeURIComponent(courseId)}`);
+  await purchaseGateway.deletePurchasesByCourse(courseId);
 }

@@ -5,24 +5,29 @@ const runtimeConfig = getApiRuntimeConfig();
 export const AUTH_SESSION_COOKIE_NAME = runtimeConfig.authSessionCookieName;
 
 const buildCookieParts = (value: string, maxAgeSec: number) => {
-  const isSecure = runtimeConfig.appEnv !== "local";
   const parts = [
     `${AUTH_SESSION_COOKIE_NAME}=${value}`,
-    "Path=/",
-    "HttpOnly",
-    "SameSite=Lax",
+    `Path=${runtimeConfig.authCookiePath}`,
+    `SameSite=${runtimeConfig.authCookieSameSite}`,
     `Max-Age=${Math.max(0, Math.floor(maxAgeSec))}`,
   ];
-  if (isSecure) {
+  if (runtimeConfig.authCookieHttpOnly) {
+    parts.push("HttpOnly");
+  }
+  if (runtimeConfig.authCookieDomain) {
+    parts.push(`Domain=${runtimeConfig.authCookieDomain}`);
+  }
+  if (runtimeConfig.authCookieSecure) {
     parts.push("Secure");
   }
   return parts;
 };
 
 export const buildSessionSetCookie = (sessionId: string) => {
-  return buildCookieParts(encodeURIComponent(sessionId), runtimeConfig.authSessionTtlSec).join(
-    "; "
-  );
+  return buildCookieParts(
+    encodeURIComponent(sessionId),
+    runtimeConfig.authCookieMaxAgeSec
+  ).join("; ");
 };
 
 export const buildSessionClearCookie = () => {

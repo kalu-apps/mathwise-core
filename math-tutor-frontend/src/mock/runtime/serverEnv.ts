@@ -86,7 +86,9 @@ const normalizeOptional = (raw: string | undefined) => {
 };
 
 const createServerRuntimeEnv = (): ServerRuntimeEnv => {
-  const appEnv = normalizeAppEnv(process.env.APP_ENV);
+  const appEnv = normalizeAppEnv(
+    process.env.APP_ENV ?? process.env.VITE_APP_ENV
+  );
   const isLocal = appEnv === "local";
   const isPreview = appEnv === "preview";
   const isStage = appEnv === "stage";

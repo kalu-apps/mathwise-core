@@ -1,15 +1,7 @@
 import { useCallback, useEffect } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { Booking } from "@/entities/booking/model/types";
-import {
-  getPurchases,
-} from "@/entities/purchase/model/storage";
-import { getCourses } from "@/entities/course/model/storage";
-import { getLessonsByCourse } from "@/entities/lesson/model/storage";
 import { getViewedLessonIds } from "@/entities/progress/model/storage";
-import { getBookings } from "@/entities/booking/model/storage";
-import { getUsers } from "@/features/auth/model/api";
-import { getTeacherAvailability } from "@/features/teacher-availability/api";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
 import type { User } from "@/entities/user/model/types";
 import type { StudentStudyCabinetCourseItem } from "@/features/study-cabinet/student/model/types";
@@ -32,6 +24,7 @@ import {
 } from "@/shared/lib/studyCabinet";
 import { lessonDurationToSeconds } from "@/shared/lib/duration";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
+import { getStudentProfileContext } from "@/entities/profile/model/storage";
 
 type TabName = "profile" | "courses" | "lessons" | "study" | "chat";
 
@@ -180,26 +173,24 @@ export const useStudentProfileData = ({
         setCoursesLoading(true);
       }
       setCoursesError(null);
-      const [purchases, courses] = await Promise.all([
-        getPurchases({ userId }, { forceFresh: true }),
-        getCourses({ forceFresh: true }),
-      ]);
-      const userPurchases = purchases;
+      const context = await getStudentProfileContext();
+      const userPurchases = context.purchases;
 
       const resolved = await Promise.all(
         userPurchases.map(async (purchase) => {
           const liveCourse =
-            courses.find((candidate) => candidate.id === purchase.courseId) ?? null;
+            context.courses.find((candidate) => candidate.id === purchase.courseId) ??
+            null;
           const usePublishedCourse = liveCourse?.status === "published";
           const course =
             (usePublishedCourse ? liveCourse : purchase.courseSnapshot ?? liveCourse) ??
             null;
           if (!course) return null;
           const lessons = usePublishedCourse
-            ? await getLessonsByCourse(course.id, { forceFresh: true })
+            ? context.lessons.filter((lesson) => lesson.courseId === course.id)
             : Array.isArray(purchase.lessonsSnapshot)
             ? purchase.lessonsSnapshot
-            : await getLessonsByCourse(course.id, { forceFresh: true });
+            : context.lessons.filter((lesson) => lesson.courseId === course.id);
           const queue = await getCourseContentItems(course.id, lessons);
           const purchasedTestItemIdSet = new Set(
             Array.isArray(purchase.purchasedTestItemIds)
@@ -336,7 +327,8 @@ export const useStudentProfileData = ({
         setBookingsLoading(true);
       }
       setBookingsError(null);
-      const data = await getBookings({ studentId: userId });
+      const context = await getStudentProfileContext();
+      const data = context.bookings;
       setBookings(
         data.map((booking) => ({
           ...booking,
@@ -371,14 +363,15 @@ export const useStudentProfileData = ({
         setScheduleLoading(true);
       }
       setScheduleError(null);
-      const teachers = await getUsers("teacher");
+      const context = await getStudentProfileContext();
+      const teachers = context.teachers;
       const currentTeacher = teachers[0] ?? null;
       setTeacher(currentTeacher);
       if (!currentTeacher) {
         setAvailability([]);
         return;
       }
-      const slots = await getTeacherAvailability(currentTeacher.id);
+      const slots = context.teacherAvailabilityByTeacherId[currentTeacher.id] ?? [];
       const normalized = slots.map((slot) => ({
         id: slot.id,
         date: slot.date,

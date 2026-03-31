@@ -15,3 +15,17 @@
 npm install
 npm run dev
 ```
+
+## Stage-like запуск
+```bash
+cp .env.stage.example .env.stage
+npm run build:stage
+npm run start:stage
+```
+
+Ключевые env:
+- `VITE_APP_ENV=stage`
+- `VITE_API_BASE_URL=https://<api-host>/api`
+- `VITE_GATEWAY_MODE=hybrid` (или `mock` для rollback)
+- `VITE_RELEASE_VERSION=<release-tag>`
+- `VITE_BUILD_SOURCEMAP=1` (для stage diagnostics)

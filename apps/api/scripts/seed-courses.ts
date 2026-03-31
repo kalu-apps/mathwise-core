@@ -8,6 +8,12 @@ import {
 } from "../src/seed/readSlice.seed";
 import { hashPassword } from "../src/auth/auth.password";
 import { readAuthSeedUsers, upsertAuthUsers } from "../src/auth/auth.seed";
+import {
+  readProfileSeedData,
+  upsertProfileBookings,
+  upsertProfilePurchases,
+  upsertTeacherAvailability,
+} from "../src/profile/profile.seed";
 
 type SeedExecutor = {
   execute: (text: string, params?: unknown[]) => Promise<void>;
@@ -91,6 +97,63 @@ const ensureAuthSchema = async (executor: SeedExecutor) => {
   `);
 };
 
+const ensureProfileSchema = async (executor: SeedExecutor) => {
+  await executor.execute(`
+    CREATE TABLE IF NOT EXISTS profile_purchases (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      course_id TEXT NOT NULL,
+      price INTEGER NOT NULL DEFAULT 0,
+      purchased_at TEXT NOT NULL,
+      payment_method TEXT,
+      checkout_id TEXT,
+      bnpl_json JSONB,
+      course_snapshot_json JSONB,
+      lessons_snapshot_json JSONB,
+      purchased_test_item_ids_json JSONB,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await executor.execute(`
+    CREATE TABLE IF NOT EXISTS profile_bookings (
+      id TEXT PRIMARY KEY,
+      slot_id TEXT,
+      teacher_id TEXT NOT NULL,
+      teacher_name TEXT NOT NULL DEFAULT '',
+      teacher_photo TEXT,
+      student_id TEXT NOT NULL,
+      student_name TEXT NOT NULL DEFAULT '',
+      student_email TEXT NOT NULL DEFAULT '',
+      student_phone TEXT,
+      student_photo TEXT,
+      date TEXT NOT NULL DEFAULT '',
+      start_time TEXT NOT NULL DEFAULT '',
+      end_time TEXT NOT NULL DEFAULT '',
+      lesson_kind TEXT NOT NULL CHECK (lesson_kind IN ('trial', 'regular')),
+      payment_status TEXT NOT NULL CHECK (payment_status IN ('unpaid', 'paid')),
+      meeting_url TEXT,
+      materials_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+      created_at TEXT NOT NULL DEFAULT '',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await executor.execute(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_bookings_slot_unique
+    ON profile_bookings (slot_id)
+    WHERE slot_id IS NOT NULL
+  `);
+  await executor.execute(`
+    CREATE TABLE IF NOT EXISTS profile_teacher_availability (
+      id TEXT PRIMARY KEY,
+      teacher_id TEXT NOT NULL,
+      date TEXT NOT NULL DEFAULT '',
+      start_time TEXT NOT NULL DEFAULT '',
+      end_time TEXT NOT NULL DEFAULT '',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+};
+
 async function main() {
   const runtimeConfig = getApiRuntimeConfig({ requireRedis: false });
   const pool = new Pool({ connectionString: runtimeConfig.databaseUrl });
@@ -106,8 +169,10 @@ async function main() {
     await ensureLessonsSchema(executor);
     await ensureAccessSchema(executor);
     await ensureAuthSchema(executor);
+    await ensureProfileSchema(executor);
 
     const seed = readReadSliceSeedData(runtimeConfig.coursesSeedSourceFile);
+    const profileSeed = readProfileSeedData(runtimeConfig.coursesSeedSourceFile);
     const authUsers = readAuthSeedUsers(runtimeConfig.coursesSeedSourceFile).map((user) => ({
       ...user,
       passwordHash: user.password
@@ -118,10 +183,13 @@ async function main() {
     await upsertLessons(executor, seed.lessons);
     await upsertAccessReadModel(executor, seed.access);
     await upsertAuthUsers(executor, authUsers);
+    await upsertProfilePurchases(executor, profileSeed.purchases);
+    await upsertProfileBookings(executor, profileSeed.bookings);
+    await upsertTeacherAvailability(executor, profileSeed.teacherAvailability);
 
     // eslint-disable-next-line no-console
     console.log(
-      `[seed:courses] upserted courses=${seed.courses.length}, lessons=${seed.lessons.length}, accessUsers=${seed.access.users.length}, accessLinks=${seed.access.courseAccess.length}, authUsers=${authUsers.length}`
+      `[seed:courses] upserted courses=${seed.courses.length}, lessons=${seed.lessons.length}, accessUsers=${seed.access.users.length}, accessLinks=${seed.access.courseAccess.length}, authUsers=${authUsers.length}, profilePurchases=${profileSeed.purchases.length}, profileBookings=${profileSeed.bookings.length}, profileAvailability=${profileSeed.teacherAvailability.length}`
     );
   } finally {
     await pool.end();

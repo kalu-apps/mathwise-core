@@ -14,6 +14,31 @@ import type {
   CourseAccessListResponse,
   LessonAccessDecision,
 } from "@/domain/auth-payments/model/access";
+import type {
+  ProfileMeResponseContract,
+  StudentProfileContextResponseContract,
+  TeacherDashboardContextResponseContract,
+} from "@/shared/contracts/profile.contract";
+import type { Booking } from "@/entities/booking/model/types";
+import type { Purchase } from "@/entities/purchase/model/types";
+import type {
+  CreateBookingPayloadContract,
+  DeleteBookingResponseContract,
+  GetBookingsParamsContract,
+  UpdateBookingPatchContract,
+} from "@/shared/contracts/booking.contract";
+import type {
+  BnplInstallmentPaymentResponseContract,
+  CancelCheckoutResponseContract,
+  CheckoutActionResponseContract,
+  CheckoutListItemContract,
+  CheckoutPayloadContract,
+  CheckoutPurchaseResponseContract,
+  CheckoutStatusResponseContract,
+  CheckoutTimelineResponseContract,
+  GetCheckoutsParamsContract,
+  GetPurchasesParamsContract,
+} from "@/shared/contracts/purchase.contract";
 
 export type GatewayMode = "mock" | "http" | "hybrid";
 export type GatewayTransport = "mock" | "http";
@@ -24,6 +49,9 @@ export type GatewayRuntimeConfig = {
   coursesTransport: GatewayTransport;
   lessonsTransport: GatewayTransport;
   accessTransport: GatewayTransport;
+  profileTransport: GatewayTransport;
+  purchasesTransport: GatewayTransport;
+  bookingsTransport: GatewayTransport;
 };
 
 export type AuthGateway = {
@@ -75,4 +103,54 @@ export type AccessGateway = {
     lessonId: string;
     userId?: string;
   }) => Promise<LessonAccessDecision>;
+};
+
+export type ProfileGateway = {
+  getProfileMe: () => Promise<ProfileMeResponseContract>;
+  getStudentProfileContext: () => Promise<StudentProfileContextResponseContract>;
+  getTeacherDashboardContext: () => Promise<TeacherDashboardContextResponseContract>;
+};
+
+export type PurchasesGateway = {
+  getPurchases: (
+    params?: GetPurchasesParamsContract,
+    options?: { forceFresh?: boolean }
+  ) => Promise<Purchase[]>;
+  savePurchases: (purchases: Purchase[]) => Promise<void>;
+  deletePurchasesByCourse: (courseId: string) => Promise<void>;
+  checkoutPurchase: (
+    payload: CheckoutPayloadContract,
+    options?: { idempotencyKey?: string }
+  ) => Promise<CheckoutPurchaseResponseContract>;
+  attachCheckoutPurchase: (
+    checkoutId: string,
+    options?: { idempotencyKey?: string }
+  ) => Promise<CheckoutPurchaseResponseContract>;
+  payBnplInstallment: (
+    purchaseId: string,
+    payload?: { source?: string }
+  ) => Promise<BnplInstallmentPaymentResponseContract>;
+  payBnplRemaining: (
+    purchaseId: string,
+    payload?: { source?: string }
+  ) => Promise<BnplInstallmentPaymentResponseContract>;
+  cancelCheckout: (checkoutId: string) => Promise<CancelCheckoutResponseContract>;
+  getCheckoutStatus: (checkoutId: string) => Promise<CheckoutStatusResponseContract>;
+  retryCheckout: (checkoutId: string) => Promise<CheckoutActionResponseContract>;
+  confirmCheckoutPaid: (checkoutId: string) => Promise<CheckoutActionResponseContract>;
+  getCheckoutTimeline: (
+    checkoutId: string
+  ) => Promise<CheckoutTimelineResponseContract>;
+  getCheckouts: (params?: GetCheckoutsParamsContract) => Promise<CheckoutListItemContract[]>;
+};
+
+export type BookingsGateway = {
+  getBookings: (params?: GetBookingsParamsContract) => Promise<Booking[]>;
+  createBooking: (
+    payload: CreateBookingPayloadContract,
+    options?: { idempotencyKey?: string }
+  ) => Promise<Booking>;
+  updateBooking: (id: string, patch: UpdateBookingPatchContract) => Promise<Booking>;
+  deleteBooking: (id: string) => Promise<DeleteBookingResponseContract>;
+  rescheduleBooking: (id: string, slotId: string) => Promise<Booking>;
 };

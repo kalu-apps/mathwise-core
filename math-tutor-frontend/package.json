@@ -8,11 +8,14 @@
     "dev:https": "VITE_DEV_HTTPS=1 vite",
     "typecheck": "tsc -b --pretty false",
     "build": "tsc -b && vite build",
+    "build:stage": "tsc -b && vite build --mode stage",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "verify": "npm run lint && npm run build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:stage": "vite preview --host 0.0.0.0 --port 4173",
+    "start:stage": "npm run preview:stage"
   },
   "browserslist": {
     "production": [
