@@ -39,8 +39,6 @@ export const ru = {
     profile: "Профиль",
     login: "Войти",
     logout: "Выйти",
-    assistant: "Аксиом",
-    assistantToggle: "Открыть или закрыть ассистента Аксиом",
   },
   auth: {
     emailRequired: "Введите email",

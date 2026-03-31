@@ -26,6 +26,10 @@ npm run start:stage
 Ключевые env:
 - `VITE_APP_ENV=stage`
 - `VITE_API_BASE_URL=https://<api-host>/api`
-- `VITE_GATEWAY_MODE=hybrid` (или `mock` для rollback)
+- `VITE_GATEWAY_MODE=http`
 - `VITE_RELEASE_VERSION=<release-tag>`
 - `VITE_BUILD_SOURCEMAP=1` (для stage diagnostics)
+
+Emergency fallback (временно, только при инциденте):
+- переключить `VITE_API_BASE_URL` на стабильный предыдущий backend release
+- обновить `VITE_RELEASE_VERSION` и пересобрать фронтенд

@@ -22,16 +22,26 @@ afterEach(() => {
 });
 
 describe("runtime boundary", () => {
-  it("keeps preview mock disabled by default and blocks dev reset policy outside local", async () => {
+  it("keeps backend-only runtime config in preview", async () => {
     process.env.APP_ENV = "preview";
-    delete process.env.ENABLE_MOCK_API_PREVIEW;
-    process.env.MOCK_ALLOW_DEV_RESET = "true";
-    process.env.MOCK_ALLOW_TEACHER_SHORTCUTS = "true";
+    process.env.GATEWAY_MODE = "mock";
 
     vi.resetModules();
-    const mod = await import("../../mock/runtime/serverEnv");
-    expect(mod.shouldEnableMockRuntime("preview-server")).toBe(false);
-    expect(mod.SERVER_RUNTIME_ENV.allowDevReset).toBe(false);
-    expect(mod.SERVER_RUNTIME_ENV.allowTeacherShortcuts).toBe(false);
+    const mod = await import("../../shared/gateway");
+    expect(mod.gatewayRuntimeConfig.mode).toBe("http");
+    expect(mod.gatewayRuntimeConfig.authTransport).toBe("http");
+    expect(mod.gatewayRuntimeConfig.coursesTransport).toBe("http");
+    expect(mod.gatewayRuntimeConfig.lessonsTransport).toBe("http");
+  });
+
+  it("keeps backend-only runtime config in local too", async () => {
+    process.env.APP_ENV = "local";
+    process.env.GATEWAY_MODE = "hybrid";
+
+    vi.resetModules();
+    const mod = await import("../../shared/gateway");
+    expect(mod.gatewayRuntimeConfig.mode).toBe("http");
+    expect(mod.gatewayRuntimeConfig.bookingsTransport).toBe("http");
+    expect(mod.gatewayRuntimeConfig.purchasesTransport).toBe("http");
   });
 });

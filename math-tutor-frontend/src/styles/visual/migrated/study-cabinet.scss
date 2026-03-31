@@ -212,24 +212,6 @@
   justify-content: flex-end;
 }
 
-.study-cabinet-panel__cover-assistant {
-  width: min(100%, 420px);
-  min-height: 100%;
-
-  .axiom-assistant__card {
-    min-height: 132px;
-  }
-
-  .assistant-launcher {
-    right: 26px;
-    bottom: 30px;
-  }
-
-  .assistant-panel {
-    right: 22px;
-  }
-}
-
 .study-cabinet-panel__activity-row {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);

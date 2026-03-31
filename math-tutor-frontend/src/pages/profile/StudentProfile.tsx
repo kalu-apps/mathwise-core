@@ -62,7 +62,20 @@ import { StudyCabinetPanel } from "@/shared/ui/StudyCabinetPanel";
 import { openExternalWhiteboard } from "@/shared/lib/openExternalWhiteboard";
 import type { StudentStudyCabinetCourseItem } from "@/features/study-cabinet/student/model/types";
 import { useStudentProfileData } from "@/pages/profile/hooks/useStudentProfileData";
-import { buildStudentProgressVisual } from "@/pages/profile/model/selectors";
+import {
+  buildBnplReminderItems,
+  buildStudentProgressVisual,
+  countScheduledBookings,
+  filterStudentCoursesByQuery,
+  formatBookingReminderDate,
+  paginateItems,
+  resolveSafePage,
+  selectUnpaidCompletedBooking,
+  selectUpcomingBooking,
+  sortBookingsByTimeline,
+  splitBookingsByCompletion,
+} from "@/pages/profile/model/selectors";
+import { useStudentProfileUiStore } from "@/pages/profile/model/studentProfileUiStore";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { selectPurchaseFinancialView } from "@/entities/purchase/model/selectors";
 import { BnplReminderFeed } from "@/entities/purchase/ui/BnplReminderFeed";
@@ -88,8 +101,6 @@ import { useRecoverAccessNotice } from "@/features/auth/model/useRecoverAccessNo
 import { PasswordSecurityCard } from "@/features/auth/ui/PasswordSecurityCard";
 import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import {
-  getBookingEndTimestamp,
-  getBookingStartTimestamp,
   isBookingCompleted,
 } from "@/shared/lib/time";
 import { ListSkeleton, SectionLoader } from "@/shared/ui/loading";
@@ -107,10 +118,12 @@ export default function StudentProfile() {
   const userId = user?.id;
   const navigate = useNavigate();
   const location = useLocation();
-  const [tab, setTab] = useState(0);
+  const tab = useStudentProfileUiStore((state) => state.tab);
+  const setTab = useStudentProfileUiStore((state) => state.setTab);
   const [saving, setSaving] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
-  const [courseQuery, setCourseQuery] = useState("");
+  const courseQuery = useStudentProfileUiStore((state) => state.courseQuery);
+  const setCourseQuery = useStudentProfileUiStore((state) => state.setCourseQuery);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(true);
@@ -122,10 +135,18 @@ export default function StudentProfile() {
   const [scheduleLoading, setScheduleLoading] = useState(true);
   const [teacher, setTeacher] = useState<User | null>(null);
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
-  const [createDate, setCreateDate] = useState("");
-  const [createSlotId, setCreateSlotId] = useState<string | null>(null);
-  const [rescheduleDate, setRescheduleDate] = useState("");
-  const [rescheduleSlotId, setRescheduleSlotId] = useState<string | null>(null);
+  const createDate = useStudentProfileUiStore((state) => state.createDate);
+  const setCreateDate = useStudentProfileUiStore((state) => state.setCreateDate);
+  const createSlotId = useStudentProfileUiStore((state) => state.createSlotId);
+  const setCreateSlotId = useStudentProfileUiStore((state) => state.setCreateSlotId);
+  const rescheduleDate = useStudentProfileUiStore((state) => state.rescheduleDate);
+  const setRescheduleDate = useStudentProfileUiStore((state) => state.setRescheduleDate);
+  const rescheduleSlotId = useStudentProfileUiStore(
+    (state) => state.rescheduleSlotId
+  );
+  const setRescheduleSlotId = useStudentProfileUiStore(
+    (state) => state.setRescheduleSlotId
+  );
   const [bookingToReschedule, setBookingToReschedule] = useState<Booking | null>(
     null
   );
@@ -138,16 +159,52 @@ export default function StudentProfile() {
   } | null>(null);
   const [chatEligibility, setChatEligibility] =
     useState<TeacherChatEligibility | null>(null);
-  const [chatUnreadCount, setChatUnreadCount] = useState(0);
-  const [tabMenuOpen, setTabMenuOpen] = useState(false);
+  const chatUnreadCount = useStudentProfileUiStore(
+    (state) => state.chatUnreadCount
+  );
+  const setChatUnreadCount = useStudentProfileUiStore(
+    (state) => state.setChatUnreadCount
+  );
+  const tabMenuOpen = useStudentProfileUiStore((state) => state.tabMenuOpen);
+  const setTabMenuOpen = useStudentProfileUiStore((state) => state.setTabMenuOpen);
   const [studyNotes, setStudyNotes] = useState<StudyCabinetNote[]>([]);
-  const [studyActivityVersion, setStudyActivityVersion] = useState(0);
-  const [coursesPage, setCoursesPage] = useState(1);
-  const [scheduledPage, setScheduledPage] = useState(1);
-  const [completedPage, setCompletedPage] = useState(1);
-  const [createSlotsExpanded, setCreateSlotsExpanded] = useState(false);
-  const [createAcceptTerms, setCreateAcceptTerms] = useState(false);
-  const [createAcceptPrivacy, setCreateAcceptPrivacy] = useState(false);
+  const studyActivityVersion = useStudentProfileUiStore(
+    (state) => state.studyActivityVersion
+  );
+  const setStudyActivityVersion = useStudentProfileUiStore(
+    (state) => state.setStudyActivityVersion
+  );
+  const coursesPage = useStudentProfileUiStore((state) => state.coursesPage);
+  const setCoursesPage = useStudentProfileUiStore((state) => state.setCoursesPage);
+  const scheduledPage = useStudentProfileUiStore((state) => state.scheduledPage);
+  const setScheduledPage = useStudentProfileUiStore(
+    (state) => state.setScheduledPage
+  );
+  const completedPage = useStudentProfileUiStore((state) => state.completedPage);
+  const setCompletedPage = useStudentProfileUiStore(
+    (state) => state.setCompletedPage
+  );
+  const createSlotsExpanded = useStudentProfileUiStore(
+    (state) => state.createSlotsExpanded
+  );
+  const setCreateSlotsExpanded = useStudentProfileUiStore(
+    (state) => state.setCreateSlotsExpanded
+  );
+  const createAcceptTerms = useStudentProfileUiStore(
+    (state) => state.createAcceptTerms
+  );
+  const setCreateAcceptTerms = useStudentProfileUiStore(
+    (state) => state.setCreateAcceptTerms
+  );
+  const createAcceptPrivacy = useStudentProfileUiStore(
+    (state) => state.createAcceptPrivacy
+  );
+  const setCreateAcceptPrivacy = useStudentProfileUiStore(
+    (state) => state.setCreateAcceptPrivacy
+  );
+  const resetStudentProfileUiState = useStudentProfileUiStore(
+    (state) => state.resetStudentProfileUiState
+  );
   const {
     state: accessNoticeState,
     recheck: recheckAccessNotice,
@@ -171,6 +228,10 @@ export default function StudentProfile() {
   const hasScheduleLoadedRef = useRef(false);
 
   const chatAccessAvailable = chatEligibility?.available === true;
+
+  useEffect(() => {
+    resetStudentProfileUiState();
+  }, [resetStudentProfileUiState, userId]);
 
   const {
     setTabWithQuery,
@@ -211,72 +272,22 @@ export default function StudentProfile() {
     if (!isNonDesktop && tabMenuOpen) {
       setTabMenuOpen(false);
     }
-  }, [isNonDesktop, tabMenuOpen]);
+  }, [isNonDesktop, setTabMenuOpen, tabMenuOpen]);
 
-  const upcomingBooking = useMemo(() => {
-    const now = Date.now();
-    const oneDay = 24 * 60 * 60 * 1000;
-    let nearest: Booking | null = null;
-    let minDiff = Number.POSITIVE_INFINITY;
-    bookings.forEach((booking) => {
-      if (!booking.date || !booking.startTime) return;
-      const start = getBookingStartTimestamp(booking);
-      if (!Number.isFinite(start)) return;
-      const diff = start - now;
-      if (diff > 0 && diff <= oneDay && diff < minDiff) {
-        minDiff = diff;
-        nearest = booking;
-      }
-    });
-    return nearest;
-  }, [bookings]);
-
-  const unpaidCompletedBooking = useMemo(() => {
-    const now = Date.now();
-    const completedUnpaid = bookings
-      .filter((booking) => {
-        const endTime = getBookingEndTimestamp(booking);
-        return (
-          Number.isFinite(endTime) &&
-          endTime < now &&
-          booking.paymentStatus !== "paid"
-        );
-      })
-      .sort((a, b) => {
-        const aTime = getBookingEndTimestamp(a);
-        const bTime = getBookingEndTimestamp(b);
-        return bTime - aTime;
-      });
-    return completedUnpaid[0] ?? null;
-  }, [bookings]);
-
-  const sortedBookings = useMemo(() => {
-    const now = Date.now();
-    const getStart = (booking: Booking) => getBookingStartTimestamp(booking);
-    const getEnd = (booking: Booking) => getBookingEndTimestamp(booking);
-    const upcoming = bookings
-      .filter((booking) => getEnd(booking) >= now)
-      .sort((a, b) => getStart(a) - getStart(b));
-    const past = bookings
-      .filter((booking) => getEnd(booking) < now)
-      .sort((a, b) => getEnd(b) - getEnd(a));
-    return [...upcoming, ...past];
-  }, [bookings]);
-
-  const scheduledBookings = useMemo(() => {
-    const now = Date.now();
-    return sortedBookings.filter((booking) => getBookingEndTimestamp(booking) >= now);
-  }, [sortedBookings]);
-
-  const completedBookings = useMemo(() => {
-    const now = Date.now();
-    return sortedBookings.filter((booking) => getBookingEndTimestamp(booking) < now);
-  }, [sortedBookings]);
-
-  const scheduledCount = useMemo(() => {
-    const now = Date.now();
-    return bookings.filter((booking) => getBookingEndTimestamp(booking) > now).length;
-  }, [bookings]);
+  const upcomingBooking = useMemo(() => selectUpcomingBooking(bookings), [bookings]);
+  const unpaidCompletedBooking = useMemo(
+    () => selectUnpaidCompletedBooking(bookings),
+    [bookings]
+  );
+  const sortedBookings = useMemo(() => sortBookingsByTimeline(bookings), [bookings]);
+  const { scheduled: scheduledBookings, completed: completedBookings } = useMemo(
+    () => splitBookingsByCompletion(sortedBookings),
+    [sortedBookings]
+  );
+  const scheduledCount = useMemo(
+    () => countScheduledBookings(bookings),
+    [bookings]
+  );
 
   const calendarDays = useMemo(() => buildCalendarDays(21), []);
   const slotsByDate = useMemo(() => groupSlotsByDate(availability), [availability]);
@@ -310,7 +321,7 @@ export default function StudentProfile() {
       setCreateDate(firstAvailableDate);
       setCreateSlotId(null);
     }
-  }, [createDate, calendarDays, firstAvailableDate]);
+  }, [calendarDays, createDate, firstAvailableDate, setCreateDate, setCreateSlotId]);
 
   useEffect(() => {
     if (!bookingToReschedule) {
@@ -326,6 +337,8 @@ export default function StudentProfile() {
     rescheduleDate,
     calendarDays,
     firstAvailableDate,
+    setRescheduleDate,
+    setRescheduleSlotId,
   ]);
 
   useEffect(() => {
@@ -334,89 +347,44 @@ export default function StudentProfile() {
       setCreateAcceptTerms(false);
       setCreateAcceptPrivacy(false);
     }
-  }, [tab]);
+  }, [setCreateAcceptPrivacy, setCreateAcceptTerms, setCreateSlotsExpanded, tab]);
 
   const coursesPageSize = isMobile ? 2 : 4;
   const bookingsPageSize = isMobile ? 2 : 4;
 
   const filteredCourseItems = useMemo(
-    () =>
-      items.filter((item) =>
-        item.course.title.toLowerCase().includes(courseQuery.trim().toLowerCase())
-      ),
+    () => filterStudentCoursesByQuery(items, courseQuery),
     [items, courseQuery]
   );
-
-  const coursesTotalPages = Math.max(
-    1,
-    Math.ceil(filteredCourseItems.length / coursesPageSize)
+  const { safePage: safeCoursesPage } = useMemo(
+    () => resolveSafePage(coursesPage, filteredCourseItems.length, coursesPageSize),
+    [coursesPage, filteredCourseItems.length, coursesPageSize]
   );
-  const safeCoursesPage = Math.min(coursesPage, coursesTotalPages);
-  const scheduledTotalPages = Math.max(
-    1,
-    Math.ceil(scheduledBookings.length / bookingsPageSize)
+  const { safePage: safeScheduledPage } = useMemo(
+    () => resolveSafePage(scheduledPage, scheduledBookings.length, bookingsPageSize),
+    [scheduledPage, scheduledBookings.length, bookingsPageSize]
   );
-  const safeScheduledPage = Math.min(scheduledPage, scheduledTotalPages);
-  const completedTotalPages = Math.max(
-    1,
-    Math.ceil(completedBookings.length / bookingsPageSize)
+  const { safePage: safeCompletedPage } = useMemo(
+    () => resolveSafePage(completedPage, completedBookings.length, bookingsPageSize),
+    [completedPage, completedBookings.length, bookingsPageSize]
   );
-  const safeCompletedPage = Math.min(completedPage, completedTotalPages);
 
-  const pagedCourseItems = useMemo(() => {
-    const start = (safeCoursesPage - 1) * coursesPageSize;
-    return filteredCourseItems.slice(start, start + coursesPageSize);
-  }, [filteredCourseItems, safeCoursesPage, coursesPageSize]);
+  const pagedCourseItems = useMemo(
+    () => paginateItems(filteredCourseItems, safeCoursesPage, coursesPageSize),
+    [filteredCourseItems, safeCoursesPage, coursesPageSize]
+  );
 
-  const pagedScheduledBookings = useMemo(() => {
-    const start = (safeScheduledPage - 1) * bookingsPageSize;
-    return scheduledBookings.slice(start, start + bookingsPageSize);
-  }, [scheduledBookings, safeScheduledPage, bookingsPageSize]);
+  const pagedScheduledBookings = useMemo(
+    () => paginateItems(scheduledBookings, safeScheduledPage, bookingsPageSize),
+    [scheduledBookings, safeScheduledPage, bookingsPageSize]
+  );
 
-  const pagedCompletedBookings = useMemo(() => {
-    const start = (safeCompletedPage - 1) * bookingsPageSize;
-    return completedBookings.slice(start, start + bookingsPageSize);
-  }, [completedBookings, safeCompletedPage, bookingsPageSize]);
+  const pagedCompletedBookings = useMemo(
+    () => paginateItems(completedBookings, safeCompletedPage, bookingsPageSize),
+    [completedBookings, safeCompletedPage, bookingsPageSize]
+  );
 
-  const bnplReminderItems = useMemo(() => {
-    return items
-      .map((item) => {
-        const financial = selectPurchaseFinancialView(item.purchase);
-        if (financial.paymentMethod !== "bnpl") return null;
-        if (
-          financial.financialStatus !== "upcoming" &&
-          financial.financialStatus !== "grace" &&
-          financial.financialStatus !== "restricted" &&
-          financial.financialStatus !== "suspended"
-        ) {
-          return null;
-        }
-        return {
-          purchaseId: item.purchase.id,
-          courseTitle: item.course.title,
-          financialStatus: financial.financialStatus,
-          nextPaymentDate: financial.nextPaymentDate,
-          overdueDays: financial.overdueDays,
-        };
-      })
-      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
-      .sort((a, b) => {
-        const rank = (status: typeof a.financialStatus) => {
-          if (status === "suspended") return 0;
-          if (status === "restricted") return 1;
-          if (status === "grace") return 2;
-          return 3;
-        };
-        const rankDiff = rank(a.financialStatus) - rank(b.financialStatus);
-        if (rankDiff !== 0) return rankDiff;
-        if (a.nextPaymentDate && b.nextPaymentDate) {
-          return a.nextPaymentDate.localeCompare(b.nextPaymentDate);
-        }
-        if (a.nextPaymentDate) return -1;
-        if (b.nextPaymentDate) return 1;
-        return 0;
-      });
-  }, [items]);
+  const bnplReminderItems = useMemo(() => buildBnplReminderItems(items), [items]);
 
   const studyActivityDays = useMemo(() => {
     const recalcSeed = studyActivityVersion;
@@ -649,16 +617,6 @@ export default function StudentProfile() {
     );
   };
 
-  const formatReminderDate = (booking: Booking) => {
-    const date = new Date(`${booking.date}T${booking.startTime}`);
-    return date.toLocaleString("ru-RU", {
-      day: "numeric",
-      month: "long",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   const handleOpenTeacherChat = async () => {
     try {
       const eligibility = chatEligibility ?? (await getTeacherChatEligibility());
@@ -798,13 +756,13 @@ export default function StudentProfile() {
       </Snackbar>
       {unpaidCompletedBooking && (
         <div className="student-profile__reminder student-profile__reminder--priority">
-          Внимание: занятие от {formatReminderDate(unpaidCompletedBooking)} пока не
+          Внимание: занятие от {formatBookingReminderDate(unpaidCompletedBooking)} пока не
           отмечено как оплачено. Свяжитесь с преподавателем для подтверждения.
         </div>
       )}
       {upcomingBooking && (
         <div className="student-profile__reminder">
-          Напоминание: занятие назначено на {formatReminderDate(upcomingBooking)}
+          Напоминание: занятие назначено на {formatBookingReminderDate(upcomingBooking)}
         </div>
       )}
       {accessNoticeState && (

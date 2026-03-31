@@ -1,27 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { DatabaseService, type DatabaseExecutor } from "../db/database.service";
-import type { BookingDto, BookingMaterialDto, BookingRecord } from "./bookings.types";
-
-type BookingRow = {
-  id: string;
-  slotId: string | null;
-  teacherId: string;
-  teacherName: string;
-  teacherPhoto: string | null;
-  studentId: string;
-  studentName: string;
-  studentEmail: string;
-  studentPhone: string | null;
-  studentPhoto: string | null;
-  date: string;
-  startTime: string;
-  endTime: string;
-  lessonKind: "trial" | "regular";
-  paymentStatus: "unpaid" | "paid";
-  meetingUrl: string | null;
-  materials: unknown;
-  createdAt: string;
-};
+import type { BookingDto, BookingRecord } from "./bookings.types";
+import {
+  mapBookingRow,
+  mapBookingRowWithSlot,
+  type BookingRow,
+} from "./bookings.mappers";
+import { BOOKINGS_SCHEMA_STATEMENTS } from "./bookings.schema";
 
 type AvailabilityRow = {
   id: string;
@@ -40,81 +25,9 @@ export class BookingsRepository {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async ensureSchema() {
-    await this.databaseService.execute(`
-      CREATE TABLE IF NOT EXISTS profile_bookings (
-        id TEXT PRIMARY KEY,
-        slot_id TEXT,
-        teacher_id TEXT NOT NULL,
-        teacher_name TEXT NOT NULL DEFAULT '',
-        teacher_photo TEXT,
-        student_id TEXT NOT NULL,
-        student_name TEXT NOT NULL DEFAULT '',
-        student_email TEXT NOT NULL DEFAULT '',
-        student_phone TEXT,
-        student_photo TEXT,
-        date TEXT NOT NULL DEFAULT '',
-        start_time TEXT NOT NULL DEFAULT '',
-        end_time TEXT NOT NULL DEFAULT '',
-        lesson_kind TEXT NOT NULL CHECK (lesson_kind IN ('trial', 'regular')),
-        payment_status TEXT NOT NULL CHECK (payment_status IN ('unpaid', 'paid')),
-        meeting_url TEXT,
-        materials_json JSONB NOT NULL DEFAULT '[]'::jsonb,
-        created_at TEXT NOT NULL DEFAULT '',
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-    await this.databaseService.execute(`
-      ALTER TABLE profile_bookings
-      ADD COLUMN IF NOT EXISTS slot_id TEXT
-    `);
-    await this.databaseService.execute(`
-      CREATE INDEX IF NOT EXISTS idx_profile_bookings_student
-      ON profile_bookings (student_id, date ASC, start_time ASC)
-    `);
-    await this.databaseService.execute(`
-      CREATE INDEX IF NOT EXISTS idx_profile_bookings_teacher
-      ON profile_bookings (teacher_id, date ASC, start_time ASC)
-    `);
-    await this.databaseService.execute(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_bookings_teacher_time_unique
-      ON profile_bookings (teacher_id, date, start_time, end_time)
-    `);
-    await this.databaseService.execute(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_bookings_slot_unique
-      ON profile_bookings (slot_id)
-      WHERE slot_id IS NOT NULL
-    `);
-
-    await this.databaseService.execute(`
-      CREATE TABLE IF NOT EXISTS profile_teacher_availability (
-        id TEXT PRIMARY KEY,
-        teacher_id TEXT NOT NULL,
-        date TEXT NOT NULL DEFAULT '',
-        start_time TEXT NOT NULL DEFAULT '',
-        end_time TEXT NOT NULL DEFAULT '',
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-    await this.databaseService.execute(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_teacher_availability_unique_time
-      ON profile_teacher_availability (teacher_id, date, start_time, end_time)
-    `);
-
-    await this.databaseService.execute(`
-      CREATE TABLE IF NOT EXISTS write_idempotency_records (
-        scope TEXT NOT NULL,
-        idempotency_key TEXT NOT NULL,
-        response_json JSONB NOT NULL,
-        expires_at TIMESTAMPTZ NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        PRIMARY KEY (scope, idempotency_key)
-      )
-    `);
-
-    await this.databaseService.execute(`
-      DELETE FROM write_idempotency_records
-      WHERE expires_at <= NOW()
-    `);
+    for (const statement of BOOKINGS_SCHEMA_STATEMENTS) {
+      await this.databaseService.execute(statement);
+    }
   }
 
   async findBookings(params?: {
@@ -149,7 +62,7 @@ export class BookingsRepository {
       `,
       [params?.teacherId ?? null, params?.studentId ?? null]
     );
-    return rows.map((row) => this.mapBookingRow(row));
+    return rows.map((row) => mapBookingRow(row));
   }
 
   async findBookingById(bookingId: string): Promise<BookingRecord | null> {
@@ -181,7 +94,7 @@ export class BookingsRepository {
       [bookingId]
     );
     const row = rows[0];
-    return row ? this.mapBookingRowWithSlot(row) : null;
+    return row ? mapBookingRowWithSlot(row) : null;
   }
 
   async findBookingBySlotId(slotId: string): Promise<BookingRecord | null> {
@@ -213,7 +126,7 @@ export class BookingsRepository {
       [slotId]
     );
     const row = rows[0];
-    return row ? this.mapBookingRowWithSlot(row) : null;
+    return row ? mapBookingRowWithSlot(row) : null;
   }
 
   async hasBookingsForStudent(studentId: string): Promise<boolean> {
@@ -274,7 +187,7 @@ export class BookingsRepository {
       ]
     );
     const row = rows[0];
-    return row ? this.mapBookingRowWithSlot(row) : null;
+    return row ? mapBookingRowWithSlot(row) : null;
   }
 
   async insertBooking(booking: BookingRecord): Promise<void> {
@@ -612,54 +525,6 @@ export class BookingsRepository {
       );
       return deleted.length > 0;
     });
-  }
-
-  private mapBookingRow(row: BookingRow): BookingDto {
-    return {
-      id: row.id,
-      teacherId: row.teacherId,
-      teacherName: row.teacherName,
-      teacherPhoto: row.teacherPhoto ?? undefined,
-      studentId: row.studentId,
-      studentName: row.studentName,
-      studentEmail: row.studentEmail,
-      studentPhone: row.studentPhone ?? undefined,
-      studentPhoto: row.studentPhoto ?? undefined,
-      date: row.date,
-      startTime: row.startTime,
-      endTime: row.endTime,
-      lessonKind: row.lessonKind,
-      paymentStatus: row.paymentStatus,
-      meetingUrl: row.meetingUrl ?? undefined,
-      materials: this.normalizeMaterials(row.materials),
-      createdAt: row.createdAt,
-    };
-  }
-
-  private mapBookingRowWithSlot(row: BookingRow): BookingRecord {
-    return {
-      ...this.mapBookingRow(row),
-      slotId: row.slotId ?? undefined,
-    };
-  }
-
-  private normalizeMaterials(value: unknown): BookingMaterialDto[] {
-    if (!Array.isArray(value)) return [];
-    return value
-      .map((item) => {
-        if (!item || typeof item !== "object") return null;
-        const raw = item as Record<string, unknown>;
-        const id = typeof raw.id === "string" ? raw.id : "";
-        const name = typeof raw.name === "string" ? raw.name : "";
-        const type =
-          raw.type === "pdf" || raw.type === "doc" || raw.type === "video"
-            ? raw.type
-            : null;
-        const url = typeof raw.url === "string" ? raw.url : "";
-        if (!id || !name || !type || !url) return null;
-        return { id, name, type, url } as BookingMaterialDto;
-      })
-      .filter((item): item is BookingMaterialDto => Boolean(item));
   }
 
   private async insertBookingWithExecutor(

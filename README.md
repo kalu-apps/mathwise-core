@@ -11,15 +11,32 @@
 
 ## Локальный запуск
 ```bash
-cd math-tutor-frontend
+cp apps/api/.env.example apps/api/.env
+cd apps/api
+npm install
+npm run bootstrap:stage
+npm run dev
+
+cd ../../math-tutor-frontend
 npm install
 npm run dev
 ```
+
+Frontend работает только через `apps/api` (embedded mock runtime удален).
 
 ## Проверка перед пушем
 ```bash
 cd math-tutor-frontend
 npm run verify
+```
+
+Для release candidate дополнительно:
+
+```bash
+cd apps/api
+npm run typecheck
+npm run test
+npm run build
 ```
 
 ## Stage Bootstrap (`mw-app-01`)

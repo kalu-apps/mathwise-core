@@ -5,7 +5,6 @@ import { useAuth } from "@/features/auth/model/AuthContext";
 import { selfHealAccess } from "@/features/auth/model/api";
 import {
   checkoutPurchase,
-  type CheckoutPayload,
 } from "@/entities/purchase/model/storage";
 import type { Purchase } from "@/entities/purchase/model/types";
 import {
@@ -61,7 +60,6 @@ import {
   confirmCheckoutPaid,
   retryCheckout,
   type CheckoutListItem,
-  type CheckoutStatusResponse,
 } from "@/domain/auth-payments/model/api";
 import type { CourseAccessDecision } from "@/domain/auth-payments/model/access";
 import {
@@ -83,192 +81,44 @@ import {
 } from "@/entities/purchase/model/selectors";
 import { markLessonOpened } from "@/entities/purchase/model/openedLessons";
 import { useCourseDetailsData } from "@/pages/courses/hooks/useCourseDetailsData";
+import { useCourseDetailsUiStore } from "@/pages/courses/model/courseDetailsUiStore";
 import {
   buildCourseProgressVisual,
   getAssessmentKindByItem,
 } from "@/pages/courses/model/mappers";
+import {
+  PAYMENT_METHODS as PAYMENT_METHODS_BASE,
+  RESUMABLE_CHECKOUT_STATES,
+  formatApproxMonthlyBnplLine,
+  getBnplStatusBanner,
+  getApproxMonthlyFrom,
+  getCheckoutDialogHint,
+  getCheckoutDialogTitle,
+  getCheckoutStatusLabel,
+  getPaymentProviderLabel,
+  hasLessonChangedFromPurchaseSnapshot,
+  type PaymentMethod,
+} from "@/pages/courses/model/courseDetailsHelpers";
 
-type PaymentMethod = NonNullable<CheckoutPayload["paymentMethod"]>;
 type CourseDetailsLocationState = {
   from?: string;
   expandedBlockId?: string | null;
 };
 
-type PaymentMethodMeta = {
-  id: PaymentMethod;
-  title: string;
-  subtitle: string;
+type PaymentMethodMeta = (typeof PAYMENT_METHODS_BASE)[number] & {
   Icon: typeof CreditCardRounded;
 };
 
-const PAYMENT_METHODS: PaymentMethodMeta[] = [
-  {
-    id: "card",
-    title: "Банковская карта",
-    subtitle: "Оплата через защищенную форму банка.",
-    Icon: CreditCardRounded,
-  },
-  {
-    id: "sbp",
-    title: "СБП",
-    subtitle: "Быстрый перевод через приложение банка.",
-    Icon: QrCode2Rounded,
-  },
-  {
-    id: "bnpl",
-    title: "Оплата частями",
-    subtitle: "Оплата частями по графику провайдера.",
-    Icon: AccountBalanceWalletRounded,
-  },
-];
-
-const RESUMABLE_CHECKOUT_STATES = new Set<string>([
-  "created",
-  "awaiting_payment",
-  "failed",
-  "canceled",
-  "expired",
-]);
-
-const getCheckoutStatusLabel = (status?: string) => {
-  if (status === "paid") return "Оплачен";
-  if (status === "failed") return "Ошибка оплаты";
-  if (status === "canceled") return "Платеж отменен";
-  if (status === "expired") return "Время истекло";
-  return "Ожидает подтверждения";
+const PAYMENT_METHOD_ICON_BY_ID: Record<PaymentMethod, typeof CreditCardRounded> = {
+  card: CreditCardRounded,
+  sbp: QrCode2Rounded,
+  bnpl: AccountBalanceWalletRounded,
 };
 
-const getCheckoutDialogTitle = (status?: string) => {
-  if (status === "paid") return "Оплата подтверждена";
-  if (status === "failed") return "Оплата не прошла";
-  if (status === "canceled") return "Платеж отменен";
-  if (status === "expired") return "Срок оплаты истек";
-  return "Подтверждаем оплату";
-};
-
-const getCheckoutDialogHint = (status?: string, requiresConfirmation?: boolean) => {
-  if (status === "paid") {
-    return "Платеж зарегистрирован. Проверяем активацию доступа к материалам курса.";
-  }
-  if (status === "failed" || status === "canceled" || status === "expired") {
-    return "Платеж не завершен. Повторите попытку или откройте страницу оплаты повторно.";
-  }
-  if (requiresConfirmation) {
-    return "Откройте страницу банка и завершите оплату. Затем обновите статус, чтобы синхронизировать доступ.";
-  }
-  return "Подтверждаем данные по оплате. Обновите статус через несколько секунд.";
-};
-
-const getPaymentProviderLabel = (
-  method?: string | null,
-  fallback?: string
-) =>
-  PAYMENT_METHODS.find((item) => item.id === method)?.title ??
-  fallback ??
-  "Способ оплаты";
-
-const formatDateRu = (value: string | null) => {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-};
-
-const getApproxMonthlyFrom = (params: {
-  fromAmount: number | null;
-  periodLabel?: string;
-}) => {
-  if (!params.fromAmount || params.fromAmount <= 0) return null;
-  const period = (params.periodLabel ?? "").toLowerCase();
-  if (period.includes("2 нед")) return params.fromAmount * 2;
-  if (period.includes("нед")) return Math.round((params.fromAmount * 52) / 12);
-  return params.fromAmount;
-};
-
-const formatApproxMonthlyBnplLine = (params: {
-  fromAmount: number | null;
-  periodLabel?: string;
-}) => {
-  const approxMonthly = getApproxMonthlyFrom(params);
-  if (!approxMonthly) {
-    return "Оплата частями доступна (условия покажем на следующем шаге).";
-  }
-  return `Оплата частями: от ${approxMonthly.toLocaleString("ru-RU")} ₽ в месяц`;
-};
-
-const buildLessonMaterialsSignature = (
-  materials: Lesson["materials"] | undefined
-) =>
-  (materials ?? [])
-    .map((item) => ({
-      id: item.id,
-      name: item.name ?? "",
-      type: item.type,
-      url: item.url ?? "",
-    }))
-    .sort((a, b) => `${a.id}:${a.name}:${a.type}`.localeCompare(`${b.id}:${b.name}:${b.type}`));
-
-const hasLessonChangedFromPurchaseSnapshot = (
-  currentLesson: Lesson,
-  purchasedLesson: Lesson
-) => {
-  const currentMaterials = buildLessonMaterialsSignature(currentLesson.materials);
-  const purchasedMaterials = buildLessonMaterialsSignature(purchasedLesson.materials);
-  return (
-    currentLesson.title !== purchasedLesson.title ||
-    currentLesson.duration !== purchasedLesson.duration ||
-    (currentLesson.videoUrl ?? "") !== (purchasedLesson.videoUrl ?? "") ||
-    (currentLesson.videoStreamUrl ?? "") !== (purchasedLesson.videoStreamUrl ?? "") ||
-    (currentLesson.videoPosterUrl ?? "") !== (purchasedLesson.videoPosterUrl ?? "") ||
-    JSON.stringify(currentLesson.settings ?? null) !==
-      JSON.stringify(purchasedLesson.settings ?? null) ||
-    JSON.stringify(currentMaterials) !== JSON.stringify(purchasedMaterials)
-  );
-};
-
-const getBnplStatusBanner = (
-  financialStatus: ReturnType<typeof selectPurchaseFinancialView>["financialStatus"],
-  params: {
-    nextPaymentDate: string | null;
-    overdueDays: number;
-  }
-) => {
-  const nextDate = formatDateRu(params.nextPaymentDate);
-  if (financialStatus === "upcoming") {
-    return {
-      severity: "info" as const,
-      text: nextDate
-        ? `Напоминание по оплате частями: следующий платеж ${nextDate}.`
-        : "Напоминание по оплате частями: скоро следующий платеж.",
-    };
-  }
-  if (financialStatus === "grace") {
-    return {
-      severity: "warning" as const,
-      text: `Платеж по сплиту просрочен. У вас еще полный доступ (${Math.max(
-        0,
-        3 - params.overdueDays
-      )} дн. до ограничения новых уроков).`,
-    };
-  }
-  if (financialStatus === "restricted") {
-    return {
-      severity: "warning" as const,
-      text: "Новые уроки временно заблокированы до погашения просрочки по сплиту.",
-    };
-  }
-  if (financialStatus === "suspended") {
-    return {
-      severity: "error" as const,
-      text: "Доступ к урокам временно приостановлен из-за длительной просрочки по сплиту.",
-    };
-  }
-  return null;
-};
+const PAYMENT_METHODS: PaymentMethodMeta[] = PAYMENT_METHODS_BASE.map((method) => ({
+  ...method,
+  Icon: PAYMENT_METHOD_ICON_BY_ID[method.id],
+}));
 
 export default function CourseDetails() {
   const { courseId: courseIdParam } = useParams<{ courseId: string }>();
@@ -279,9 +129,14 @@ export default function CourseDetails() {
   const isDesktopCourseLayout = useMediaQuery(theme.breakpoints.up("lg"));
   const courseId = courseIdParam ?? "";
   const { user, openAuthModal, openRecoverModal, updateUser } = useAuth();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMessage, setModalMessage] = useState("");
-  const [showLoginAction, setShowLoginAction] = useState(false);
+  const modalOpen = useCourseDetailsUiStore((state) => state.modalOpen);
+  const setModalOpen = useCourseDetailsUiStore((state) => state.setModalOpen);
+  const modalMessage = useCourseDetailsUiStore((state) => state.modalMessage);
+  const setModalMessage = useCourseDetailsUiStore((state) => state.setModalMessage);
+  const showLoginAction = useCourseDetailsUiStore((state) => state.showLoginAction);
+  const setShowLoginAction = useCourseDetailsUiStore(
+    (state) => state.setShowLoginAction
+  );
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [courseBlocks, setCourseBlocks] = useState<CourseMaterialBlock[]>([]);
@@ -312,36 +167,111 @@ export default function CourseDetails() {
   );
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown | null>(null);
-  const [reloadSeq, setReloadSeq] = useState(0);
+  const reloadSeq = useCourseDetailsUiStore((state) => state.reloadSeq);
+  const setReloadSeq = useCourseDetailsUiStore((state) => state.setReloadSeq);
   const [pendingType, setPendingType] = useState<"guided" | "self" | null>(null);
-  const [purchaseOpen, setPurchaseOpen] = useState(false);
-  const [purchaseEmail, setPurchaseEmail] = useState("");
-  const [purchaseFirstName, setPurchaseFirstName] = useState("");
-  const [purchaseLastName, setPurchaseLastName] = useState("");
-  const [purchasePhone, setPurchasePhone] = useState("");
-  const [purchaseAcceptTerms, setPurchaseAcceptTerms] = useState(false);
-  const [purchaseAcceptPrivacy, setPurchaseAcceptPrivacy] = useState(false);
-  const [purchaseMethod, setPurchaseMethod] = useState<PaymentMethod>("card");
-  const [purchaseBnplInstallmentsCount, setPurchaseBnplInstallmentsCount] =
-    useState<number>(4);
-  const [purchaseLoading, setPurchaseLoading] = useState(false);
-  const [checkoutFlowOpen, setCheckoutFlowOpen] = useState(false);
-  const [checkoutFlowLoading, setCheckoutFlowLoading] = useState(false);
-  const [checkoutFlowError, setCheckoutFlowError] = useState<string | null>(null);
-  const [activeCheckoutId, setActiveCheckoutId] = useState<string | null>(null);
-  const [checkoutFlowStatus, setCheckoutFlowStatus] =
-    useState<CheckoutStatusResponse | null>(null);
-  const [checkoutPaymentUrl, setCheckoutPaymentUrl] = useState<string | null>(null);
-  const [checkoutProviderLabel, setCheckoutProviderLabel] = useState<string>("");
-  const [resumeCheckout, setResumeCheckout] = useState<CheckoutListItem | null>(null);
-  const [pendingAttachCheckoutId, setPendingAttachCheckoutId] = useState<string | null>(
-    null
+  const purchaseOpen = useCourseDetailsUiStore((state) => state.purchaseOpen);
+  const setPurchaseOpen = useCourseDetailsUiStore((state) => state.setPurchaseOpen);
+  const purchaseEmail = useCourseDetailsUiStore((state) => state.purchaseEmail);
+  const setPurchaseEmail = useCourseDetailsUiStore((state) => state.setPurchaseEmail);
+  const purchaseFirstName = useCourseDetailsUiStore(
+    (state) => state.purchaseFirstName
   );
-  const [lessonsPage, setLessonsPage] = useState(1);
+  const setPurchaseFirstName = useCourseDetailsUiStore(
+    (state) => state.setPurchaseFirstName
+  );
+  const purchaseLastName = useCourseDetailsUiStore(
+    (state) => state.purchaseLastName
+  );
+  const setPurchaseLastName = useCourseDetailsUiStore(
+    (state) => state.setPurchaseLastName
+  );
+  const purchasePhone = useCourseDetailsUiStore((state) => state.purchasePhone);
+  const setPurchasePhone = useCourseDetailsUiStore((state) => state.setPurchasePhone);
+  const purchaseAcceptTerms = useCourseDetailsUiStore(
+    (state) => state.purchaseAcceptTerms
+  );
+  const setPurchaseAcceptTerms = useCourseDetailsUiStore(
+    (state) => state.setPurchaseAcceptTerms
+  );
+  const purchaseAcceptPrivacy = useCourseDetailsUiStore(
+    (state) => state.purchaseAcceptPrivacy
+  );
+  const setPurchaseAcceptPrivacy = useCourseDetailsUiStore(
+    (state) => state.setPurchaseAcceptPrivacy
+  );
+  const purchaseMethod = useCourseDetailsUiStore((state) => state.purchaseMethod);
+  const setPurchaseMethod = useCourseDetailsUiStore((state) => state.setPurchaseMethod);
+  const purchaseBnplInstallmentsCount = useCourseDetailsUiStore(
+    (state) => state.purchaseBnplInstallmentsCount
+  );
+  const setPurchaseBnplInstallmentsCount = useCourseDetailsUiStore(
+    (state) => state.setPurchaseBnplInstallmentsCount
+  );
+  const purchaseLoading = useCourseDetailsUiStore((state) => state.purchaseLoading);
+  const setPurchaseLoading = useCourseDetailsUiStore(
+    (state) => state.setPurchaseLoading
+  );
+  const checkoutFlowOpen = useCourseDetailsUiStore(
+    (state) => state.checkoutFlowOpen
+  );
+  const setCheckoutFlowOpen = useCourseDetailsUiStore(
+    (state) => state.setCheckoutFlowOpen
+  );
+  const checkoutFlowLoading = useCourseDetailsUiStore(
+    (state) => state.checkoutFlowLoading
+  );
+  const setCheckoutFlowLoading = useCourseDetailsUiStore(
+    (state) => state.setCheckoutFlowLoading
+  );
+  const checkoutFlowError = useCourseDetailsUiStore(
+    (state) => state.checkoutFlowError
+  );
+  const setCheckoutFlowError = useCourseDetailsUiStore(
+    (state) => state.setCheckoutFlowError
+  );
+  const activeCheckoutId = useCourseDetailsUiStore(
+    (state) => state.activeCheckoutId
+  );
+  const setActiveCheckoutId = useCourseDetailsUiStore(
+    (state) => state.setActiveCheckoutId
+  );
+  const checkoutFlowStatus = useCourseDetailsUiStore(
+    (state) => state.checkoutFlowStatus
+  );
+  const setCheckoutFlowStatus = useCourseDetailsUiStore(
+    (state) => state.setCheckoutFlowStatus
+  );
+  const checkoutPaymentUrl = useCourseDetailsUiStore(
+    (state) => state.checkoutPaymentUrl
+  );
+  const setCheckoutPaymentUrl = useCourseDetailsUiStore(
+    (state) => state.setCheckoutPaymentUrl
+  );
+  const checkoutProviderLabel = useCourseDetailsUiStore(
+    (state) => state.checkoutProviderLabel
+  );
+  const setCheckoutProviderLabel = useCourseDetailsUiStore(
+    (state) => state.setCheckoutProviderLabel
+  );
+  const resumeCheckout = useCourseDetailsUiStore((state) => state.resumeCheckout);
+  const setResumeCheckout = useCourseDetailsUiStore((state) => state.setResumeCheckout);
+  const pendingAttachCheckoutId = useCourseDetailsUiStore(
+    (state) => state.pendingAttachCheckoutId
+  );
+  const setPendingAttachCheckoutId = useCourseDetailsUiStore(
+    (state) => state.setPendingAttachCheckoutId
+  );
+  const lessonsPage = useCourseDetailsUiStore((state) => state.lessonsPage);
+  const setLessonsPage = useCourseDetailsUiStore((state) => state.setLessonsPage);
   const [checkoutNoticeState, setCheckoutNoticeState] = useState<AccessUiState | null>(
     null
   );
-  const [bnplInfoOpen, setBnplInfoOpen] = useState(false);
+  const bnplInfoOpen = useCourseDetailsUiStore((state) => state.bnplInfoOpen);
+  const setBnplInfoOpen = useCourseDetailsUiStore((state) => state.setBnplInfoOpen);
+  const resetCourseDetailsUiState = useCourseDetailsUiStore(
+    (state) => state.resetCourseDetailsUiState
+  );
   const purchaseSubmitGuard = useActionGuard();
   const checkoutActionGuard = useActionGuard();
   const locationState = (location.state as CourseDetailsLocationState | null) ?? null;
@@ -351,6 +281,10 @@ export default function CourseDetails() {
     typeof locationState?.expandedBlockId === "string"
       ? locationState.expandedBlockId
       : null;
+
+  useEffect(() => {
+    resetCourseDetailsUiState();
+  }, [courseId, resetCourseDetailsUiState]);
 
   const hasMultipleBlocks = courseBlocks.length > 1;
   const effectiveSelectedBlockId = hasMultipleBlocks ? selectedBlockId : null;
@@ -506,7 +440,7 @@ export default function CourseDetails() {
   const safeLessonsPage = Math.min(lessonsPage, lessonsTotalPages);
   useEffect(() => {
     setLessonsPage(1);
-  }, [effectiveSelectedBlockId]);
+  }, [effectiveSelectedBlockId, setLessonsPage]);
 
   const pagedContentItems = useMemo(() => {
     const start = (safeLessonsPage - 1) * lessonsPageSize;
@@ -555,7 +489,15 @@ export default function CourseDetails() {
     if (user?.role === "student") {
       void refreshCheckoutFlow(resumeCheckout.id);
     }
-  }, [refreshCheckoutFlow, resumeCheckout, user?.role]);
+  }, [
+    refreshCheckoutFlow,
+    resumeCheckout,
+    setActiveCheckoutId,
+    setCheckoutFlowError,
+    setCheckoutFlowOpen,
+    setCheckoutProviderLabel,
+    user?.role,
+  ]);
 
   const handleCompleteProfile = useCallback(() => {
     if (user?.role === "student") {

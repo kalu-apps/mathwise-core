@@ -22,56 +22,33 @@ afterEach(() => {
 });
 
 describe("gateway mode runtime config", () => {
-  it("uses mock mode when GATEWAY_MODE=mock", async () => {
+  it("forces backend-only http mode even when legacy mode is requested", async () => {
     process.env.GATEWAY_MODE = "mock";
-    delete process.env.GATEWAY_AUTH_TRANSPORT;
-
     vi.resetModules();
     const mod = await import("../../shared/gateway");
-    expect(mod.gatewayRuntimeConfig.mode).toBe("mock");
-    expect(mod.gatewayRuntimeConfig.authTransport).toBe("mock");
-    expect(mod.gatewayRuntimeConfig.coursesTransport).toBe("mock");
-    expect(mod.gatewayRuntimeConfig.lessonsTransport).toBe("mock");
-    expect(mod.gatewayRuntimeConfig.accessTransport).toBe("mock");
-    expect(mod.gatewayRuntimeConfig.profileTransport).toBe("mock");
-    expect(mod.gatewayRuntimeConfig.purchasesTransport).toBe("mock");
-    expect(mod.gatewayRuntimeConfig.bookingsTransport).toBe("mock");
+    expect(mod.gatewayRuntimeConfig).toEqual({
+      mode: "http",
+      authTransport: "http",
+      coursesTransport: "http",
+      lessonsTransport: "http",
+      accessTransport: "http",
+      profileTransport: "http",
+      purchasesTransport: "http",
+      bookingsTransport: "http",
+    });
   });
 
-  it("uses hybrid auth transport override when configured", async () => {
-    process.env.GATEWAY_MODE = "hybrid";
-    process.env.GATEWAY_AUTH_MODE = "http";
-    delete process.env.GATEWAY_AUTH_TRANSPORT;
-    process.env.GATEWAY_COURSES_MODE = "http";
-
+  it("uses http gateway instances for all domains", async () => {
     vi.resetModules();
-    const mod = await import("../../shared/gateway");
-    expect(mod.gatewayRuntimeConfig.mode).toBe("hybrid");
-    expect(mod.gatewayRuntimeConfig.authTransport).toBe("http");
-    expect(mod.gatewayRuntimeConfig.coursesTransport).toBe("http");
-    expect(mod.gatewayRuntimeConfig.lessonsTransport).toBe("http");
-    expect(mod.gatewayRuntimeConfig.accessTransport).toBe("http");
-    expect(mod.gatewayRuntimeConfig.profileTransport).toBe("http");
-    expect(mod.gatewayRuntimeConfig.purchasesTransport).toBe("http");
-    expect(mod.gatewayRuntimeConfig.bookingsTransport).toBe("http");
-  });
+    const gatewayModule = await import("../../shared/gateway");
+    const httpModule = await import("../../shared/gateway/httpGateway");
 
-  it("routes courses through http in hybrid mode by default", async () => {
-    process.env.GATEWAY_MODE = "hybrid";
-    delete process.env.GATEWAY_COURSES_MODE;
-
-    vi.resetModules();
-    const mod = await import("../../shared/gateway");
-    expect(mod.gatewayRuntimeConfig.mode).toBe("hybrid");
-    expect(mod.gatewayRuntimeConfig.coursesTransport).toBe("http");
-    expect(mod.gatewayRuntimeConfig.lessonsTransport).toBe("http");
-    expect(mod.gatewayRuntimeConfig.accessTransport).toBe("http");
-    expect(mod.gatewayRuntimeConfig.profileTransport).toBe(
-      mod.gatewayRuntimeConfig.authTransport
-    );
-    expect(mod.gatewayRuntimeConfig.purchasesTransport).toBe("http");
-    expect(mod.gatewayRuntimeConfig.bookingsTransport).toBe(
-      mod.gatewayRuntimeConfig.profileTransport
-    );
+    expect(gatewayModule.authGateway).toBe(httpModule.httpGateway);
+    expect(gatewayModule.coursesGateway).toBe(httpModule.httpCoursesGateway);
+    expect(gatewayModule.lessonsGateway).toBe(httpModule.httpLessonsGateway);
+    expect(gatewayModule.accessGateway).toBe(httpModule.httpAccessGateway);
+    expect(gatewayModule.profileGateway).toBe(httpModule.httpProfileGateway);
+    expect(gatewayModule.purchaseGateway).toBe(httpModule.httpPurchasesGateway);
+    expect(gatewayModule.bookingGateway).toBe(httpModule.httpBookingsGateway);
   });
 });

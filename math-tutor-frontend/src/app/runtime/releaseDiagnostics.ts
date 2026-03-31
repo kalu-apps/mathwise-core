@@ -2,6 +2,27 @@ import { gatewayRuntimeConfig } from "@/shared/gateway";
 import { resolveHttpApiBase } from "@/shared/gateway/httpGateway";
 
 type FrontendRuntimeAppEnv = "local" | "preview" | "stage" | "prod";
+type FrontendRuntimeDiagnostics = {
+  event: "frontend_runtime";
+  appEnv: FrontendRuntimeAppEnv;
+  releaseVersion: string;
+  gatewayMode: (typeof gatewayRuntimeConfig)["mode"];
+  transports: {
+    auth: (typeof gatewayRuntimeConfig)["authTransport"];
+    courses: (typeof gatewayRuntimeConfig)["coursesTransport"];
+    lessons: (typeof gatewayRuntimeConfig)["lessonsTransport"];
+    access: (typeof gatewayRuntimeConfig)["accessTransport"];
+    profile: (typeof gatewayRuntimeConfig)["profileTransport"];
+    purchases: (typeof gatewayRuntimeConfig)["purchasesTransport"];
+    bookings: (typeof gatewayRuntimeConfig)["bookingsTransport"];
+  };
+  apiBaseUrl: string;
+  timestamp: string;
+};
+
+type WindowWithDiagnostics = Window & {
+  __MW_FRONTEND_RUNTIME__?: FrontendRuntimeDiagnostics;
+};
 
 const normalizeAppEnv = (raw: string | undefined): FrontendRuntimeAppEnv => {
   const value = (raw ?? "local").trim().toLowerCase();
@@ -14,7 +35,7 @@ const normalizeAppEnv = (raw: string | undefined): FrontendRuntimeAppEnv => {
 
 export const reportFrontendRuntimeDiagnostics = () => {
   const appEnv = normalizeAppEnv(import.meta.env.VITE_APP_ENV);
-  const payload = {
+  const payload: FrontendRuntimeDiagnostics = {
     event: "frontend_runtime",
     appEnv,
     releaseVersion: import.meta.env.VITE_RELEASE_VERSION || "dev",
@@ -33,11 +54,10 @@ export const reportFrontendRuntimeDiagnostics = () => {
   };
 
   if (typeof window !== "undefined") {
-    (window as any).__MW_FRONTEND_RUNTIME__ = payload;
+    (window as WindowWithDiagnostics).__MW_FRONTEND_RUNTIME__ = payload;
   }
 
   if (!import.meta.env.DEV) {
-    // eslint-disable-next-line no-console
     console.info("[runtime]", payload);
   }
 };

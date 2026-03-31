@@ -612,25 +612,6 @@ select,
   min-width: 0;
 }
 
-.home-dev-reset {
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  z-index: 140;
-  border-radius: 999px;
-  border: 1px solid var(--border-subtle);
-  background: var(--surface-glass);
-  box-shadow: var(--shadow-md);
-  backdrop-filter: blur(var(--blur-sm));
-  -webkit-backdrop-filter: blur(var(--blur-sm));
-
-  .MuiIconButton-root {
-    color: var(--text-primary);
-    width: 46px;
-    height: 46px;
-  }
-}
-
 .MuiDialog-root .MuiDialogContent-root > * {
   max-width: 100%;
   min-width: 0;
@@ -749,15 +730,6 @@ select,
     word-break: break-word !important;
   }
 
-  .home-dev-reset {
-    right: 12px;
-    bottom: 12px;
-
-    .MuiIconButton-root {
-      width: 42px;
-      height: 42px;
-    }
-  }
 }
 
 /* ========================================================================== */

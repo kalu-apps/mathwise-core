@@ -13,7 +13,7 @@ cp math-tutor-frontend/.env.stage.example math-tutor-frontend/.env.stage
 
 Критично проверить:
 - `apps/api/.env.stage`: `DATABASE_URL`, `REDIS_URL`, `AUTH_PASSWORD_PEPPER`, `API_CORS_ORIGIN`, `AUTH_COOKIE_*`, `MEDIA_STORAGE_ENABLED`, `S3_*`
-- `math-tutor-frontend/.env.stage`: `VITE_APP_ENV=stage`, `VITE_API_BASE_URL`, `VITE_GATEWAY_MODE=hybrid`
+- `math-tutor-frontend/.env.stage`: `VITE_APP_ENV=stage`, `VITE_API_BASE_URL`, `VITE_GATEWAY_MODE=http`
 
 ## 2) Bootstrap (build + seed)
 
@@ -60,14 +60,20 @@ curl -fsS http://127.0.0.1:3001/runtime/version
 curl -fsS http://127.0.0.1:3001/runtime/diagnostics
 ```
 
+Frontend sanity после `start-frontend`:
+- открыть stage frontend
+- в DevTools проверить `window.__MW_FRONTEND_RUNTIME__`
+- ожидание:
+  - `appEnv === "stage"`
+  - `gatewayMode === "http"`
+  - все `transports.* === "http"`
+
 ## 5) Rollback / degrade path
 
-Быстрый откат по транспорту без отката кода:
-- в `math-tutor-frontend/.env.stage`:
-  - `VITE_GATEWAY_MODE=mock` (глобальный откат)
-  - или точечно:
-    - `VITE_GATEWAY_PURCHASES_MODE=mock`
-    - `VITE_GATEWAY_BOOKINGS_MODE=mock`
+Быстрый откат без frontend embedded mock:
+- в `math-tutor-frontend/.env.stage` переключить `VITE_API_BASE_URL` на предыдущий стабильный backend release
+- при необходимости откатить backend на предыдущий release на `mw-app-01`
+- обновить `VITE_RELEASE_VERSION` для прозрачной диагностики
 
 После изменения env пересобрать фронтенд:
 

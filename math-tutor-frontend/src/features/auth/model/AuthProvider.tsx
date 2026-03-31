@@ -17,6 +17,7 @@ import {
   requestMagicLink,
   requestPasswordLogin,
 } from "./api";
+import { useAuthUiStore } from "./authUiStore";
 import { ApiError } from "@/shared/api/client";
 import { t } from "@/shared/i18n";
 
@@ -80,9 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const lastPersistedActivityRef = useRef<number>(0);
   const autoLogoutInProgressRef = useRef(false);
 
-  const [isAuthModalOpen, setAuthModalOpen] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState<"login" | "recover">("login");
-  const [authModalEmail, setAuthModalEmail] = useState("");
+  const isAuthModalOpen = useAuthUiStore((state) => state.isAuthModalOpen);
+  const authModalMode = useAuthUiStore((state) => state.authModalMode);
+  const authModalEmail = useAuthUiStore((state) => state.authModalEmail);
+  const openAuthModal = useAuthUiStore((state) => state.openAuthModal);
+  const openRecoverModal = useAuthUiStore((state) => state.openRecoverModal);
+  const closeAuthModal = useAuthUiStore((state) => state.closeAuthModal);
   const showcaseAutoLoginStartedRef = useRef(false);
 
   const clearLocalAuthState = useCallback(() => {
@@ -344,7 +348,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const safeUser = await confirmMagicLink(normalizedEmail, normalizedCode);
       setUser(safeUser);
       writeStorage(AUTH_STORAGE_KEY, safeUser, { ttlMs: AUTH_STORAGE_TTL_MS });
-      setAuthModalOpen(false);
+      closeAuthModal();
       return { ok: true };
     } catch (error) {
       await syncSession();
@@ -369,7 +373,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const safeUser = await requestPasswordLogin(normalizedEmail, normalizedPassword);
       setUser(safeUser);
       writeStorage(AUTH_STORAGE_KEY, safeUser, { ttlMs: AUTH_STORAGE_TTL_MS });
-      setAuthModalOpen(false);
+      closeAuthModal();
       return { ok: true };
     } catch (error) {
       await syncSession();
@@ -411,20 +415,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authModalEmail,
         openAuthModal: () => {
           blurActiveElement();
-          setAuthModalMode("login");
-          setAuthModalEmail("");
-          setAuthModalOpen(true);
+          openAuthModal();
         },
         openRecoverModal: (email?: string) => {
           blurActiveElement();
-          setAuthModalMode("recover");
-          setAuthModalEmail(email?.trim().toLowerCase() ?? "");
-          setAuthModalOpen(true);
+          openRecoverModal(email);
         },
         closeAuthModal: () => {
-          setAuthModalOpen(false);
-          setAuthModalMode("login");
-          setAuthModalEmail("");
+          closeAuthModal();
         },
       }}
     >

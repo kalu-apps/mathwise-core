@@ -5,16 +5,6 @@ import { AuthModal } from "@/features/auth/ui/AuthModal";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { ConnectivityBanner } from "@/shared/ui/ConnectivityBanner";
 import { PerformanceModeBanner } from "@/shared/ui/PerformanceModeBanner";
-import { AxiomAssistant } from "@/features/assistant/ui/AxiomAssistant";
-import type { AssistantMode } from "@/shared/api/assistant-contracts";
-
-const resolveAssistantMode = (pathname: string): AssistantMode => {
-  if (pathname.startsWith("/lessons/")) return "lesson";
-  if (pathname.startsWith("/courses/")) return "course";
-  if (pathname.startsWith("/teacher/profile")) return "teacher-dashboard";
-  if (pathname.startsWith("/student/profile")) return "study-cabinet";
-  return "study-cabinet";
-};
 
 export function MainLayout() {
   const { user, isAuthReady, isAuthModalOpen, closeAuthModal, authModalMode, authModalEmail } =
@@ -39,13 +29,6 @@ export function MainLayout() {
       <main className="app-main">
         <Outlet />
       </main>
-      {user && (user.role === "student" || user.role === "teacher") ? (
-        <AxiomAssistant
-          userId={user.id}
-          role={user.role}
-          mode={resolveAssistantMode(location.pathname)}
-        />
-      ) : null}
       <AuthModal
         open={isAuthModalOpen}
         onClose={closeAuthModal}

@@ -1,11 +1,9 @@
-import { defineConfig, type PluginOption } from "vite";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import legacy from "@vitejs/plugin-legacy";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
-import { setupMockServer } from "./src/mock/server";
-import { shouldEnableMockRuntime } from "./src/mock/runtime/serverEnv";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -14,29 +12,15 @@ const __dirname = dirname(__filename);
 export default defineConfig(() => {
   const useHttps = process.env.VITE_DEV_HTTPS === "1";
   const buildSourcemap = process.env.VITE_BUILD_SOURCEMAP === "1";
-  const mockEnabledInDev = shouldEnableMockRuntime("dev-server");
-  const mockEnabledInPreview = shouldEnableMockRuntime("preview-server");
-  const plugins: PluginOption[] = [
+  return {
+    plugins: [
     react(),
     legacy({
       targets: ["defaults", "not IE 11"],
       modernPolyfills: true,
     }),
     ...(useHttps ? [basicSsl()] : []),
-    {
-      name: "mock-api",
-      configureServer(server) {
-        if (!mockEnabledInDev) return;
-        setupMockServer(server);
-      },
-      configurePreviewServer(server) {
-        if (!mockEnabledInPreview) return;
-        setupMockServer(server);
-      },
-    },
-  ];
-  return {
-    plugins,
+  ],
     resolve: {
       alias: {
         "@": resolve(__dirname, "src"),

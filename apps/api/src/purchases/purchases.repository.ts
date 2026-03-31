@@ -3,38 +3,15 @@ import { DatabaseService, type DatabaseExecutor } from "../db/database.service";
 import type {
   CheckoutListItemDto,
   CheckoutProcessDto,
-  CheckoutStateDto,
   PurchaseRecordDto,
 } from "./purchases.types";
-
-type PurchaseRow = {
-  id: string;
-  userId: string;
-  courseId: string;
-  price: number;
-  purchasedAt: string;
-  paymentMethod: string | null;
-  checkoutId: string | null;
-  bnpl: unknown;
-  courseSnapshot: unknown;
-  lessonsSnapshot: unknown;
-  purchasedTestItemIds: unknown;
-};
-
-type CheckoutRow = {
-  id: string;
-  userId: string | null;
-  email: string;
-  courseId: string;
-  method: "mock" | "card" | "sbp" | "bnpl";
-  bnplInstallmentsCount: number | null;
-  amount: number;
-  currency: string;
-  state: CheckoutStateDto;
-  createdAt: string;
-  updatedAt: string;
-  expiresAt: string | null;
-};
+import {
+  mapCheckoutRow,
+  mapPurchaseRow,
+  type CheckoutRow,
+  type PurchaseRow,
+} from "./purchases.mappers";
+import { PURCHASES_SCHEMA_STATEMENTS } from "./purchases.schema";
 
 type CheckoutTimelineRow = {
   id: string;
@@ -54,131 +31,14 @@ type IdempotencyRow = {
   response: unknown;
 };
 
-const normalizePurchasedTestItemIds = (value: unknown): string[] | undefined => {
-  if (!Array.isArray(value)) return undefined;
-  const normalized = value
-    .map((item) => (typeof item === "string" ? item.trim() : ""))
-    .filter((item) => item.length > 0);
-  return normalized.length > 0 ? normalized : undefined;
-};
-
 @Injectable()
 export class PurchasesRepository {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async ensureSchema() {
-    await this.databaseService.execute(`
-      CREATE TABLE IF NOT EXISTS profile_purchases (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        course_id TEXT NOT NULL,
-        price INTEGER NOT NULL DEFAULT 0,
-        purchased_at TEXT NOT NULL,
-        payment_method TEXT,
-        checkout_id TEXT,
-        bnpl_json JSONB,
-        course_snapshot_json JSONB,
-        lessons_snapshot_json JSONB,
-        purchased_test_item_ids_json JSONB,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-    await this.databaseService.execute(`
-      CREATE INDEX IF NOT EXISTS idx_profile_purchases_user_course
-      ON profile_purchases (user_id, course_id, purchased_at DESC)
-    `);
-
-    await this.databaseService.execute(`
-      CREATE TABLE IF NOT EXISTS checkout_processes (
-        id TEXT PRIMARY KEY,
-        user_id TEXT,
-        email TEXT NOT NULL,
-        course_id TEXT NOT NULL,
-        method TEXT NOT NULL CHECK (method IN ('mock', 'card', 'sbp', 'bnpl')),
-        bnpl_installments_count INTEGER,
-        amount INTEGER NOT NULL DEFAULT 0,
-        currency TEXT NOT NULL DEFAULT 'RUB',
-        state TEXT NOT NULL CHECK (
-          state IN (
-            'created',
-            'awaiting_payment',
-            'paid',
-            'failed',
-            'canceled',
-            'expired',
-            'provisioning',
-            'provisioned'
-          )
-        ),
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        expires_at TEXT,
-        updated_at_ts TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-    await this.databaseService.execute(`
-      CREATE INDEX IF NOT EXISTS idx_checkout_processes_user
-      ON checkout_processes (user_id, updated_at DESC)
-    `);
-    await this.databaseService.execute(`
-      CREATE INDEX IF NOT EXISTS idx_checkout_processes_email
-      ON checkout_processes (email, updated_at DESC)
-    `);
-    await this.databaseService.execute(`
-      CREATE INDEX IF NOT EXISTS idx_checkout_processes_active_course
-      ON checkout_processes (course_id, user_id, state, updated_at DESC)
-    `);
-
-    await this.databaseService.execute(`
-      CREATE TABLE IF NOT EXISTS checkout_timeline_events (
-        id TEXT PRIMARY KEY,
-        checkout_id TEXT NOT NULL,
-        event_type TEXT NOT NULL,
-        details_json JSONB NOT NULL DEFAULT '{}'::jsonb,
-        created_at TEXT NOT NULL,
-        updated_at_ts TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-    await this.databaseService.execute(`
-      CREATE INDEX IF NOT EXISTS idx_checkout_timeline_checkout
-      ON checkout_timeline_events (checkout_id, created_at ASC)
-    `);
-
-    await this.databaseService.execute(`
-      CREATE TABLE IF NOT EXISTS write_idempotency_records (
-        scope TEXT NOT NULL,
-        idempotency_key TEXT NOT NULL,
-        response_json JSONB NOT NULL,
-        expires_at TIMESTAMPTZ NOT NULL,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        PRIMARY KEY (scope, idempotency_key)
-      )
-    `);
-
-    await this.databaseService.execute(`
-      CREATE TABLE IF NOT EXISTS access_users (
-        id TEXT PRIMARY KEY,
-        email TEXT NOT NULL DEFAULT '',
-        role TEXT NOT NULL CHECK (role IN ('student', 'teacher')),
-        is_identity_verified BOOLEAN NOT NULL DEFAULT FALSE,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-
-    await this.databaseService.execute(`
-      CREATE TABLE IF NOT EXISTS user_course_access (
-        user_id TEXT NOT NULL,
-        course_id TEXT NOT NULL,
-        has_active_entitlement BOOLEAN NOT NULL DEFAULT FALSE,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        PRIMARY KEY (user_id, course_id)
-      )
-    `);
-
-    await this.databaseService.execute(`
-      DELETE FROM write_idempotency_records
-      WHERE expires_at <= NOW()
-    `);
+    for (const statement of PURCHASES_SCHEMA_STATEMENTS) {
+      await this.databaseService.execute(statement);
+    }
   }
 
   async findPurchases(params?: { userId?: string }): Promise<PurchaseRecordDto[]> {
@@ -202,7 +62,7 @@ export class PurchasesRepository {
       `,
       [params?.userId ?? null]
     );
-    return rows.map((row) => this.mapPurchaseRow(row));
+    return rows.map((row) => mapPurchaseRow(row));
   }
 
   async replacePurchasesForUser(
@@ -295,7 +155,7 @@ export class PurchasesRepository {
       [userId, courseId]
     );
     const row = rows[0];
-    return row ? this.mapPurchaseRow(row) : null;
+    return row ? mapPurchaseRow(row) : null;
   }
 
   async findPurchaseById(purchaseId: string): Promise<PurchaseRecordDto | null> {
@@ -320,7 +180,7 @@ export class PurchasesRepository {
       [purchaseId]
     );
     const row = rows[0];
-    return row ? this.mapPurchaseRow(row) : null;
+    return row ? mapPurchaseRow(row) : null;
   }
 
   async deletePurchasesByCourse(courseId: string): Promise<void> {
@@ -433,7 +293,7 @@ export class PurchasesRepository {
       [checkoutId]
     );
     const row = rows[0];
-    return row ? this.mapCheckoutRow(row) : null;
+    return row ? mapCheckoutRow(row) : null;
   }
 
   async listCheckouts(filters?: {
@@ -464,7 +324,7 @@ export class PurchasesRepository {
       `,
       [filters?.userId ?? null, filters?.email ?? null, filters?.courseId ?? null]
     );
-    return rows.map((row) => this.mapCheckoutRow(row));
+    return rows.map((row) => mapCheckoutRow(row));
   }
 
   async findLatestActiveCheckout(params: {
@@ -500,7 +360,7 @@ export class PurchasesRepository {
       [params.courseId, params.userId ?? null, params.email]
     );
     const row = rows[0];
-    return row ? this.mapCheckoutRow(row) : null;
+    return row ? mapCheckoutRow(row) : null;
   }
 
   async addCheckoutTimelineEvent(params: {
@@ -703,47 +563,6 @@ export class PurchasesRepository {
       role: row?.role === "teacher" ? "teacher" : "student",
       isIdentityVerified: Boolean(row?.isIdentityVerified),
       hasActiveEntitlement: Boolean(row?.hasActiveEntitlement),
-    };
-  }
-
-  private mapPurchaseRow(row: PurchaseRow): PurchaseRecordDto {
-    return {
-      id: row.id,
-      userId: row.userId,
-      courseId: row.courseId,
-      price: Number(row.price),
-      purchasedAt: row.purchasedAt,
-      paymentMethod: row.paymentMethod ?? undefined,
-      checkoutId: row.checkoutId ?? undefined,
-      bnpl: row.bnpl ?? undefined,
-      courseSnapshot:
-        row.courseSnapshot && typeof row.courseSnapshot === "object"
-          ? row.courseSnapshot
-          : undefined,
-      lessonsSnapshot: Array.isArray(row.lessonsSnapshot)
-        ? row.lessonsSnapshot
-        : undefined,
-      purchasedTestItemIds: normalizePurchasedTestItemIds(row.purchasedTestItemIds),
-    };
-  }
-
-  private mapCheckoutRow(row: CheckoutRow): CheckoutProcessDto {
-    return {
-      id: row.id,
-      userId: row.userId ?? undefined,
-      email: row.email,
-      courseId: row.courseId,
-      method: row.method,
-      bnplInstallmentsCount:
-        row.bnplInstallmentsCount && Number.isFinite(row.bnplInstallmentsCount)
-          ? Math.max(1, Math.floor(row.bnplInstallmentsCount))
-          : undefined,
-      amount: Number(row.amount),
-      currency: row.currency || "RUB",
-      state: row.state,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-      expiresAt: row.expiresAt ?? undefined,
     };
   }
 

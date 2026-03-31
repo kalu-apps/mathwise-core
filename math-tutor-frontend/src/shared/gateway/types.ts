@@ -40,8 +40,8 @@ import type {
   GetPurchasesParamsContract,
 } from "@/shared/contracts/purchase.contract";
 
-export type GatewayMode = "mock" | "http" | "hybrid";
-export type GatewayTransport = "mock" | "http";
+export type GatewayMode = "http";
+export type GatewayTransport = "http";
 
 export type GatewayRuntimeConfig = {
   mode: GatewayMode;

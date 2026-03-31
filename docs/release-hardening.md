@@ -1,9 +1,28 @@
 # Release Hardening Checklist
 
+## 0) Release candidate quality gate (must be green)
+
+```bash
+cd math-tutor-frontend
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+npm run build:stage
+
+cd ../apps/api
+npm run typecheck
+npm run test
+npm run build
+```
+
+Примечание: предупреждение Vite про большой chunk не является blocker при green build.  
+Optimization/budget work — отдельный пакет после релиза.
+
 ## 1) Pre-release (stage)
 
 - [ ] `apps/api/.env.stage` заполнен и не содержит dev/local значений.
-- [ ] `math-tutor-frontend/.env.stage` заполнен (`VITE_APP_ENV=stage`, `VITE_GATEWAY_MODE=hybrid`).
+- [ ] `math-tutor-frontend/.env.stage` заполнен (`VITE_APP_ENV=stage`, `VITE_GATEWAY_MODE=http`).
 - [ ] backend стартует без fail-fast ошибок env.
 - [ ] frontend собран `npm run build:stage`.
 - [ ] `/health` отвечает `200`.
@@ -33,16 +52,19 @@ curl -fsS "$API_BASE_URL/runtime/diagnostics"
 - courses/lessons/access read
 - purchases/bookings write flows
 - media endpoints (если `MEDIA_STORAGE_ENABLED=true`)
+- frontend runtime diagnostics в браузере:
+  - `window.__MW_FRONTEND_RUNTIME__` существует
+  - `appEnv=stage`
+  - все `transports=*http`
 
 ## 3) Rollback checklist
 
-1. Переключить проблемный домен на mock transport:
-   - `VITE_GATEWAY_MODE=mock` (глобально)
-   - или domain switch: `VITE_GATEWAY_PURCHASES_MODE=mock`, `VITE_GATEWAY_BOOKINGS_MODE=mock`
-2. Пересобрать frontend:
+1. Переключить `VITE_API_BASE_URL` на стабильный предыдущий backend release.
+2. При необходимости откатить backend deployment до предыдущего release.
+3. Пересобрать frontend:
    - `cd math-tutor-frontend && npm run build:stage`
-3. Перезапустить frontend процесс.
-4. При storage-инциденте:
+4. Перезапустить frontend процесс.
+5. При storage-инциденте:
    - `MEDIA_STORAGE_ENABLED=false`
    - перезапустить backend.
 

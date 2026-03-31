@@ -54,10 +54,21 @@ import {
   useTeacherDashboardData,
 } from "@/pages/teacher/hooks/useTeacherDashboardData";
 import {
+  TEACHER_TAB_KEYS,
+  SLOT_TIME_OPTIONS,
+  buildAvailabilityDateGroups,
   filterTeacherCourses,
   filterTeacherStudents,
+  formatBookingReminderDate,
+  getTabFromQuery,
+  hasTimeOverlap,
   paginateList,
+  resolveSelectedAvailabilityDate,
+  splitTeacherBookingsByCompletion,
+  toMinutes,
+  selectUpcomingBookingReminder,
 } from "@/pages/teacher/model/selectors";
+import { useTeacherDashboardUiStore } from "@/pages/teacher/model/teacherDashboardUiStore";
 
 import {
   deleteCourse,
@@ -88,7 +99,6 @@ import {
 import { fileToDataUrl } from "@/shared/lib/files";
 import { generateId } from "@/shared/lib/id";
 import { formatRuPhoneDisplay } from "@/shared/lib/phone";
-import { getBookingEndTimestamp, getBookingStartTimestamp } from "@/shared/lib/time";
 import { t } from "@/shared/i18n";
 import { createNewsPost } from "@/entities/news/model/storage";
 import {
@@ -101,28 +111,6 @@ import {
 
 import type { Course } from "@/entities/course/model/types";
 
-const TAB_KEYS = [
-  "profile",
-  "students",
-  "courses",
-  "booking",
-  "study",
-  "chat",
-  "stats",
-] as const;
-
-const SLOT_TIME_OPTIONS = Array.from({ length: 48 }).map((_, index) => {
-  const totalMinutes = index * 30;
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-});
-
-const getTabFromQuery = (value: string | null) => {
-  const index = TAB_KEYS.findIndex((tabKey) => tabKey === value);
-  return index >= 0 ? index : 0;
-};
-
 export default function TeacherDashboard() {
   const { user } = useAuth();
   const theme = useTheme();
@@ -131,20 +119,23 @@ export default function TeacherDashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [tab, setTab] = useState(() =>
-    getTabFromQuery(searchParams.get("tab"))
-  );
+  const tab = useTeacherDashboardUiStore((state) => state.tab);
+  const setTab = useTeacherDashboardUiStore((state) => state.setTab);
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [isEditorOpen, setEditorOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [studentCards, setStudentCards] = useState<TeacherDashboardStudentCardData[]>([]);
   const [lessonCounts, setLessonCounts] = useState<Record<string, number>>({});
   const [testCounts, setTestCounts] = useState<Record<string, number>>({});
-  const [studentQuery, setStudentQuery] = useState("");
+  const studentQuery = useTeacherDashboardUiStore((state) => state.studentQuery);
+  const setStudentQuery = useTeacherDashboardUiStore(
+    (state) => state.setStudentQuery
+  );
   const [studentFeedbackFilter, setStudentFeedbackFilter] = useState<
     "all" | "with_feedback" | "without_feedback"
   >("with_feedback");
-  const [courseQuery, setCourseQuery] = useState("");
+  const courseQuery = useTeacherDashboardUiStore((state) => state.courseQuery);
+  const setCourseQuery = useTeacherDashboardUiStore((state) => state.setCourseQuery);
   const [courseStatusFilter, setCourseStatusFilter] = useState<"published" | "draft">(
     "published"
   );
@@ -153,36 +144,80 @@ export default function TeacherDashboard() {
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
-  const [slotDate, setSlotDate] = useState("");
-  const [slotStart, setSlotStart] = useState("");
-  const [slotEnd, setSlotEnd] = useState("");
+  const slotDate = useTeacherDashboardUiStore((state) => state.slotDate);
+  const setSlotDate = useTeacherDashboardUiStore((state) => state.setSlotDate);
+  const slotStart = useTeacherDashboardUiStore((state) => state.slotStart);
+  const setSlotStart = useTeacherDashboardUiStore((state) => state.setSlotStart);
+  const slotEnd = useTeacherDashboardUiStore((state) => state.slotEnd);
+  const setSlotEnd = useTeacherDashboardUiStore((state) => state.setSlotEnd);
   const [slotError, setSlotError] = useState<string | null>(null);
-  const [availabilityOpen, setAvailabilityOpen] = useState(false);
+  const availabilityOpen = useTeacherDashboardUiStore(
+    (state) => state.availabilityOpen
+  );
+  const setAvailabilityOpen = useTeacherDashboardUiStore(
+    (state) => state.setAvailabilityOpen
+  );
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSavingId, setBookingSavingId] = useState<string | null>(null);
   const [bookingDeletingId, setBookingDeletingId] = useState<string | null>(null);
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
-  const [studentsPage, setStudentsPage] = useState(1);
-  const [coursesPage, setCoursesPage] = useState(1);
-  const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const studentsPage = useTeacherDashboardUiStore((state) => state.studentsPage);
+  const setStudentsPage = useTeacherDashboardUiStore(
+    (state) => state.setStudentsPage
+  );
+  const coursesPage = useTeacherDashboardUiStore((state) => state.coursesPage);
+  const setCoursesPage = useTeacherDashboardUiStore((state) => state.setCoursesPage);
+  const chatUnreadCount = useTeacherDashboardUiStore(
+    (state) => state.chatUnreadCount
+  );
+  const setChatUnreadCount = useTeacherDashboardUiStore(
+    (state) => state.setChatUnreadCount
+  );
   const [studyNotes, setStudyNotes] = useState<StudyCabinetNote[]>([]);
-  const [studyActivityVersion, setStudyActivityVersion] = useState(0);
-  const [studyReminderCount, setStudyReminderCount] = useState(0);
+  const studyActivityVersion = useTeacherDashboardUiStore(
+    (state) => state.studyActivityVersion
+  );
+  const setStudyActivityVersion = useTeacherDashboardUiStore(
+    (state) => state.setStudyActivityVersion
+  );
+  const studyReminderCount = useTeacherDashboardUiStore(
+    (state) => state.studyReminderCount
+  );
+  const setStudyReminderCount = useTeacherDashboardUiStore(
+    (state) => state.setStudyReminderCount
+  );
   const [studentsWithFeedbackIds, setStudentsWithFeedbackIds] = useState<
     string[]
   >([]);
   const [chatThreadIdsByStudentId, setChatThreadIdsByStudentId] = useState<
     Record<string, string>
   >({});
-  const [slotsDateFilter, setSlotsDateFilter] = useState("");
+  const slotsDateFilter = useTeacherDashboardUiStore(
+    (state) => state.slotsDateFilter
+  );
+  const setSlotsDateFilter = useTeacherDashboardUiStore(
+    (state) => state.setSlotsDateFilter
+  );
   const [expandedSlotsDate, setExpandedSlotsDate] = useState<string | null>(
     null
   );
-  const [tabMenuOpen, setTabMenuOpen] = useState(false);
-  const [scheduledPage, setScheduledPage] = useState(1);
-  const [completedPage, setCompletedPage] = useState(1);
+  const tabMenuOpen = useTeacherDashboardUiStore((state) => state.tabMenuOpen);
+  const setTabMenuOpen = useTeacherDashboardUiStore(
+    (state) => state.setTabMenuOpen
+  );
+  const scheduledPage = useTeacherDashboardUiStore((state) => state.scheduledPage);
+  const setScheduledPage = useTeacherDashboardUiStore(
+    (state) => state.setScheduledPage
+  );
+  const completedPage = useTeacherDashboardUiStore((state) => state.completedPage);
+  const setCompletedPage = useTeacherDashboardUiStore(
+    (state) => state.setCompletedPage
+  );
+  const resetTeacherDashboardUiState = useTeacherDashboardUiStore(
+    (state) => state.resetTeacherDashboardUiState
+  );
   const [confirm, setConfirm] = useState<{
     title: string;
     description?: string;
@@ -195,15 +230,19 @@ export default function TeacherDashboard() {
   const isTeacher = user?.role === "teacher";
 
   useEffect(() => {
+    resetTeacherDashboardUiState();
+  }, [resetTeacherDashboardUiState, userId]);
+
+  useEffect(() => {
     const nextTab = getTabFromQuery(searchParams.get("tab"));
     setTab((prev) => (prev === nextTab ? prev : nextTab));
-  }, [searchParams]);
+  }, [searchParams, setTab]);
 
   useEffect(() => {
     if (!isNonDesktop && tabMenuOpen) {
       setTabMenuOpen(false);
     }
-  }, [isNonDesktop, tabMenuOpen]);
+  }, [isNonDesktop, setTabMenuOpen, tabMenuOpen]);
 
   const { refreshAll, retryDashboardData, syncStudyNotes } = useTeacherDashboardData({
     userId,
@@ -229,31 +268,15 @@ export default function TeacherDashboard() {
     setBookingError,
   });
 
-  const getBookingStart = (booking: Booking) => getBookingStartTimestamp(booking);
-  const getBookingEnd = (booking: Booking) => getBookingEndTimestamp(booking);
+  const { scheduled: scheduledBookings, completed: completedBookings } = useMemo(
+    () => splitTeacherBookingsByCompletion(bookings),
+    [bookings]
+  );
 
-  const scheduledBookings = useMemo(() => {
-    const now = Date.now();
-    return [...bookings]
-      .filter((booking) => getBookingEnd(booking) >= now)
-      .sort((a, b) => getBookingStart(a) - getBookingStart(b));
-  }, [bookings]);
-
-  const completedBookings = useMemo(() => {
-    const now = Date.now();
-    return [...bookings]
-      .filter((booking) => getBookingEnd(booking) < now)
-      .sort((a, b) => getBookingEnd(b) - getBookingEnd(a));
-  }, [bookings]);
-
-  const upcomingReminder = useMemo(() => {
-    const now = Date.now();
-    const oneDay = 24 * 60 * 60 * 1000;
-    return scheduledBookings.find((booking) => {
-      const start = getBookingStart(booking);
-      return start > now && start - now <= oneDay;
-    }) ?? null;
-  }, [scheduledBookings]);
+  const upcomingReminder = useMemo(
+    () => selectUpcomingBookingReminder(scheduledBookings),
+    [scheduledBookings]
+  );
 
   const teacherStudyActivityDays = useMemo(() => {
     const recalcSeed = studyActivityVersion;
@@ -262,29 +285,14 @@ export default function TeacherDashboard() {
     return buildStudyCabinetWeekActivity("teacher", userId);
   }, [userId, studyActivityVersion]);
 
-  const availabilityDateGroups = useMemo(() => {
-    const visibleDates = new Set(buildCalendarDays(21).map((day) => day.value));
-    const groups = availability.reduce<Record<string, AvailabilitySlot[]>>(
-      (acc, slot) => {
-        if (!visibleDates.has(slot.date)) {
-          return acc;
-        }
-        if (!acc[slot.date]) {
-          acc[slot.date] = [];
-        }
-        acc[slot.date].push(slot);
-        return acc;
-      },
-      {}
-    );
-
-    return Object.entries(groups)
-      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
-      .map(([date, slots]) => ({
-        date,
-        slots,
-      }));
-  }, [availability]);
+  const availabilityDateGroups = useMemo(
+    () =>
+      buildAvailabilityDateGroups(
+        availability,
+        buildCalendarDays(21).map((day) => day.value)
+      ),
+    [availability]
+  );
 
   const studentsPageSize = isMobile ? 4 : 6;
   const coursesPageSize = isMobile ? 2 : 6;
@@ -355,15 +363,10 @@ export default function TeacherDashboard() {
     [filteredCourses, safeCoursesPage, coursesPageSize]
   );
 
-  const selectedAvailabilityDate = useMemo(() => {
-    if (
-      slotsDateFilter &&
-      availabilityDateGroups.some((group) => group.date === slotsDateFilter)
-    ) {
-      return slotsDateFilter;
-    }
-    return availabilityDateGroups[0]?.date ?? "";
-  }, [availabilityDateGroups, slotsDateFilter]);
+  const selectedAvailabilityDate = useMemo(
+    () => resolveSelectedAvailabilityDate(availabilityDateGroups, slotsDateFilter),
+    [availabilityDateGroups, slotsDateFilter]
+  );
 
   const currentAvailabilityGroup = useMemo(
     () =>
@@ -391,16 +394,6 @@ export default function TeacherDashboard() {
     () => paginateList(completedBookings, safeCompletedPage, bookingsPageSize),
     [completedBookings, safeCompletedPage, bookingsPageSize]
   );
-
-  const formatReminderDate = (booking: Booking) => {
-    const date = new Date(`${booking.date}T${booking.startTime}`);
-    return date.toLocaleString("ru-RU", {
-      day: "numeric",
-      month: "long",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
 
   const handleTeacherCreateNote = useCallback(
     (payload: {
@@ -473,13 +466,13 @@ export default function TeacherDashboard() {
 
   const handleTeacherOpenSchedule = useCallback(() => {
     setTab(3);
-    setSearchParams({ tab: TAB_KEYS[3] });
-  }, [setSearchParams]);
+    setSearchParams({ tab: TEACHER_TAB_KEYS[3] });
+  }, [setSearchParams, setTab]);
 
   const handleTeacherOpenStudentChat = useCallback(
     (studentId: string) => {
       const params = new URLSearchParams(searchParams);
-      params.set("tab", TAB_KEYS[5]);
+      params.set("tab", TEACHER_TAB_KEYS[5]);
       const threadId = chatThreadIdsByStudentId[studentId];
       if (threadId) {
         params.set("threadId", threadId);
@@ -491,7 +484,7 @@ export default function TeacherDashboard() {
       setTab(5);
       setSearchParams(params);
     },
-    [chatThreadIdsByStudentId, searchParams, setSearchParams]
+    [chatThreadIdsByStudentId, searchParams, setSearchParams, setTab]
   );
 
   const deleteCourseFull = async (courseId: string) => {
@@ -554,11 +547,6 @@ export default function TeacherDashboard() {
   const addSlot = async () => {
     if (!slotDate || !slotStart || !slotEnd || !userId || availabilityLoading) return;
     setSlotError(null);
-    const toMinutes = (value: string) => {
-      const [h, m] = value.split(":").map(Number);
-      if (!Number.isFinite(h) || !Number.isFinite(m)) return 0;
-      return h * 60 + m;
-    };
     const startMinutes = toMinutes(slotStart);
     const endMinutes = toMinutes(slotEnd);
     if (endMinutes <= startMinutes) {
@@ -574,21 +562,28 @@ export default function TeacherDashboard() {
       setSlotError(t("teacherDashboard.slotPastError"));
       return;
     }
-    const overlaps = (aStart: number, aEnd: number, bStart: number, bEnd: number) =>
-      aStart < bEnd && bStart < aEnd;
-
     const hasConflict = availability.some((slot) => {
       if (slot.date !== slotDate) return false;
-      return overlaps(startMinutes, endMinutes, toMinutes(slot.startTime), toMinutes(slot.endTime));
+      return hasTimeOverlap(
+        startMinutes,
+        endMinutes,
+        toMinutes(slot.startTime),
+        toMinutes(slot.endTime)
+      );
     });
 
     const hasBookingConflict = bookings.some((booking) => {
       if (booking.date !== slotDate) return false;
-      const bookingEndTime = getBookingEnd(booking);
+      const bookingEndTime = new Date(`${booking.date}T${booking.endTime}`).getTime();
       if (!Number.isFinite(bookingEndTime) || bookingEndTime < Date.now()) {
         return false;
       }
-      return overlaps(startMinutes, endMinutes, toMinutes(booking.startTime), toMinutes(booking.endTime));
+      return hasTimeOverlap(
+        startMinutes,
+        endMinutes,
+        toMinutes(booking.startTime),
+        toMinutes(booking.endTime)
+      );
     });
 
     if (hasConflict || hasBookingConflict) {
@@ -1003,7 +998,7 @@ export default function TeacherDashboard() {
       {upcomingReminder && (
         <div className="teacher-dashboard__reminder">
           {t("teacherDashboard.reminder", {
-            date: formatReminderDate(upcomingReminder),
+            date: formatBookingReminderDate(upcomingReminder),
           })}
         </div>
       )}
@@ -1019,7 +1014,7 @@ export default function TeacherDashboard() {
           value={tab}
           onChange={(_, v) => {
             setTab(v);
-            setSearchParams({ tab: TAB_KEYS[v] });
+            setSearchParams({ tab: TEACHER_TAB_KEYS[v] });
           }}
           className="teacher-dashboard__tabs"
         >
@@ -1071,7 +1066,7 @@ export default function TeacherDashboard() {
                 }`}
                 onClick={() => {
                   setTab(item.index);
-                  setSearchParams({ tab: TAB_KEYS[item.index] });
+                  setSearchParams({ tab: TEACHER_TAB_KEYS[item.index] });
                   setTabMenuOpen(false);
                 }}
               >
@@ -1190,7 +1185,7 @@ export default function TeacherDashboard() {
                   showChatAction={studentsWithFeedbackIds.includes(student.id)}
                   onOpenChat={() => {
                     const params = new URLSearchParams(searchParams);
-                    params.set("tab", TAB_KEYS[5]);
+                    params.set("tab", TEACHER_TAB_KEYS[5]);
                     const threadId = chatThreadIdsByStudentId[student.id];
                     if (threadId) {
                       params.set("threadId", threadId);
@@ -1694,7 +1689,7 @@ export default function TeacherDashboard() {
           }}
           onChatClick={() => {
             setTab(5);
-            setSearchParams({ tab: TAB_KEYS[5] });
+            setSearchParams({ tab: TEACHER_TAB_KEYS[5] });
           }}
           activityDays={teacherStudyActivityDays}
           chatUnreadCount={chatUnreadCount}

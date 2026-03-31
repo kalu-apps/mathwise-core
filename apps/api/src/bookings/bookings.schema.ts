@@ -1,0 +1,74 @@
+export const BOOKINGS_SCHEMA_STATEMENTS = [
+  `
+    CREATE TABLE IF NOT EXISTS profile_bookings (
+      id TEXT PRIMARY KEY,
+      slot_id TEXT,
+      teacher_id TEXT NOT NULL,
+      teacher_name TEXT NOT NULL DEFAULT '',
+      teacher_photo TEXT,
+      student_id TEXT NOT NULL,
+      student_name TEXT NOT NULL DEFAULT '',
+      student_email TEXT NOT NULL DEFAULT '',
+      student_phone TEXT,
+      student_photo TEXT,
+      date TEXT NOT NULL DEFAULT '',
+      start_time TEXT NOT NULL DEFAULT '',
+      end_time TEXT NOT NULL DEFAULT '',
+      lesson_kind TEXT NOT NULL CHECK (lesson_kind IN ('trial', 'regular')),
+      payment_status TEXT NOT NULL CHECK (payment_status IN ('unpaid', 'paid')),
+      meeting_url TEXT,
+      materials_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+      created_at TEXT NOT NULL DEFAULT '',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `,
+  `
+    ALTER TABLE profile_bookings
+    ADD COLUMN IF NOT EXISTS slot_id TEXT
+  `,
+  `
+    CREATE INDEX IF NOT EXISTS idx_profile_bookings_student
+    ON profile_bookings (student_id, date ASC, start_time ASC)
+  `,
+  `
+    CREATE INDEX IF NOT EXISTS idx_profile_bookings_teacher
+    ON profile_bookings (teacher_id, date ASC, start_time ASC)
+  `,
+  `
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_bookings_teacher_time_unique
+    ON profile_bookings (teacher_id, date, start_time, end_time)
+  `,
+  `
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_bookings_slot_unique
+    ON profile_bookings (slot_id)
+    WHERE slot_id IS NOT NULL
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS profile_teacher_availability (
+      id TEXT PRIMARY KEY,
+      teacher_id TEXT NOT NULL,
+      date TEXT NOT NULL DEFAULT '',
+      start_time TEXT NOT NULL DEFAULT '',
+      end_time TEXT NOT NULL DEFAULT '',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `,
+  `
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_teacher_availability_unique_time
+    ON profile_teacher_availability (teacher_id, date, start_time, end_time)
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS write_idempotency_records (
+      scope TEXT NOT NULL,
+      idempotency_key TEXT NOT NULL,
+      response_json JSONB NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (scope, idempotency_key)
+    )
+  `,
+  `
+    DELETE FROM write_idempotency_records
+    WHERE expires_at <= NOW()
+  `,
+] as const;
