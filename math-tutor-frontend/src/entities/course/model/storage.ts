@@ -1,22 +1,17 @@
 import type { Course } from "./types";
 import { api } from "@/shared/api/client";
 import { buildIdempotencyHeaders } from "@/shared/lib/idempotency";
+import { coursesGateway } from "@/shared/gateway";
 
 export async function getCourses(options?: { forceFresh?: boolean }): Promise<Course[]> {
-  return api.get<Course[]>("/courses", {
-    dedupe: options?.forceFresh ? false : undefined,
-    cacheTtlMs: options?.forceFresh ? 0 : undefined,
-  });
+  return coursesGateway.getCourses(options);
 }
 
 export async function getCourseById(
   id: string,
   options?: { forceFresh?: boolean }
 ): Promise<Course | null> {
-  return api.get<Course | null>(`/courses/${id}`, {
-    dedupe: options?.forceFresh ? false : undefined,
-    cacheTtlMs: options?.forceFresh ? 0 : undefined,
-  });
+  return coursesGateway.getCourseById(id, options);
 }
 
 export async function createCourse(

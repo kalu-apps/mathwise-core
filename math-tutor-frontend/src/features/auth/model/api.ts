@@ -3,6 +3,7 @@ import type { User } from "@/entities/user/model/types";
 import { enqueueOutboxRequest } from "@/shared/lib/outbox";
 import { t } from "@/shared/i18n";
 import { readStorage } from "@/shared/lib/localDb";
+import { authGateway } from "@/shared/gateway";
 import { AUTH_STORAGE_KEY } from "./constants";
 
 export type RequestMagicCodeResponse = {
@@ -42,15 +43,11 @@ export async function requestPasswordLogin(
 }
 
 export async function getAuthSession(): Promise<User | null> {
-  return api.get<User | null>("/auth/session");
+  return authGateway.getSession();
 }
 
 export async function logoutAuthSession(): Promise<void> {
-  await api.post<{ ok: boolean }>(
-    "/auth/logout",
-    {},
-    { notifyDataUpdate: false }
-  );
+  await authGateway.logout();
 }
 
 export type PasswordStatusResponse = {

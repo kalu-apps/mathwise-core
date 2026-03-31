@@ -47,13 +47,19 @@ import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { ListSkeleton } from "@/shared/ui/loading";
 
 import { useAuth } from "@/features/auth/model/AuthContext";
-import { getUsers } from "@/features/auth/model/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ChatPage from "@/pages/chat/ChatPage";
-import { getTeacherChatThreads } from "@/features/chat/model/api";
+import {
+  type TeacherDashboardStudentCardData,
+  useTeacherDashboardData,
+} from "@/pages/teacher/hooks/useTeacherDashboardData";
+import {
+  filterTeacherCourses,
+  filterTeacherStudents,
+  paginateList,
+} from "@/pages/teacher/model/selectors";
 
 import {
-  getCourses,
   deleteCourse,
   updateCourse,
 } from "@/entities/course/model/storage";
@@ -61,56 +67,39 @@ import {
   deletePurchasesByCourse,
   getPurchases,
 } from "@/entities/purchase/model/storage";
-import { getLessons, deleteLessonsByCourse } from "@/entities/lesson/model/storage";
+import { deleteLessonsByCourse } from "@/entities/lesson/model/storage";
 import {
   deleteCourseContentItems,
-  getCourseContentItems,
 } from "@/features/assessments/model/storage";
 import { deleteProgressByCourse } from "@/entities/progress/model/storage";
 import {
-  getTeacherAvailability,
   saveTeacherAvailability,
 } from "@/features/teacher-availability/api";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import type { Booking } from "@/entities/booking/model/types";
 import {
-  getBookings,
   updateBooking,
   deleteBooking,
 } from "@/entities/booking/model/storage";
 import {
   buildCalendarDays,
-  normalizeFutureSlots,
 } from "@/features/booking/lib/schedule";
 import { fileToDataUrl } from "@/shared/lib/files";
 import { generateId } from "@/shared/lib/id";
 import { formatRuPhoneDisplay } from "@/shared/lib/phone";
 import { getBookingEndTimestamp, getBookingStartTimestamp } from "@/shared/lib/time";
-import { dispatchDataUpdate } from "@/shared/lib/dataUpdateBus";
-import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { t } from "@/shared/i18n";
 import { createNewsPost } from "@/entities/news/model/storage";
 import {
   buildStudyCabinetWeekActivity,
-  countDueSoonStudyCabinetReminders,
   createStudyCabinetNote,
   deleteStudyCabinetNote,
-  getStudyCabinetNotes,
-  recordStudyCabinetActivity,
   updateStudyCabinetNote,
   type StudyCabinetNote,
 } from "@/shared/lib/studyCabinet";
 
 import type { Course } from "@/entities/course/model/types";
-
-type StudentCardData = {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  photo?: string;
-};
 
 const TAB_KEYS = [
   "profile",
@@ -148,7 +137,7 @@ export default function TeacherDashboard() {
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [isEditorOpen, setEditorOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [studentCards, setStudentCards] = useState<StudentCardData[]>([]);
+  const [studentCards, setStudentCards] = useState<TeacherDashboardStudentCardData[]>([]);
   const [lessonCounts, setLessonCounts] = useState<Record<string, number>>({});
   const [testCounts, setTestCounts] = useState<Record<string, number>>({});
   const [studentQuery, setStudentQuery] = useState("");
@@ -216,268 +205,29 @@ export default function TeacherDashboard() {
     }
   }, [isNonDesktop, tabMenuOpen]);
 
-  const refreshAll = useCallback(async () => {
-    if (!userId || !isTeacher) {
-      setCourses([]);
-      setStudentCards([]);
-      setLessonCounts({});
-      setTestCounts({});
-      return;
-    }
-    try {
-      setDashboardLoading(true);
-      setDashboardError(null);
-      const [allCourses, allLessons, studentUsers] = await Promise.all([
-        getCourses(),
-        getLessons(),
-        getUsers("student"),
-      ]);
-
-      const teacherCourses = allCourses.filter((c) => c.teacherId === userId);
-      const counts = allLessons.reduce<Record<string, number>>((acc, lesson) => {
-        acc[lesson.courseId] = (acc[lesson.courseId] ?? 0) + 1;
-        return acc;
-      }, {});
-      const testsByCourse: Record<string, number> = {};
-      await Promise.all(
-        teacherCourses.map(async (course) => {
-          const lessonsForCourse = allLessons.filter(
-            (lesson) => lesson.courseId === course.id
-          );
-          const queue = await getCourseContentItems(course.id, lessonsForCourse);
-          testsByCourse[course.id] = queue.filter((item) => item.type === "test").length;
-        })
-      );
-
-      const cards: StudentCardData[] = studentUsers.map((student) => ({
-        id: student.id,
-        name: `${student.firstName} ${student.lastName}`,
-        email: student.email,
-        phone: student.phone,
-        photo: student.photo,
-      }));
-
-      setCourses(teacherCourses);
-      setStudentCards(cards);
-      setLessonCounts(counts);
-      setTestCounts(testsByCourse);
-    } catch {
-      setDashboardError(t("teacherDashboard.loadDashboardError"));
-      setTestCounts({});
-    } finally {
-      setDashboardLoading(false);
-    }
-  }, [userId, isTeacher]);
-
-  const retryDashboardData = useCallback(() => {
-    void refreshAll();
-    dispatchDataUpdate("teacher-dashboard-retry");
-  }, [refreshAll]);
-
-  const refreshChatUnread = useCallback(async () => {
-    if (!userId || !isTeacher) {
-      setChatUnreadCount(0);
-      setStudentsWithFeedbackIds([]);
-      setChatThreadIdsByStudentId({});
-      return;
-    }
-    try {
-      const threads = await getTeacherChatThreads();
-      const unread = threads.reduce(
-        (sum, thread) => sum + Math.max(0, thread.unreadCount),
-        0
-      );
-      const feedbackStudentIds = new Set<string>();
-      const nextThreadIdsByStudentId: Record<string, string> = {};
-      threads.forEach((thread) => {
-        feedbackStudentIds.add(thread.studentId);
-        nextThreadIdsByStudentId[thread.studentId] = thread.id;
-      });
-      setChatUnreadCount(unread);
-      setStudentsWithFeedbackIds(Array.from(feedbackStudentIds));
-      setChatThreadIdsByStudentId(nextThreadIdsByStudentId);
-    } catch {
-      setChatUnreadCount(0);
-      setStudentsWithFeedbackIds([]);
-      setChatThreadIdsByStudentId({});
-    }
-  }, [userId, isTeacher]);
-
-  const syncStudyNotes = useCallback(() => {
-    if (!userId || !isTeacher) {
-      setStudyNotes([]);
-      setStudyReminderCount(0);
-      return;
-    }
-    const notes = getStudyCabinetNotes("teacher", userId);
-    setStudyNotes(notes);
-    setStudyReminderCount(countDueSoonStudyCabinetReminders(notes, 90));
-  }, [userId, isTeacher]);
-
-  useEffect(() => {
-    Promise.resolve().then(() => void refreshAll());
-    const unsubscribe = subscribeAppDataUpdates(() => {
-      void refreshAll();
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, [refreshAll]);
-
-  useEffect(() => {
-    void refreshChatUnread();
-    const pollId = window.setInterval(() => {
-      void refreshChatUnread();
-    }, 8_000);
-    const unsubscribe = subscribeAppDataUpdates(() => {
-      void refreshChatUnread();
-    });
-    return () => {
-      window.clearInterval(pollId);
-      unsubscribe();
-    };
-  }, [refreshChatUnread]);
-
-  useEffect(() => {
-    syncStudyNotes();
-    const unsubscribe = subscribeAppDataUpdates(() => {
-      syncStudyNotes();
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, [syncStudyNotes]);
-
-  useEffect(() => {
-    if (tab !== 4) return;
-    syncStudyNotes();
-    const unsubscribe = subscribeAppDataUpdates(() => {
-      syncStudyNotes();
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, [tab, syncStudyNotes]);
-
-  useEffect(() => {
-    if (tab !== 4 || !userId || !isTeacher) return;
-    let lastMarkAt = Date.now();
-    const intervalId = window.setInterval(() => {
-      const now = Date.now();
-      const elapsedMinutes = Math.floor((now - lastMarkAt) / 60_000);
-      if (elapsedMinutes <= 0) return;
-      recordStudyCabinetActivity({
-        role: "teacher",
-        userId,
-        minutes: elapsedMinutes,
-      });
-      lastMarkAt = now;
-      setStudyActivityVersion((prev) => prev + 1);
-    }, 60_000);
-
-    return () => {
-      window.clearInterval(intervalId);
-      const now = Date.now();
-      const elapsedMinutes = Math.max(1, Math.floor((now - lastMarkAt) / 60_000));
-      recordStudyCabinetActivity({
-        role: "teacher",
-        userId,
-        minutes: elapsedMinutes,
-      });
-      setStudyActivityVersion((prev) => prev + 1);
-    };
-  }, [tab, userId, isTeacher]);
-
-  useEffect(() => {
-    if (!userId || !isTeacher) {
-      setAvailability([]);
-      return;
-    }
-    let active = true;
-    const loadAvailability = async () => {
-      setAvailabilityLoading(true);
-      setAvailabilityError(null);
-      try {
-        const slots = await getTeacherAvailability(userId);
-        if (!active) return;
-        const normalized = slots.map((slot) => ({
-          id: slot.id,
-          date: slot.date,
-          startTime: (slot as AvailabilitySlot & { time?: string }).startTime ?? (slot as AvailabilitySlot & { time?: string }).time ?? "",
-          endTime: slot.endTime ?? "",
-        }));
-        setAvailability(normalizeFutureSlots(normalized));
-      } catch {
-        if (!active) return;
-        setAvailabilityError(t("teacherDashboard.loadSlotsError"));
-      } finally {
-        if (active) setAvailabilityLoading(false);
-      }
-    };
-    void loadAvailability();
-    const unsubscribe = subscribeAppDataUpdates(() => {
-      void loadAvailability();
-    });
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, [userId, isTeacher]);
-
-  useEffect(() => {
-    if (!userId || !isTeacher) {
-      setBookings([]);
-      return;
-    }
-    let active = true;
-    const loadBookings = async () => {
-      setBookingLoading(true);
-      setBookingError(null);
-      try {
-        const [data, students] = await Promise.all([
-          getBookings({ teacherId: userId }),
-          getUsers("student"),
-        ]);
-        if (!active) return;
-        const studentsById = new Map(
-          students.map((student) => [student.id, student])
-        );
-        const normalized = data.map((booking) => {
-          const student = studentsById.get(booking.studentId);
-          const normalizedBooking: Booking = {
-            ...booking,
-            lessonKind: booking.lessonKind === "trial" ? "trial" : "regular",
-            paymentStatus: booking.paymentStatus === "paid" ? "paid" : "unpaid",
-          };
-          if (!student) return normalizedBooking;
-          const studentName =
-            `${student.firstName ?? ""} ${student.lastName ?? ""}`.trim() ||
-            normalizedBooking.studentName;
-          return {
-            ...normalizedBooking,
-            studentName,
-            studentEmail: student.email ?? normalizedBooking.studentEmail,
-            studentPhone: student.phone ?? normalizedBooking.studentPhone,
-            studentPhoto: student.photo ?? normalizedBooking.studentPhoto,
-          };
-        });
-        setBookings(normalized);
-      } catch {
-        if (!active) return;
-        setBookingError(t("teacherDashboard.loadBookingsError"));
-      } finally {
-        if (active) setBookingLoading(false);
-      }
-    };
-    void loadBookings();
-    const unsubscribe = subscribeAppDataUpdates(() => {
-      void loadBookings();
-    });
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, [userId, isTeacher]);
+  const { refreshAll, retryDashboardData, syncStudyNotes } = useTeacherDashboardData({
+    userId,
+    isTeacher,
+    tab,
+    setCourses,
+    setStudentCards,
+    setLessonCounts,
+    setTestCounts,
+    setDashboardLoading,
+    setDashboardError,
+    setChatUnreadCount,
+    setStudentsWithFeedbackIds,
+    setChatThreadIdsByStudentId,
+    setStudyNotes,
+    setStudyReminderCount,
+    setStudyActivityVersion,
+    setAvailability,
+    setAvailabilityLoading,
+    setAvailabilityError,
+    setBookings,
+    setBookingLoading,
+    setBookingError,
+  });
 
   const getBookingStart = (booking: Booking) => getBookingStartTimestamp(booking);
   const getBookingEnd = (booking: Booking) => getBookingEndTimestamp(booking);
@@ -553,31 +303,23 @@ export default function TeacherDashboard() {
     return `${day}.${month}.${year}`;
   }, [slotDate]);
 
-  const filteredStudents = useMemo(() => {
-    const query = studentQuery.trim().toLowerCase();
-    const feedbackSet = new Set(studentsWithFeedbackIds);
-    return studentCards.filter((student) => {
-      const byQuery =
-        student.name.toLowerCase().includes(query) ||
-        student.email.toLowerCase().includes(query);
-      const hasFeedback = feedbackSet.has(student.id);
-      const byFeedback =
-        studentFeedbackFilter === "all" ||
-        (studentFeedbackFilter === "with_feedback"
-          ? hasFeedback
-          : !hasFeedback);
-      return byQuery && byFeedback;
-    });
-  }, [studentCards, studentQuery, studentsWithFeedbackIds, studentFeedbackFilter]);
+  const filteredStudents = useMemo(
+    () =>
+      filterTeacherStudents({
+        students: studentCards,
+        query: studentQuery,
+        feedbackStudentIds: studentsWithFeedbackIds,
+        feedbackFilter: studentFeedbackFilter,
+      }),
+    [studentCards, studentQuery, studentsWithFeedbackIds, studentFeedbackFilter]
+  );
 
   const filteredCourses = useMemo(
     () =>
-      courses.filter((course) => {
-        const byStatus = course.status === courseStatusFilter;
-        const byQuery = course.title
-          .toLowerCase()
-          .includes(courseQuery.trim().toLowerCase());
-        return byStatus && byQuery;
+      filterTeacherCourses({
+        courses,
+        query: courseQuery,
+        status: courseStatusFilter,
       }),
     [courses, courseQuery, courseStatusFilter]
   );
@@ -603,15 +345,15 @@ export default function TeacherDashboard() {
   );
   const safeCompletedPage = Math.min(completedPage, completedTotalPages);
 
-  const pagedStudents = useMemo(() => {
-    const start = (safeStudentsPage - 1) * studentsPageSize;
-    return filteredStudents.slice(start, start + studentsPageSize);
-  }, [filteredStudents, safeStudentsPage, studentsPageSize]);
+  const pagedStudents = useMemo(
+    () => paginateList(filteredStudents, safeStudentsPage, studentsPageSize),
+    [filteredStudents, safeStudentsPage, studentsPageSize]
+  );
 
-  const pagedCourses = useMemo(() => {
-    const start = (safeCoursesPage - 1) * coursesPageSize;
-    return filteredCourses.slice(start, start + coursesPageSize);
-  }, [filteredCourses, safeCoursesPage, coursesPageSize]);
+  const pagedCourses = useMemo(
+    () => paginateList(filteredCourses, safeCoursesPage, coursesPageSize),
+    [filteredCourses, safeCoursesPage, coursesPageSize]
+  );
 
   const selectedAvailabilityDate = useMemo(() => {
     if (
@@ -640,15 +382,15 @@ export default function TeacherDashboard() {
     return [dateSlots[dateSlots.length - 1]];
   }, [currentAvailabilityGroup, expandedSlotsDate]);
 
-  const pagedScheduledBookings = useMemo(() => {
-    const start = (safeScheduledPage - 1) * bookingsPageSize;
-    return scheduledBookings.slice(start, start + bookingsPageSize);
-  }, [scheduledBookings, safeScheduledPage, bookingsPageSize]);
+  const pagedScheduledBookings = useMemo(
+    () => paginateList(scheduledBookings, safeScheduledPage, bookingsPageSize),
+    [scheduledBookings, safeScheduledPage, bookingsPageSize]
+  );
 
-  const pagedCompletedBookings = useMemo(() => {
-    const start = (safeCompletedPage - 1) * bookingsPageSize;
-    return completedBookings.slice(start, start + bookingsPageSize);
-  }, [completedBookings, safeCompletedPage, bookingsPageSize]);
+  const pagedCompletedBookings = useMemo(
+    () => paginateList(completedBookings, safeCompletedPage, bookingsPageSize),
+    [completedBookings, safeCompletedPage, bookingsPageSize]
+  );
 
   const formatReminderDate = (booking: Booking) => {
     const date = new Date(`${booking.date}T${booking.startTime}`);

@@ -1,0 +1,551 @@
+import { useCallback, useEffect } from "react";
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import type { Booking } from "@/entities/booking/model/types";
+import {
+  getPurchases,
+} from "@/entities/purchase/model/storage";
+import { getCourses } from "@/entities/course/model/storage";
+import { getLessonsByCourse } from "@/entities/lesson/model/storage";
+import { getViewedLessonIds } from "@/entities/progress/model/storage";
+import { getBookings } from "@/entities/booking/model/storage";
+import { getUsers } from "@/features/auth/model/api";
+import { getTeacherAvailability } from "@/features/teacher-availability/api";
+import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
+import type { User } from "@/entities/user/model/types";
+import type { StudentStudyCabinetCourseItem } from "@/features/study-cabinet/student/model/types";
+import {
+  getAssessmentCourseProgress,
+  getAssessmentKnowledgeProgress,
+  getBestAssessmentAttemptsMap,
+  getCourseContentItems,
+} from "@/features/assessments/model/storage";
+import {
+  getTeacherChatEligibility,
+  getTeacherChatThreads,
+} from "@/features/chat/model/api";
+import type { TeacherChatEligibility } from "@/features/chat/model/types";
+import { normalizeFutureSlots } from "@/features/booking/lib/schedule";
+import {
+  getStudyCabinetNotes,
+  recordStudyCabinetActivity,
+  type StudyCabinetNote,
+} from "@/shared/lib/studyCabinet";
+import { lessonDurationToSeconds } from "@/shared/lib/duration";
+import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
+
+type TabName = "profile" | "courses" | "lessons" | "study" | "chat";
+
+type UseStudentProfileDataParams = {
+  user: User | null;
+  userId?: string;
+  tab: number;
+  CHAT_TAB_INDEX: number;
+  chatAccessAvailable: boolean;
+  location: {
+    pathname: string;
+    search: string;
+  };
+  navigate: (to: string, options?: { replace?: boolean }) => void;
+  setTab: Dispatch<SetStateAction<number>>;
+  setProfileDraft: Dispatch<
+    SetStateAction<{
+      firstName: string;
+      lastName: string;
+      phone: string;
+      photo: string;
+    }>
+  >;
+  setProfileEditing: Dispatch<SetStateAction<boolean>>;
+  hasCoursesLoadedRef: MutableRefObject<boolean>;
+  hasBookingsLoadedRef: MutableRefObject<boolean>;
+  hasScheduleLoadedRef: MutableRefObject<boolean>;
+  setItems: Dispatch<SetStateAction<StudentStudyCabinetCourseItem[]>>;
+  setCoursesLoading: Dispatch<SetStateAction<boolean>>;
+  setCoursesError: Dispatch<SetStateAction<string | null>>;
+  setBookings: Dispatch<SetStateAction<Booking[]>>;
+  setBookingsLoading: Dispatch<SetStateAction<boolean>>;
+  setBookingsError: Dispatch<SetStateAction<string | null>>;
+  setTeacher: Dispatch<SetStateAction<User | null>>;
+  setAvailability: Dispatch<SetStateAction<AvailabilitySlot[]>>;
+  setScheduleLoading: Dispatch<SetStateAction<boolean>>;
+  setScheduleError: Dispatch<SetStateAction<string | null>>;
+  setChatEligibility: Dispatch<SetStateAction<TeacherChatEligibility | null>>;
+  setChatUnreadCount: Dispatch<SetStateAction<number>>;
+  setStudyNotes: Dispatch<SetStateAction<StudyCabinetNote[]>>;
+  setStudyActivityVersion: Dispatch<SetStateAction<number>>;
+};
+
+export const useStudentProfileData = ({
+  user,
+  userId,
+  tab,
+  CHAT_TAB_INDEX,
+  chatAccessAvailable,
+  location,
+  navigate,
+  setTab,
+  setProfileDraft,
+  setProfileEditing,
+  hasCoursesLoadedRef,
+  hasBookingsLoadedRef,
+  hasScheduleLoadedRef,
+  setItems,
+  setCoursesLoading,
+  setCoursesError,
+  setBookings,
+  setBookingsLoading,
+  setBookingsError,
+  setTeacher,
+  setAvailability,
+  setScheduleLoading,
+  setScheduleError,
+  setChatEligibility,
+  setChatUnreadCount,
+  setStudyNotes,
+  setStudyActivityVersion,
+}: UseStudentProfileDataParams) => {
+  const resolveTabParam = useCallback(
+    (tabIndex: number): TabName => {
+      if (tabIndex === 1) return "courses";
+      if (tabIndex === 2) return "lessons";
+      if (tabIndex === 3) return "study";
+      if (tabIndex === CHAT_TAB_INDEX) return "chat";
+      return "profile";
+    },
+    [CHAT_TAB_INDEX]
+  );
+
+  const setTabWithQuery = useCallback(
+    (nextTab: number, options?: { replace?: boolean }) => {
+      const safeTab =
+        !chatAccessAvailable && nextTab === CHAT_TAB_INDEX ? 0 : nextTab;
+      const nextTabParam = resolveTabParam(safeTab);
+      const params = new URLSearchParams(location.search);
+      params.set("tab", nextTabParam);
+      const nextSearch = params.toString();
+      const nextUrl = `${location.pathname}${nextSearch ? `?${nextSearch}` : ""}`;
+      const currentUrl = `${location.pathname}${location.search}`;
+      if (nextUrl !== currentUrl) {
+        navigate(nextUrl, { replace: options?.replace ?? true });
+        return;
+      }
+      setTab((prev) => (prev === safeTab ? prev : safeTab));
+    },
+    [
+      chatAccessAvailable,
+      CHAT_TAB_INDEX,
+      location.pathname,
+      location.search,
+      navigate,
+      resolveTabParam,
+      setTab,
+    ]
+  );
+
+  useEffect(() => {
+    const tabParam = new URLSearchParams(location.search).get("tab");
+    let nextTab = tab;
+    if (tabParam === "courses") nextTab = 1;
+    else if (tabParam === "lessons") nextTab = 2;
+    else if (tabParam === "study") nextTab = 3;
+    else if (tabParam === "chat")
+      nextTab = chatAccessAvailable ? CHAT_TAB_INDEX : 0;
+    else if (tabParam === "profile" || tabParam === null) nextTab = 0;
+
+    if (nextTab !== tab) {
+      setTab(nextTab);
+    }
+  }, [location.search, tab, chatAccessAvailable, CHAT_TAB_INDEX, setTab]);
+
+  useEffect(() => {
+    if (!user) return;
+    setProfileDraft({
+      firstName: user.firstName ?? "",
+      lastName: user.lastName ?? "",
+      phone: user.phone ?? "",
+      photo: user.photo ?? "",
+    });
+    setProfileEditing(false);
+  }, [user, setProfileDraft, setProfileEditing]);
+
+  const loadStudentCourses = useCallback(async () => {
+    if (!userId) {
+      setItems([]);
+      hasCoursesLoadedRef.current = true;
+      setCoursesLoading(false);
+      return;
+    }
+    try {
+      if (!hasCoursesLoadedRef.current) {
+        setCoursesLoading(true);
+      }
+      setCoursesError(null);
+      const [purchases, courses] = await Promise.all([
+        getPurchases({ userId }, { forceFresh: true }),
+        getCourses({ forceFresh: true }),
+      ]);
+      const userPurchases = purchases;
+
+      const resolved = await Promise.all(
+        userPurchases.map(async (purchase) => {
+          const liveCourse =
+            courses.find((candidate) => candidate.id === purchase.courseId) ?? null;
+          const usePublishedCourse = liveCourse?.status === "published";
+          const course =
+            (usePublishedCourse ? liveCourse : purchase.courseSnapshot ?? liveCourse) ??
+            null;
+          if (!course) return null;
+          const lessons = usePublishedCourse
+            ? await getLessonsByCourse(course.id, { forceFresh: true })
+            : Array.isArray(purchase.lessonsSnapshot)
+            ? purchase.lessonsSnapshot
+            : await getLessonsByCourse(course.id, { forceFresh: true });
+          const queue = await getCourseContentItems(course.id, lessons);
+          const purchasedTestItemIdSet = new Set(
+            Array.isArray(purchase.purchasedTestItemIds)
+              ? purchase.purchasedTestItemIds
+              : []
+          );
+          const effectiveQueue = usePublishedCourse
+            ? queue
+            : queue.filter((item) => {
+                if (item.type === "lesson") return true;
+                if (purchasedTestItemIdSet.size > 0) {
+                  return purchasedTestItemIdSet.has(item.id);
+                }
+                if (!purchase.purchasedAt) return true;
+                return item.createdAt <= purchase.purchasedAt;
+              });
+          const testItems = effectiveQueue.filter((item) => item.type === "test");
+          const viewed = await getViewedLessonIds(userId, course.id, {
+            forceFresh: true,
+          });
+          const progress =
+            lessons.length === 0
+              ? 0
+              : Math.round((viewed.length / lessons.length) * 100);
+          const [testsProgress, testsKnowledgeProgress, bestAttempts] = await Promise.all([
+            getAssessmentCourseProgress({
+              studentId: userId,
+              courseId: course.id,
+              testItemIds: testItems.map((item) => item.id),
+            }),
+            getAssessmentKnowledgeProgress({
+              studentId: userId,
+              courseId: course.id,
+              testItemIds: testItems.map((item) => item.id),
+            }),
+            getBestAssessmentAttemptsMap({
+              studentId: userId,
+              courseId: course.id,
+            }),
+          ]);
+          const viewedSet = new Set(viewed);
+          const remainingLessons = lessons.reduce(
+            (sum, lesson) => sum + (viewedSet.has(lesson.id) ? 0 : 1),
+            0
+          );
+          const viewedLessonSeconds = lessons.reduce((sum, lesson) => {
+            if (!viewedSet.has(lesson.id)) return sum;
+            const duration = Number.isFinite(lesson.duration)
+              ? lessonDurationToSeconds(lesson.duration)
+              : 0;
+            return sum + duration;
+          }, 0);
+          const remainingLessonSeconds = lessons.reduce((sum, lesson) => {
+            if (viewedSet.has(lesson.id)) return sum;
+            const duration = Number.isFinite(lesson.duration)
+              ? lessonDurationToSeconds(lesson.duration)
+              : 0;
+            return sum + duration;
+          }, 0);
+          const remainingTests = testItems.reduce((sum, item) => {
+            const bestAttempt = bestAttempts.get(item.id);
+            return sum + (bestAttempt && bestAttempt.score.percent > 0 ? 0 : 1);
+          }, 0);
+          const remainingTestSeconds = testItems.reduce((sum, item) => {
+            const bestAttempt = bestAttempts.get(item.id);
+            if (bestAttempt && bestAttempt.score.percent > 0) return sum;
+            const durationMinutes =
+              item.templateSnapshot?.durationMinutes &&
+              Number.isFinite(item.templateSnapshot.durationMinutes)
+                ? Math.max(0, Math.round(item.templateSnapshot.durationMinutes))
+                : 0;
+            return sum + durationMinutes * 60;
+          }, 0);
+          return {
+            course,
+            purchase,
+            progress,
+            viewedCount: viewed.length,
+            viewedLessonSeconds,
+            totalLessons: lessons.length,
+            remainingLessons,
+            remainingLessonSeconds,
+            totalTests: testsProgress.totalTests,
+            completedTests: testsProgress.completedTests,
+            remainingTests,
+            remainingTestSeconds,
+            remainingSeconds: remainingLessonSeconds + remainingTestSeconds,
+            testsAveragePercent: testsProgress.averageLatestPercent,
+            testsKnowledgePercent: testsKnowledgeProgress.averageBestPercent,
+            isPremium: purchase.price === course.priceGuided,
+            purchasedAt: purchase.purchasedAt,
+          };
+        })
+      );
+
+      setItems(
+        (resolved.filter(Boolean) as StudentStudyCabinetCourseItem[]).sort((a, b) => {
+          if (a.progress !== b.progress) return a.progress - b.progress;
+          return b.purchasedAt.localeCompare(a.purchasedAt);
+        })
+      );
+    } catch {
+      setCoursesError("Не удалось загрузить ваши курсы.");
+    } finally {
+      hasCoursesLoadedRef.current = true;
+      setCoursesLoading(false);
+    }
+  }, [userId, hasCoursesLoadedRef, setItems, setCoursesLoading, setCoursesError]);
+
+  useEffect(() => {
+    void loadStudentCourses();
+    const unsubscribe = subscribeAppDataUpdates(() => {
+      void loadStudentCourses();
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [loadStudentCourses]);
+
+  useEffect(() => {
+    if (tab !== 1) return;
+    void loadStudentCourses();
+  }, [tab, loadStudentCourses]);
+
+  const loadStudentBookings = useCallback(async () => {
+    if (!userId) {
+      setBookings([]);
+      hasBookingsLoadedRef.current = true;
+      setBookingsLoading(false);
+      return;
+    }
+    try {
+      if (!hasBookingsLoadedRef.current) {
+        setBookingsLoading(true);
+      }
+      setBookingsError(null);
+      const data = await getBookings({ studentId: userId });
+      setBookings(
+        data.map((booking) => ({
+          ...booking,
+          lessonKind: booking.lessonKind === "trial" ? "trial" : "regular",
+          paymentStatus: booking.paymentStatus === "paid" ? "paid" : "unpaid",
+        }))
+      );
+    } catch {
+      setBookingsError("Не удалось загрузить записи на занятия.");
+    } finally {
+      hasBookingsLoadedRef.current = true;
+      setBookingsLoading(false);
+    }
+  }, [
+    userId,
+    hasBookingsLoadedRef,
+    setBookings,
+    setBookingsLoading,
+    setBookingsError,
+  ]);
+
+  const loadSchedulingContext = useCallback(async () => {
+    if (!userId) {
+      setTeacher(null);
+      setAvailability([]);
+      hasScheduleLoadedRef.current = true;
+      setScheduleLoading(false);
+      return;
+    }
+    try {
+      if (!hasScheduleLoadedRef.current) {
+        setScheduleLoading(true);
+      }
+      setScheduleError(null);
+      const teachers = await getUsers("teacher");
+      const currentTeacher = teachers[0] ?? null;
+      setTeacher(currentTeacher);
+      if (!currentTeacher) {
+        setAvailability([]);
+        return;
+      }
+      const slots = await getTeacherAvailability(currentTeacher.id);
+      const normalized = slots.map((slot) => ({
+        id: slot.id,
+        date: slot.date,
+        startTime: slot.startTime ?? "",
+        endTime: slot.endTime ?? "",
+      }));
+      setAvailability(normalizeFutureSlots(normalized));
+    } catch {
+      setScheduleError("Не удалось загрузить свободные слоты преподавателя.");
+      setTeacher(null);
+      setAvailability([]);
+    } finally {
+      hasScheduleLoadedRef.current = true;
+      setScheduleLoading(false);
+    }
+  }, [
+    userId,
+    hasScheduleLoadedRef,
+    setTeacher,
+    setAvailability,
+    setScheduleLoading,
+    setScheduleError,
+  ]);
+
+  useEffect(() => {
+    hasCoursesLoadedRef.current = false;
+    hasBookingsLoadedRef.current = false;
+    hasScheduleLoadedRef.current = false;
+  }, [userId, hasCoursesLoadedRef, hasBookingsLoadedRef, hasScheduleLoadedRef]);
+
+  useEffect(() => {
+    void loadStudentBookings();
+    const unsubscribe = subscribeAppDataUpdates(() => {
+      void loadStudentBookings();
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [loadStudentBookings]);
+
+  useEffect(() => {
+    void loadSchedulingContext();
+    const unsubscribe = subscribeAppDataUpdates(() => {
+      void loadSchedulingContext();
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [loadSchedulingContext]);
+
+  const loadChatEligibility = useCallback(async () => {
+    if (!userId) {
+      setChatEligibility(null);
+      return;
+    }
+    try {
+      const eligibility = await getTeacherChatEligibility();
+      setChatEligibility(eligibility);
+    } catch {
+      setChatEligibility(null);
+    }
+  }, [userId, setChatEligibility]);
+
+  const loadChatUnread = useCallback(async () => {
+    if (!userId) {
+      setChatUnreadCount(0);
+      return;
+    }
+    try {
+      const threads = await getTeacherChatThreads();
+      const unread = threads.reduce(
+        (sum, thread) => sum + Math.max(0, thread.unreadCount),
+        0
+      );
+      setChatUnreadCount(unread);
+    } catch {
+      setChatUnreadCount(0);
+    }
+  }, [userId, setChatUnreadCount]);
+
+  const syncStudyNotes = useCallback(() => {
+    if (!userId) {
+      setStudyNotes([]);
+      return;
+    }
+    setStudyNotes(getStudyCabinetNotes("student", userId));
+  }, [userId, setStudyNotes]);
+
+  useEffect(() => {
+    void loadChatEligibility();
+    const unsubscribe = subscribeAppDataUpdates(() => {
+      void loadChatEligibility();
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [loadChatEligibility]);
+
+  useEffect(() => {
+    if (!chatAccessAvailable) {
+      setChatUnreadCount(0);
+      return;
+    }
+    void loadChatUnread();
+    const pollId = window.setInterval(() => {
+      void loadChatUnread();
+    }, 8_000);
+    const unsubscribe = subscribeAppDataUpdates(() => {
+      void loadChatUnread();
+    });
+    return () => {
+      window.clearInterval(pollId);
+      unsubscribe();
+    };
+  }, [chatAccessAvailable, loadChatUnread, setChatUnreadCount]);
+
+  useEffect(() => {
+    if (!chatAccessAvailable && tab === CHAT_TAB_INDEX) {
+      setTabWithQuery(0, { replace: true });
+    }
+  }, [chatAccessAvailable, tab, CHAT_TAB_INDEX, setTabWithQuery]);
+
+  useEffect(() => {
+    if (tab !== 3) return;
+    syncStudyNotes();
+    const unsubscribe = subscribeAppDataUpdates(() => {
+      syncStudyNotes();
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [tab, syncStudyNotes]);
+
+  useEffect(() => {
+    if (tab !== 3 || !userId) return;
+    let lastMarkAt = Date.now();
+    const intervalId = window.setInterval(() => {
+      const now = Date.now();
+      const elapsedMinutes = Math.floor((now - lastMarkAt) / 60_000);
+      if (elapsedMinutes > 0) {
+        recordStudyCabinetActivity({
+          role: "student",
+          userId,
+          minutes: elapsedMinutes,
+        });
+        lastMarkAt = now;
+        setStudyActivityVersion((prev) => prev + 1);
+      }
+    }, 60_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+      const now = Date.now();
+      const elapsedMinutes = Math.max(1, Math.floor((now - lastMarkAt) / 60_000));
+      recordStudyCabinetActivity({
+        role: "student",
+        userId,
+        minutes: elapsedMinutes,
+      });
+      setStudyActivityVersion((prev) => prev + 1);
+    };
+  }, [tab, userId, setStudyActivityVersion]);
+
+  return {
+    setTabWithQuery,
+    loadStudentCourses,
+    loadStudentBookings,
+    loadSchedulingContext,
+  };
+};

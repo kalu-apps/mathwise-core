@@ -99,6 +99,13 @@ import {
   buildSessionClearCookie,
   buildSessionSetCookie,
 } from "./runtime/cookiePolicy";
+import {
+  type MockRouteHandler,
+  runRouteHandlers,
+} from "./runtime/requestContext";
+import { createAuthSessionRoutes } from "./routes/authRoutes";
+import { createPaymentRoutes } from "./routes/paymentRoutes";
+import { createRuntimeRoutes } from "./routes/runtimeRoutes";
 import { verifyCardWebhookRequest } from "./runtime/webhookGuards";
 
 const json = (res: import("http").ServerResponse, status: number, data: unknown) => {
@@ -5236,6 +5243,51 @@ const publishWorkbookStreamEvents = (
 };
 
 export function setupMockServer(server: ServerWithMiddlewares) {
+  const foundationRouteHandlers: MockRouteHandler[] = [
+    createRuntimeRoutes({
+      json,
+      readBody,
+      resetDb,
+      clearSessionCookie,
+      nowIso,
+      ensureId,
+      saveDb,
+      safeStringify,
+      allowDevReset: SERVER_RUNTIME_ENV.allowDevReset,
+      legalDocumentVersion: LEGAL_DOCUMENT_VERSION,
+    }),
+    createAuthSessionRoutes({
+      json,
+      safeUser,
+      clearSessionCookie,
+      revokeAuthSession,
+      nowIso,
+      saveDb,
+    }),
+    createPaymentRoutes({
+      json,
+      readBody,
+      readRawBody,
+      verifyCardWebhookRequest,
+      webhookSecret: SERVER_RUNTIME_ENV.cardWebhookSecret,
+      webhookMaxSkewSec: SERVER_RUNTIME_ENV.cardWebhookMaxSkewSec,
+      webhookReplayTtlSec: SERVER_RUNTIME_ENV.cardWebhookReplayTtlSec,
+      normalizeCardWebhookStatus,
+      mapCardWebhookToPaymentStatus,
+      processPaymentEvent,
+      ensureCheckoutProvisioned,
+      queueCheckoutTransactionalEmail,
+      revokeCourseAccess,
+      logSupportAction,
+      dispatchOutboxQueue,
+      saveDb,
+      isPaymentEventProvider,
+      isPaymentEventStatus,
+      nowIso,
+      getProviderPaymentIdFromPayload,
+    }),
+  ];
+
   server.middlewares.use(async (req, res, next) => {
     if (!req.url || !req.url.startsWith("/api")) return next();
 
@@ -5268,87 +5320,19 @@ export function setupMockServer(server: ServerWithMiddlewares) {
     const actorSession = sessionActor?.session ?? null;
 
     try {
-      // ================= AUTH =================
-      if (path === "/api/dev/reset" && method === "POST") {
-        if (!SERVER_RUNTIME_ENV.allowDevReset) {
-          return json(res, 403, {
-            error: "Dev reset endpoint disabled for current runtime policy.",
-          });
-        }
-        resetDb();
-        clearSessionCookie(res);
-        return json(res, 200, { ok: true });
-      }
-
-      if (path === "/api/telemetry/rum" && method === "POST") {
-        const body = (await readBody(req)) as {
-          events?: Array<{
-            type?: string;
-            payload?: unknown;
-            route?: string;
-            at?: string;
-          }>;
-        };
-        const events = Array.isArray(body?.events) ? body.events.slice(0, 100) : [];
-        const timestamp = nowIso();
-
-        if (events.length > 0) {
-          events.forEach((event) => {
-            const eventType =
-              typeof event?.type === "string" && event.type.trim().length > 0
-                ? event.type.trim()
-                : "unknown";
-            const route =
-              typeof event?.route === "string" && event.route.trim().length > 0
-                ? event.route.trim()
-                : undefined;
-            db.rumTelemetry.push({
-              id: ensureId(),
-              type: eventType,
-              payload: safeStringify(event?.payload ?? {}),
-              route,
-              userId: actorUser?.id ?? null,
-              createdAt:
-                typeof event?.at === "string" && event.at.trim().length > 0
-                  ? event.at
-                  : timestamp,
-            });
-          });
-
-          if (db.rumTelemetry.length > 2000) {
-            db.rumTelemetry = db.rumTelemetry
-              .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-              .slice(0, 2000);
-          }
-          saveDb();
-        }
-
-        return json(res, 202, { ok: true, accepted: events.length });
-      }
-
-      if (path === "/api/legal/consent-policy" && method === "GET") {
-        return json(res, 200, {
-          documentVersion: LEGAL_DOCUMENT_VERSION,
-          checkoutRequiredScopes: ["terms", "privacy", "checkout"],
-          trialBookingRequiredScopes: ["terms", "privacy", "trial_booking"],
-        });
-      }
-
-      if (path === "/api/auth/session" && method === "GET") {
-        if (!actorSession || !actorUser) {
-          clearSessionCookie(res);
-          return json(res, 200, null);
-        }
-        return json(res, 200, safeUser(actorUser));
-      }
-
-      if (path === "/api/auth/logout" && method === "POST") {
-        if (actorSession) {
-          revokeAuthSession(db, actorSession.id, nowIso());
-          saveDb();
-        }
-        clearSessionCookie(res);
-        return json(res, 200, { ok: true });
+      if (
+        await runRouteHandlers(foundationRouteHandlers, {
+          req,
+          res,
+          url,
+          path,
+          method,
+          db,
+          actorUser,
+          actorSession,
+        })
+      ) {
+        return;
       }
 
       if (path === "/api/auth/magic-link" && method === "POST") {
@@ -9841,263 +9825,6 @@ export function setupMockServer(server: ServerWithMiddlewares) {
           ok: true,
           event: result.event,
           checkout: result.checkout,
-        });
-      }
-
-      if (path === "/api/payments/providers/card/webhook" && method === "POST") {
-        const rawBody = await readRawBody(req);
-        const signatureHeader = req.headers["x-card-signature"];
-        const timestampHeader = req.headers["x-card-timestamp"];
-        const signature = Array.isArray(signatureHeader)
-          ? signatureHeader[0] ?? ""
-          : signatureHeader ?? "";
-        const timestamp = Array.isArray(timestampHeader)
-          ? timestampHeader[0] ?? ""
-          : timestampHeader ?? "";
-        const webhookValidation = verifyCardWebhookRequest(
-          {
-            secret: SERVER_RUNTIME_ENV.cardWebhookSecret,
-            maxSkewSec: SERVER_RUNTIME_ENV.cardWebhookMaxSkewSec,
-            replayTtlSec: SERVER_RUNTIME_ENV.cardWebhookReplayTtlSec,
-          },
-          {
-            rawBody,
-            timestampHeader: String(timestamp),
-            signatureHeader: String(signature),
-          }
-        );
-        if (!webhookValidation.ok) {
-          return json(res, webhookValidation.status, { error: webhookValidation.error });
-        }
-
-        type CardWebhookBody = {
-          eventId?: string;
-          checkoutId?: string;
-          status?: unknown;
-          providerPaymentId?: string;
-          occurredAt?: string;
-          payload?: unknown;
-        };
-        let body: CardWebhookBody = {};
-        try {
-          body = rawBody ? (JSON.parse(rawBody) as CardWebhookBody) : {};
-        } catch {
-          return json(res, 400, { error: "Некорректный JSON webhook." });
-        }
-        const externalEventId =
-          typeof body?.eventId === "string" ? body.eventId.trim() : "";
-        const checkoutId =
-          typeof body?.checkoutId === "string" ? body.checkoutId.trim() : "";
-        const webhookStatus = normalizeCardWebhookStatus(body?.status);
-        if (!externalEventId || !checkoutId || !webhookStatus) {
-          return json(res, 400, { error: "Некорректный payload card webhook." });
-        }
-        const processedAt =
-          typeof body?.occurredAt === "string" &&
-          Number.isFinite(new Date(body.occurredAt).getTime())
-            ? body.occurredAt
-            : nowIso();
-        const paymentStatus = mapCardWebhookToPaymentStatus(webhookStatus);
-        const result = processPaymentEvent(db, {
-          provider: "card",
-          externalEventId,
-          checkoutId,
-          status: paymentStatus,
-          payload: {
-            source: "card_webhook",
-            providerPaymentId: body?.providerPaymentId ?? null,
-            webhookStatus,
-            payload: body?.payload ?? null,
-          },
-          processedAt,
-        });
-        if (result.checkout) {
-          ensureCheckoutProvisioned(db, result.checkout, processedAt);
-          if (paymentStatus === "paid") {
-            queueCheckoutTransactionalEmail(db, result.checkout, processedAt);
-          }
-        }
-
-        if (
-          (webhookStatus === "refunded" || webhookStatus === "chargeback") &&
-          result.checkout?.userId &&
-          result.event.outcome !== "duplicate"
-        ) {
-          const revokeResult = revokeCourseAccess(
-            db,
-            {
-              userId: result.checkout.userId,
-              courseId: result.checkout.courseId,
-              notes:
-                webhookStatus === "refunded"
-                  ? "Card webhook refund"
-                  : "Card webhook chargeback",
-            },
-            processedAt
-          );
-          logSupportAction(
-            db,
-            {
-              type: "refund_and_revoke_course_access",
-              issueCode: "refunded_with_access",
-              userId: result.checkout.userId,
-              courseId: result.checkout.courseId,
-              checkoutId: result.checkout.id,
-              notes: `${webhookStatus}; purchasesRemoved=${revokeResult.purchasesRemoved}; revokedEntitlements=${revokeResult.revokedEntitlements}`,
-            },
-            processedAt
-          );
-        }
-
-        await dispatchOutboxQueue(db, processedAt);
-        saveDb();
-        return json(res, 200, {
-          ok: true,
-          event: result.event,
-          checkout: result.checkout,
-        });
-      }
-
-      if (path === "/api/payments/events" && method === "POST") {
-        if (!actorUser || actorUser.role !== "teacher") {
-          return json(res, 403, {
-            error: "Операция доступна только преподавателю.",
-          });
-        }
-        const body = (await readBody(req)) as {
-          provider: PaymentEventProvider;
-          externalEventId: string;
-          checkoutId: string;
-          status: PaymentEventStatus;
-          payload?: unknown;
-        };
-        if (
-          !isPaymentEventProvider(body?.provider) ||
-          typeof body?.externalEventId !== "string" ||
-          !body.externalEventId.trim() ||
-          typeof body?.checkoutId !== "string" ||
-          !body.checkoutId.trim() ||
-          !isPaymentEventStatus(body?.status)
-        ) {
-          return json(res, 400, { error: "Некорректный payload события оплаты." });
-        }
-        const timestamp = nowIso();
-        const result = processPaymentEvent(db, {
-          provider: body.provider,
-          externalEventId: body.externalEventId.trim(),
-          checkoutId: body.checkoutId.trim(),
-          status: body.status,
-          payload: body.payload,
-          processedAt: timestamp,
-        });
-        if (result.checkout) {
-          ensureCheckoutProvisioned(db, result.checkout, timestamp);
-          queueCheckoutTransactionalEmail(db, result.checkout, timestamp);
-        }
-        await dispatchOutboxQueue(db, timestamp);
-        saveDb();
-        return json(res, 200, result);
-      }
-
-      if (path === "/api/payments/events" && method === "GET") {
-        if (!actorUser || actorUser.role !== "teacher") {
-          return json(res, 403, {
-            error: "Операция доступна только преподавателю.",
-          });
-        }
-        const checkoutId = decodeURIComponent(url.searchParams.get("checkoutId") ?? "");
-        const provider = decodeURIComponent(url.searchParams.get("provider") ?? "");
-        let events = db.paymentEvents;
-        if (checkoutId) {
-          events = events.filter((event) => event.checkoutId === checkoutId);
-        }
-        if (provider) {
-          events = events.filter((event) => event.provider === provider);
-        }
-        return json(
-          res,
-          200,
-          [...events].sort((a, b) => b.processedAt.localeCompare(a.processedAt))
-        );
-      }
-
-      if (path === "/api/payments/providers/card/refund" && method === "POST") {
-        if (!actorUser || actorUser.role !== "teacher") {
-          return json(res, 403, {
-            error: "Операция доступна только преподавателю.",
-          });
-        }
-        const body = (await readBody(req)) as {
-          checkoutId?: string;
-          reason?: string;
-        };
-        const checkoutId =
-          typeof body?.checkoutId === "string" ? body.checkoutId.trim() : "";
-        if (!checkoutId) {
-          return json(res, 400, { error: "checkoutId обязателен." });
-        }
-        const checkout =
-          db.checkoutProcesses.find((item) => item.id === checkoutId) ?? null;
-        if (!checkout) {
-          return json(res, 404, { error: "Checkout не найден." });
-        }
-        const timestamp = nowIso();
-        const providerPaymentId = db.paymentEvents
-          .filter(
-            (event) => event.provider === "card" && event.checkoutId === checkoutId
-          )
-          .map((event) => {
-            if (!event.payload) return undefined;
-            try {
-              const payload = JSON.parse(event.payload) as Record<string, unknown>;
-              return getProviderPaymentIdFromPayload(payload);
-            } catch {
-              return undefined;
-            }
-          })
-          .find(Boolean);
-        const result = processPaymentEvent(db, {
-          provider: "card",
-          externalEventId: `card:refund:${checkout.id}:${timestamp}`,
-          checkoutId: checkout.id,
-          status: "canceled",
-          payload: {
-            source: "card_refund_api",
-            reason: typeof body?.reason === "string" ? body.reason.trim() : "",
-            providerPaymentId: providerPaymentId ?? null,
-          },
-          processedAt: timestamp,
-        });
-        let revokeResult: ReturnType<typeof revokeCourseAccess> | null = null;
-        if (checkout.userId) {
-          revokeResult = revokeCourseAccess(
-            db,
-            {
-              userId: checkout.userId,
-              courseId: checkout.courseId,
-              notes: "Card refund API",
-            },
-            timestamp
-          );
-          logSupportAction(
-            db,
-            {
-              type: "refund_and_revoke_course_access",
-              issueCode: "refunded_with_access",
-              userId: checkout.userId,
-              courseId: checkout.courseId,
-              checkoutId: checkout.id,
-              notes: `card_refund_api; purchasesRemoved=${revokeResult.purchasesRemoved}; revokedEntitlements=${revokeResult.revokedEntitlements}`,
-            },
-            timestamp
-          );
-        }
-        saveDb();
-        return json(res, 200, {
-          ok: true,
-          event: result.event,
-          checkout,
-          revokeResult,
         });
       }
 

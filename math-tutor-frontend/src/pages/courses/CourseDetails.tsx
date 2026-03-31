@@ -1,15 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { getCourseById } from "@/entities/course/model/storage";
-import { getLessonsByCourse } from "@/entities/lesson/model/storage";
 import { LessonItem } from "@/entities/lesson/ui/LessonItem";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { selfHealAccess } from "@/features/auth/model/api";
-import { getViewedLessonIds } from "@/entities/progress/model/storage";
 import {
-  attachCheckoutPurchase,
   checkoutPurchase,
-  getPurchases,
   type CheckoutPayload,
 } from "@/entities/purchase/model/storage";
 import type { Purchase } from "@/entities/purchase/model/types";
@@ -54,13 +49,6 @@ import type {
   CourseMaterialBlock,
 } from "@/features/assessments/model/types";
 import {
-  getAssessmentCourseProgress,
-  getAssessmentKnowledgeProgress,
-  getCourseMaterialBlocks,
-  getCourseContentItems,
-  getLatestAssessmentAttemptsMap,
-} from "@/features/assessments/model/storage";
-import {
   formatRuPhoneInput,
   isRuPhoneComplete,
   toRuPhoneStorage,
@@ -71,16 +59,12 @@ import type { Lesson } from "@/entities/lesson/model/types";
 import {
   cancelCheckout,
   confirmCheckoutPaid,
-  getCheckouts,
-  getCheckoutStatus,
-  getCourseAccessDecision,
   retryCheckout,
   type CheckoutListItem,
   type CheckoutStatusResponse,
 } from "@/domain/auth-payments/model/api";
 import type { CourseAccessDecision } from "@/domain/auth-payments/model/access";
 import {
-  getCheckoutAccessUiState,
   getCourseAccessUiState,
   type AccessUiState,
 } from "@/domain/auth-payments/model/ui";
@@ -97,11 +81,12 @@ import {
   selectCourseAccessState,
   selectPurchaseFinancialView,
 } from "@/entities/purchase/model/selectors";
+import { markLessonOpened } from "@/entities/purchase/model/openedLessons";
+import { useCourseDetailsData } from "@/pages/courses/hooks/useCourseDetailsData";
 import {
-  getOpenedLessonIds,
-  markLessonOpened,
-} from "@/entities/purchase/model/openedLessons";
-import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
+  buildCourseProgressVisual,
+  getAssessmentKindByItem,
+} from "@/pages/courses/model/mappers";
 
 type PaymentMethod = NonNullable<CheckoutPayload["paymentMethod"]>;
 type CourseDetailsLocationState = {
@@ -213,27 +198,6 @@ const formatApproxMonthlyBnplLine = (params: {
     return "Оплата частями доступна (условия покажем на следующем шаге).";
   }
   return `Оплата частями: от ${approxMonthly.toLocaleString("ru-RU")} ₽ в месяц`;
-};
-
-const getAssessmentKindByItem = (item: CourseContentTestItem) =>
-  item.templateSnapshot?.assessmentKind === "exam" ? "exam" : "credit";
-
-const clampPercent = (value: number) =>
-  Math.max(0, Math.min(100, Math.round(value)));
-
-const buildProgressVisual = (value: number) => {
-  const percent = clampPercent(value);
-  const normalized = percent / 100;
-  const eased =
-    percent <= 40
-      ? (percent / 40) * 0.58
-      : 0.58 + ((percent - 40) / 60) * 0.42;
-  const hue = Math.round(4 + eased * 126);
-  const saturation = Math.round(92 - normalized * 14);
-  const lightness = percent === 0 ? 46 : Math.round(48 + normalized * 8);
-  const color = `hsl(${hue} ${saturation}% ${lightness}%)`;
-  const glow = `hsla(${hue} 96% ${Math.max(44, lightness)}% / 0.32)`;
-  return { percent, color, glow };
 };
 
 const buildLessonMaterialsSignature = (
@@ -407,452 +371,54 @@ export default function CourseDetails() {
     ? courseContentItems.filter((item) => item.blockId === effectiveSelectedBlockId)
     : courseContentItems;
 
-  useEffect(() => {
-    if (!courseId) return;
-    let active = true;
-    const load = async () => {
-      try {
-        setLoading(true);
-        setLoadError(null);
-        setCheckoutNoticeState(null);
-        const [courseData, lessonsData, purchases, accessDecision, checkouts] = await Promise.all([
-          getCourseById(courseId, { forceFresh: true }),
-          getLessonsByCourse(courseId, { forceFresh: true }),
-          user?.role === "student"
-            ? getPurchases({ userId: user.id }, { forceFresh: true })
-            : Promise.resolve([]),
-          getCourseAccessDecision({
-            courseId,
-            userId: user?.id,
-          }),
-          user?.role === "student"
-            ? getCheckouts({ userId: user.id, courseId })
-            : Promise.resolve([]),
-        ]);
-        if (!active) return;
-        setCourseAccess(accessDecision);
-        if (user?.role === "student") {
-          const purchase = purchases.find(
-            (p) => p.userId === user.id && p.courseId === courseId
-          );
-          const purchased = Boolean(purchase);
-          const usePublishedCourse = courseData?.status === "published";
-          const resolvedCourse = usePublishedCourse
-            ? courseData ?? purchase?.courseSnapshot ?? null
-            : purchase?.courseSnapshot ?? courseData ?? null;
-          const resolvedLessons = usePublishedCourse
-            ? lessonsData
-            : Array.isArray(purchase?.lessonsSnapshot)
-            ? purchase.lessonsSnapshot
-            : lessonsData;
-          setCourse(resolvedCourse);
-          setLessons(resolvedLessons);
-          const [queue, blocks] = await Promise.all([
-            getCourseContentItems(courseId, resolvedLessons),
-            getCourseMaterialBlocks(courseId),
-          ]);
-          const purchasedTestItemIdSet = new Set(
-            Array.isArray(purchase?.purchasedTestItemIds)
-              ? purchase.purchasedTestItemIds
-              : []
-          );
-          const effectiveQueue = usePublishedCourse
-            ? queue
-            : queue.filter((item) => {
-                if (item.type === "lesson") return true;
-                if (purchasedTestItemIdSet.size > 0) {
-                  return purchasedTestItemIdSet.has(item.id);
-                }
-                if (!purchase?.purchasedAt) return true;
-                return item.createdAt <= purchase.purchasedAt;
-              });
-          if (!active) return;
-          setCourseContentItems(effectiveQueue);
-          setCourseBlocks(blocks);
-          const initialBlockSelection =
-            blocks.length > 1 &&
-              expandedBlockFromState &&
-              blocks.some((block) => block.id === expandedBlockFromState)
-              ? expandedBlockFromState
-              : null;
-          setSelectedBlockId(initialBlockSelection);
-          setRoadmapFocusBlockId(initialBlockSelection ?? blocks[0]?.id ?? null);
-          setHasPurchase(purchased);
-          setCoursePurchase(purchase ?? null);
-          const purchasedCourseForTariffCheck =
-            resolvedCourse ?? purchase?.courseSnapshot ?? courseData;
-          setIsPremiumPurchased(
-            Boolean(
-              purchase &&
-                purchasedCourseForTariffCheck &&
-                purchase.price === purchasedCourseForTariffCheck.priceGuided
-            )
-          );
-          const [viewed, opened] = await Promise.all([
-            getViewedLessonIds(user.id, courseId, { forceFresh: true }),
-            Promise.resolve(getOpenedLessonIds(user.id, courseId)),
-          ]);
-          if (!active) return;
-          setViewedLessonIds(viewed);
-          setOpenedLessonIds(opened);
-          const candidate =
-            checkouts.find((item) => RESUMABLE_CHECKOUT_STATES.has(item.state)) ?? null;
-          setResumeCheckout(candidate);
-
-          const testItems = effectiveQueue.filter(
-            (item): item is CourseContentTestItem => item.type === "test"
-          );
-          const titles = testItems.reduce<Record<string, string>>((acc, item) => {
-            acc[item.id] = item.templateSnapshot?.title ?? item.titleSnapshot;
-            return acc;
-          }, {});
-          if (!active) return;
-          setTestTitleByItemId(titles);
-
-          if (purchased) {
-            const attemptsMap = await getLatestAssessmentAttemptsMap({
-              studentId: user.id,
-              courseId,
-            });
-            if (!active) return;
-            const mapped: Record<string, { percent: number; submittedAt?: string }> = {};
-            attemptsMap.forEach((attempt, itemId) => {
-              mapped[itemId] = {
-                percent: attempt.score.percent,
-                submittedAt: attempt.submittedAt,
-              };
-            });
-            setLatestTestAttemptByItemId(mapped);
-            const [testsMetrics, testsKnowledgeMetrics] = await Promise.all([
-              getAssessmentCourseProgress({
-                studentId: user.id,
-                courseId,
-                testItemIds: testItems.map((item) => item.id),
-              }),
-              getAssessmentKnowledgeProgress({
-                studentId: user.id,
-                courseId,
-                testItemIds: testItems.map((item) => item.id),
-              }),
-            ]);
-            if (!active) return;
-            setTestsProgress(testsMetrics);
-            setTestsKnowledgeProgress(testsKnowledgeMetrics);
-          } else {
-            setLatestTestAttemptByItemId({});
-            setTestsProgress({
-              totalTests: testItems.length,
-              completedTests: 0,
-              averageLatestPercent: 0,
-            });
-            setTestsKnowledgeProgress({
-              totalTests: testItems.length,
-              completedTests: 0,
-              averageBestPercent: 0,
-            });
-          }
-        } else {
-          setCourse(courseData);
-          setLessons(lessonsData);
-          const [queue, blocks] = await Promise.all([
-            getCourseContentItems(courseId, lessonsData),
-            getCourseMaterialBlocks(courseId),
-          ]);
-          if (!active) return;
-          setCourseContentItems(queue);
-          setCourseBlocks(blocks);
-          const initialBlockSelection =
-            blocks.length > 1 &&
-              expandedBlockFromState &&
-              blocks.some((block) => block.id === expandedBlockFromState)
-              ? expandedBlockFromState
-              : null;
-          setSelectedBlockId(initialBlockSelection);
-          setRoadmapFocusBlockId(initialBlockSelection ?? blocks[0]?.id ?? null);
-          const testItems = queue.filter(
-            (item): item is CourseContentTestItem => item.type === "test"
-          );
-          const titles = testItems.reduce<Record<string, string>>((acc, item) => {
-            acc[item.id] = item.templateSnapshot?.title ?? item.titleSnapshot;
-            return acc;
-          }, {});
-          if (!active) return;
-          setTestTitleByItemId(titles);
-          setLatestTestAttemptByItemId({});
-          setTestsProgress({
-            totalTests: testItems.length,
-            completedTests: 0,
-            averageLatestPercent: 0,
-          });
-          setTestsKnowledgeProgress({
-            totalTests: testItems.length,
-            completedTests: 0,
-            averageBestPercent: 0,
-          });
-          setViewedLessonIds([]);
-          setOpenedLessonIds([]);
-          setHasPurchase(false);
-          setCoursePurchase(null);
-          setIsPremiumPurchased(false);
-          setResumeCheckout(null);
-        }
-      } catch (error) {
-        if (!active) return;
-        setLoadError(
-          error instanceof Error
-            ? error
-            : new Error("Не удалось загрузить данные курса.")
-        );
-        setCourse(null);
-        setLessons([]);
-        setCourseBlocks([]);
-        setSelectedBlockId(null);
-        setRoadmapFocusBlockId(null);
-        setCourseContentItems([]);
-        setTestTitleByItemId({});
-        setLatestTestAttemptByItemId({});
-        setTestsProgress({
-          totalTests: 0,
-          completedTests: 0,
-          averageLatestPercent: 0,
-        });
-        setTestsKnowledgeProgress({
-          totalTests: 0,
-          completedTests: 0,
-          averageBestPercent: 0,
-        });
-        setViewedLessonIds([]);
-        setOpenedLessonIds([]);
-        setHasPurchase(false);
-        setCoursePurchase(null);
-        setIsPremiumPurchased(false);
-        setCourseAccess(null);
-        setResumeCheckout(null);
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [courseId, user?.id, user?.role, reloadSeq, expandedBlockFromState]);
-
-  useEffect(() => {
-    const unsubscribe = subscribeAppDataUpdates(() => {
-      setReloadSeq((prev) => prev + 1);
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  const syncStudentCourseState = useCallback(
-    async (userId: string) => {
-      if (!course) return;
-      const [decision, purchases] = await Promise.all([
-        getCourseAccessDecision({
-          courseId: course.id,
-          userId,
-        }),
-        getPurchases({ userId }, { forceFresh: true }),
-      ]);
-      setCourseAccess(decision);
-      setHasPurchase(decision.canAccessAllLessons);
-      const purchase = purchases.find(
-        (item) => item.userId === userId && item.courseId === course.id
-      );
-      setCoursePurchase(purchase ?? null);
-      setIsPremiumPurchased(
-        Boolean(purchase && purchase.price === course.priceGuided)
-      );
-      setOpenedLessonIds(getOpenedLessonIds(userId, course.id));
-      const testItemIds = courseContentItems
-        .filter((item): item is CourseContentTestItem => item.type === "test")
-        .map((item) => item.id);
-      if (testItemIds.length > 0) {
-        const [attemptsMap, metrics, knowledgeMetrics] = await Promise.all([
-          getLatestAssessmentAttemptsMap({
-            studentId: userId,
-            courseId: course.id,
-          }),
-          getAssessmentCourseProgress({
-            studentId: userId,
-            courseId: course.id,
-            testItemIds,
-          }),
-          getAssessmentKnowledgeProgress({
-            studentId: userId,
-            courseId: course.id,
-            testItemIds,
-          }),
-        ]);
-        const mapped: Record<string, { percent: number; submittedAt?: string }> = {};
-        attemptsMap.forEach((attempt, itemId) => {
-          mapped[itemId] = {
-            percent: attempt.score.percent,
-            submittedAt: attempt.submittedAt,
-          };
-        });
-        setLatestTestAttemptByItemId(mapped);
-        setTestsProgress(metrics);
-        setTestsKnowledgeProgress(knowledgeMetrics);
-      } else {
-        setTestsProgress({
-          totalTests: 0,
-          completedTests: 0,
-          averageLatestPercent: 0,
-        });
-        setTestsKnowledgeProgress({
-          totalTests: 0,
-          completedTests: 0,
-          averageBestPercent: 0,
-        });
-      }
-      if (decision.canAccessAllLessons) {
-        setCheckoutNoticeState(null);
-        setResumeCheckout(null);
-      }
-    },
-    [course, courseContentItems]
-  );
-
-  const refreshCheckoutFlow = useCallback(
-    async (checkoutId: string, options?: { silent?: boolean }) => {
-      if (!checkoutId) return;
-      const silent = options?.silent === true;
-      if (!silent) {
-        setCheckoutFlowLoading(true);
-        setCheckoutFlowError(null);
-      }
-      try {
-        const status = await getCheckoutStatus(checkoutId);
-        setCheckoutFlowStatus(status);
-        setCheckoutPaymentUrl(
-          status.payment.redirectUrl ??
-            status.payment.paymentUrl ??
-            status.payment.sbp?.deepLinkUrl ??
-            status.payment.sbp?.qrUrl ??
-            null
-        );
-        setCheckoutProviderLabel(getPaymentProviderLabel(status.method));
-        setResumeCheckout((prev) => {
-          if (!prev || prev.id !== status.checkoutId) return prev;
-          if (RESUMABLE_CHECKOUT_STATES.has(status.state)) {
-            return {
-              ...prev,
-              state: status.state as CheckoutListItem["state"],
-              method: status.method as CheckoutListItem["method"],
-              updatedAt: status.updatedAt,
-            };
-          }
-          return null;
-        });
-        if (status.access?.accessState) {
-          if (status.access.accessState === "active") {
-            setCheckoutNoticeState(null);
-          } else {
-            setCheckoutNoticeState(getCheckoutAccessUiState(status.access.accessState));
-          }
-        }
-        if (
-          user?.role === "student" &&
-          (status.isTerminal ||
-            status.access?.accessState === "active" ||
-            status.payment.status === "paid")
-        ) {
-          await syncStudentCourseState(user.id);
-        }
-      } catch (error) {
-        setCheckoutFlowError(
-          error instanceof Error
-            ? error.message
-            : "Не удалось обновить статус оплаты."
-        );
-      } finally {
-        if (!silent) {
-          setCheckoutFlowLoading(false);
-        }
-      }
-    },
-    [syncStudentCourseState, user?.id, user?.role]
-  );
-
-  useEffect(() => {
-    if (!checkoutFlowOpen || !activeCheckoutId) return;
-    if (user?.role !== "student") return;
-    void refreshCheckoutFlow(activeCheckoutId);
-  }, [checkoutFlowOpen, activeCheckoutId, user?.id, user?.role, refreshCheckoutFlow]);
-
-  useEffect(() => {
-    if (!checkoutFlowOpen || !activeCheckoutId) return;
-    if (user?.role !== "student") return;
-    if (!checkoutFlowStatus?.payment.requiresConfirmation) return;
-    if (checkoutFlowStatus.isTerminal) return;
-    const timer = window.setInterval(() => {
-      void refreshCheckoutFlow(activeCheckoutId, { silent: true });
-    }, 3500);
-    return () => window.clearInterval(timer);
-  }, [
+  const { syncStudentCourseState, refreshCheckoutFlow } = useCourseDetailsData({
+    courseId,
+    reloadSeq,
+    user,
+    expandedBlockFromState,
+    course,
+    courseContentItems,
     checkoutFlowOpen,
     activeCheckoutId,
-    checkoutFlowStatus?.payment.requiresConfirmation,
-    checkoutFlowStatus?.isTerminal,
-    user?.id,
-    user?.role,
-    refreshCheckoutFlow,
-  ]);
-
-  useEffect(() => {
-    if (!user || user.role !== "student") return;
-    if (!pendingAttachCheckoutId || !course) return;
-    let active = true;
-    const attachCheckout = async () => {
-      let shouldOpenAttentionModal = false;
-      try {
-        setPurchaseLoading(true);
-        const result = await attachCheckoutPurchase(pendingAttachCheckoutId);
-        if (!active) return;
-        if (result.user) {
-          updateUser(result.user);
-        }
-        setActiveCheckoutId(result.checkoutId);
-        setCheckoutPaymentUrl(
-          result.payment?.redirectUrl ??
-            result.payment?.paymentUrl ??
-            result.payment?.sbp?.deepLinkUrl ??
-            result.payment?.sbp?.qrUrl ??
-            null
-        );
-        setCheckoutProviderLabel(getPaymentProviderLabel(result.payment?.provider));
-        setCheckoutFlowStatus(null);
-        setCheckoutFlowError(null);
-        setCheckoutFlowOpen(true);
-        await refreshCheckoutFlow(result.checkoutId);
-      } catch (error) {
-        if (!active) return;
-        setModalMessage(
-          error instanceof Error
-            ? error.message
-            : "Не удалось привязать покупку после входа."
-        );
-        setShowLoginAction(false);
-        shouldOpenAttentionModal = true;
-      } finally {
-        if (active) {
-          setPurchaseLoading(false);
-          setPendingAttachCheckoutId(null);
-          if (shouldOpenAttentionModal) {
-            setModalOpen(true);
-          }
-        }
-      }
-    };
-    void attachCheckout();
-    return () => {
-      active = false;
-    };
-  }, [course, pendingAttachCheckoutId, refreshCheckoutFlow, updateUser, user]);
+    checkoutFlowStatus,
+    pendingAttachCheckoutId,
+    resumableCheckoutStates: RESUMABLE_CHECKOUT_STATES,
+    getPaymentProviderLabel,
+    updateUser,
+    setLoading,
+    setLoadError,
+    setCheckoutNoticeState,
+    setCourseAccess,
+    setCourse,
+    setLessons,
+    setCourseContentItems,
+    setCourseBlocks,
+    setSelectedBlockId,
+    setRoadmapFocusBlockId,
+    setHasPurchase,
+    setCoursePurchase,
+    setIsPremiumPurchased,
+    setViewedLessonIds,
+    setOpenedLessonIds,
+    setResumeCheckout,
+    setTestTitleByItemId,
+    setLatestTestAttemptByItemId,
+    setTestsProgress,
+    setTestsKnowledgeProgress,
+    setReloadSeq,
+    setCheckoutFlowLoading,
+    setCheckoutFlowError,
+    setCheckoutFlowStatus,
+    setCheckoutPaymentUrl,
+    setCheckoutProviderLabel,
+    setPurchaseLoading,
+    setActiveCheckoutId,
+    setCheckoutFlowOpen,
+    setModalMessage,
+    setShowLoginAction,
+    setPendingAttachCheckoutId,
+    setModalOpen,
+  });
 
   const lessonsById = useMemo(
     () =>
@@ -1909,8 +1475,8 @@ export default function CourseDetails() {
       ? Math.round((viewedLessonsCount / lessons.length) * 100)
       : 0;
   const knowledgeProgressPercent = testsKnowledgeProgress.averageBestPercent;
-  const learningProgressVisual = buildProgressVisual(learningProgressPercent);
-  const knowledgeProgressVisual = buildProgressVisual(knowledgeProgressPercent);
+  const learningProgressVisual = buildCourseProgressVisual(learningProgressPercent);
+  const knowledgeProgressVisual = buildCourseProgressVisual(knowledgeProgressPercent);
   const roadmapProgressSection = user?.role === "student" && hasPurchase ? (
     <div
       className={`course-details__roadmap-progress ${

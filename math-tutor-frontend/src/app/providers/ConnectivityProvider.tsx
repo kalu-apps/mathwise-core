@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import {
   APP_API_FAILURE_EVENT,
   APP_API_SUCCESS_EVENT,
+  ApiError,
   type ApiFailureEventDetail,
   type ApiSuccessEventDetail,
 } from "@/shared/api/client";
@@ -20,6 +21,7 @@ import {
   getOutboxSnapshot,
   subscribeOutbox,
 } from "@/shared/lib/outbox";
+import { authGateway } from "@/shared/gateway";
 
 const HEALTHCHECK_TIMEOUT_MS = 5_000;
 const AUTO_RECHECK_MS = 15_000;
@@ -68,11 +70,7 @@ export function ConnectivityProvider({ children }: { children: ReactNode }) {
     );
 
     try {
-      const response = await fetch("/api/auth/session", {
-        method: "GET",
-        credentials: "include",
-        signal: controller.signal,
-      });
+      const response = await authGateway.probeSession(controller.signal);
 
       if (response.status >= 500) {
         setStatus("degraded");
@@ -80,8 +78,14 @@ export function ConnectivityProvider({ children }: { children: ReactNode }) {
         setStatus("online");
         setLastErrorCode(null);
       }
-    } catch {
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
+    } catch (error) {
+      if (
+        error instanceof ApiError &&
+        error.code === "network_offline"
+      ) {
+        setStatus("offline");
+        setLastErrorCode("network_offline");
+      } else if (typeof navigator !== "undefined" && !navigator.onLine) {
         setStatus("offline");
         setLastErrorCode("network_offline");
       } else {
