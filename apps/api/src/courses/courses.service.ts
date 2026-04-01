@@ -174,7 +174,9 @@ export class CoursesService implements OnModuleInit {
 
     for (const lesson of lessons) {
       const hasVideo = Boolean(
-        lesson.videoStreamUrl?.trim() || lesson.videoUrl?.trim()
+        lesson.videoMediaObjectId?.trim() ||
+          lesson.videoStreamUrl?.trim() ||
+          lesson.videoUrl?.trim()
       );
       if (!hasVideo) {
         throw new HttpException(
@@ -200,6 +202,25 @@ export class CoursesService implements OnModuleInit {
           },
           409
         );
+      }
+
+      if (lesson.videoMediaObjectId?.trim()) {
+        await this.ensureOwnedMediaReady(
+          lesson.videoMediaObjectId,
+          actorUser.id,
+          `Урок «${lesson.title}»`
+        );
+      }
+
+      if (Array.isArray(lesson.materials)) {
+        for (const material of lesson.materials) {
+          if (!material.mediaObjectId?.trim()) continue;
+          await this.ensureOwnedMediaReady(
+            material.mediaObjectId,
+            actorUser.id,
+            `Материал «${material.name}»`
+          );
+        }
       }
     }
 
@@ -305,6 +326,47 @@ export class CoursesService implements OnModuleInit {
         .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
     } catch {
       return [];
+    }
+  }
+
+  private async ensureOwnedMediaReady(
+    mediaObjectId: string,
+    actorUserId: string,
+    contextLabel: string
+  ): Promise<void> {
+    const normalizedMediaObjectId = mediaObjectId.trim();
+    if (!normalizedMediaObjectId) return;
+    const mediaRows = await this.databaseService.query<{
+      ownerUserId: string;
+      state: "pending_upload" | "uploaded" | "deleted";
+    }>(
+      `
+        SELECT owner_user_id AS "ownerUserId"
+             , state
+        FROM media_objects
+        WHERE id = $1
+        LIMIT 1
+      `,
+      [normalizedMediaObjectId]
+    );
+    const media = mediaRows[0];
+    if (!media) {
+      throw new HttpException(
+        { error: `${contextLabel} не найден в media storage.` },
+        409
+      );
+    }
+    if (media.ownerUserId !== actorUserId) {
+      throw new HttpException(
+        { error: `${contextLabel} не принадлежит преподавателю курса.` },
+        403
+      );
+    }
+    if (media.state !== "uploaded") {
+      throw new HttpException(
+        { error: `${contextLabel} еще не загружен полностью.` },
+        409
+      );
     }
   }
 }

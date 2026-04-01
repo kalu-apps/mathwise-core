@@ -129,9 +129,14 @@ const buildLessonMaterialsSignature = (materials: Lesson["materials"] | undefine
       id: item.id,
       name: item.name ?? "",
       type: item.type,
+      mediaObjectId: item.mediaObjectId ?? "",
       url: item.url ?? "",
+      downloadable:
+        typeof item.downloadable === "boolean" ? item.downloadable : true,
     }))
-    .sort((a, b) => `${a.id}:${a.name}:${a.type}`.localeCompare(`${b.id}:${b.name}:${b.type}`));
+    .sort((a, b) =>
+      `${a.id}:${a.name}:${a.type}`.localeCompare(`${b.id}:${b.name}:${b.type}`)
+    );
 
 export const hasLessonChangedFromPurchaseSnapshot = (
   currentLesson: Lesson,
@@ -142,6 +147,8 @@ export const hasLessonChangedFromPurchaseSnapshot = (
   return (
     currentLesson.title !== purchasedLesson.title ||
     currentLesson.duration !== purchasedLesson.duration ||
+    (currentLesson.videoMediaObjectId ?? "") !==
+      (purchasedLesson.videoMediaObjectId ?? "") ||
     (currentLesson.videoUrl ?? "") !== (purchasedLesson.videoUrl ?? "") ||
     (currentLesson.videoStreamUrl ?? "") !==
       (purchasedLesson.videoStreamUrl ?? "") ||

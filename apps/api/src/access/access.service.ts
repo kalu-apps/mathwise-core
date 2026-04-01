@@ -51,8 +51,17 @@ export class AccessService implements OnModuleInit {
     actorUser?: AuthUserDto | null
   ): Promise<CourseAccessListResponseDto> {
     const isTeacher = actorUser?.role === "teacher";
-    const courseIds = isTeacher
-      ? await this.coursesRepository.findAllIds()
+    const courseIds = isTeacher && actorUser?.id
+      ? [
+          ...new Set([
+            ...(await this.coursesRepository.findAllPublishedCatalog()).map(
+              (course) => course.id
+            ),
+            ...(await this.coursesRepository.findAllDraftsByTeacher(
+              actorUser.id
+            )).map((course) => course.id),
+          ]),
+        ]
       : (await this.coursesRepository.findAllPublishedCatalog()).map(
           (course) => course.id
         );
@@ -69,7 +78,16 @@ export class AccessService implements OnModuleInit {
     const context = await this.resolveAccessContext(actorUser);
     const hasPublishedRelease = await this.coursesRepository.existsPublishedById(courseId);
     const hasAnyDraft = await this.coursesRepository.existsById(courseId);
-    const hasVisibleCourse = context.role === "teacher" ? hasAnyDraft : hasPublishedRelease;
+    const isTeacherOwner =
+      context.role === "teacher" && context.userId
+        ? await this.isTeacherOwnerOfCourse(context.userId, courseId)
+        : false;
+    const hasVisibleCourse =
+      context.role === "teacher"
+        ? isTeacherOwner
+          ? hasAnyDraft
+          : hasPublishedRelease
+        : hasPublishedRelease;
 
     if (!hasVisibleCourse) {
       return this.createCourseDecision({
@@ -91,12 +109,12 @@ export class AccessService implements OnModuleInit {
       return this.createCourseDecision({
         courseId,
         role: "teacher",
-        mode: "full",
+        mode: isTeacherOwner ? "full" : "preview",
         reason: "ok",
         canViewCourse: true,
         canAccessPreviewLesson: true,
-        canAccessAllLessons: true,
-        hasActiveCourseEntitlement: true,
+        canAccessAllLessons: isTeacherOwner,
+        hasActiveCourseEntitlement: isTeacherOwner,
         isIdentityVerified: true,
         requiresAuth: false,
         requiresVerification: false,
@@ -161,6 +179,29 @@ export class AccessService implements OnModuleInit {
     actorUser?: AuthUserDto | null
   ): Promise<LessonAccessDecisionDto> {
     const context = await this.resolveAccessContext(actorUser);
+    if (context.role === "teacher" && context.userId) {
+      const draftLesson = await this.lessonsRepository.findDraftById(lessonId);
+      if (
+        draftLesson &&
+        (await this.isTeacherOwnerOfCourse(context.userId, draftLesson.courseId))
+      ) {
+        return {
+          lessonId: draftLesson.id,
+          courseId: draftLesson.courseId,
+          lessonOrder: draftLesson.order,
+          role: "teacher",
+          mode: "full",
+          reason: "ok",
+          canAccess: true,
+          hasActiveCourseEntitlement: true,
+          isIdentityVerified: true,
+          requiresAuth: false,
+          requiresVerification: false,
+          resolvedFromSnapshot: false,
+          lesson: markFullLessonContent(draftLesson),
+        };
+      }
+    }
     const lesson = await this.lessonsRepository.findById(lessonId);
     if (!lesson) {
       return {
@@ -260,5 +301,21 @@ export class AccessService implements OnModuleInit {
     requiresVerification: boolean;
   }): CourseAccessDecisionDto {
     return params;
+  }
+
+  private async isTeacherOwnerOfCourse(
+    teacherUserId: string,
+    courseId: string
+  ): Promise<boolean> {
+    const rows = await this.databaseService.query<{ teacherId: string }>(
+      `
+        SELECT teacher_id AS "teacherId"
+        FROM courses_catalog
+        WHERE id = $1
+        LIMIT 1
+      `,
+      [courseId]
+    );
+    return rows[0]?.teacherId === teacherUserId;
   }
 }

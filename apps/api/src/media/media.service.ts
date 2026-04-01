@@ -166,6 +166,20 @@ export class MediaService implements OnModuleInit {
       );
     }
 
+    return this.buildDownloadUrlResponse(media);
+  }
+
+  async getRuntimeDownloadUrlByObjectId(
+    objectId: string
+  ): Promise<GetDownloadUrlResponseDto> {
+    this.ensureStorageEnabled();
+    const media = await this.requireMediaReady(objectId);
+    return this.buildDownloadUrlResponse(media);
+  }
+
+  private async buildDownloadUrlResponse(
+    media: MediaObjectRecord
+  ): Promise<GetDownloadUrlResponseDto> {
     const signed = await this.mediaStorageService.createSignedDownloadUrl({
       objectKey: media.objectKey,
     });
@@ -204,10 +218,26 @@ export class MediaService implements OnModuleInit {
     if (!media) {
       throw new HttpException({ error: "Медиа-объект не найден." }, 404);
     }
-    const isOwner = media.ownerUserId === actorUser.id;
-    const isTeacher = actorUser.role === "teacher";
-    if (!isOwner && !isTeacher) {
+    if (media.ownerUserId !== actorUser.id) {
       throw new HttpException({ error: "Недостаточно прав для media объекта." }, 403);
+    }
+    return media;
+  }
+
+  private async requireMediaReady(objectId: string): Promise<MediaObjectRecord> {
+    const id = objectId.trim();
+    if (!id) {
+      throw new HttpException({ error: "objectId обязателен." }, 400);
+    }
+    const media = await this.mediaRepository.findById(id);
+    if (!media) {
+      throw new HttpException({ error: "Медиа-объект не найден." }, 404);
+    }
+    if (media.state !== "uploaded") {
+      throw new HttpException(
+        { error: "Файл еще не готов к скачиванию." },
+        409
+      );
     }
     return media;
   }

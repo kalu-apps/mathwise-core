@@ -121,6 +121,7 @@ const toComparableSnapshot = (snapshot: CourseDraftSnapshot) => {
       title: lesson.title.trim(),
       duration: lesson.duration,
       hasVideoFile: Boolean(lesson.videoFile),
+      videoMediaObjectId: lesson.videoMediaObjectId ?? "",
       videoUrl: lesson.videoUrl ?? "",
       videoStreamUrl: lesson.videoStreamUrl ?? "",
       videoPosterUrl: lesson.videoPosterUrl ?? "",
@@ -132,6 +133,7 @@ const toComparableSnapshot = (snapshot: CourseDraftSnapshot) => {
         id: material.id,
         name: material.name.trim(),
         type: material.type,
+        mediaObjectId: material.mediaObjectId ?? "",
         url: material.url ?? "",
         hasFile: Boolean(material.file),
       })),
@@ -328,12 +330,16 @@ export function CourseWithLessonsEditor({
           title: l.title,
           duration: l.duration,
           videoFile: null,
+          videoMediaObjectId: l.videoMediaObjectId,
           videoUrl: l.videoUrl,
           videoStreamUrl: l.videoStreamUrl,
           videoPosterUrl: l.videoPosterUrl,
           mediaJobId: l.mediaJobId,
           mediaJobStatus:
-            l.mediaJobStatus ?? (l.videoUrl || l.videoStreamUrl ? "ready" : undefined),
+            l.mediaJobStatus ??
+            (l.videoMediaObjectId || l.videoUrl || l.videoStreamUrl
+              ? "ready"
+              : undefined),
           mediaJobError: l.mediaJobError,
           settings: l.settings,
           materials: (l.materials ?? [])
@@ -345,6 +351,7 @@ export function CourseWithLessonsEditor({
               id: m.id,
               name: m.name,
               type: m.type,
+              mediaObjectId: m.mediaObjectId,
               url: m.url,
             })),
         }));
@@ -478,6 +485,7 @@ export function CourseWithLessonsEditor({
       (lesson) =>
         lesson.title.trim().length > 0 &&
         (Boolean(lesson.videoFile) ||
+          Boolean(lesson.videoMediaObjectId) ||
           Boolean(lesson.videoUrl) ||
           Boolean(lesson.videoStreamUrl))
     );
@@ -546,6 +554,7 @@ export function CourseWithLessonsEditor({
             ? {
                 ...lesson,
                 videoFile: null,
+                videoMediaObjectId: nextState.videoMediaObjectId,
                 videoUrl: nextState.videoUrl,
                 videoStreamUrl: nextState.videoStreamUrl,
                 videoPosterUrl: nextState.videoPosterUrl,
@@ -565,6 +574,7 @@ export function CourseWithLessonsEditor({
       const preflight = preflightLessonVideo({
         lessonTitle: lesson.title,
         videoFile: lesson.videoFile,
+        videoMediaObjectId: lesson.videoMediaObjectId,
         videoUrl: lesson.videoUrl,
         videoStreamUrl: lesson.videoStreamUrl,
         videoPosterUrl: lesson.videoPosterUrl,
@@ -575,6 +585,7 @@ export function CourseWithLessonsEditor({
       const started = await startLessonVideoPipeline({
         lessonTitle: lesson.title,
         videoFile: lesson.videoFile,
+        videoMediaObjectId: lesson.videoMediaObjectId,
         videoUrl: lesson.videoUrl,
         videoStreamUrl: lesson.videoStreamUrl,
         videoPosterUrl: lesson.videoPosterUrl,
@@ -582,6 +593,7 @@ export function CourseWithLessonsEditor({
       return {
         ...lesson,
         videoFile: null,
+        videoMediaObjectId: started.videoMediaObjectId,
         videoUrl: started.videoUrl,
         videoStreamUrl: started.videoStreamUrl,
         videoPosterUrl: started.videoPosterUrl,
@@ -606,6 +618,7 @@ export function CourseWithLessonsEditor({
       if (activeMediaPollsRef.current.has(lesson.mediaJobId)) return;
       activeMediaPollsRef.current.add(lesson.mediaJobId);
       void pollLessonVideoPipeline(lesson.mediaJobId, {
+        videoMediaObjectId: lesson.videoMediaObjectId,
         videoUrl: lesson.videoUrl ?? "",
         videoStreamUrl: lesson.videoStreamUrl,
         videoPosterUrl: lesson.videoPosterUrl,
@@ -911,6 +924,7 @@ export function CourseWithLessonsEditor({
         (lesson) =>
           lesson.title.trim().length > 0 ||
           Boolean(lesson.videoFile) ||
+          Boolean(lesson.videoMediaObjectId) ||
           Boolean(lesson.videoUrl) ||
           Boolean(lesson.videoStreamUrl) ||
           lesson.materials.length > 0
@@ -960,30 +974,39 @@ export function CourseWithLessonsEditor({
             order: index + 1,
             title: preparedLesson.title || `Урок ${index + 1}`,
             duration: preparedLesson.duration,
+            videoMediaObjectId: preparedLesson.videoMediaObjectId,
             videoUrl: preparedLesson.videoUrl ?? "",
             videoStreamUrl: preparedLesson.videoStreamUrl,
             videoPosterUrl: preparedLesson.videoPosterUrl,
             mediaJobId: preparedLesson.mediaJobId,
             mediaJobStatus:
               preparedLesson.mediaJobStatus ??
-              (preparedLesson.videoUrl || preparedLesson.videoStreamUrl
+              (preparedLesson.videoMediaObjectId ||
+              preparedLesson.videoUrl ||
+              preparedLesson.videoStreamUrl
                 ? "ready"
                 : undefined),
             mediaJobError: preparedLesson.mediaJobError,
               materials: (
                 await Promise.all(
                   preparedLesson.materials.map(async (material) => ({
+                    mediaObjectId:
+                      material.mediaObjectId ??
+                      (material.file
+                        ? await uploadLessonMaterialFile(material.file)
+                        : undefined),
                     id: material.id,
                     name: material.name,
                     type: material.type,
-                    url:
-                      material.url ??
-                    (material.file
-                      ? await uploadLessonMaterialFile(material.file)
-                      : ""),
+                    url: material.url,
+                    downloadable:
+                      preparedLesson.settings?.disablePrintableDownloads &&
+                      (material.type === "pdf" || material.type === "doc")
+                        ? false
+                        : true,
                   }))
                 )
-              ).filter((material) => material.url),
+              ).filter((material) => Boolean(material.mediaObjectId || material.url)),
             settings: preparedLesson.settings,
           };
         })
@@ -1154,15 +1177,21 @@ export function CourseWithLessonsEditor({
               const materials = (
                 await Promise.all(
                   preparedLesson.materials.map(async (m) => ({
+                    mediaObjectId:
+                      m.mediaObjectId ??
+                      (m.file ? await uploadLessonMaterialFile(m.file) : undefined),
                     id: m.id,
                     name: m.name,
                     type: m.type,
-                    url:
-                      m.url ??
-                      (m.file ? await uploadLessonMaterialFile(m.file) : ""),
+                    url: m.url,
+                    downloadable:
+                      preparedLesson.settings?.disablePrintableDownloads &&
+                      (m.type === "pdf" || m.type === "doc")
+                        ? false
+                        : true,
                   }))
                 )
-              ).filter((m) => m.url);
+              ).filter((m) => Boolean(m.mediaObjectId || m.url));
 
               return {
                 id: preparedLesson.id ?? generateId(),
@@ -1170,13 +1199,16 @@ export function CourseWithLessonsEditor({
                 order: index + 1,
                 title: preparedLesson.title,
                 duration: preparedLesson.duration,
+                videoMediaObjectId: preparedLesson.videoMediaObjectId,
                 videoUrl: preparedLesson.videoUrl ?? "",
                 videoStreamUrl: preparedLesson.videoStreamUrl,
                 videoPosterUrl: preparedLesson.videoPosterUrl,
                 mediaJobId: preparedLesson.mediaJobId,
                 mediaJobStatus:
                   preparedLesson.mediaJobStatus ??
-                  (preparedLesson.videoUrl || preparedLesson.videoStreamUrl
+                  (preparedLesson.videoMediaObjectId ||
+                  preparedLesson.videoUrl ||
+                  preparedLesson.videoStreamUrl
                     ? "ready"
                     : undefined),
                 mediaJobError: preparedLesson.mediaJobError,
@@ -1683,6 +1715,7 @@ export function CourseWithLessonsEditor({
                                 <Tooltip
                                   title={
                                     lesson.videoFile ||
+                                    lesson.videoMediaObjectId ||
                                     lesson.videoUrl ||
                                     lesson.videoStreamUrl
                                       ? t("courseEditor.videoExists")
@@ -1694,6 +1727,7 @@ export function CourseWithLessonsEditor({
                                     icon={<PlayCircleOutlineIcon />}
                                     label={
                                       lesson.videoFile ||
+                                      lesson.videoMediaObjectId ||
                                       lesson.videoUrl ||
                                       lesson.videoStreamUrl
                                         ? t("courseEditor.videoYes")

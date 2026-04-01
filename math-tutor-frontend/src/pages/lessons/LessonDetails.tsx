@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Alert,
   Button,
+  CircularProgress,
   Container,
 } from "@mui/material";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
@@ -21,6 +22,10 @@ import { getLessonAccessUiState } from "@/domain/auth-payments/model/ui";
 import { AccessStateBanner } from "@/shared/ui/AccessStateBanner";
 import { PageLoader } from "@/shared/ui/loading";
 import { BackNavButton } from "@/shared/ui/BackNavButton";
+import {
+  getLessonMaterialAccess,
+  getLessonPlaybackAccess,
+} from "@/entities/lesson/model/storage";
 
 import type { Lesson } from "@/entities/lesson/model/types";
 
@@ -29,6 +34,9 @@ type LessonDetailsLocationState = {
   courseBackFrom?: string | null;
   expandedBlockId?: string | null;
 };
+
+const isLikelyHlsSource = (value?: string) =>
+  Boolean(value && /\\.m3u8(?:$|[?#])/i.test(value.trim()));
 
 export default function LessonDetails() {
   const { id: lessonIdParam } = useParams<{ id: string }>();
@@ -50,6 +58,17 @@ export default function LessonDetails() {
     message: string;
     purchaseId?: string;
   } | null>(null);
+  const [playbackSrc, setPlaybackSrc] = useState<string | null>(null);
+  const [playbackStreamSrc, setPlaybackStreamSrc] = useState<string | null>(null);
+  const [playbackExpiresAt, setPlaybackExpiresAt] = useState<string | null>(null);
+  const [playbackLoading, setPlaybackLoading] = useState(false);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [materialLoadingById, setMaterialLoadingById] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [materialErrorById, setMaterialErrorById] = useState<Record<string, string>>(
+    {}
+  );
 
   useEffect(() => {
     if (!id) return;
@@ -111,6 +130,13 @@ export default function LessonDetails() {
         setLesson(decision.lesson);
         setCanAccess(finalCanAccess);
         setBnplBlock(nextBnplBlock);
+        setPlaybackSrc(null);
+        setPlaybackStreamSrc(null);
+        setPlaybackExpiresAt(null);
+        setPlaybackError(null);
+        setPlaybackLoading(false);
+        setMaterialLoadingById({});
+        setMaterialErrorById({});
 
         if (
           finalCanAccess &&
@@ -126,6 +152,13 @@ export default function LessonDetails() {
         setCanAccess(false);
         setBnplBlock(null);
         setAccessDecision(null);
+        setPlaybackSrc(null);
+        setPlaybackStreamSrc(null);
+        setPlaybackExpiresAt(null);
+        setPlaybackError(null);
+        setPlaybackLoading(false);
+        setMaterialLoadingById({});
+        setMaterialErrorById({});
       } finally {
         if (active) setLoading(false);
       }
@@ -135,6 +168,83 @@ export default function LessonDetails() {
       active = false;
     };
   }, [id, user?.id, user?.role]);
+
+  const requestPlaybackAccess = useCallback(async () => {
+    if (!lesson?.id) {
+      throw new Error("lesson_missing");
+    }
+    const access = await getLessonPlaybackAccess(lesson.id);
+    const nextUrl = access.playbackUrl?.trim();
+    if (!nextUrl) {
+      throw new Error("playback_url_missing");
+    }
+    const isStream = isLikelyHlsSource(nextUrl);
+    setPlaybackStreamSrc(isStream ? nextUrl : null);
+    setPlaybackSrc(isStream ? null : nextUrl);
+    setPlaybackExpiresAt(access.expiresAt ?? null);
+    setPlaybackError(null);
+    return {
+      src: isStream ? undefined : nextUrl,
+      streamSrc: isStream ? nextUrl : undefined,
+    };
+  }, [lesson?.id]);
+
+  useEffect(() => {
+    if (!canAccess || !lesson) return;
+    if (lesson.contentVisibility === "public_preview") return;
+    const hasVideoBinding = Boolean(
+      lesson.videoMediaObjectId || lesson.videoUrl || lesson.videoStreamUrl
+    );
+    if (!hasVideoBinding) return;
+
+    let active = true;
+    setPlaybackLoading(true);
+    setPlaybackError(null);
+    void requestPlaybackAccess()
+      .catch(() => {
+        if (!active) return;
+        setPlaybackError(
+          "Не удалось получить безопасный доступ к видео. Попробуйте обновить доступ."
+        );
+      })
+      .finally(() => {
+        if (active) setPlaybackLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    canAccess,
+    lesson,
+    requestPlaybackAccess,
+  ]);
+
+  const handleOpenMaterial = useCallback(
+    async (materialId: string) => {
+      if (!lesson?.id) return;
+      setMaterialLoadingById((prev) => ({ ...prev, [materialId]: true }));
+      setMaterialErrorById((prev) => ({ ...prev, [materialId]: "" }));
+      try {
+        const access = await getLessonMaterialAccess({
+          lessonId: lesson.id,
+          materialId,
+        });
+        const opened = window.open(access.accessUrl, "_blank", "noopener,noreferrer");
+        if (!opened) {
+          window.location.assign(access.accessUrl);
+        }
+      } catch {
+        setMaterialErrorById((prev) => ({
+          ...prev,
+          [materialId]: "Не удалось получить доступ к материалу. Повторите попытку.",
+        }));
+      } finally {
+        setMaterialLoadingById((prev) => ({ ...prev, [materialId]: false }));
+      }
+    },
+    [lesson?.id]
+  );
 
   if (!id) {
     return <div className="lesson-details__not-found">Урок не найден</div>;
@@ -276,15 +386,28 @@ export default function LessonDetails() {
   };
   const durationText = formatLessonDuration(lesson.duration);
   const isRedactedLesson = lesson.contentVisibility === "public_preview";
-  const hasPlayableVideo =
-    !isRedactedLesson && Boolean(lesson.videoUrl || lesson.videoStreamUrl);
+  const hasVideoBinding =
+    !isRedactedLesson &&
+    Boolean(lesson.videoMediaObjectId || lesson.videoUrl || lesson.videoStreamUrl);
+  const hasPlayableVideo = hasVideoBinding && Boolean(playbackSrc || playbackStreamSrc);
   const mediaStatusBanner =
     isRedactedLesson
       ? null
+      : playbackError
+      ? {
+          severity: "warning" as const,
+          message: playbackError,
+        }
+      : playbackLoading
+      ? {
+          severity: "info" as const,
+          message:
+            "Получаем защищенный доступ к видео. Это может занять несколько секунд.",
+        }
       : lesson.mediaJobStatus === "queued" || lesson.mediaJobStatus === "processing"
       ? {
           severity: "info" as const,
-          message: hasPlayableVideo
+          message: hasVideoBinding
             ? "Видео еще оптимизируется. Пока доступен резервный источник, качество может улучшиться после завершения обработки."
             : "Видео для урока еще подготавливается. Обновите страницу чуть позже.",
         }
@@ -304,6 +427,35 @@ export default function LessonDetails() {
         {mediaStatusBanner ? (
           <Alert severity={mediaStatusBanner.severity}>{mediaStatusBanner.message}</Alert>
         ) : null}
+        {hasVideoBinding && (playbackError || playbackLoading) ? (
+          <div className="lesson-details__playback-actions">
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={playbackLoading}
+              onClick={() => {
+                setPlaybackLoading(true);
+                setPlaybackError(null);
+                void requestPlaybackAccess()
+                  .catch(() => {
+                    setPlaybackError(
+                      "Не удалось обновить доступ к видео. Проверьте соединение и попробуйте снова."
+                    );
+                  })
+                  .finally(() => {
+                    setPlaybackLoading(false);
+                  });
+              }}
+            >
+              {playbackLoading ? "Обновляем доступ..." : "Обновить доступ к видео"}
+            </Button>
+            {playbackExpiresAt ? (
+              <span className="lesson-details__playback-expiry">
+                Доступ активен до {new Date(playbackExpiresAt).toLocaleTimeString("ru-RU")}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         <div className="lesson-details__top-nav">
           <BackNavButton onClick={handleBackToCourse} />
         </div>
@@ -319,8 +471,8 @@ export default function LessonDetails() {
           {hasPlayableVideo ? (
             <div className="lesson-details__video">
               <VideoPlayer
-                src={lesson.videoUrl}
-                streamSrc={lesson.videoStreamUrl}
+                src={playbackSrc ?? undefined}
+                streamSrc={playbackStreamSrc ?? undefined}
                 poster={lesson.videoPosterUrl}
                 onEnded={handleEnded}
                 watermarkText={
@@ -328,14 +480,19 @@ export default function LessonDetails() {
                     ? `${user.email} • ${new Date().toLocaleString("ru-RU")}`
                     : undefined
                 }
+                onRequestSourceRefresh={requestPlaybackAccess}
               />
             </div>
           ) : (
             <div className="lesson-details__video-empty">
               {isRedactedLesson
                 ? "Видео и материалы доступны после покупки курса."
+                : hasVideoBinding && playbackLoading
+                ? "Обновляем защищенный доступ к видео..."
                 : lesson.mediaJobStatus === "queued" || lesson.mediaJobStatus === "processing"
                 ? "Видео для этого урока подготавливается"
+                : hasVideoBinding
+                ? "Ссылка на видео недоступна. Обновите доступ или повторите позже."
                 : "Видео для этого урока пока не добавлено"}
             </div>
           )}
@@ -364,13 +521,34 @@ export default function LessonDetails() {
                   </span>
                   <div className="lesson-details__material-content">
                     <h3>{m.name}</h3>
-                    {lesson.settings?.disablePrintableDownloads &&
-                    (m.type === "pdf" || m.type === "doc") ? (
-                      <span>Доступно только для просмотра в уроке</span>
+                    {materialErrorById[m.id] ? (
+                      <Alert severity="warning" className="ui-alert">
+                        {materialErrorById[m.id]}
+                      </Alert>
+                    ) : null}
+                    {!m.mediaObjectId && !m.url ? (
+                      <span>Материал еще не готов к выдаче.</span>
                     ) : (
-                      <a href={m.url} target="_blank" rel="noopener noreferrer">
-                        Открыть материал
-                      </a>
+                      <Button
+                        variant="text"
+                        size="small"
+                        disabled={Boolean(materialLoadingById[m.id])}
+                        onClick={() => {
+                          void handleOpenMaterial(m.id);
+                        }}
+                      >
+                        {materialLoadingById[m.id] ? (
+                          <>
+                            <CircularProgress size={14} sx={{ mr: 1 }} />
+                            Получаем доступ...
+                          </>
+                        ) : lesson.settings?.disablePrintableDownloads &&
+                          (m.type === "pdf" || m.type === "doc") ? (
+                          "Открыть для просмотра"
+                        ) : (
+                          "Открыть материал"
+                        )}
+                      </Button>
                     )}
                   </div>
                 </article>

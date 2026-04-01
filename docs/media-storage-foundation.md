@@ -27,8 +27,22 @@ Package 10 добавляет backend-owned media path через `apps/api` c s
   - mark object uploaded (verifies object exists in storage)
 - `GET /api/media/:id/download-url`
   - response: signed download URL
+- `GET /api/lessons/:id/playback`
+  - runtime playback access for entitled/owner actor
+  - response: `{ lessonId, source, playbackUrl, expiresAt }`
+- `GET /api/lessons/:lessonId/materials/:materialId/access`
+  - runtime materials access for entitled/owner actor
+  - response: `{ lessonId, materialId, source, accessUrl, expiresAt, downloadable }`
 
 Все endpoints требуют валидную auth session cookie.
+
+## Persisted model
+
+В `course_lessons` и release snapshots сохраняются только стабильные media refs:
+- `videoMediaObjectId`
+- `materials[].mediaObjectId`
+
+Временные signed runtime URLs больше не являются persisted source of truth для уроков/релизов.
 
 ## Upload flow
 

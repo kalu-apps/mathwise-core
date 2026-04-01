@@ -8,7 +8,11 @@ import type {
   CourseByIdResponseContract,
   CourseCatalogResponseContract,
 } from "@/shared/contracts/course.contract";
-import type { Lesson } from "@/entities/lesson/model/types";
+import type {
+  Lesson,
+  LessonMaterialAccess,
+  LessonPlaybackAccess,
+} from "@/entities/lesson/model/types";
 import type {
   CourseAccessDecision,
   CourseAccessListResponse,
@@ -213,6 +217,34 @@ export const httpLessonsGateway: LessonsGateway = {
       });
     }
     return requestHttpJson<Lesson[]>(`/courses/${encodedCourseId}/lessons`);
+  },
+  async getLessonPlaybackAccess(params): Promise<LessonPlaybackAccess> {
+    const encodedLessonId = encodeURIComponent(params.lessonId);
+    if (isDefaultApiBase()) {
+      return api.get<LessonPlaybackAccess>(`/lessons/${encodedLessonId}/playback`, {
+        dedupe: false,
+        cacheTtlMs: 0,
+      });
+    }
+    return requestHttpJson<LessonPlaybackAccess>(
+      `/lessons/${encodedLessonId}/playback`
+    );
+  },
+  async getLessonMaterialAccess(params): Promise<LessonMaterialAccess> {
+    const encodedLessonId = encodeURIComponent(params.lessonId);
+    const encodedMaterialId = encodeURIComponent(params.materialId);
+    if (isDefaultApiBase()) {
+      return api.get<LessonMaterialAccess>(
+        `/lessons/${encodedLessonId}/materials/${encodedMaterialId}/access`,
+        {
+          dedupe: false,
+          cacheTtlMs: 0,
+        }
+      );
+    }
+    return requestHttpJson<LessonMaterialAccess>(
+      `/lessons/${encodedLessonId}/materials/${encodedMaterialId}/access`
+    );
   },
 };
 

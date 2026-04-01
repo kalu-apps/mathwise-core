@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { DatabaseService } from "../db/database.service";
-import { mapUnknownLessonToDto } from "./lessons.mapper";
+import { mapUnknownLessonToDto, sanitizePersistedMediaUrl } from "./lessons.mapper";
 import type { LessonDto } from "./lessons.types";
 
 type LessonRow = {
@@ -9,6 +9,7 @@ type LessonRow = {
   title: string;
   order: number;
   duration: number;
+  videoMediaObjectId: string | null;
   videoUrl: string | null;
   videoStreamUrl: string | null;
   videoPosterUrl: string | null;
@@ -36,6 +37,7 @@ export class LessonsRepository {
         title TEXT NOT NULL,
         sort_order INTEGER NOT NULL,
         duration_sec INTEGER NOT NULL DEFAULT 0,
+        video_media_object_id TEXT,
         video_url TEXT,
         video_stream_url TEXT,
         video_poster_url TEXT,
@@ -50,6 +52,10 @@ export class LessonsRepository {
     await this.databaseService.execute(`
       CREATE INDEX IF NOT EXISTS idx_course_lessons_course_order
       ON course_lessons (course_id, sort_order)
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE course_lessons
+      ADD COLUMN IF NOT EXISTS video_media_object_id TEXT
     `);
   }
 
@@ -81,6 +87,7 @@ export class LessonsRepository {
               title,
               sort_order AS "order",
               duration_sec AS "duration",
+              video_media_object_id AS "videoMediaObjectId",
               video_url AS "videoUrl",
               video_stream_url AS "videoStreamUrl",
               video_poster_url AS "videoPosterUrl",
@@ -102,6 +109,7 @@ export class LessonsRepository {
             title,
             sort_order AS "order",
             duration_sec AS "duration",
+            video_media_object_id AS "videoMediaObjectId",
             video_url AS "videoUrl",
             video_stream_url AS "videoStreamUrl",
             video_poster_url AS "videoPosterUrl",
@@ -129,6 +137,7 @@ export class LessonsRepository {
           title,
           sort_order AS "order",
           duration_sec AS "duration",
+          video_media_object_id AS "videoMediaObjectId",
           video_url AS "videoUrl",
           video_stream_url AS "videoStreamUrl",
           video_poster_url AS "videoPosterUrl",
@@ -156,6 +165,7 @@ export class LessonsRepository {
           title,
           sort_order,
           duration_sec,
+          video_media_object_id,
           video_url,
           video_stream_url,
           video_poster_url,
@@ -168,8 +178,8 @@ export class LessonsRepository {
         )
         VALUES (
           $1, $2, $3, $4, $5,
-          $6, $7, $8, $9, $10, $11,
-          $12::jsonb, $13::jsonb, NOW()
+          $6, $7, $8, $9, $10, $11, $12,
+          $13::jsonb, $14::jsonb, NOW()
         )
         ON CONFLICT (id)
         DO UPDATE SET
@@ -177,6 +187,7 @@ export class LessonsRepository {
           title = EXCLUDED.title,
           sort_order = EXCLUDED.sort_order,
           duration_sec = EXCLUDED.duration_sec,
+          video_media_object_id = EXCLUDED.video_media_object_id,
           video_url = EXCLUDED.video_url,
           video_stream_url = EXCLUDED.video_stream_url,
           video_poster_url = EXCLUDED.video_poster_url,
@@ -193,6 +204,7 @@ export class LessonsRepository {
         lesson.title,
         Math.max(1, Math.floor(lesson.order)),
         Math.max(0, Math.floor(lesson.duration)),
+        lesson.videoMediaObjectId ?? null,
         lesson.videoUrl ?? null,
         lesson.videoStreamUrl ?? null,
         lesson.videoPosterUrl ?? null,
@@ -218,6 +230,7 @@ export class LessonsRepository {
               title,
               sort_order,
               duration_sec,
+              video_media_object_id,
               video_url,
               video_stream_url,
               video_poster_url,
@@ -230,8 +243,8 @@ export class LessonsRepository {
             )
             VALUES (
               $1, $2, $3, $4, $5,
-              $6, $7, $8, $9, $10, $11,
-              $12::jsonb, $13::jsonb, NOW()
+              $6, $7, $8, $9, $10, $11, $12,
+              $13::jsonb, $14::jsonb, NOW()
             )
           `,
           [
@@ -240,6 +253,7 @@ export class LessonsRepository {
             lesson.title,
             Math.max(1, Math.floor(lesson.order)),
             Math.max(0, Math.floor(lesson.duration)),
+            lesson.videoMediaObjectId ?? null,
             lesson.videoUrl ?? null,
             lesson.videoStreamUrl ?? null,
             lesson.videoPosterUrl ?? null,
@@ -330,21 +344,33 @@ export class LessonsRepository {
   }
 
   private mapRow(row: LessonRow): LessonDto {
+    const normalizedMaterials = Array.isArray(row.materials)
+      ? row.materials
+          .filter(
+            (material): material is NonNullable<LessonDto["materials"]>[number] =>
+              Boolean(material && typeof material === "object")
+          )
+          .map((material) => ({
+            ...material,
+            url: sanitizePersistedMediaUrl(material.url),
+          }))
+          .filter((material) => Boolean(material.mediaObjectId || material.url))
+      : undefined;
+
     return {
       id: row.id,
       courseId: row.courseId,
       title: row.title,
       order: Number(row.order),
       duration: Number(row.duration),
-      videoUrl: row.videoUrl ?? undefined,
-      videoStreamUrl: row.videoStreamUrl ?? undefined,
+      videoMediaObjectId: row.videoMediaObjectId ?? undefined,
+      videoUrl: sanitizePersistedMediaUrl(row.videoUrl),
+      videoStreamUrl: sanitizePersistedMediaUrl(row.videoStreamUrl),
       videoPosterUrl: row.videoPosterUrl ?? undefined,
       mediaJobId: row.mediaJobId ?? undefined,
       mediaJobStatus: row.mediaJobStatus ?? undefined,
       mediaJobError: row.mediaJobError ?? undefined,
-      materials: Array.isArray(row.materials)
-        ? (row.materials as LessonDto["materials"])
-        : undefined,
+      materials: normalizedMaterials,
       settings:
         row.settings && typeof row.settings === "object"
           ? (row.settings as LessonDto["settings"])

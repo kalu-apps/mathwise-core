@@ -35,6 +35,7 @@ export type LessonMaterial = {
   id: string;
   name: string;
   type: "video" | "pdf" | "doc";
+  mediaObjectId?: string;
   url?: string;
   file?: File;
 };
@@ -43,6 +44,7 @@ export type EditableLessonMaterial = {
   id: string;
   name: string;
   type: "pdf" | "doc";
+  mediaObjectId?: string;
   file?: File;
   url?: string;
 };
@@ -52,6 +54,7 @@ export type LessonDraft = {
   title: string;
   duration: number;
   videoFile: File | null;
+  videoMediaObjectId?: string;
   videoUrl?: string;
   videoStreamUrl?: string;
   videoPosterUrl?: string;
@@ -69,6 +72,7 @@ type Props = {
     id?: string;
     title: string;
     duration: number;
+    videoMediaObjectId?: string;
     videoUrl?: string;
     videoStreamUrl?: string;
     videoPosterUrl?: string;
@@ -116,6 +120,7 @@ const isLikelyHlsSource = (src?: string) =>
 const toComparableLessonSnapshot = (input: {
   title: string;
   videoFile: File | null;
+  videoMediaObjectId?: string;
   videoUrl?: string;
   videoStreamUrl?: string;
   videoPosterUrl?: string;
@@ -128,6 +133,7 @@ const toComparableLessonSnapshot = (input: {
 }) => ({
   title: input.title.trim(),
   hasVideoFile: Boolean(input.videoFile),
+  videoMediaObjectId: input.videoMediaObjectId ?? "",
   videoUrl: input.videoUrl ?? "",
   videoStreamUrl: input.videoStreamUrl ?? "",
   videoPosterUrl: input.videoPosterUrl ?? "",
@@ -139,6 +145,7 @@ const toComparableLessonSnapshot = (input: {
     id: material.id,
     name: material.name.trim(),
     type: material.type,
+    mediaObjectId: material.mediaObjectId ?? "",
     url: material.url ?? "",
     hasFile: Boolean(material.file),
   })),
@@ -156,11 +163,15 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
         id: m.id,
         name: m.name,
         type: m.type,
+        mediaObjectId: m.mediaObjectId,
         url: m.url,
       })) ?? [];
 
   const [title, setTitle] = useState(initialLesson?.title ?? "");
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoMediaObjectId, setVideoMediaObjectId] = useState<string | undefined>(
+    initialLesson?.videoMediaObjectId
+  );
   const [videoUrl, setVideoUrl] = useState<string | undefined>(
     initialLesson?.videoUrl
   );
@@ -201,6 +212,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
       toComparableLessonSnapshot({
         title: initialLesson?.title ?? "",
         videoFile: null,
+        videoMediaObjectId: initialLesson?.videoMediaObjectId,
         videoUrl: initialLesson?.videoUrl,
         videoStreamUrl: initialLesson?.videoStreamUrl,
         videoPosterUrl: initialLesson?.videoPosterUrl,
@@ -222,6 +234,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
         toComparableLessonSnapshot({
           title,
           videoFile,
+          videoMediaObjectId,
           videoUrl,
           videoStreamUrl,
           videoPosterUrl,
@@ -237,6 +250,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
       initialSnapshot,
       title,
       videoFile,
+      videoMediaObjectId,
       videoUrl,
       videoStreamUrl,
       videoPosterUrl,
@@ -270,7 +284,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
       setSaveError(t("lessonEditor.requiredTitleError"));
       return;
     }
-    if (!videoFile && !videoUrl && !videoStreamUrl) {
+    if (!videoFile && !videoMediaObjectId && !videoUrl && !videoStreamUrl) {
       setWarningOpen(true);
       setSaveError(t("lessonEditor.requiredVideoError"));
       return;
@@ -278,6 +292,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
     const preflight = preflightLessonVideo({
       lessonTitle: title.trim(),
       videoFile,
+      videoMediaObjectId,
       videoUrl,
       videoStreamUrl,
       videoPosterUrl,
@@ -313,6 +328,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
             title: title.trim(),
             duration: finalDuration,
             videoFile,
+            videoMediaObjectId,
             videoUrl,
             videoStreamUrl,
             videoPosterUrl,
@@ -448,6 +464,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                     const file = e.target.files?.[0];
                     if (file) {
                       setVideoFile(file);
+                      setVideoMediaObjectId(undefined);
                       setVideoUrl(undefined);
                       setVideoStreamUrl(undefined);
                       setMediaJobId(undefined);
@@ -470,6 +487,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                   label={videoFile.name}
                   onDelete={() => {
                     setVideoFile(null);
+                    setVideoMediaObjectId(undefined);
                     setDuration(0);
                     setMediaJobId(undefined);
                     setMediaJobStatus(undefined);
@@ -483,6 +501,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                 label="Поток HLS / adaptive URL"
                 value={videoStreamUrl ?? ""}
                 onChange={(event) => {
+                  setVideoMediaObjectId(undefined);
                   setVideoStreamUrl(event.target.value || undefined);
                   setMediaJobId(undefined);
                   setMediaJobStatus(undefined);
@@ -497,6 +516,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                 label="Резервный MP4 URL"
                 value={videoUrl ?? ""}
                 onChange={(event) => {
+                  setVideoMediaObjectId(undefined);
                   setVideoUrl(event.target.value || undefined);
                   setMediaJobId(undefined);
                   setMediaJobStatus(undefined);

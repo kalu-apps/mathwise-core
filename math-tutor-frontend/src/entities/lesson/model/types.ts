@@ -2,7 +2,9 @@ export type LessonMaterial = {
   id: string;
   name: string;
   type: "video" | "pdf" | "doc";
-  url: string;
+  mediaObjectId?: string;
+  url?: string;
+  downloadable?: boolean;
 };
 
 export type Lesson = {
@@ -12,6 +14,7 @@ export type Lesson = {
   order: number;
   duration: number;
   contentVisibility?: "public_preview" | "entitled_full";
+  videoMediaObjectId?: string;
   videoUrl?: string;
   videoStreamUrl?: string;
   videoPosterUrl?: string;
@@ -22,4 +25,20 @@ export type Lesson = {
   settings?: {
     disablePrintableDownloads?: boolean;
   };
+};
+
+export type LessonPlaybackAccess = {
+  lessonId: string;
+  source: "media" | "external";
+  playbackUrl: string;
+  expiresAt?: string | null;
+};
+
+export type LessonMaterialAccess = {
+  lessonId: string;
+  materialId: string;
+  source: "media" | "external";
+  accessUrl: string;
+  expiresAt?: string | null;
+  downloadable: boolean;
 };

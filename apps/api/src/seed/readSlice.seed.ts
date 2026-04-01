@@ -227,6 +227,7 @@ export const upsertLessons = async (executor: SeedExecutor, lessons: LessonDto[]
           title,
           sort_order,
           duration_sec,
+          video_media_object_id,
           video_url,
           video_stream_url,
           video_poster_url,
@@ -239,8 +240,8 @@ export const upsertLessons = async (executor: SeedExecutor, lessons: LessonDto[]
         )
         VALUES (
           $1, $2, $3, $4, $5,
-          $6, $7, $8, $9, $10, $11,
-          $12::jsonb, $13::jsonb, NOW()
+          $6, $7, $8, $9, $10, $11, $12,
+          $13::jsonb, $14::jsonb, NOW()
         )
         ON CONFLICT (id)
         DO UPDATE SET
@@ -248,6 +249,7 @@ export const upsertLessons = async (executor: SeedExecutor, lessons: LessonDto[]
           title = EXCLUDED.title,
           sort_order = EXCLUDED.sort_order,
           duration_sec = EXCLUDED.duration_sec,
+          video_media_object_id = EXCLUDED.video_media_object_id,
           video_url = EXCLUDED.video_url,
           video_stream_url = EXCLUDED.video_stream_url,
           video_poster_url = EXCLUDED.video_poster_url,
@@ -264,6 +266,7 @@ export const upsertLessons = async (executor: SeedExecutor, lessons: LessonDto[]
         lesson.title,
         Math.max(1, Math.floor(lesson.order)),
         Math.max(0, Math.floor(lesson.duration)),
+        lesson.videoMediaObjectId ?? null,
         lesson.videoUrl ?? null,
         lesson.videoStreamUrl ?? null,
         lesson.videoPosterUrl ?? null,

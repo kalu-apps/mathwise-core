@@ -127,6 +127,19 @@
   box-shadow: var(--shadow-sm);
 }
 
+.lesson-details__playback-actions {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lesson-details__playback-expiry {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 .lesson-details__video {
   width: 100%;
 }
@@ -275,6 +288,10 @@
   .lesson-details__materials {
     padding: 12px;
     border-radius: 18px;
+  }
+
+  .lesson-details__playback-actions {
+    align-items: flex-start;
   }
 
   .lesson-details__video-empty {

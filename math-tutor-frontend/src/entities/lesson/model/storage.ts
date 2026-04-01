@@ -1,4 +1,8 @@
-import type { Lesson } from "./types";
+import type {
+  Lesson,
+  LessonMaterialAccess,
+  LessonPlaybackAccess,
+} from "./types";
 import { api } from "@/shared/api/client";
 import { buildIdempotencyHeaders } from "@/shared/lib/idempotency";
 import { lessonsGateway } from "@/shared/gateway";
@@ -19,6 +23,17 @@ export async function getLessonsByCourse(
   options?: { forceFresh?: boolean }
 ): Promise<Lesson[]> {
   return lessonsGateway.getLessonsByCourse(courseId, options);
+}
+
+export async function getLessonPlaybackAccess(lessonId: string): Promise<LessonPlaybackAccess> {
+  return lessonsGateway.getLessonPlaybackAccess({ lessonId });
+}
+
+export async function getLessonMaterialAccess(params: {
+  lessonId: string;
+  materialId: string;
+}): Promise<LessonMaterialAccess> {
+  return lessonsGateway.getLessonMaterialAccess(params);
 }
 
 export async function saveLesson(

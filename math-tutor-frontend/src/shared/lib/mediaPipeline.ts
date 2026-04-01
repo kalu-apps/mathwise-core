@@ -3,13 +3,15 @@ import { api } from "@/shared/api/client";
 export type ResolveLessonVideoSourcesInput = {
   lessonTitle?: string;
   videoFile: File | null;
+  videoMediaObjectId?: string;
   videoUrl?: string;
   videoStreamUrl?: string;
   videoPosterUrl?: string;
 };
 
 export type ResolveLessonVideoSourcesResult = {
-  videoUrl: string;
+  videoMediaObjectId?: string;
+  videoUrl?: string;
   videoStreamUrl?: string;
   videoPosterUrl?: string;
 };
@@ -51,17 +53,18 @@ const MAX_BROWSER_UPLOAD_BYTES = 250 * 1024 * 1024;
 const MAX_JOB_POLLS = 20;
 const JOB_POLL_DELAY_MS = 500;
 
-const normalizeSource = (value?: string) => value?.trim() ?? "";
+const normalizeSource = (value?: string) => value?.trim() || undefined;
 const wait = (ms: number) =>
   new Promise((resolve) => globalThis.setTimeout(resolve, ms));
 
 const buildFallbackResult = (
   input: ResolveLessonVideoSourcesInput,
-  uploadDataUrl: string
+  uploadedObjectId?: string
 ): ResolveLessonVideoSourcesResult => ({
-  videoUrl: uploadDataUrl || normalizeSource(input.videoUrl),
-  videoStreamUrl: normalizeSource(input.videoStreamUrl) || undefined,
-  videoPosterUrl: normalizeSource(input.videoPosterUrl) || undefined,
+  videoMediaObjectId: uploadedObjectId ?? normalizeSource(input.videoMediaObjectId),
+  videoUrl: normalizeSource(input.videoUrl),
+  videoStreamUrl: normalizeSource(input.videoStreamUrl),
+  videoPosterUrl: normalizeSource(input.videoPosterUrl),
 });
 
 const toResolvedState = (
@@ -70,9 +73,10 @@ const toResolvedState = (
   jobId?: string,
   error?: string
 ): LessonMediaJobState => ({
+  videoMediaObjectId: normalizeSource(state.videoMediaObjectId),
   videoUrl: normalizeSource(state.videoUrl),
-  videoStreamUrl: normalizeSource(state.videoStreamUrl) || undefined,
-  videoPosterUrl: normalizeSource(state.videoPosterUrl) || undefined,
+  videoStreamUrl: normalizeSource(state.videoStreamUrl),
+  videoPosterUrl: normalizeSource(state.videoPosterUrl),
   status,
   jobId,
   error,
@@ -81,7 +85,7 @@ const toResolvedState = (
 const uploadObjectToStorage = async (params: {
   file: File;
   category: string;
-}): Promise<{ objectId: string; downloadUrl: string }> => {
+}): Promise<{ objectId: string }> => {
   const upload = await api.post<CreateUploadUrlResponse>("/media/upload-url", {
     fileName: params.file.name,
     contentType: params.file.type || "application/octet-stream",
@@ -101,17 +105,9 @@ const uploadObjectToStorage = async (params: {
   await api.post<CompleteUploadResponse>(`/media/${upload.objectId}/complete`, {
     sizeBytes: params.file.size,
   });
-  const download = await api.get<DownloadUrlResponse>(
-    `/media/${upload.objectId}/download-url`,
-    {
-      dedupe: false,
-      cacheTtlMs: 0,
-    }
-  );
 
   return {
     objectId: upload.objectId,
-    downloadUrl: download.downloadUrl,
   };
 };
 
@@ -147,10 +143,8 @@ export const preflightLessonVideo = (
 export async function startLessonVideoPipeline(
   input: ResolveLessonVideoSourcesInput
 ): Promise<LessonMediaJobState> {
-  const fallbackResult = buildFallbackResult(input, "");
-
   if (!input.videoFile) {
-    return toResolvedState(fallbackResult, "ready");
+    return toResolvedState(buildFallbackResult(input), "ready");
   }
 
   try {
@@ -160,16 +154,15 @@ export async function startLessonVideoPipeline(
     });
     return toResolvedState(
       {
-        videoUrl: uploaded.downloadUrl,
-        videoStreamUrl: uploaded.downloadUrl,
-        videoPosterUrl: fallbackResult.videoPosterUrl,
+        videoMediaObjectId: uploaded.objectId,
+        videoPosterUrl: normalizeSource(input.videoPosterUrl),
       },
       "ready",
       uploaded.objectId
     );
   } catch {
     return toResolvedState(
-      fallbackResult,
+      buildFallbackResult(input),
       "failed",
       undefined,
       "Не удалось загрузить видео в storage. Проверьте media-runtime настройки."
@@ -200,9 +193,8 @@ export async function pollLessonVideoPipeline(
       if (current.downloadUrl) {
         return toResolvedState(
           {
-            videoUrl: current.downloadUrl,
-            videoStreamUrl: current.downloadUrl,
-            videoPosterUrl: fallbackSources.videoPosterUrl,
+            ...fallbackSources,
+            videoMediaObjectId: current.objectId || jobId,
           },
           "ready",
           jobId
@@ -213,7 +205,14 @@ export async function pollLessonVideoPipeline(
     }
   }
 
-  return toResolvedState(fallbackSources, "processing", jobId);
+  return toResolvedState(
+    {
+      ...fallbackSources,
+      videoMediaObjectId: normalizeSource(fallbackSources.videoMediaObjectId) || jobId,
+    },
+    "processing",
+    jobId
+  );
 }
 
 export async function resolveLessonVideoSources(
@@ -226,12 +225,14 @@ export async function resolveLessonVideoSources(
   ) {
     const resolved = await pollLessonVideoPipeline(started.jobId, started);
     return {
+      videoMediaObjectId: resolved.videoMediaObjectId,
       videoUrl: resolved.videoUrl,
       videoStreamUrl: resolved.videoStreamUrl,
       videoPosterUrl: resolved.videoPosterUrl,
     };
   }
   return {
+    videoMediaObjectId: started.videoMediaObjectId,
     videoUrl: started.videoUrl,
     videoStreamUrl: started.videoStreamUrl,
     videoPosterUrl: started.videoPosterUrl,
@@ -243,5 +244,5 @@ export async function uploadLessonMaterialFile(file: File): Promise<string> {
     file,
     category: "lesson-material",
   });
-  return uploaded.downloadUrl;
+  return uploaded.objectId;
 }

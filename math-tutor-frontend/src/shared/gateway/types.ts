@@ -8,7 +8,11 @@ import type {
   CourseByIdResponseContract,
   CourseCatalogResponseContract,
 } from "@/shared/contracts/course.contract";
-import type { Lesson } from "@/entities/lesson/model/types";
+import type {
+  Lesson,
+  LessonMaterialAccess,
+  LessonPlaybackAccess,
+} from "@/entities/lesson/model/types";
 import type {
   CourseAccessDecision,
   CourseAccessListResponse,
@@ -89,6 +93,13 @@ export type LessonsGateway = {
     courseId: string,
     options?: { forceFresh?: boolean }
   ) => Promise<Lesson[]>;
+  getLessonPlaybackAccess: (params: {
+    lessonId: string;
+  }) => Promise<LessonPlaybackAccess>;
+  getLessonMaterialAccess: (params: {
+    lessonId: string;
+    materialId: string;
+  }) => Promise<LessonMaterialAccess>;
 };
 
 export type AccessGateway = {

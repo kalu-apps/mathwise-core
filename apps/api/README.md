@@ -48,6 +48,12 @@ Media runtime включается через:
 - `POST /api/media/upload-url`
 - `POST /api/media/:id/complete`
 - `GET /api/media/:id/download-url`
+- `GET /api/lessons/:id/playback` (entitlement/owner-gated runtime playback access)
+- `GET /api/lessons/:lessonId/materials/:materialId/access` (entitlement/owner-gated runtime material access)
+
+Важно:
+- в persisted lesson/release контенте храним stable media identity (`videoMediaObjectId`, `materials[].mediaObjectId`);
+- short-lived signed URL выдаются только runtime-запросами доступа и не хранятся в release snapshot.
 
 ## Course/Test publish lifecycle
 

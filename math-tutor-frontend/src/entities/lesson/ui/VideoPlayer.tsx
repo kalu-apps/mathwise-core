@@ -8,6 +8,10 @@ interface Props {
   poster?: string;
   onEnded?: () => void;
   watermarkText?: string;
+  onRequestSourceRefresh?: () => Promise<{
+    src?: string;
+    streamSrc?: string;
+  }>;
 }
 
 const isLikelyHlsSource = (value?: string) =>
@@ -56,7 +60,14 @@ const resolvePlaybackSource = (params: { streamSrc?: string; src?: string }) => 
   };
 };
 
-function VideoPlayerContent({ src, streamSrc, poster, onEnded, watermarkText }: Props) {
+function VideoPlayerContent({
+  src,
+  streamSrc,
+  poster,
+  onEnded,
+  watermarkText,
+  onRequestSourceRefresh,
+}: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const ratioRef = useRef<HTMLDivElement | null>(null);
   const [showSecurityHint, setShowSecurityHint] = useState(false);
@@ -159,17 +170,41 @@ function VideoPlayerContent({ src, streamSrc, poster, onEnded, watermarkText }: 
   }, [isActivated, resolvedSrc]);
 
   const handleRetry = () => {
-    const nextSource = resolvePlaybackSource({ streamSrc, src });
-    if (!nextSource.src) {
+    const runLocalReload = (next: { src?: string; streamSrc?: string } = {}) => {
+      const nextSource = resolvePlaybackSource({
+        streamSrc: next.streamSrc ?? streamSrc,
+        src: next.src ?? src,
+      });
+      if (!nextSource.src) {
+        setPlaybackError(nextSource.error);
+        setIsBuffering(false);
+        return;
+      }
+      const video = videoRef.current;
+      if (!video) return;
+      setResolvedSrc(nextSource.src);
       setPlaybackError(nextSource.error);
+      setIsBuffering(true);
+      video.load();
+    };
+
+    if (onRequestSourceRefresh) {
+      setIsBuffering(true);
+      setPlaybackError(null);
+      void onRequestSourceRefresh()
+        .then((next) => {
+          runLocalReload(next);
+        })
+        .catch(() => {
+          setIsBuffering(false);
+          setPlaybackError(
+            "Ссылка на видео устарела или недоступна. Обновите доступ и повторите попытку."
+          );
+        });
       return;
     }
-    const video = videoRef.current;
-    if (!video) return;
-    setResolvedSrc(nextSource.src);
-    setPlaybackError(nextSource.error);
-    setIsBuffering(true);
-    video.load();
+
+    runLocalReload();
   };
 
   const handleActivate = () => {

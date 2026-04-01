@@ -17,7 +17,11 @@ import {
 import { AuthService } from "../auth/auth.service";
 import type { AuthUserDto } from "../auth/auth.types";
 import { LessonsService } from "./lessons.service";
-import type { LessonDto } from "./lessons.types";
+import type {
+  LessonDto,
+  LessonMaterialAccessDto,
+  LessonPlaybackAccessDto,
+} from "./lessons.types";
 
 type RequestWithCookie = {
   headers?: {
@@ -59,6 +63,33 @@ export class LessonsController {
       courseId: courseId?.trim() || undefined,
       actorUser,
     });
+  }
+
+  @Get("api/lessons/:id/playback")
+  async getLessonPlaybackAccess(
+    @Param("id") lessonId: string,
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<LessonPlaybackAccessDto> {
+    const actorUser = await this.resolveUserFromRequest(req, res);
+    return this.lessonsService.getLessonPlaybackAccess(lessonId, actorUser);
+  }
+
+  @Get("api/lessons/:lessonId/materials/:materialId/access")
+  async getLessonMaterialAccess(
+    @Param("lessonId") lessonId: string,
+    @Param("materialId") materialId: string,
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<LessonMaterialAccessDto> {
+    const actorUser = await this.resolveUserFromRequest(req, res);
+    return this.lessonsService.getLessonMaterialAccess(
+      {
+        lessonId,
+        materialId,
+      },
+      actorUser
+    );
   }
 
   @Get("api/lessons/:id")

@@ -2,10 +2,16 @@ import { HttpException, Injectable, OnModuleInit } from "@nestjs/common";
 import type { AuthUserDto } from "../auth/auth.types";
 import { getApiRuntimeConfig } from "../config/runtime.config";
 import { DatabaseService } from "../db/database.service";
+import { MediaService } from "../media/media.service";
 import { readReadSliceSeedData, upsertLessons } from "../seed/readSlice.seed";
 import { markFullLessonContent, redactLessonForPreview } from "./lessons.redaction";
+import { sanitizePersistedMediaUrl } from "./lessons.mapper";
 import { LessonsRepository } from "./lessons.repository";
-import type { LessonDto } from "./lessons.types";
+import type {
+  LessonDto,
+  LessonMaterialAccessDto,
+  LessonPlaybackAccessDto,
+} from "./lessons.types";
 
 type CourseAccessMode = "full" | "preview";
 
@@ -15,8 +21,9 @@ const normalizeLessonInput = (lesson: LessonDto, courseId: string, order: number
   title: lesson.title.trim(),
   order: Math.max(1, Math.floor(order)),
   duration: Math.max(0, Math.floor(Number(lesson.duration) || 0)),
-  videoUrl: lesson.videoUrl?.trim() || undefined,
-  videoStreamUrl: lesson.videoStreamUrl?.trim() || undefined,
+  videoMediaObjectId: lesson.videoMediaObjectId?.trim() || undefined,
+  videoUrl: sanitizePersistedMediaUrl(lesson.videoUrl),
+  videoStreamUrl: sanitizePersistedMediaUrl(lesson.videoStreamUrl),
   videoPosterUrl: lesson.videoPosterUrl?.trim() || undefined,
   mediaJobId: lesson.mediaJobId?.trim() || undefined,
   mediaJobStatus: lesson.mediaJobStatus,
@@ -28,8 +35,14 @@ const normalizeLessonInput = (lesson: LessonDto, courseId: string, order: number
           ...material,
           id: material.id.trim(),
           name: material.name.trim(),
-          url: material.url.trim(),
+          mediaObjectId: material.mediaObjectId?.trim() || undefined,
+          url: sanitizePersistedMediaUrl(material.url),
+          downloadable:
+            typeof material.downloadable === "boolean"
+              ? material.downloadable
+              : undefined,
         }))
+        .filter((material) => Boolean(material.mediaObjectId || material.url))
     : undefined,
   settings: lesson.settings,
 });
@@ -40,7 +53,8 @@ export class LessonsService implements OnModuleInit {
 
   constructor(
     private readonly databaseService: DatabaseService,
-    private readonly lessonsRepository: LessonsRepository
+    private readonly lessonsRepository: LessonsRepository,
+    private readonly mediaService: MediaService
   ) {}
 
   async onModuleInit() {
@@ -160,6 +174,90 @@ export class LessonsService implements OnModuleInit {
     await this.lessonsRepository.deleteByCourse(normalizedCourseId);
   }
 
+  async getLessonPlaybackAccess(
+    lessonId: string,
+    actorUser?: AuthUserDto | null
+  ): Promise<LessonPlaybackAccessDto> {
+    const lesson = await this.requireFullLessonAccess(lessonId, actorUser);
+
+    const mediaObjectId = lesson.videoMediaObjectId?.trim();
+    if (mediaObjectId) {
+      const signed = await this.mediaService.getRuntimeDownloadUrlByObjectId(
+        mediaObjectId
+      );
+      return {
+        lessonId: lesson.id,
+        source: "media",
+        playbackUrl: signed.downloadUrl,
+        expiresAt: signed.expiresAt,
+      };
+    }
+
+    const externalSource =
+      lesson.videoStreamUrl?.trim() || lesson.videoUrl?.trim();
+    if (externalSource) {
+      return {
+        lessonId: lesson.id,
+        source: "external",
+        playbackUrl: externalSource,
+        expiresAt: null,
+      };
+    }
+
+    throw new HttpException({ error: "Видео для урока не настроено." }, 409);
+  }
+
+  async getLessonMaterialAccess(
+    params: { lessonId: string; materialId: string },
+    actorUser?: AuthUserDto | null
+  ): Promise<LessonMaterialAccessDto> {
+    const lesson = await this.requireFullLessonAccess(params.lessonId, actorUser);
+    const materialId = params.materialId.trim();
+    if (!materialId) {
+      throw new HttpException({ error: "materialId обязателен." }, 400);
+    }
+
+    const material = lesson.materials?.find((item) => item.id === materialId);
+    if (!material) {
+      throw new HttpException({ error: "Материал урока не найден." }, 404);
+    }
+
+    const downloadsDisabledByLesson =
+      lesson.settings?.disablePrintableDownloads === true &&
+      (material.type === "pdf" || material.type === "doc");
+    const downloadable =
+      material.downloadable !== false && !downloadsDisabledByLesson;
+
+    const mediaObjectId = material.mediaObjectId?.trim();
+    if (mediaObjectId) {
+      const signed = await this.mediaService.getRuntimeDownloadUrlByObjectId(
+        mediaObjectId
+      );
+      return {
+        lessonId: lesson.id,
+        materialId: material.id,
+        source: "media",
+        accessUrl: signed.downloadUrl,
+        expiresAt: signed.expiresAt,
+        downloadable,
+      };
+    }
+
+    const externalUrl = material.url?.trim();
+    if (externalUrl) {
+      return {
+        lessonId: lesson.id,
+        materialId: material.id,
+        source: "external",
+        accessUrl: externalUrl,
+        expiresAt: null,
+        downloadable,
+      };
+    }
+
+    throw new HttpException({ error: "Материал урока не готов." }, 409);
+  }
+
   private async applyAccessRedaction(
     lessons: LessonDto[],
     actorUser?: AuthUserDto | null
@@ -206,8 +304,18 @@ export class LessonsService implements OnModuleInit {
     }
 
     if (actorUser.role === "teacher") {
+      const ownedCourseRows = await this.databaseService.query<{ id: string }>(
+        `
+          SELECT id
+          FROM courses_catalog
+          WHERE teacher_id = $1
+            AND id = ANY($2::text[])
+        `,
+        [actorUser.id, courseIds]
+      );
+      const ownedCourseIds = new Set(ownedCourseRows.map((row) => row.id));
       for (const courseId of courseIds) {
-        accessMap.set(courseId, "full");
+        accessMap.set(courseId, ownedCourseIds.has(courseId) ? "full" : "preview");
       }
       return accessMap;
     }
@@ -251,5 +359,43 @@ export class LessonsService implements OnModuleInit {
       accessMap.set(courseId, entitledCourseIds.has(courseId) ? "full" : "preview");
     }
     return accessMap;
+  }
+
+  private async requireFullLessonAccess(
+    lessonId: string,
+    actorUser?: AuthUserDto | null
+  ): Promise<LessonDto> {
+    if (!actorUser?.id) {
+      throw new HttpException({ error: "Требуется авторизация." }, 401);
+    }
+    const normalizedLessonId = lessonId.trim();
+    if (!normalizedLessonId) {
+      throw new HttpException({ error: "lessonId обязателен." }, 400);
+    }
+
+    const draftLesson = await this.lessonsRepository.findDraftById(normalizedLessonId);
+    if (
+      draftLesson &&
+      (await this.isTeacherOwnerOfCourse(actorUser, draftLesson.courseId))
+    ) {
+      return markFullLessonContent(draftLesson);
+    }
+
+    const lesson = await this.lessonsRepository.findPublishedById(normalizedLessonId);
+    if (!lesson) {
+      throw new HttpException({ error: "Урок не найден." }, 404);
+    }
+
+    const accessModes = await this.resolveCourseAccessModes(
+      [lesson.courseId],
+      actorUser
+    );
+    if (accessModes.get(lesson.courseId) !== "full") {
+      throw new HttpException(
+        { error: "Нет доступа к полному контенту урока." },
+        403
+      );
+    }
+    return markFullLessonContent(lesson);
   }
 }
