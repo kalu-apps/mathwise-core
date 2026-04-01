@@ -207,7 +207,7 @@ export default function TeacherStudentProfile() {
             completedTests: testsProgress.completedTests,
             testsAveragePercent: testsProgress.averageLatestPercent,
             testsKnowledgePercent: testsKnowledgeProgress.averageBestPercent,
-            isPremium: purchase.price === course.priceGuided,
+            isPremium: purchase.tariff === "premium",
             purchasedAt: purchase.purchasedAt,
           };
         })

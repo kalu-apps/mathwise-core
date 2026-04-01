@@ -290,6 +290,7 @@ export type CheckoutPayload = {
   phone: string;
   courseId: string;
   price: number;
+  tariff?: "standard" | "premium";
   paymentMethod?: "mock" | "card" | "sbp" | "bnpl";
   bnplInstallmentsCount?: number;
   consents?: {

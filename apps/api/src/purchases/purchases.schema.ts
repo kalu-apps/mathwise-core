@@ -5,6 +5,7 @@ export const PURCHASES_SCHEMA_STATEMENTS = [
       user_id TEXT NOT NULL,
       course_id TEXT NOT NULL,
       price INTEGER NOT NULL DEFAULT 0,
+      tariff TEXT CHECK (tariff IN ('standard', 'premium')),
       purchased_at TEXT NOT NULL,
       payment_method TEXT,
       checkout_id TEXT,
@@ -31,6 +32,7 @@ export const PURCHASES_SCHEMA_STATEMENTS = [
       method TEXT NOT NULL CHECK (method IN ('mock', 'card', 'sbp', 'bnpl')),
       bnpl_installments_count INTEGER,
       amount INTEGER NOT NULL DEFAULT 0,
+      tariff TEXT CHECK (tariff IN ('standard', 'premium')),
       currency TEXT NOT NULL DEFAULT 'RUB',
       state TEXT NOT NULL CHECK (
         state IN (
@@ -56,6 +58,8 @@ export const PURCHASES_SCHEMA_STATEMENTS = [
       updated_at_ts TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `,
+  `ALTER TABLE profile_purchases ADD COLUMN IF NOT EXISTS tariff TEXT CHECK (tariff IN ('standard', 'premium'))`,
+  `ALTER TABLE checkout_processes ADD COLUMN IF NOT EXISTS tariff TEXT CHECK (tariff IN ('standard', 'premium'))`,
   `ALTER TABLE checkout_processes ADD COLUMN IF NOT EXISTS first_name TEXT`,
   `ALTER TABLE checkout_processes ADD COLUMN IF NOT EXISTS last_name TEXT`,
   `ALTER TABLE checkout_processes ADD COLUMN IF NOT EXISTS phone TEXT`,

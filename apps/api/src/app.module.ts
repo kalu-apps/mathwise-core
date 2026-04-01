@@ -3,6 +3,8 @@ import { AccessModule } from "./access/access.module";
 import { AssessmentsModule } from "./assessments/assessments.module";
 import { AuthModule } from "./auth/auth.module";
 import { BookingsModule } from "./bookings/bookings.module";
+import { CapabilitiesModule } from "./capabilities/capabilities.module";
+import { ChatModule } from "./chat/chat.module";
 import { CoursesModule } from "./courses/courses.module";
 import { DatabaseModule } from "./db/database.module";
 import { HealthModule } from "./health/health.module";
@@ -15,6 +17,7 @@ import { ProfileModule } from "./profile/profile.module";
 import { ProgressModule } from "./progress/progress.module";
 import { PurchasesModule } from "./purchases/purchases.module";
 import { RedisModule } from "./redis/redis.module";
+import { WorkbookModule } from "./workbook/workbook.module";
 
 @Module({
   imports: [
@@ -30,9 +33,12 @@ import { RedisModule } from "./redis/redis.module";
     MediaModule,
     NotificationsModule,
     AccessModule,
+    CapabilitiesModule,
+    ChatModule,
     ProfileModule,
     PurchasesModule,
     BookingsModule,
+    WorkbookModule,
   ],
 })
 export class AppModule implements NestModule {

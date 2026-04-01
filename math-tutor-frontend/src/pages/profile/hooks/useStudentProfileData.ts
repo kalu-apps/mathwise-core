@@ -25,6 +25,7 @@ import {
 import { lessonDurationToSeconds } from "@/shared/lib/duration";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { getStudentProfileContext } from "@/entities/profile/model/storage";
+import { getMyCapabilities } from "@/features/capabilities/model/api";
 
 type TabName = "profile" | "courses" | "lessons" | "study" | "chat";
 
@@ -173,8 +174,12 @@ export const useStudentProfileData = ({
         setCoursesLoading(true);
       }
       setCoursesError(null);
-      const context = await getStudentProfileContext();
+      const [context, capabilities] = await Promise.all([
+        getStudentProfileContext(),
+        getMyCapabilities({ forceFresh: true }),
+      ]);
       const userPurchases = context.purchases;
+      const premiumCourseIds = new Set(capabilities.premiumCourseIds ?? []);
 
       const resolved = await Promise.all(
         userPurchases.map(async (purchase) => {
@@ -280,7 +285,8 @@ export const useStudentProfileData = ({
             remainingSeconds: remainingLessonSeconds + remainingTestSeconds,
             testsAveragePercent: testsProgress.averageLatestPercent,
             testsKnowledgePercent: testsKnowledgeProgress.averageBestPercent,
-            isPremium: purchase.price === course.priceGuided,
+            isPremium:
+              premiumCourseIds.has(course.id) || purchase.tariff === "premium",
             purchasedAt: purchase.purchasedAt,
           };
         })

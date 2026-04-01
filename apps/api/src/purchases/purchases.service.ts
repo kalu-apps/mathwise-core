@@ -37,6 +37,7 @@ import {
   type CheckoutTimelineResponseDto,
   type ProviderWebhookPayloadDto,
   type PurchaseRecordDto,
+  type PurchaseTariffDto,
   isTerminalCheckoutState,
 } from "./purchases.types";
 
@@ -56,6 +57,16 @@ const readCourseSnapshotPrice = (course: {
   priceGuided: number;
   priceSelf: number;
 }) => Math.max(0, Math.round(Number(course.priceSelf ?? course.priceGuided ?? 0)));
+
+const resolveCheckoutTariff = (
+  value: unknown,
+  fallback: PurchaseTariffDto = "standard"
+): PurchaseTariffDto =>
+  value === "premium"
+    ? "premium"
+    : value === "standard"
+      ? "standard"
+      : fallback;
 
 const timingSafeEquals = (a: string, b: string) => {
   const left = Buffer.from(a);
@@ -181,6 +192,7 @@ export class PurchasesService implements OnModuleInit {
     if (amount <= 0) {
       throw new HttpException({ error: "Сумма checkout должна быть больше нуля." }, 400);
     }
+    const tariff = resolveCheckoutTariff(payload.tariff, "standard");
 
     const acceptedScopes = payload.consents?.acceptedScopes ?? [];
     if (!Array.isArray(acceptedScopes) || acceptedScopes.length === 0) {
@@ -214,6 +226,7 @@ export class PurchasesService implements OnModuleInit {
             ? normalizeInstallmentsCount(payload.bnplInstallmentsCount)
             : undefined,
         amount,
+        tariff,
         currency: "RUB",
         state: "pending_provider",
         consentSnapshot: acceptedScopes,
@@ -719,6 +732,20 @@ export class PurchasesService implements OnModuleInit {
       });
     }
 
+    const purchase = await this.purchasesRepository.findPurchaseByCheckoutId(checkout.id);
+    if (purchase) {
+      await this.purchasesRepository.revokePurchaseAccessAtomic({
+        userId: purchase.userId,
+        courseId: purchase.courseId,
+        purchaseId: purchase.id,
+        updatedAt: now,
+      });
+      await this.appendTimelineEvent(checkout.id, "entitlement_revoked", {
+        purchaseId: purchase.id,
+        courseId: purchase.courseId,
+      });
+    }
+
     await this.purchasesRepository.insertPaymentEvent({
       id: ensureId("pay_evt"),
       provider: "card",
@@ -1061,6 +1088,10 @@ export class PurchasesService implements OnModuleInit {
         userId: identity.user.id,
         courseId: boundCheckout.courseId,
         price: boundCheckout.amount,
+        tariff:
+          boundCheckout.tariff ??
+          existingPurchase?.tariff ??
+          "standard",
         purchasedAt: nowIso(),
         paymentMethod: boundCheckout.method,
         checkoutId: boundCheckout.id,

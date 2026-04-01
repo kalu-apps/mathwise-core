@@ -33,6 +33,8 @@ Optimization/budget work — отдельный пакет после релиз
   - `disabled` — честно без fake-delivered статусов;
   - `provider` — только с валидным `EMAIL_PROVIDER_API_KEY` и включенным adapter.
 - [ ] `COURSES_SEED_ON_BOOT=true` в non-local не содержит `teacher` в seed source.
+- [ ] `WORKBOOK_LAUNCH_ENABLED=true` в stage/prod сопровождается валидными `WORKBOOK_BOARD_BASE_URL` и `WORKBOOK_LAUNCH_SECRET`.
+- [ ] `/api/capabilities/me` возвращает feature flags и не зависит от price-эвристик на клиенте.
 
 ## 2) Stage-to-release verification
 
@@ -67,6 +69,13 @@ curl -fsS "$API_BASE_URL/runtime/diagnostics"
   - public slots читаются через `GET /api/teachers/:teacherId/availability`
   - отмена/перенос меняют статус (`scheduled/rescheduled/canceled/...`), а не удаляют историю
 - media endpoints (если `MEDIA_STORAGE_ENABLED=true`)
+- capability + premium gates:
+  - non-premium student получает `canChatWithTeacher=false`, `canAccessWorkbook=false`
+  - premium student получает `canChatWithTeacher=true`, `canAccessWorkbook=true`
+  - после refund/revoke флаги и доступ к chat/workbook снимаются
+- workbook handoff:
+  - `POST /api/workbook/launch` выдает short-lived artifact только для разрешенного пользователя
+  - `GET /api/workbook/launch/:artifactId` одноразовый (replay blocked)
 - frontend runtime diagnostics в браузере:
   - `window.__MW_FRONTEND_RUNTIME__` существует
   - `appEnv=stage`

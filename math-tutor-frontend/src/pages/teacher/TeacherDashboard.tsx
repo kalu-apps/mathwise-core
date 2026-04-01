@@ -1703,8 +1703,20 @@ export default function TeacherDashboard() {
           bookings={bookings}
           availability={availability}
           notes={studyNotes}
-          onWorkbookClick={() => {
-            openExternalWhiteboard({ from: "/teacher/profile?tab=study" });
+          onWorkbookClick={async () => {
+            const launch = await openExternalWhiteboard({
+              from: "/teacher/profile?tab=study",
+            });
+            if (!launch.ok) {
+              setDashboardError(
+                launch.error ??
+                  "Не удалось открыть рабочую тетрадь. Проверьте настройки запуска."
+              );
+            } else if (!launch.opened) {
+              setDashboardError(
+                "Браузер заблокировал новое окно. Разрешите pop-up для запуска рабочей тетради."
+              );
+            }
           }}
           onChatClick={() => {
             setTab(5);

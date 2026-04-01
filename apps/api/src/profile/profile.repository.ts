@@ -11,6 +11,7 @@ type PurchaseRow = {
   userId: string;
   courseId: string;
   price: number;
+  tariff: "standard" | "premium" | null;
   purchasedAt: string;
   paymentMethod: string | null;
   checkoutId: string | null;
@@ -61,6 +62,7 @@ export class ProfileRepository {
         user_id TEXT NOT NULL,
         course_id TEXT NOT NULL,
         price INTEGER NOT NULL DEFAULT 0,
+        tariff TEXT CHECK (tariff IN ('standard', 'premium')),
         purchased_at TEXT NOT NULL,
         payment_method TEXT,
         checkout_id TEXT,
@@ -76,6 +78,10 @@ export class ProfileRepository {
       ON profile_purchases (user_id, purchased_at DESC)
     `);
 
+    await this.databaseService.execute(`
+      ALTER TABLE profile_purchases
+      ADD COLUMN IF NOT EXISTS tariff TEXT CHECK (tariff IN ('standard', 'premium'))
+    `);
     await this.databaseService.execute(`
       CREATE TABLE IF NOT EXISTS profile_bookings (
         id TEXT PRIMARY KEY,
@@ -176,6 +182,7 @@ export class ProfileRepository {
           user_id AS "userId",
           course_id AS "courseId",
           price,
+          tariff,
           purchased_at AS "purchasedAt",
           payment_method AS "paymentMethod",
           checkout_id AS "checkoutId",
@@ -323,6 +330,7 @@ export class ProfileRepository {
       userId: row.userId,
       courseId: row.courseId,
       price: Number(row.price),
+      tariff: row.tariff ?? undefined,
       purchasedAt: row.purchasedAt,
       paymentMethod: row.paymentMethod ?? undefined,
       checkoutId: row.checkoutId ?? undefined,

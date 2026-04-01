@@ -14,6 +14,7 @@ cp math-tutor-frontend/.env.stage.example math-tutor-frontend/.env.stage
 Критично проверить:
 - `apps/api/.env.stage`: `DATABASE_URL`, `REDIS_URL`, `AUTH_PASSWORD_PEPPER`, `API_CORS_ORIGIN`, `AUTH_COOKIE_*`, `MEDIA_STORAGE_ENABLED`, `S3_*`
 - `apps/api/.env.stage`: `EMAIL_DELIVERY_MODE` (`disabled` по умолчанию, `provider` только с `EMAIL_PROVIDER_API_KEY`)
+- `apps/api/.env.stage`: `WORKBOOK_LAUNCH_ENABLED`, `WORKBOOK_BOARD_BASE_URL`, `WORKBOOK_LAUNCH_SECRET`
 - `math-tutor-frontend/.env.stage`: `VITE_APP_ENV=stage`, `VITE_API_BASE_URL`, `VITE_GATEWAY_MODE=http`
 
 ## 2) Bootstrap (build + seed)
@@ -73,6 +74,10 @@ Frontend sanity после `start-frontend`:
   - teacher управляет слотами через `/api/availability/me`
   - публичный экран бронирования читает слоты через `/api/teachers/:teacherId/availability`
   - guest booking с email существующего аккаунта получает `identity_conflict_auth_required` и требует login before attach
+- premium/chat/workbook sanity:
+  - `/api/capabilities/me` возвращает capability source (`canChatWithTeacher`, `canAccessWorkbook`)
+  - запуск рабочей тетради идет только через `POST /api/workbook/launch` -> одноразовый launch artifact
+  - direct-open path без backend artifact не используется
 
 ## 5) Rollback / degrade path
 

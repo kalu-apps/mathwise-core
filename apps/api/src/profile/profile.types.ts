@@ -7,6 +7,7 @@ export type PurchaseContextDto = {
   userId: string;
   courseId: string;
   price: number;
+  tariff?: "standard" | "premium";
   purchasedAt: string;
   paymentMethod?: string;
   checkoutId?: string;

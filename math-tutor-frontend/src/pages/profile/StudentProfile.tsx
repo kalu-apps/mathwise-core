@@ -653,7 +653,23 @@ export default function StudentProfile() {
         return;
       }
       setChatEligibility(eligibility);
-      openExternalWhiteboard({ from: "/student/profile?tab=study" });
+      const launch = await openExternalWhiteboard({
+        from: "/student/profile?tab=study",
+      });
+      if (!launch.ok) {
+        setChatNotice({
+          severity: "warning",
+          message:
+            launch.error ??
+            "Не удалось открыть рабочую тетрадь. Попробуйте позже.",
+        });
+      } else if (!launch.opened) {
+        setChatNotice({
+          severity: "warning",
+          message:
+            "Браузер заблокировал новое окно. Разрешите pop-up для запуска рабочей тетради.",
+        });
+      }
     } catch (error) {
       setChatNotice({
         severity: "error",

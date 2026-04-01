@@ -15,6 +15,7 @@ const REQUIRED_ENV: Record<string, string> = {
   AUTH_COOKIE_SECURE: "true",
   AUTH_DEBUG_TOKENS: "false",
   EMAIL_DELIVERY_MODE: "disabled",
+  WORKBOOK_LAUNCH_ENABLED: "false",
 };
 
 const applyEnv = () => {

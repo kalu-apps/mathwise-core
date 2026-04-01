@@ -761,6 +761,7 @@ export default function CourseDetails() {
             phone: toRuPhoneStorage(purchasePhone),
             courseId: course.id,
             price,
+            tariff: pendingType === "guided" ? "premium" : "standard",
             paymentMethod: purchaseMethod,
             bnplInstallmentsCount:
               purchaseMethod === "bnpl"

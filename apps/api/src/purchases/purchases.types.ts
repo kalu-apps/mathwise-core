@@ -1,4 +1,5 @@
 export type CheckoutMethodDto = "mock" | "card" | "sbp" | "bnpl";
+export type PurchaseTariffDto = "standard" | "premium";
 
 export type CheckoutStateDto =
   | "created"
@@ -55,6 +56,7 @@ export type PurchaseRecordDto = {
   userId: string;
   courseId: string;
   price: number;
+  tariff?: PurchaseTariffDto;
   purchasedAt: string;
   paymentMethod?: string;
   checkoutId?: string;
@@ -75,6 +77,7 @@ export type CheckoutProcessDto = {
   method: CheckoutMethodDto;
   bnplInstallmentsCount?: number;
   amount: number;
+  tariff?: PurchaseTariffDto;
   currency: string;
   state: CheckoutStateDto;
   providerPaymentId?: string;
@@ -115,6 +118,7 @@ export type CheckoutPayloadDto = {
   phone: string;
   courseId: string;
   price: number;
+  tariff?: PurchaseTariffDto;
   paymentMethod?: CheckoutMethodDto;
   bnplInstallmentsCount?: number;
   consents?: {

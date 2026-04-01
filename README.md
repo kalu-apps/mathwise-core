@@ -55,4 +55,8 @@ cp math-tutor-frontend/.env.stage.example math-tutor-frontend/.env.stage
 
 ## Связь с доской
 Интерактивная доска вынесена в отдельный сервис и отдельный репозиторий.
-Из core вызывается как внешний сервис (например, через кнопку «Рабочая тетрадь»).
+Из core вызывается через backend-gated handoff:
+- frontend запрашивает `POST /api/workbook/launch`
+- backend проверяет session + capability (`canAccessWorkbook`)
+- backend выдает короткоживущий launch artifact
+- board открывается только через artifact path `GET /api/workbook/launch/:artifactId`

@@ -33,6 +33,7 @@ import {
   getCourseContentItems,
 } from "@/features/assessments/model/storage";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
+import { getMyCapabilities } from "@/features/capabilities/model/api";
 
 const toApproxMonthly = (fromAmount: number | null, periodLabel: string) => {
   if (!fromAmount || fromAmount <= 0) return null;
@@ -137,13 +138,16 @@ export default function Courses() {
     try {
       setLoading(true);
       setPageError(null);
-      const [coursesData, lessons, purchases, accessData] = await Promise.all([
+      const [coursesData, lessons, purchases, accessData, capabilities] = await Promise.all([
         getCourses({ forceFresh: true }),
         getLessons({ forceFresh: true }),
         user?.role === "student"
           ? getPurchases({ userId: user.id }, { forceFresh: true })
           : Promise.resolve([]),
         getCourseAccessList(),
+        user?.role === "student"
+          ? getMyCapabilities({ forceFresh: true })
+          : Promise.resolve(null),
       ]);
       const accessByCourse = accessData.decisions.reduce<
         Record<string, CourseAccessDecision>
@@ -181,19 +185,13 @@ export default function Courses() {
           .filter((course): course is Course => Boolean(course));
         setPurchasedCourses(purchasedCards);
 
-        const premiumLookup = uniquePurchases
-          .reduce<Record<string, boolean>>((acc, purchase) => {
-            const liveCourse =
-              coursesData.find((candidate) => candidate.id === purchase.courseId) ??
-              null;
-            const course =
-              (liveCourse?.status === "published"
-                ? liveCourse
-                : purchase.courseSnapshot ?? liveCourse) ?? null;
-            if (!course) return acc;
-            acc[purchase.courseId] = purchase.price === course.priceGuided;
-            return acc;
-          }, {});
+        const premiumCourseIds = new Set(capabilities?.premiumCourseIds ?? []);
+        const premiumLookup = uniquePurchases.reduce<Record<string, boolean>>((acc, purchase) => {
+          acc[purchase.courseId] =
+            premiumCourseIds.has(purchase.courseId) ||
+            purchase.tariff === "premium";
+          return acc;
+        }, {});
         setPremiumMap(premiumLookup);
 
         const progressEntries = await Promise.all(

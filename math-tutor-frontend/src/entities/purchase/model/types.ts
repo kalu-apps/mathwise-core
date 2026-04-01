@@ -59,6 +59,7 @@ export type Purchase = {
   userId: string;
   courseId: string;
   price: number;
+  tariff?: "standard" | "premium";
   purchasedAt: string;
   paymentMethod?: PurchasePaymentMethod;
   checkoutId?: string;

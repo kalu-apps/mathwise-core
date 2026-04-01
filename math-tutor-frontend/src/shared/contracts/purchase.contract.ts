@@ -15,6 +15,7 @@ export type CheckoutPayloadContract = {
   phone: string;
   courseId: string;
   price: number;
+  tariff?: "standard" | "premium";
   paymentMethod?: "mock" | "card" | "sbp" | "bnpl";
   bnplInstallmentsCount?: number;
   consents?: {

@@ -5,6 +5,7 @@ export type PurchaseRow = {
   userId: string;
   courseId: string;
   price: number;
+  tariff: "standard" | "premium" | null;
   purchasedAt: string;
   paymentMethod: string | null;
   checkoutId: string | null;
@@ -25,6 +26,7 @@ export type CheckoutRow = {
   method: "mock" | "card" | "sbp" | "bnpl";
   bnplInstallmentsCount: number | null;
   amount: number;
+  tariff: "standard" | "premium" | null;
   currency: string;
   state: CheckoutStateDto;
   providerPaymentId: string | null;
@@ -48,6 +50,7 @@ export const mapPurchaseRow = (row: PurchaseRow): PurchaseRecordDto => ({
   userId: row.userId,
   courseId: row.courseId,
   price: Number(row.price),
+  tariff: row.tariff ?? undefined,
   purchasedAt: row.purchasedAt,
   paymentMethod: row.paymentMethod ?? undefined,
   checkoutId: row.checkoutId ?? undefined,
@@ -76,6 +79,7 @@ export const mapCheckoutRow = (row: CheckoutRow): CheckoutProcessDto => ({
       ? Math.max(1, Math.floor(row.bnplInstallmentsCount))
       : undefined,
   amount: Number(row.amount),
+  tariff: row.tariff ?? undefined,
   currency: row.currency || "RUB",
   state: row.state,
   providerPaymentId: row.providerPaymentId ?? undefined,

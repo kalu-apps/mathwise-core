@@ -1,4 +1,4 @@
-import { api } from "@/shared/api/client";
+import { ApiError, api } from "@/shared/api/client";
 import type {
   AuthLogoutResponseContract,
   AuthMagicLinkRequestResponseContract,
@@ -115,7 +115,14 @@ const requestHttpJson = async <T>(
       typeof (payload as { error?: unknown }).error === "string"
         ? (payload as { error: string }).error
         : `HTTP ${response.status}`;
-    throw new Error(message);
+    throw new ApiError(
+      message,
+      response.status,
+      payload,
+      "unknown",
+      undefined,
+      response.status >= 500
+    );
   }
   return payload as T;
 };

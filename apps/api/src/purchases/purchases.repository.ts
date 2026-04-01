@@ -62,6 +62,7 @@ export class PurchasesRepository {
           user_id AS "userId",
           course_id AS "courseId",
           price,
+          tariff,
           purchased_at AS "purchasedAt",
           payment_method AS "paymentMethod",
           checkout_id AS "checkoutId",
@@ -99,6 +100,7 @@ export class PurchasesRepository {
           user_id,
           course_id,
           price,
+          tariff,
           purchased_at,
           payment_method,
           checkout_id,
@@ -110,13 +112,14 @@ export class PurchasesRepository {
         )
         VALUES (
           $1, $2, $3, $4, $5,
-          $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb, NOW()
+          $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, NOW()
         )
         ON CONFLICT (id)
         DO UPDATE SET
           user_id = EXCLUDED.user_id,
           course_id = EXCLUDED.course_id,
           price = EXCLUDED.price,
+          tariff = EXCLUDED.tariff,
           purchased_at = EXCLUDED.purchased_at,
           payment_method = EXCLUDED.payment_method,
           checkout_id = EXCLUDED.checkout_id,
@@ -131,6 +134,7 @@ export class PurchasesRepository {
         purchase.userId,
         purchase.courseId,
         Math.max(0, Math.round(purchase.price)),
+        purchase.tariff ?? null,
         purchase.purchasedAt,
         purchase.paymentMethod ?? null,
         purchase.checkoutId ?? null,
@@ -153,6 +157,7 @@ export class PurchasesRepository {
           user_id AS "userId",
           course_id AS "courseId",
           price,
+          tariff,
           purchased_at AS "purchasedAt",
           payment_method AS "paymentMethod",
           checkout_id AS "checkoutId",
@@ -179,6 +184,7 @@ export class PurchasesRepository {
           user_id AS "userId",
           course_id AS "courseId",
           price,
+          tariff,
           purchased_at AS "purchasedAt",
           payment_method AS "paymentMethod",
           checkout_id AS "checkoutId",
@@ -191,6 +197,35 @@ export class PurchasesRepository {
         LIMIT 1
       `,
       [purchaseId]
+    );
+    const row = rows[0];
+    return row ? mapPurchaseRow(row) : null;
+  }
+
+  async findPurchaseByCheckoutId(
+    checkoutId: string
+  ): Promise<PurchaseRecordDto | null> {
+    const rows = await this.databaseService.query<PurchaseRow>(
+      `
+        SELECT
+          id,
+          user_id AS "userId",
+          course_id AS "courseId",
+          price,
+          tariff,
+          purchased_at AS "purchasedAt",
+          payment_method AS "paymentMethod",
+          checkout_id AS "checkoutId",
+          bnpl_json AS "bnpl",
+          course_snapshot_json AS "courseSnapshot",
+          lessons_snapshot_json AS "lessonsSnapshot",
+          purchased_test_item_ids_json AS "purchasedTestItemIds"
+        FROM profile_purchases
+        WHERE checkout_id = $1
+        ORDER BY purchased_at DESC, id DESC
+        LIMIT 1
+      `,
+      [checkoutId]
     );
     const row = rows[0];
     return row ? mapPurchaseRow(row) : null;
@@ -221,6 +256,7 @@ export class PurchasesRepository {
           method,
           bnpl_installments_count,
           amount,
+          tariff,
           currency,
           state,
           provider_payment_id,
@@ -234,7 +270,7 @@ export class PurchasesRepository {
         VALUES (
           $1, $2, $3, $4, $5, $6,
           $7, $8, $9, $10, $11, $12,
-          $13, $14, $15::jsonb, $16, $17, $18, NOW()
+          $13, $14, $15, $16::jsonb, $17, $18, $19, NOW()
         )
       `,
       [
@@ -248,6 +284,7 @@ export class PurchasesRepository {
         checkout.method,
         checkout.bnplInstallmentsCount ?? null,
         Math.max(0, Math.round(checkout.amount)),
+        checkout.tariff ?? null,
         checkout.currency,
         checkout.state,
         checkout.providerPaymentId ?? null,
@@ -274,14 +311,15 @@ export class PurchasesRepository {
           method = $8,
           bnpl_installments_count = $9,
           amount = $10,
-          currency = $11,
-          state = $12,
-          provider_payment_id = $13,
-          provider_event_id = $14,
-          consent_snapshot_json = $15::jsonb,
-          created_at = $16,
-          updated_at = $17,
-          expires_at = $18,
+          tariff = $11,
+          currency = $12,
+          state = $13,
+          provider_payment_id = $14,
+          provider_event_id = $15,
+          consent_snapshot_json = $16::jsonb,
+          created_at = $17,
+          updated_at = $18,
+          expires_at = $19,
           updated_at_ts = NOW()
         WHERE id = $1
       `,
@@ -296,6 +334,7 @@ export class PurchasesRepository {
         checkout.method,
         checkout.bnplInstallmentsCount ?? null,
         Math.max(0, Math.round(checkout.amount)),
+        checkout.tariff ?? null,
         checkout.currency,
         checkout.state,
         checkout.providerPaymentId ?? null,
@@ -322,6 +361,7 @@ export class PurchasesRepository {
           method,
           bnpl_installments_count AS "bnplInstallmentsCount",
           amount,
+          tariff,
           currency,
           state,
           provider_payment_id AS "providerPaymentId",
@@ -358,6 +398,7 @@ export class PurchasesRepository {
           method,
           bnpl_installments_count AS "bnplInstallmentsCount",
           amount,
+          tariff,
           currency,
           state,
           provider_payment_id AS "providerPaymentId",
@@ -395,6 +436,7 @@ export class PurchasesRepository {
           method,
           bnpl_installments_count AS "bnplInstallmentsCount",
           amount,
+          tariff,
           currency,
           state,
           provider_payment_id AS "providerPaymentId",
@@ -760,6 +802,48 @@ export class PurchasesRepository {
     });
   }
 
+  async revokePurchaseAccessAtomic(params: {
+    userId: string;
+    courseId: string;
+    purchaseId: string;
+    updatedAt: string;
+  }): Promise<void> {
+    await this.databaseService.transaction<void>(async (tx) => {
+      await tx.execute(
+        `
+          UPDATE course_entitlements
+          SET
+            state = 'revoked',
+            updated_at = $4,
+            updated_at_ts = NOW()
+          WHERE user_id = $1
+            AND course_id = $2
+            AND purchase_id = $3
+            AND state = 'active'
+        `,
+        [params.userId, params.courseId, params.purchaseId, params.updatedAt]
+      );
+
+      const activeRows = await tx.query<{ count: string }>(
+        `
+          SELECT COUNT(*)::text AS count
+          FROM course_entitlements
+          WHERE user_id = $1
+            AND course_id = $2
+            AND state = 'active'
+        `,
+        [params.userId, params.courseId]
+      );
+
+      const hasActiveEntitlement = Number(activeRows[0]?.count ?? 0) > 0;
+      await this.setCourseEntitlementWithExecutor(tx, {
+        userId: params.userId,
+        courseId: params.courseId,
+        hasActiveEntitlement,
+      });
+    });
+  }
+
   async getUserAccessContext(
     userId: string,
     courseId: string
@@ -800,6 +884,7 @@ export class PurchasesRepository {
           user_id,
           course_id,
           price,
+          tariff,
           purchased_at,
           payment_method,
           checkout_id,
@@ -811,13 +896,14 @@ export class PurchasesRepository {
         )
         VALUES (
           $1, $2, $3, $4, $5,
-          $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb, NOW()
+          $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, NOW()
         )
         ON CONFLICT (id)
         DO UPDATE SET
           user_id = EXCLUDED.user_id,
           course_id = EXCLUDED.course_id,
           price = EXCLUDED.price,
+          tariff = EXCLUDED.tariff,
           purchased_at = EXCLUDED.purchased_at,
           payment_method = EXCLUDED.payment_method,
           checkout_id = EXCLUDED.checkout_id,
@@ -832,6 +918,7 @@ export class PurchasesRepository {
         purchase.userId,
         purchase.courseId,
         Math.max(0, Math.round(purchase.price)),
+        purchase.tariff ?? null,
         purchase.purchasedAt,
         purchase.paymentMethod ?? null,
         purchase.checkoutId ?? null,
@@ -963,14 +1050,15 @@ export class PurchasesRepository {
           method = $8,
           bnpl_installments_count = $9,
           amount = $10,
-          currency = $11,
-          state = $12,
-          provider_payment_id = $13,
-          provider_event_id = $14,
-          consent_snapshot_json = $15::jsonb,
-          created_at = $16,
-          updated_at = $17,
-          expires_at = $18,
+          tariff = $11,
+          currency = $12,
+          state = $13,
+          provider_payment_id = $14,
+          provider_event_id = $15,
+          consent_snapshot_json = $16::jsonb,
+          created_at = $17,
+          updated_at = $18,
+          expires_at = $19,
           updated_at_ts = NOW()
         WHERE id = $1
       `,
@@ -985,6 +1073,7 @@ export class PurchasesRepository {
         checkout.method,
         checkout.bnplInstallmentsCount ?? null,
         Math.max(0, Math.round(checkout.amount)),
+        checkout.tariff ?? null,
         checkout.currency,
         checkout.state,
         checkout.providerPaymentId ?? null,

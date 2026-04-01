@@ -39,6 +39,7 @@ import {
   type AccessUiState,
 } from "@/domain/auth-payments/model/ui";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
+import { getMyCapabilities } from "@/features/capabilities/model/api";
 
 type UseCourseDetailsDataParams = {
   courseId: string;
@@ -154,11 +155,12 @@ export const useCourseDetailsData = ({
   const syncStudentCourseState = useCallback(
     async (userId: string) => {
       if (!course) return;
-      const [decision, purchases] = await Promise.all([
+      const [decision, purchases, capabilities] = await Promise.all([
         getCourseAccessDecision({
           courseId: course.id,
         }),
         getPurchases({ userId }, { forceFresh: true }),
+        getMyCapabilities({ forceFresh: true }),
       ]);
       setCourseAccess(decision);
       setHasPurchase(decision.canAccessAllLessons);
@@ -166,7 +168,10 @@ export const useCourseDetailsData = ({
         (item) => item.userId === userId && item.courseId === course.id
       );
       setCoursePurchase(purchase ?? null);
-      setIsPremiumPurchased(Boolean(purchase && purchase.price === course.priceGuided));
+      setIsPremiumPurchased(
+        capabilities.premiumCourseIds.includes(course.id) ||
+          Boolean(purchase && purchase.tariff === "premium")
+      );
       setOpenedLessonIds(getOpenedLessonIds(userId, course.id));
       const testItemIds = courseContentItems
         .filter((item): item is CourseContentTestItem => item.type === "test")
@@ -312,7 +317,7 @@ export const useCourseDetailsData = ({
         setLoading(true);
         setLoadError(null);
         setCheckoutNoticeState(null);
-        const [courseData, lessonsData, purchases, accessDecision, checkouts] =
+        const [courseData, lessonsData, purchases, accessDecision, checkouts, capabilities] =
           await Promise.all([
             getCourseById(courseId, { forceFresh: true }),
             getLessonsByCourse(courseId, { forceFresh: true }),
@@ -325,6 +330,9 @@ export const useCourseDetailsData = ({
             user?.role === "student"
               ? getCheckouts({ userId: user.id, courseId })
               : Promise.resolve([]),
+            user?.role === "student"
+              ? getMyCapabilities({ forceFresh: true })
+              : Promise.resolve(null),
           ]);
         if (!active) return;
         setCourseAccess(accessDecision);
@@ -376,13 +384,11 @@ export const useCourseDetailsData = ({
           setRoadmapFocusBlockId(initialBlockSelection ?? blocks[0]?.id ?? null);
           setHasPurchase(purchased);
           setCoursePurchase(purchase ?? null);
-          const purchasedCourseForTariffCheck =
-            resolvedCourse ?? purchase?.courseSnapshot ?? courseData;
           setIsPremiumPurchased(
             Boolean(
               purchase &&
-                purchasedCourseForTariffCheck &&
-                purchase.price === purchasedCourseForTariffCheck.priceGuided
+                ((capabilities?.premiumCourseIds ?? []).includes(courseId) ||
+                  purchase.tariff === "premium")
             )
           );
           const [viewed, opened] = await Promise.all([

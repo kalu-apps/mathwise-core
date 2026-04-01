@@ -46,6 +46,10 @@ export type ApiRuntimeConfig = {
   s3SecretKey: string;
   s3ForcePathStyle: boolean;
   mediaSignedUrlTtlSec: number;
+  workbookLaunchEnabled: boolean;
+  workbookBoardBaseUrl: string;
+  workbookLaunchSecret: string;
+  workbookLaunchTtlSec: number;
   releaseVersion: string;
 };
 
@@ -269,6 +273,44 @@ export const getApiRuntimeConfig = (
     process.env.MEDIA_SIGNED_URL_TTL_SEC,
     900
   );
+  const workbookLaunchEnabled = parseBoolean(
+    process.env.WORKBOOK_LAUNCH_ENABLED,
+    true
+  );
+  const workbookBoardBaseUrl =
+    process.env.WORKBOOK_BOARD_BASE_URL?.trim() || "";
+  const workbookLaunchSecret = process.env.WORKBOOK_LAUNCH_SECRET?.trim() || "";
+  if (workbookLaunchEnabled) {
+    if (!isLocal && !workbookBoardBaseUrl) {
+      throw new Error(
+        "[api-runtime] Missing required env: WORKBOOK_BOARD_BASE_URL"
+      );
+    }
+    if (workbookBoardBaseUrl) {
+      let parsed: URL;
+      try {
+        parsed = new URL(workbookBoardBaseUrl);
+      } catch {
+        throw new Error(
+          "[api-runtime] WORKBOOK_BOARD_BASE_URL must be a valid absolute URL"
+        );
+      }
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        throw new Error(
+          "[api-runtime] WORKBOOK_BOARD_BASE_URL must use http or https"
+        );
+      }
+    }
+    if (!isLocal && workbookLaunchSecret.length < 24) {
+      throw new Error(
+        "[api-runtime] WORKBOOK_LAUNCH_SECRET must be at least 24 chars outside local APP_ENV"
+      );
+    }
+  }
+  const workbookLaunchTtlSec = parsePositiveInteger(
+    process.env.WORKBOOK_LAUNCH_TTL_SEC,
+    120
+  );
 
   const releaseVersion =
     process.env.RELEASE_VERSION?.trim() ||
@@ -350,6 +392,11 @@ export const getApiRuntimeConfig = (
     s3SecretKey,
     s3ForcePathStyle,
     mediaSignedUrlTtlSec,
+    workbookLaunchEnabled,
+    workbookBoardBaseUrl,
+    workbookLaunchSecret:
+      workbookLaunchSecret || "local-workbook-launch-secret-dev-only",
+    workbookLaunchTtlSec,
     releaseVersion,
   };
 };
