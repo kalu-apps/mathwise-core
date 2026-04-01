@@ -113,7 +113,6 @@ const createSbpHostedAdapter = (): PaymentMethodAdapter => ({
   },
 });
 
-const mockAdapter = createImmediatePaidAdapter("mock", "mock", "checkout-api");
 const cardAdapter = createCardHostedAdapter();
 const sbpAdapter = createSbpHostedAdapter();
 const bnplAdapter = createImmediatePaidAdapter("bnpl", "bnpl", "bnpl-adapter");
@@ -122,7 +121,6 @@ export const defaultPaymentAdapters: PaymentMethodAdapter[] = [
   cardAdapter,
   sbpAdapter,
   bnplAdapter,
-  mockAdapter,
 ];
 
 export const initiateCheckoutPayment = (
@@ -130,6 +128,6 @@ export const initiateCheckoutPayment = (
   adapters: readonly PaymentMethodAdapter[] = defaultPaymentAdapters
 ): PaymentInitiationDecision => {
   const adapter =
-    adapters.find((candidate) => candidate.supports(input.method)) ?? mockAdapter;
+    adapters.find((candidate) => candidate.supports(input.method)) ?? cardAdapter;
   return adapter.initiate(input);
 };

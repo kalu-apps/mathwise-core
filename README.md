@@ -51,6 +51,10 @@ cp math-tutor-frontend/.env.stage.example math-tutor-frontend/.env.stage
 ./scripts/stage-bootstrap-mw-app-01.sh check
 ```
 
+Критичная stage policy:
+- `apps/api/.env.stage`: `PAYMENT_MOCK_ENABLED=false`, `PAYMENT_PROVIDER_AUTO_CONFIRM_LOCAL=false`
+- `apps/api/.env.stage`: `COURSES_SEED_SOURCE_FILE` не должен ссылаться на frontend artifacts (`math-tutor-frontend/mock-db.json`)
+
 Подробный runbook: [`docs/stage-bootstrap-mw-app-01.md`](docs/stage-bootstrap-mw-app-01.md)
 
 ## Связь с доской

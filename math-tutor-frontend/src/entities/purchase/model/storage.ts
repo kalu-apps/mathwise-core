@@ -23,7 +23,6 @@ const isPaymentMethod = (value: unknown): value is PurchasePaymentMethod =>
   value === "card" ||
   value === "sbp" ||
   value === "bnpl" ||
-  value === "mock" ||
   value === "unknown";
 
 const isBnplProvider = (value: unknown): value is BnplProvider =>
@@ -291,7 +290,7 @@ export type CheckoutPayload = {
   courseId: string;
   price: number;
   tariff?: "standard" | "premium";
-  paymentMethod?: "mock" | "card" | "sbp" | "bnpl";
+  paymentMethod?: "card" | "sbp" | "bnpl";
   bnplInstallmentsCount?: number;
   consents?: {
     acceptedScopes: ConsentScope[];
@@ -309,7 +308,7 @@ export type CheckoutPurchaseResponse = {
   checkoutId: string;
   checkoutState: string;
   payment?: {
-    provider: "mock" | "card" | "sbp" | "bnpl";
+    provider: "card" | "sbp" | "bnpl";
     status:
       | "awaiting_provider"
       | "provider_confirmed"

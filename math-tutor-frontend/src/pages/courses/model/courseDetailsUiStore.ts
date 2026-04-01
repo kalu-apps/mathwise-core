@@ -5,7 +5,7 @@ import type {
 } from "@/domain/auth-payments/model/api";
 import { resolveStoreSetState, type StoreSetStateAction } from "@/shared/lib/storeState";
 
-export type CourseDetailsPaymentMethod = "card" | "sbp" | "bnpl" | "mock";
+export type CourseDetailsPaymentMethod = "card" | "sbp" | "bnpl";
 
 type CourseDetailsUiStore = {
   modalOpen: boolean;

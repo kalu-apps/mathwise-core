@@ -27,6 +27,7 @@ export type ApiRuntimeConfig = {
   cardWebhookMaxSkewSec: number;
   cardWebhookReplayTtlSec: number;
   paymentProviderAutoConfirmLocal: boolean;
+  paymentMockEnabled: boolean;
   teacherBootstrapEnabled: boolean;
   teacherBootstrapEmail: string;
   teacherBootstrapPassword: string;
@@ -131,13 +132,20 @@ const resolveCoursesSeedSourceFile = (raw: string | undefined) => {
   }
 
   const candidates = [
-    path.resolve(process.cwd(), "../../math-tutor-frontend/mock-db.json"),
-    path.resolve(process.cwd(), "../math-tutor-frontend/mock-db.json"),
-    path.resolve(process.cwd(), "math-tutor-frontend/mock-db.json"),
-    path.resolve(process.cwd(), "mock-db.json"),
+    path.resolve(process.cwd(), "apps/api/data/seed.json"),
+    path.resolve(process.cwd(), "data/seed.json"),
+    path.resolve(process.cwd(), "seed.json"),
   ];
 
   return candidates[0];
+};
+
+const isUnsafeNonLocalSeedSource = (sourceFile: string) => {
+  const normalized = sourceFile.replace(/\\/g, "/").toLowerCase();
+  const filename = normalized.split("/").pop() ?? "";
+  if (normalized.includes("/math-tutor-frontend/")) return true;
+  if (filename === "mock-db.json") return true;
+  return false;
 };
 
 export const getApiRuntimeConfig = (
@@ -204,10 +212,38 @@ export const getApiRuntimeConfig = (
   if (appEnv === "prod" && coursesSeedOnBoot) {
     throw new Error("[api-runtime] COURSES_SEED_ON_BOOT cannot be enabled in prod");
   }
+  const coursesSeedSourceFile = resolveCoursesSeedSourceFile(
+    process.env.COURSES_SEED_SOURCE_FILE ?? process.env.COURSES_SOURCE_FILE
+  );
+  if (!isLocal && isUnsafeNonLocalSeedSource(coursesSeedSourceFile)) {
+    throw new Error(
+      "[api-runtime] Non-local startup blocked: COURSES_SEED_SOURCE_FILE points to unsafe frontend/mock source."
+    );
+  }
 
   const cardWebhookSecret = process.env.CARD_WEBHOOK_SECRET?.trim();
   if (!isLocal && !cardWebhookSecret) {
     throw new Error("[api-runtime] Missing required env: CARD_WEBHOOK_SECRET");
+  }
+
+  const paymentProviderAutoConfirmLocal = parseBoolean(
+    process.env.PAYMENT_PROVIDER_AUTO_CONFIRM_LOCAL,
+    isLocal
+  );
+  if (!isLocal && paymentProviderAutoConfirmLocal) {
+    throw new Error(
+      "[api-runtime] PAYMENT_PROVIDER_AUTO_CONFIRM_LOCAL must be disabled outside local APP_ENV"
+    );
+  }
+
+  const paymentMockEnabled = parseBoolean(
+    process.env.PAYMENT_MOCK_ENABLED,
+    isLocal
+  );
+  if (!isLocal && paymentMockEnabled) {
+    throw new Error(
+      "[api-runtime] PAYMENT_MOCK_ENABLED must be disabled outside local APP_ENV"
+    );
   }
 
   const teacherBootstrapEnabled = parseBoolean(
@@ -329,9 +365,7 @@ export const getApiRuntimeConfig = (
       ? ensureRequiredEnv("REDIS_URL", process.env.REDIS_URL)
       : process.env.REDIS_URL?.trim() || "",
     coursesSeedOnBoot,
-    coursesSeedSourceFile: resolveCoursesSeedSourceFile(
-      process.env.COURSES_SEED_SOURCE_FILE ?? process.env.COURSES_SOURCE_FILE
-    ),
+    coursesSeedSourceFile,
     authSessionCookieName:
       process.env.AUTH_SESSION_COOKIE_NAME?.trim() || "mt_auth_session",
     authSessionTtlSec: parsePositiveInteger(
@@ -355,10 +389,8 @@ export const getApiRuntimeConfig = (
       process.env.CARD_WEBHOOK_REPLAY_TTL_SEC,
       15 * 60
     ),
-    paymentProviderAutoConfirmLocal: parseBoolean(
-      process.env.PAYMENT_PROVIDER_AUTO_CONFIRM_LOCAL,
-      isLocal
-    ),
+    paymentProviderAutoConfirmLocal,
+    paymentMockEnabled,
     teacherBootstrapEnabled,
     teacherBootstrapEmail,
     teacherBootstrapPassword,

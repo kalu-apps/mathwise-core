@@ -1,7 +1,9 @@
 import {
+  Body,
   Controller,
   Get,
   HttpException,
+  Put,
   Req,
   Res,
 } from "@nestjs/common";
@@ -52,6 +54,34 @@ export class ProfileController {
     @Res({ passthrough: true }) res: HttpResponseWithHeaders
   ): Promise<AuthUserDto | null> {
     return this.resolveUserFromRequest(req, res);
+  }
+
+  @Put("profile/me")
+  async updateProfileMe(
+    @Body()
+    body: {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      photo?: string;
+    },
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<AuthUserDto> {
+    const user = await this.resolveUserFromRequest(req, res);
+    if (!user) {
+      throw new HttpException({ error: "Требуется авторизация." }, 401);
+    }
+    const updated = await this.profileService.updateProfile(user.id, {
+      firstName: body?.firstName,
+      lastName: body?.lastName,
+      phone: body?.phone,
+      photo: body?.photo,
+    });
+    if (!updated) {
+      throw new HttpException({ error: "Пользователь не найден." }, 404);
+    }
+    return updated;
   }
 
   @Get("public/teachers")

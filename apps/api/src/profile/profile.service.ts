@@ -174,4 +174,19 @@ export class ProfileService implements OnModuleInit {
   async getPublicTeachers(): Promise<AuthUserDto[]> {
     return this.authRepository.findByRole("teacher");
   }
+
+  async updateProfile(userId: string, patch: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    photo?: string;
+  }): Promise<AuthUserDto | null> {
+    return this.authRepository.updateUserProfile({
+      userId,
+      firstName: patch.firstName,
+      lastName: patch.lastName,
+      phone: patch.phone,
+      photo: patch.photo,
+    });
+  }
 }

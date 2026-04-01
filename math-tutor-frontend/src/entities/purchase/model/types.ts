@@ -1,7 +1,7 @@
 import type { Course } from "../../course/model/types";
 import type { Lesson } from "../../lesson/model/types";
 
-export type PurchasePaymentMethod = "card" | "sbp" | "bnpl" | "mock" | "unknown";
+export type PurchasePaymentMethod = "card" | "sbp" | "bnpl" | "unknown";
 
 export type BnplProvider = "unknown" | "dolyami" | "podeli" | "other";
 

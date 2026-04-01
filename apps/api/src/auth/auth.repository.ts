@@ -249,6 +249,58 @@ export class AuthRepository {
     return created;
   }
 
+  async updateUserProfile(params: {
+    userId: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    photo?: string;
+  }): Promise<AuthUserDto | null> {
+    const current = await this.findById(params.userId);
+    if (!current) return null;
+
+    const firstName =
+      typeof params.firstName === "string"
+        ? params.firstName.trim()
+        : current.firstName;
+    const lastName =
+      typeof params.lastName === "string"
+        ? params.lastName.trim()
+        : current.lastName;
+    const phone =
+      typeof params.phone === "string" && params.phone.trim().length > 0
+        ? params.phone.trim()
+        : null;
+    const photo =
+      typeof params.photo === "string" && params.photo.trim().length > 0
+        ? params.photo.trim()
+        : null;
+
+    await this.databaseService.execute(
+      `
+        UPDATE auth_users
+        SET
+          first_name = $2,
+          last_name = $3,
+          phone = $4,
+          photo = $5,
+          updated_at = NOW()
+        WHERE id = $1
+      `,
+      [params.userId, firstName, lastName, phone, photo]
+    );
+
+    await this.ensureProfileBootstrap({
+      userId: params.userId,
+      email: current.email,
+      firstName,
+      lastName,
+      phone: phone ?? undefined,
+    });
+
+    return this.findById(params.userId);
+  }
+
   async ensureProfileBootstrap(params: {
     userId: string;
     email: string;

@@ -19,6 +19,11 @@ npm run bootstrap:stage
 npm run start:stage
 ```
 
+Non-local policy:
+- `PAYMENT_MOCK_ENABLED=false`
+- `PAYMENT_PROVIDER_AUTO_CONFIRM_LOCAL=false`
+- `COURSES_SEED_SOURCE_FILE` должен указывать только на backend-safe источник (frontend `mock-db.json` запрещен fail-fast проверкой).
+
 ## Critical commerce/auth runtime
 
 Критический контур теперь backend-owned:

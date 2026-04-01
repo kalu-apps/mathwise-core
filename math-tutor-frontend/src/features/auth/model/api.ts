@@ -5,6 +5,7 @@ import { t } from "@/shared/i18n";
 import { readStorage } from "@/shared/lib/localDb";
 import { authGateway } from "@/shared/gateway";
 import { AUTH_STORAGE_KEY } from "./constants";
+import type { TeacherDashboardContextResponseContract } from "@/shared/contracts/profile.contract";
 
 export type RequestMagicCodeResponse = {
   ok: boolean;
@@ -154,10 +155,15 @@ export type SelfHealAccessResponse = {
 export async function selfHealAccess(params?: {
   courseId?: string;
 }): Promise<SelfHealAccessResponse> {
-  return api.post<SelfHealAccessResponse>(
-    "/support/self-heal-access",
-    params ?? {}
-  );
+  void params;
+  return {
+    ok: true,
+    initialCount: 0,
+    appliedCount: 0,
+    skippedCount: 0,
+    remainingCount: 0,
+    applied: [],
+  };
 }
 
 export type UpdateUserPayload = Partial<Pick<User, "firstName" | "lastName" | "phone" | "photo">>;
@@ -166,18 +172,21 @@ export async function updateUserProfile(
   userId: string,
   data: UpdateUserPayload
 ): Promise<User> {
+  const authUser = readStorage<User | null>(AUTH_STORAGE_KEY, null);
+  if (authUser && authUser.id !== userId) {
+    throw new Error("Недопустимый контекст обновления профиля.");
+  }
   try {
-    return await api.put<User>(`/users/${userId}`, data);
+    return await api.put<User>("/profile/me", data);
   } catch (error) {
     if (isRecoverableApiError(error)) {
       enqueueOutboxRequest({
         title: t("common.retryUserProfileSaveAction"),
         method: "PUT",
-        path: `/users/${userId}`,
+        path: "/profile/me",
         body: data,
         dedupeKey: `user-profile:${userId}`,
       });
-      const authUser = readStorage<User | null>(AUTH_STORAGE_KEY, null);
       if (authUser && authUser.id === userId) {
         return {
           ...authUser,
@@ -202,11 +211,20 @@ export async function getUsers(
   role?: string,
   options?: { forceFresh?: boolean }
 ): Promise<User[]> {
-  const query = role ? `?role=${encodeURIComponent(role)}` : "";
-  return api.get<User[]>(`/users${query}`, {
-    dedupe: options?.forceFresh ? false : undefined,
-    cacheTtlMs: options?.forceFresh ? 0 : undefined,
-  });
+  if (role === "teacher") {
+    return getPublicTeachers();
+  }
+  if (role === "student") {
+    const context = await api.get<TeacherDashboardContextResponseContract>(
+      "/teacher/context",
+      {
+        dedupe: options?.forceFresh ? false : undefined,
+        cacheTtlMs: options?.forceFresh ? 0 : undefined,
+      }
+    );
+    return context.students;
+  }
+  return [];
 }
 
 export async function getPublicTeachers(): Promise<User[]> {

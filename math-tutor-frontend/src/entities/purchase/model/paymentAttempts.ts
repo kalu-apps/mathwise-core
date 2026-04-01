@@ -8,7 +8,7 @@ import {
 } from "@/domain/auth-payments/model/api";
 import type { Purchase } from "./types";
 
-export type PaymentAttemptMethod = "card" | "sbp" | "bnpl" | "mock";
+export type PaymentAttemptMethod = "card" | "sbp" | "bnpl";
 
 export type PaymentStatus =
   | "initiated"
@@ -19,7 +19,6 @@ export type PaymentStatus =
   | "expired";
 
 export type PaymentProvider =
-  | "mock"
   | "yookassa"
   | "cloudpayments"
   | "tbank"
@@ -75,7 +74,7 @@ const toPaymentMethod = (
   method: CheckoutListItem["method"] | string | undefined
 ): PaymentAttemptMethod => {
   if (method === "card" || method === "sbp" || method === "bnpl") return method;
-  return "mock";
+  return "card";
 };
 
 const toPaymentStatus = (value: string | undefined): PaymentStatus => {
@@ -98,7 +97,6 @@ const toPaymentStatus = (value: string | undefined): PaymentStatus => {
 
 const toPaymentProvider = (value: string | undefined): PaymentProvider => {
   if (
-    value === "mock" ||
     value === "card" ||
     value === "sbp" ||
     value === "bnpl" ||
@@ -114,8 +112,7 @@ const toPaymentProvider = (value: string | undefined): PaymentProvider => {
 const defaultProviderByMethod = (method: PaymentAttemptMethod): PaymentProvider => {
   if (method === "card") return "card";
   if (method === "sbp") return "sbp";
-  if (method === "bnpl") return "bnpl";
-  return "mock";
+  return "bnpl";
 };
 
 export const toPaymentAttemptFromCheckout = (

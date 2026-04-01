@@ -32,6 +32,8 @@ Optimization/budget work — отдельный пакет после релиз
 - [ ] `EMAIL_DELIVERY_MODE` настроен осознанно:
   - `disabled` — честно без fake-delivered статусов;
   - `provider` — только с валидным `EMAIL_PROVIDER_API_KEY` и включенным adapter.
+- [ ] `PAYMENT_MOCK_ENABLED=false` и `PAYMENT_PROVIDER_AUTO_CONFIRM_LOCAL=false` в non-local.
+- [ ] `COURSES_SEED_SOURCE_FILE` в non-local указывает только на backend-safe источник (не `math-tutor-frontend/mock-db.json`).
 - [ ] `COURSES_SEED_ON_BOOT=true` в non-local не содержит `teacher` в seed source.
 - [ ] `WORKBOOK_LAUNCH_ENABLED=true` в stage/prod сопровождается валидными `WORKBOOK_BOARD_BASE_URL` и `WORKBOOK_LAUNCH_SECRET`.
 - [ ] `/api/capabilities/me` возвращает feature flags и не зависит от price-эвристик на клиенте.

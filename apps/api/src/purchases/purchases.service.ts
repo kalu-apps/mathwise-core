@@ -156,6 +156,12 @@ export class PurchasesService implements OnModuleInit {
     }
 
     const method = normalizeCheckoutMethod(payload.paymentMethod);
+    if (method === "mock" && !this.runtimeConfig.paymentMockEnabled) {
+      throw new HttpException(
+        { error: "Метод оплаты mock запрещен в текущем runtime." },
+        400
+      );
+    }
     const courseId = payload.courseId?.trim();
     if (!courseId) {
       throw new HttpException({ error: "courseId обязателен." }, 400);

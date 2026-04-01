@@ -11,7 +11,7 @@ export type CheckoutState =
   | "canceled"
   | "expired";
 
-export type CheckoutMethod = "card" | "sbp" | "bnpl" | "mock";
+export type CheckoutMethod = "card" | "sbp" | "bnpl";
 
 export type CheckoutProcess = {
   id: string;
@@ -42,7 +42,7 @@ export type PaymentEventStatus =
   | "canceled"
   | "expired";
 
-export type PaymentEventProvider = "mock" | "sbp" | "card" | "bnpl";
+export type PaymentEventProvider = "sbp" | "card" | "bnpl" | "other";
 
 export type PaymentEventOutcome =
   | "applied"

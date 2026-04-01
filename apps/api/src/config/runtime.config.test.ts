@@ -86,3 +86,49 @@ test("runtime config: stage mode requires WORKBOOK_BOARD_BASE_URL when launch en
     restoreEnv(snapshot);
   }
 });
+
+test("runtime config: stage mode rejects PAYMENT_MOCK_ENABLED=true", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.PAYMENT_MOCK_ENABLED = "true";
+
+    assert.throws(
+      () => getApiRuntimeConfig(),
+      /PAYMENT_MOCK_ENABLED must be disabled outside local APP_ENV/
+    );
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("runtime config: stage mode rejects frontend mock seed source", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.COURSES_SEED_SOURCE_FILE = "/opt/mathwise-core/math-tutor-frontend/mock-db.json";
+
+    assert.throws(
+      () => getApiRuntimeConfig(),
+      /COURSES_SEED_SOURCE_FILE points to unsafe frontend\/mock source/
+    );
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
