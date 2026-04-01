@@ -72,15 +72,19 @@ import { useTeacherDashboardUiStore } from "@/pages/teacher/model/teacherDashboa
 
 import {
   deleteCourse,
-  updateCourse,
+  publishCourse as publishCourseCommand,
 } from "@/entities/course/model/storage";
 import {
   deletePurchasesByCourse,
   getPurchases,
 } from "@/entities/purchase/model/storage";
-import { deleteLessonsByCourse } from "@/entities/lesson/model/storage";
+import {
+  deleteLessonsByCourse,
+  getLessonsByCourse,
+} from "@/entities/lesson/model/storage";
 import {
   deleteCourseContentItems,
+  getCourseContentItems,
 } from "@/features/assessments/model/storage";
 import { deleteProgressByCourse } from "@/entities/progress/model/storage";
 import {
@@ -498,7 +502,22 @@ export default function TeacherDashboard() {
 
   const publishCourse = async (course: Course) => {
     const wasDraft = course.status === "draft";
-    const publishedCourse = await updateCourse({ ...course, status: "published" });
+    const lessons = await getLessonsByCourse(course.id, { forceFresh: true });
+    const contentItems = await getCourseContentItems(course.id, lessons);
+    const assessmentsSnapshot = contentItems.map((item) => ({
+      id: item.id,
+      courseId: item.courseId,
+      blockId: item.blockId,
+      type: item.type,
+      order: item.order,
+      lessonId: item.type === "lesson" ? item.lessonId : undefined,
+      templateId: item.type === "test" ? item.templateId : undefined,
+      titleSnapshot: item.type === "test" ? item.titleSnapshot : undefined,
+      templateSnapshot: item.type === "test" ? item.templateSnapshot : undefined,
+      createdAt: item.createdAt,
+    }));
+
+    await publishCourseCommand(course.id, { assessmentsSnapshot });
     if (wasDraft && userId) {
       try {
         const purchases = await getPurchases(undefined, { forceFresh: true });
@@ -511,7 +530,7 @@ export default function TeacherDashboard() {
           )
         );
         if (targetUserIds.length > 0) {
-          const safeTitle = publishedCourse.title.trim() || "Без названия";
+          const safeTitle = course.title.trim() || "Без названия";
           await createNewsPost({
             authorId: userId,
             title: `В курсе «${safeTitle}» появились новинки`,
@@ -520,7 +539,7 @@ export default function TeacherDashboard() {
             tone: "course_update",
             highlighted: true,
             visibility: "course_students",
-            targetCourseId: publishedCourse.id,
+            targetCourseId: course.id,
             targetUserIds,
           });
         }

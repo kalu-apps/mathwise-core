@@ -49,6 +49,24 @@ Media runtime включается через:
 - `POST /api/media/:id/complete`
 - `GET /api/media/:id/download-url`
 
+## Course/Test publish lifecycle
+
+Release-контур для курсов теперь backend-owned:
+- `GET /api/courses` — только active published releases (catalog)
+- `GET /api/courses/:id` — для owner-teacher возвращает draft, для остальных active published release
+- `POST /api/courses/:id/publish` — единая publish-команда (`idempotent`, release version bump)
+- `POST /api/courses` / `PUT /api/courses/:id` / `DELETE /api/courses/:id` — draft management (teacher only)
+- `GET /api/lessons*` — чтение через active release + entitlement redaction (`public_preview` vs `entitled_full`)
+- `POST|PUT|DELETE /api/lessons` — draft lesson management (teacher only)
+- `GET|PUT /api/assessments/state` — backend store для assessment templates/content/attempts
+- `GET|PUT /api/assessments/sessions` — backend store для assessment session state
+- `GET|POST|DELETE /api/progress*` — backend-owned lesson viewed progress
+
+Ключевые инварианты:
+- draft не участвует в public catalog;
+- publish не сводится к клиентскому `status=published`;
+- purchased/entitled users читают effective content из active release.
+
 ## Health / readiness
 
 - `GET /health` — liveness

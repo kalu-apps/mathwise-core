@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module, type NestModule } from "@nestjs/common";
 import { AccessModule } from "./access/access.module";
+import { AssessmentsModule } from "./assessments/assessments.module";
 import { AuthModule } from "./auth/auth.module";
 import { BookingsModule } from "./bookings/bookings.module";
 import { CoursesModule } from "./courses/courses.module";
@@ -11,6 +12,7 @@ import { NotificationsModule } from "./notifications/notifications.module";
 import { ObservabilityModule } from "./observability/observability.module";
 import { RequestLoggingMiddleware } from "./observability/request-logging.middleware";
 import { ProfileModule } from "./profile/profile.module";
+import { ProgressModule } from "./progress/progress.module";
 import { PurchasesModule } from "./purchases/purchases.module";
 import { RedisModule } from "./redis/redis.module";
 
@@ -21,8 +23,10 @@ import { RedisModule } from "./redis/redis.module";
     ObservabilityModule,
     HealthModule,
     AuthModule,
+    AssessmentsModule,
     CoursesModule,
     LessonsModule,
+    ProgressModule,
     MediaModule,
     NotificationsModule,
     AccessModule,

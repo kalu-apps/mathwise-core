@@ -2,6 +2,10 @@ import type { Course } from "./types";
 import { api } from "@/shared/api/client";
 import { buildIdempotencyHeaders } from "@/shared/lib/idempotency";
 import { coursesGateway } from "@/shared/gateway";
+import type {
+  CourseAssessmentReleaseItemContract,
+  PublishCourseResponseContract,
+} from "@/shared/contracts/course.contract";
 
 export async function getCourses(options?: { forceFresh?: boolean }): Promise<Course[]> {
   return coursesGateway.getCourses(options);
@@ -34,4 +38,25 @@ export async function updateCourse(
 
 export async function deleteCourse(courseId: string): Promise<void> {
   await api.del(`/courses/${courseId}`);
+}
+
+export async function publishCourse(
+  courseId: string,
+  options?: {
+    assessmentsSnapshot?: CourseAssessmentReleaseItemContract[];
+    idempotencyKey?: string;
+  }
+): Promise<PublishCourseResponseContract> {
+  return api.post<PublishCourseResponseContract>(
+    `/courses/${encodeURIComponent(courseId)}/publish`,
+    {
+      assessmentsSnapshot: options?.assessmentsSnapshot ?? [],
+    },
+    {
+      headers: buildIdempotencyHeaders(
+        "course_publish",
+        options?.idempotencyKey
+      ),
+    }
+  );
 }

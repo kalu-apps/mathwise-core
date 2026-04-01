@@ -50,7 +50,12 @@ export class AccessService implements OnModuleInit {
   async getCourseAccessList(
     actorUser?: AuthUserDto | null
   ): Promise<CourseAccessListResponseDto> {
-    const courseIds = await this.coursesRepository.findAllIds();
+    const isTeacher = actorUser?.role === "teacher";
+    const courseIds = isTeacher
+      ? await this.coursesRepository.findAllIds()
+      : (await this.coursesRepository.findAllPublishedCatalog()).map(
+          (course) => course.id
+        );
     const decisions = await Promise.all(
       courseIds.map((courseId) => this.getCourseAccessDecision(courseId, actorUser))
     );
@@ -62,9 +67,11 @@ export class AccessService implements OnModuleInit {
     actorUser?: AuthUserDto | null
   ): Promise<CourseAccessDecisionDto> {
     const context = await this.resolveAccessContext(actorUser);
-    const courseExists = await this.coursesRepository.existsById(courseId);
+    const hasPublishedRelease = await this.coursesRepository.existsPublishedById(courseId);
+    const hasAnyDraft = await this.coursesRepository.existsById(courseId);
+    const hasVisibleCourse = context.role === "teacher" ? hasAnyDraft : hasPublishedRelease;
 
-    if (!courseExists) {
+    if (!hasVisibleCourse) {
       return this.createCourseDecision({
         courseId,
         role: context.role,

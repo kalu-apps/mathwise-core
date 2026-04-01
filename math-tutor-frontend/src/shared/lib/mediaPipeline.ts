@@ -1,5 +1,4 @@
 import { api } from "@/shared/api/client";
-import { fileToDataUrl } from "@/shared/lib/files";
 
 export type ResolveLessonVideoSourcesInput = {
   lessonTitle?: string;
@@ -15,15 +14,23 @@ export type ResolveLessonVideoSourcesResult = {
   videoPosterUrl?: string;
 };
 
-type VideoPipelineResponse = ResolveLessonVideoSourcesResult & {
-  pipelineMode: "ffmpeg" | "passthrough";
+type CreateUploadUrlResponse = {
+  objectId: string;
+  uploadUrl: string;
+  method: "PUT";
+  headers?: Record<string, string>;
 };
 
-type MediaPipelineJobResponse = {
-  id: string;
-  status: "queued" | "processing" | "ready" | "failed";
-  result?: string | null;
-  error?: string | null;
+type CompleteUploadResponse = {
+  ok: boolean;
+  media: {
+    id: string;
+  };
+};
+
+type DownloadUrlResponse = {
+  objectId: string;
+  downloadUrl: string;
 };
 
 export type MediaJobStatus = "queued" | "processing" | "ready" | "failed";
@@ -57,17 +64,6 @@ const buildFallbackResult = (
   videoPosterUrl: normalizeSource(input.videoPosterUrl) || undefined,
 });
 
-const parsePipelineResult = (
-  payload: string | null | undefined
-): VideoPipelineResponse | null => {
-  if (!payload) return null;
-  try {
-    return JSON.parse(payload) as VideoPipelineResponse;
-  } catch {
-    return null;
-  }
-};
-
 const toResolvedState = (
   state: ResolveLessonVideoSourcesResult,
   status: MediaJobStatus,
@@ -81,6 +77,43 @@ const toResolvedState = (
   jobId,
   error,
 });
+
+const uploadObjectToStorage = async (params: {
+  file: File;
+  category: string;
+}): Promise<{ objectId: string; downloadUrl: string }> => {
+  const upload = await api.post<CreateUploadUrlResponse>("/media/upload-url", {
+    fileName: params.file.name,
+    contentType: params.file.type || "application/octet-stream",
+    sizeBytes: params.file.size,
+    category: params.category,
+  });
+
+  const uploadResponse = await fetch(upload.uploadUrl, {
+    method: upload.method || "PUT",
+    headers: upload.headers,
+    body: params.file,
+  });
+  if (!uploadResponse.ok) {
+    throw new Error("Storage upload failed");
+  }
+
+  await api.post<CompleteUploadResponse>(`/media/${upload.objectId}/complete`, {
+    sizeBytes: params.file.size,
+  });
+  const download = await api.get<DownloadUrlResponse>(
+    `/media/${upload.objectId}/download-url`,
+    {
+      dedupe: false,
+      cacheTtlMs: 0,
+    }
+  );
+
+  return {
+    objectId: upload.objectId,
+    downloadUrl: download.downloadUrl,
+  };
+};
 
 export const preflightLessonVideo = (
   input: ResolveLessonVideoSourcesInput
@@ -114,34 +147,32 @@ export const preflightLessonVideo = (
 export async function startLessonVideoPipeline(
   input: ResolveLessonVideoSourcesInput
 ): Promise<LessonMediaJobState> {
-  const uploadDataUrl = input.videoFile ? await fileToDataUrl(input.videoFile) : "";
-  const fallbackResult = buildFallbackResult(input, uploadDataUrl);
+  const fallbackResult = buildFallbackResult(input, "");
 
   if (!input.videoFile) {
     return toResolvedState(fallbackResult, "ready");
   }
 
   try {
-    const job = await api.post<MediaPipelineJobResponse>("/media/video-jobs", {
-      lessonTitle: normalizeSource(input.lessonTitle),
-      uploadDataUrl,
-      fallbackUrl: normalizeSource(input.videoUrl),
-      streamUrl: normalizeSource(input.videoStreamUrl),
-      posterUrl: normalizeSource(input.videoPosterUrl),
+    const uploaded = await uploadObjectToStorage({
+      file: input.videoFile,
+      category: "lesson-video",
     });
-
     return toResolvedState(
-      fallbackResult,
-      job.status === "failed" ? "failed" : job.status,
-      job.id,
-      job.error ?? undefined
+      {
+        videoUrl: uploaded.downloadUrl,
+        videoStreamUrl: uploaded.downloadUrl,
+        videoPosterUrl: fallbackResult.videoPosterUrl,
+      },
+      "ready",
+      uploaded.objectId
     );
   } catch {
     return toResolvedState(
       fallbackResult,
       "failed",
       undefined,
-      "Не удалось запустить обработку видео. Сохранен резервный источник."
+      "Не удалось загрузить видео в storage. Проверьте media-runtime настройки."
     );
   }
 }
@@ -162,24 +193,23 @@ export async function pollLessonVideoPipeline(
       await wait(delayMs);
     }
     try {
-      const current = await api.get<MediaPipelineJobResponse>(`/media/video-jobs/${jobId}`);
-      if (current.status === "ready") {
-        const result = parsePipelineResult(current.result);
-        if (!result) {
-          break;
-        }
-        return toResolvedState(result, "ready", jobId);
-      }
-      if (current.status === "failed") {
+      const current = await api.get<DownloadUrlResponse>(`/media/${jobId}/download-url`, {
+        dedupe: false,
+        cacheTtlMs: 0,
+      });
+      if (current.downloadUrl) {
         return toResolvedState(
-          fallbackSources,
-          "failed",
-          jobId,
-          current.error ?? "Обработка видео завершилась с ошибкой."
+          {
+            videoUrl: current.downloadUrl,
+            videoStreamUrl: current.downloadUrl,
+            videoPosterUrl: fallbackSources.videoPosterUrl,
+          },
+          "ready",
+          jobId
         );
       }
     } catch {
-      break;
+      // Media object can still be in transit in storage.
     }
   }
 
@@ -206,4 +236,12 @@ export async function resolveLessonVideoSources(
     videoStreamUrl: started.videoStreamUrl,
     videoPosterUrl: started.videoPosterUrl,
   };
+}
+
+export async function uploadLessonMaterialFile(file: File): Promise<string> {
+  const uploaded = await uploadObjectToStorage({
+    file,
+    category: "lesson-material",
+  });
+  return uploaded.downloadUrl;
 }

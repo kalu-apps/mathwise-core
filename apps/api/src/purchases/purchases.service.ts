@@ -150,7 +150,7 @@ export class PurchasesService implements OnModuleInit {
       throw new HttpException({ error: "courseId обязателен." }, 400);
     }
 
-    const course = await this.coursesRepository.findById(courseId);
+    const course = await this.coursesRepository.findPublishedById(courseId);
     if (!course) {
       throw new HttpException({ error: "Курс не найден." }, 404);
     }
@@ -1045,7 +1045,7 @@ export class PurchasesService implements OnModuleInit {
         });
       }
 
-      const course = await this.coursesRepository.findById(boundCheckout.courseId);
+      const course = await this.coursesRepository.findPublishedById(boundCheckout.courseId);
       if (!course) {
         throw new HttpException({ error: "Курс не найден во время provisioning." }, 404);
       }

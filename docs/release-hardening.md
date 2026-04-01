@@ -54,7 +54,11 @@ curl -fsS "$API_BASE_URL/runtime/diagnostics"
 Проверить вручную:
 - auth/session restore/logout
 - courses/lessons/access read
+- draft не виден в public catalog (`GET /api/courses`)
+- publish проходит только через `POST /api/courses/:id/publish` (без client-driven status flip)
+- после publish у purchased user доступен новый active release без потери entitlement
 - non-entitled actor не получает full lesson payload (`videoUrl/materials`) в `GET /api/lessons*` и `GET /api/access/lessons/:id`
+- progress parity: student/teacher читают backend `/api/progress` источник, а не локальные вычисления
 - purchases/bookings write flows
 - media endpoints (если `MEDIA_STORAGE_ENABLED=true`)
 - frontend runtime diagnostics в браузере:

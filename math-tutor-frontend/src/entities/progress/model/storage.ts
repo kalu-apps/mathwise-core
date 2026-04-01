@@ -5,7 +5,8 @@ export async function markLessonViewed(
   courseId: string,
   lessonId: string
 ): Promise<void> {
-  await api.post("/progress/viewed", { userId, courseId, lessonId });
+  void userId;
+  await api.post("/progress/viewed", { courseId, lessonId });
 }
 
 export async function getViewedLessonIds(

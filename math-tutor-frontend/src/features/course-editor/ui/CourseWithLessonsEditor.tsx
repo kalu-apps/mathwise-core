@@ -50,12 +50,12 @@ import {
 import type { Course } from "@/entities/course/model/types";
 import type { LessonDraft } from "./LessonEditor";
 import { LessonEditor } from "./LessonEditor";
-import { fileToDataUrl } from "@/shared/lib/files";
 import {
   pollLessonVideoPipeline,
   preflightLessonVideo,
   startLessonVideoPipeline,
   type LessonMediaJobState,
+  uploadLessonMaterialFile,
 } from "@/shared/lib/mediaPipeline";
 import { generateId } from "@/shared/lib/id";
 import { t } from "@/shared/i18n";
@@ -970,18 +970,20 @@ export function CourseWithLessonsEditor({
                 ? "ready"
                 : undefined),
             mediaJobError: preparedLesson.mediaJobError,
-            materials: (
-              await Promise.all(
-                preparedLesson.materials.map(async (material) => ({
-                  id: material.id,
-                  name: material.name,
-                  type: material.type,
-                  url:
-                    material.url ??
-                    (material.file ? await fileToDataUrl(material.file) : ""),
-                }))
-              )
-            ).filter((material) => material.url),
+              materials: (
+                await Promise.all(
+                  preparedLesson.materials.map(async (material) => ({
+                    id: material.id,
+                    name: material.name,
+                    type: material.type,
+                    url:
+                      material.url ??
+                    (material.file
+                      ? await uploadLessonMaterialFile(material.file)
+                      : ""),
+                  }))
+                )
+              ).filter((material) => material.url),
             settings: preparedLesson.settings,
           };
         })
@@ -1155,7 +1157,9 @@ export function CourseWithLessonsEditor({
                     id: m.id,
                     name: m.name,
                     type: m.type,
-                    url: m.url ?? (m.file ? await fileToDataUrl(m.file) : ""),
+                    url:
+                      m.url ??
+                      (m.file ? await uploadLessonMaterialFile(m.file) : ""),
                   }))
                 )
               ).filter((m) => m.url);

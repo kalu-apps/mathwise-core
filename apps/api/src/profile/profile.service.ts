@@ -3,6 +3,7 @@ import { AuthRepository } from "../auth/auth.repository";
 import { getApiRuntimeConfig } from "../config/runtime.config";
 import { CoursesRepository } from "../courses/courses.repository";
 import { DatabaseService } from "../db/database.service";
+import { markFullLessonContent, redactLessonForPreview } from "../lessons/lessons.redaction";
 import { LessonsRepository } from "../lessons/lessons.repository";
 import {
   readProfileSeedData,
@@ -45,14 +46,23 @@ export class ProfileService implements OnModuleInit {
   }
 
   async getStudentContext(userId: string): Promise<StudentProfileContextDto> {
-    const [profile, courses, lessons, purchases, bookings, teachers] =
+    const [profile, courses, lessons, purchases, bookings, teachers, entitlementRows] =
       await Promise.all([
         this.authRepository.findById(userId),
-        this.coursesRepository.findAll(),
-        this.lessonsRepository.findAll(),
+        this.coursesRepository.findAllPublishedCatalog(),
+        this.lessonsRepository.findPublishedAll(),
         this.profileRepository.findPurchasesByUser(userId),
         this.profileRepository.findBookingsByStudent(userId),
         this.authRepository.findByRole("teacher"),
+        this.databaseService.query<{ courseId: string }>(
+          `
+            SELECT course_id AS "courseId"
+            FROM user_course_access
+            WHERE user_id = $1
+              AND has_active_entitlement = TRUE
+          `,
+          [userId]
+        ),
       ]);
 
     const availabilityRows =
@@ -74,10 +84,21 @@ export class ProfileService implements OnModuleInit {
       teacherAvailabilityByTeacherId[row.teacherId] = list;
     }
 
+    const entitledCourseIds = new Set<string>([
+      ...purchases.map((purchase) => purchase.courseId),
+      ...entitlementRows.map((item) => item.courseId),
+    ]);
+
+    const lessonsProjection = lessons.map((lesson) =>
+      entitledCourseIds.has(lesson.courseId)
+        ? markFullLessonContent(lesson)
+        : redactLessonForPreview(lesson)
+    );
+
     return {
       profile,
       courses,
-      lessons,
+      lessons: lessonsProjection,
       purchases,
       bookings,
       teachers,
@@ -88,19 +109,43 @@ export class ProfileService implements OnModuleInit {
   async getTeacherDashboardContext(
     teacherId: string
   ): Promise<TeacherDashboardContextDto> {
-    const [profile, allCourses, allLessons, students, bookings, availability] =
+    const [profile, courses, bookings, availability, allStudents] =
       await Promise.all([
         this.authRepository.findById(teacherId),
-        this.coursesRepository.findAll(),
-        this.lessonsRepository.findAll(),
-        this.authRepository.findByRole("student"),
+        this.coursesRepository.findAllDraftsByTeacher(teacherId),
         this.profileRepository.findBookingsByTeacher(teacherId),
         this.profileRepository.findTeacherAvailabilityByTeacherId(teacherId),
+        this.authRepository.findByRole("student"),
       ]);
 
-    const courses = allCourses.filter((course) => course.teacherId === teacherId);
     const courseIdSet = new Set(courses.map((course) => course.id));
-    const lessons = allLessons.filter((lesson) => courseIdSet.has(lesson.courseId));
+    const lessonGroups = await Promise.all(
+      courses.map((course) => this.lessonsRepository.findDraftByCourse(course.id))
+    );
+    const lessons = lessonGroups
+      .flat()
+      .filter((lesson) => courseIdSet.has(lesson.courseId));
+
+    const purchaseRows =
+      courses.length > 0
+        ? await this.databaseService.query<{ userId: string }>(
+            `
+              SELECT DISTINCT user_id AS "userId"
+              FROM profile_purchases
+              WHERE course_id = ANY($1::text[])
+            `,
+            [courses.map((course) => course.id)]
+          )
+        : [];
+
+    const relatedStudentIds = new Set<string>([
+      ...bookings.map((booking) => booking.studentId),
+      ...purchaseRows.map((row) => row.userId),
+    ]);
+
+    const students = allStudents.filter((student) =>
+      relatedStudentIds.has(student.id)
+    );
 
     return {
       profile,

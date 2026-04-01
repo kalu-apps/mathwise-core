@@ -33,3 +33,12 @@ npm run start:stage
 Emergency fallback (временно, только при инциденте):
 - переключить `VITE_API_BASE_URL` на стабильный предыдущий backend release
 - обновить `VITE_RELEASE_VERSION` и пересобрать фронтенд
+
+## Runtime notes
+
+- Course publish теперь backend-owned (`POST /api/courses/:id/publish`), а не `status`-flip на клиенте.
+- Catalog/lesson read path работает только через backend published projections.
+- Editor media pipeline использует backend media foundation:
+  - `POST /api/media/upload-url`
+  - direct upload to signed URL
+  - `POST /api/media/:id/complete`
