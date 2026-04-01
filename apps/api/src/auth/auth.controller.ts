@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpException,
+  Ip,
   Post,
   Req,
   Res,
@@ -13,7 +14,16 @@ import {
   readSessionIdFromCookieHeader,
 } from "./auth.cookies";
 import { AuthService } from "./auth.service";
-import type { AuthLogoutResponseDto, AuthUserDto, RequestMagicCodeResponseDto } from "./auth.types";
+import type {
+  AuthLogoutResponseDto,
+  AuthPasswordSaveResponseDto,
+  AuthPasswordStatusResponseDto,
+  AuthPasswordResetResponseDto,
+  AuthRecoveryRequestResponseDto,
+  AuthRecoveryVerifyResponseDto,
+  AuthUserDto,
+  RequestMagicCodeResponseDto,
+} from "./auth.types";
 
 type HttpResponseWithHeaders = {
   setHeader: (name: string, value: string) => void;
@@ -28,6 +38,18 @@ type RequestWithCookie = {
 @Controller("api/auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  private async resolveUserFromRequest(
+    req: RequestWithCookie,
+    res: HttpResponseWithHeaders
+  ): Promise<AuthUserDto | null> {
+    const sessionId = readSessionIdFromCookieHeader(req.headers?.cookie);
+    const user = await this.authService.getSession(sessionId);
+    if (!user && sessionId) {
+      res.setHeader("Set-Cookie", buildSessionClearCookie());
+    }
+    return user;
+  }
 
   @Post("magic-link")
   async requestMagicLink(
@@ -97,5 +119,109 @@ export class AuthController {
     const payload = await this.authService.logout(sessionId);
     res.setHeader("Set-Cookie", buildSessionClearCookie());
     return payload;
+  }
+
+  @Get("password/status")
+  async getPasswordStatus(
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<AuthPasswordStatusResponseDto> {
+    const user = await this.resolveUserFromRequest(req, res);
+    if (!user) {
+      throw new HttpException({ error: "Требуется авторизация." }, 401);
+    }
+    return this.authService.getPasswordStatus(user.id);
+  }
+
+  @Post("password/set")
+  async setPassword(
+    @Body() body: { newPassword?: string },
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<AuthPasswordSaveResponseDto> {
+    const user = await this.resolveUserFromRequest(req, res);
+    if (!user) {
+      throw new HttpException({ error: "Требуется авторизация." }, 401);
+    }
+    return this.authService.setPassword({
+      userId: user.id,
+      newPassword: body?.newPassword ?? "",
+    });
+  }
+
+  @Post("password/change")
+  async changePassword(
+    @Body() body: { currentPassword?: string; newPassword?: string },
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<AuthPasswordSaveResponseDto> {
+    const user = await this.resolveUserFromRequest(req, res);
+    if (!user) {
+      throw new HttpException({ error: "Требуется авторизация." }, 401);
+    }
+    return this.authService.changePassword({
+      userId: user.id,
+      currentPassword: body?.currentPassword ?? "",
+      newPassword: body?.newPassword ?? "",
+    });
+  }
+
+  @Post("recovery/request")
+  async requestRecovery(
+    @Body() body: { email?: string },
+    @Ip() ip?: string
+  ): Promise<AuthRecoveryRequestResponseDto> {
+    return this.authService.requestRecovery(body?.email ?? "", ip);
+  }
+
+  @Post("recovery/verify")
+  async verifyRecovery(
+    @Body() body: { email?: string; code?: string }
+  ): Promise<AuthRecoveryVerifyResponseDto> {
+    return this.authService.verifyRecovery({
+      email: body?.email ?? "",
+      code: body?.code ?? "",
+    });
+  }
+
+  @Post("password/reset")
+  async resetPassword(
+    @Body() body: { email?: string; recoveryToken?: string; newPassword?: string }
+  ): Promise<AuthPasswordResetResponseDto> {
+    return this.authService.resetPassword({
+      email: body?.email ?? "",
+      recoveryToken: body?.recoveryToken ?? "",
+      newPassword: body?.newPassword ?? "",
+    });
+  }
+
+  // Backward-compatible aliases for legacy frontend callers.
+  @Post("password/reset/request")
+  async requestPasswordReset(
+    @Body() body: { email?: string },
+    @Ip() ip?: string
+  ): Promise<AuthRecoveryRequestResponseDto> {
+    return this.authService.requestRecovery(body?.email ?? "", ip);
+  }
+
+  @Post("password/reset/confirm")
+  async confirmPasswordReset(
+    @Body() body: { email?: string; token?: string; newPassword?: string }
+  ): Promise<AuthPasswordResetResponseDto> {
+    const verify = await this.authService.verifyRecovery({
+      email: body?.email ?? "",
+      code: body?.token ?? "",
+    });
+    if (!verify.ok || !verify.recoveryToken) {
+      return {
+        ok: false,
+        message: verify.message,
+      };
+    }
+    return this.authService.resetPassword({
+      email: body?.email ?? "",
+      recoveryToken: verify.recoveryToken,
+      newPassword: body?.newPassword ?? "",
+    });
   }
 }

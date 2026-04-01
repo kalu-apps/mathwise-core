@@ -11,6 +11,23 @@ type AuthUserRow = {
   phone: string | null;
   photo: string | null;
   passwordHash: string | null;
+  updatedAt: string | null;
+};
+
+export type RecoveryArtifactRow = {
+  id: string;
+  email: string;
+  userId: string;
+  codeHash: string;
+  recoveryTokenHash: string | null;
+  state: "issued" | "verified" | "consumed" | "expired";
+  attempts: number;
+  maxAttempts: number;
+  expiresAt: string;
+  tokenExpiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  consumedAt: string | null;
 };
 
 @Injectable()
@@ -30,6 +47,53 @@ export class AuthRepository {
         password_hash TEXT,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
+    `);
+
+    await this.databaseService.execute(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_users_email_lower
+      ON auth_users (LOWER(email))
+    `);
+
+    await this.databaseService.execute(`
+      CREATE TABLE IF NOT EXISTS user_profiles (
+        user_id TEXT PRIMARY KEY,
+        email TEXT NOT NULL,
+        first_name TEXT NOT NULL DEFAULT '',
+        last_name TEXT NOT NULL DEFAULT '',
+        phone TEXT,
+        initialized_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        updated_at_ts TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await this.databaseService.execute(`
+      CREATE TABLE IF NOT EXISTS auth_recovery_artifacts (
+        id TEXT PRIMARY KEY,
+        email TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        code_hash TEXT NOT NULL,
+        recovery_token_hash TEXT,
+        state TEXT NOT NULL CHECK (state IN ('issued', 'verified', 'consumed', 'expired')),
+        attempts INTEGER NOT NULL DEFAULT 0,
+        max_attempts INTEGER NOT NULL DEFAULT 6,
+        expires_at TEXT NOT NULL,
+        token_expires_at TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        consumed_at TEXT,
+        updated_at_ts TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await this.databaseService.execute(`
+      CREATE INDEX IF NOT EXISTS idx_auth_recovery_email_state
+      ON auth_recovery_artifacts (LOWER(email), state, created_at DESC)
+    `);
+
+    await this.databaseService.execute(`
+      CREATE INDEX IF NOT EXISTS idx_auth_recovery_user_state
+      ON auth_recovery_artifacts (user_id, state, created_at DESC)
     `);
   }
 
@@ -51,9 +115,10 @@ export class AuthRepository {
           role,
           phone,
           photo,
-          password_hash AS "passwordHash"
+          password_hash AS "passwordHash",
+          NULL::text AS "updatedAt"
         FROM auth_users
-        WHERE email = $1
+        WHERE LOWER(email) = LOWER($1)
         LIMIT 1
       `,
       [email]
@@ -73,7 +138,8 @@ export class AuthRepository {
           role,
           phone,
           photo,
-          password_hash AS "passwordHash"
+          password_hash AS "passwordHash",
+          NULL::text AS "updatedAt"
         FROM auth_users
         WHERE id = $1
         LIMIT 1
@@ -82,6 +148,36 @@ export class AuthRepository {
     );
     const row = rows[0];
     return row ? this.mapRow(row) : null;
+  }
+
+  async findByIdWithCredential(
+    userId: string
+  ): Promise<(AuthUserDto & { passwordHash: string | null; updatedAt: string }) | null> {
+    const rows = await this.databaseService.query<AuthUserRow>(
+      `
+        SELECT
+          id,
+          email,
+          first_name AS "firstName",
+          last_name AS "lastName",
+          role,
+          phone,
+          photo,
+          password_hash AS "passwordHash",
+          TO_CHAR(updated_at, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "updatedAt"
+        FROM auth_users
+        WHERE id = $1
+        LIMIT 1
+      `,
+      [userId]
+    );
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      ...this.mapRow(row),
+      passwordHash: row.passwordHash,
+      updatedAt: row.updatedAt ?? new Date().toISOString(),
+    };
   }
 
   async findByRole(role: "student" | "teacher"): Promise<AuthUserDto[]> {
@@ -95,7 +191,8 @@ export class AuthRepository {
           role,
           phone,
           photo,
-          password_hash AS "passwordHash"
+          password_hash AS "passwordHash",
+          NULL::text AS "updatedAt"
         FROM auth_users
         WHERE role = $1
         ORDER BY last_name ASC, first_name ASC, id ASC
@@ -103,6 +200,322 @@ export class AuthRepository {
       [role]
     );
     return rows.map((row) => this.mapRow(row));
+  }
+
+  async createUser(params: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: "student" | "teacher";
+    phone?: string;
+    passwordHash?: string | null;
+  }): Promise<AuthUserDto> {
+    await this.databaseService.execute(
+      `
+        INSERT INTO auth_users (
+          id,
+          email,
+          first_name,
+          last_name,
+          role,
+          phone,
+          password_hash,
+          updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+      `,
+      [
+        params.id,
+        params.email,
+        params.firstName,
+        params.lastName,
+        params.role,
+        params.phone ?? null,
+        params.passwordHash ?? null,
+      ]
+    );
+    await this.ensureProfileBootstrap({
+      userId: params.id,
+      email: params.email,
+      firstName: params.firstName,
+      lastName: params.lastName,
+      phone: params.phone,
+    });
+    const created = await this.findById(params.id);
+    if (!created) {
+      throw new Error("Failed to create auth user");
+    }
+    return created;
+  }
+
+  async ensureProfileBootstrap(params: {
+    userId: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+  }): Promise<void> {
+    const now = new Date().toISOString();
+    await this.databaseService.execute(
+      `
+        INSERT INTO user_profiles (
+          user_id,
+          email,
+          first_name,
+          last_name,
+          phone,
+          initialized_at,
+          updated_at,
+          updated_at_ts
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $6, NOW())
+        ON CONFLICT (user_id)
+        DO UPDATE SET
+          email = EXCLUDED.email,
+          first_name = COALESCE(NULLIF(EXCLUDED.first_name, ''), user_profiles.first_name),
+          last_name = COALESCE(NULLIF(EXCLUDED.last_name, ''), user_profiles.last_name),
+          phone = COALESCE(EXCLUDED.phone, user_profiles.phone),
+          updated_at = EXCLUDED.updated_at,
+          updated_at_ts = NOW()
+      `,
+      [
+        params.userId,
+        params.email,
+        params.firstName,
+        params.lastName,
+        params.phone ?? null,
+        now,
+      ]
+    );
+  }
+
+  async updatePasswordHash(userId: string, passwordHash: string): Promise<void> {
+    await this.databaseService.execute(
+      `
+        UPDATE auth_users
+        SET password_hash = $2,
+            updated_at = NOW()
+        WHERE id = $1
+      `,
+      [userId, passwordHash]
+    );
+  }
+
+  async insertRecoveryArtifact(params: {
+    id: string;
+    email: string;
+    userId: string;
+    codeHash: string;
+    maxAttempts: number;
+    expiresAt: string;
+  }): Promise<void> {
+    const now = new Date().toISOString();
+    await this.databaseService.execute(
+      `
+        INSERT INTO auth_recovery_artifacts (
+          id,
+          email,
+          user_id,
+          code_hash,
+          recovery_token_hash,
+          state,
+          attempts,
+          max_attempts,
+          expires_at,
+          token_expires_at,
+          created_at,
+          updated_at,
+          consumed_at,
+          updated_at_ts
+        )
+        VALUES ($1, $2, $3, $4, NULL, 'issued', 0, $5, $6, NULL, $7, $7, NULL, NOW())
+      `,
+      [
+        params.id,
+        params.email,
+        params.userId,
+        params.codeHash,
+        params.maxAttempts,
+        params.expiresAt,
+        now,
+      ]
+    );
+  }
+
+  async findLatestRecoveryArtifactByEmail(
+    email: string
+  ): Promise<RecoveryArtifactRow | null> {
+    const rows = await this.databaseService.query<RecoveryArtifactRow>(
+      `
+        SELECT
+          id,
+          email,
+          user_id AS "userId",
+          code_hash AS "codeHash",
+          recovery_token_hash AS "recoveryTokenHash",
+          state,
+          attempts,
+          max_attempts AS "maxAttempts",
+          expires_at AS "expiresAt",
+          token_expires_at AS "tokenExpiresAt",
+          created_at AS "createdAt",
+          updated_at AS "updatedAt",
+          consumed_at AS "consumedAt"
+        FROM auth_recovery_artifacts
+        WHERE LOWER(email) = LOWER($1)
+          AND state IN ('issued', 'verified')
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+      `,
+      [email]
+    );
+    return rows[0] ?? null;
+  }
+
+  async incrementRecoveryAttempts(id: string): Promise<void> {
+    const now = new Date().toISOString();
+    await this.databaseService.execute(
+      `
+        UPDATE auth_recovery_artifacts
+        SET attempts = attempts + 1,
+            updated_at = $2,
+            updated_at_ts = NOW()
+        WHERE id = $1
+      `,
+      [id, now]
+    );
+  }
+
+  async setRecoveryVerified(params: {
+    id: string;
+    recoveryTokenHash: string;
+    tokenExpiresAt: string;
+  }): Promise<void> {
+    const now = new Date().toISOString();
+    await this.databaseService.execute(
+      `
+        UPDATE auth_recovery_artifacts
+        SET
+          state = 'verified',
+          recovery_token_hash = $2,
+          token_expires_at = $3,
+          updated_at = $4,
+          updated_at_ts = NOW()
+        WHERE id = $1
+      `,
+      [params.id, params.recoveryTokenHash, params.tokenExpiresAt, now]
+    );
+  }
+
+  async findVerifiedRecoveryArtifactByEmail(
+    email: string
+  ): Promise<RecoveryArtifactRow | null> {
+    const rows = await this.databaseService.query<RecoveryArtifactRow>(
+      `
+        SELECT
+          id,
+          email,
+          user_id AS "userId",
+          code_hash AS "codeHash",
+          recovery_token_hash AS "recoveryTokenHash",
+          state,
+          attempts,
+          max_attempts AS "maxAttempts",
+          expires_at AS "expiresAt",
+          token_expires_at AS "tokenExpiresAt",
+          created_at AS "createdAt",
+          updated_at AS "updatedAt",
+          consumed_at AS "consumedAt"
+        FROM auth_recovery_artifacts
+        WHERE LOWER(email) = LOWER($1)
+          AND state = 'verified'
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+      `,
+      [email]
+    );
+    return rows[0] ?? null;
+  }
+
+  async consumeRecoveryArtifact(id: string): Promise<void> {
+    const now = new Date().toISOString();
+    await this.databaseService.execute(
+      `
+        UPDATE auth_recovery_artifacts
+        SET
+          state = 'consumed',
+          consumed_at = $2,
+          updated_at = $2,
+          updated_at_ts = NOW()
+        WHERE id = $1
+      `,
+      [id, now]
+    );
+  }
+
+  async expireRecoveryArtifactsForEmail(email: string): Promise<void> {
+    const now = new Date().toISOString();
+    await this.databaseService.execute(
+      `
+        UPDATE auth_recovery_artifacts
+        SET
+          state = 'expired',
+          updated_at = $2,
+          updated_at_ts = NOW()
+        WHERE LOWER(email) = LOWER($1)
+          AND state IN ('issued', 'verified')
+      `,
+      [email, now]
+    );
+  }
+
+  async ensureTeacherBootstrap(params: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    passwordHash: string;
+  }): Promise<void> {
+    await this.databaseService.execute(
+      `
+        INSERT INTO auth_users (
+          id,
+          email,
+          first_name,
+          last_name,
+          role,
+          password_hash,
+          updated_at
+        )
+        VALUES ($1, $2, $3, $4, 'teacher', $5, NOW())
+        ON CONFLICT ((LOWER(email)))
+        DO UPDATE SET
+          first_name = EXCLUDED.first_name,
+          last_name = EXCLUDED.last_name,
+          role = 'teacher',
+          password_hash = EXCLUDED.password_hash,
+          updated_at = NOW()
+      `,
+      [
+        params.id,
+        params.email,
+        params.firstName,
+        params.lastName,
+        params.passwordHash,
+      ]
+    );
+
+    const user = await this.findByEmail(params.email);
+    if (user) {
+      await this.ensureProfileBootstrap({
+        userId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone,
+      });
+    }
   }
 
   private mapRowWithPassword(

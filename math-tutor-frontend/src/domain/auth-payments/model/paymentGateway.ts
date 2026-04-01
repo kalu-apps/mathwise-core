@@ -60,7 +60,7 @@ const createCardHostedAdapter = (): PaymentMethodAdapter => ({
     return {
       provider: "card",
       externalEventId: `card:init:${providerPaymentId}`,
-      status: "awaiting_payment",
+      status: "awaiting_provider",
       payload: {
         source: "card-hosted",
         providerPaymentId,
@@ -94,7 +94,7 @@ const createSbpHostedAdapter = (): PaymentMethodAdapter => ({
     return {
       provider: "sbp",
       externalEventId: `sbp:init:${providerPaymentId}`,
-      status: "awaiting_payment",
+      status: "awaiting_provider",
       payload: {
         source: "sbp-hosted",
         providerPaymentId,

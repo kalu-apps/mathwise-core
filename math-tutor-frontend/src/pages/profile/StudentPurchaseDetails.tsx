@@ -24,7 +24,6 @@ import type { Purchase } from "@/entities/purchase/model/types";
 import { selectPurchaseFinancialView } from "@/entities/purchase/model/selectors";
 import {
   cancelPaymentAttempt,
-  confirmPaymentAttemptPaid,
   loadPaymentAttemptsForPurchase,
   retryPaymentAttempt,
   selectCheckoutPaymentView,
@@ -215,7 +214,7 @@ export default function StudentPurchaseDetails() {
   const runAttemptAction = useCallback(
     async (
       attemptId: string,
-      action: "retry" | "cancel" | "confirm",
+      action: "retry" | "cancel",
       options?: { openRedirect?: boolean }
     ) => {
       if (!purchase) return;
@@ -230,8 +229,6 @@ export default function StudentPurchaseDetails() {
           ) {
             window.open(status.payment.redirectUrl, "_blank", "noopener,noreferrer");
           }
-        } else if (action === "confirm") {
-          await confirmPaymentAttemptPaid(attemptId);
         } else {
           await cancelPaymentAttempt(attemptId);
         }
@@ -495,12 +492,10 @@ export default function StudentPurchaseDetails() {
                               size="small"
                               variant="contained"
                               startIcon={<RefreshRoundedIcon />}
-                              onClick={() =>
-                                void runAttemptAction(attempt.id, "confirm")
-                              }
+                              onClick={() => void refreshAttempts()}
                               disabled={attemptBusy}
                             >
-                              Я оплатил
+                              Проверить статус
                             </Button>
                           ) : null}
                           {latestPaymentAttemptView?.canCancel && isPending ? (

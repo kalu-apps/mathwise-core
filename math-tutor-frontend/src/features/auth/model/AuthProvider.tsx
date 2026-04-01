@@ -68,8 +68,12 @@ const SHOWCASE_AUTO_LOGIN_EMAIL = SHOWCASE_AUTO_LOGIN_ENABLED
   ? import.meta.env.VITE_SHOWCASE_AUTO_LOGIN_EMAIL?.trim().toLowerCase() ?? ""
   : "";
 const SHOWCASE_AUTO_LOGIN_PASSWORD = SHOWCASE_AUTO_LOGIN_ENABLED
-  ? import.meta.env.VITE_SHOWCASE_AUTO_LOGIN_PASSWORD ?? "magic"
+  ? import.meta.env.VITE_SHOWCASE_AUTO_LOGIN_PASSWORD?.trim() ?? ""
   : "";
+const SHOWCASE_AUTO_LOGIN_READY =
+  SHOWCASE_AUTO_LOGIN_ENABLED &&
+  Boolean(SHOWCASE_AUTO_LOGIN_EMAIL) &&
+  Boolean(SHOWCASE_AUTO_LOGIN_PASSWORD);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() =>
@@ -135,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearLocalAuthState]);
 
   useEffect(() => {
-    if (!SHOWCASE_AUTO_LOGIN_EMAIL) return;
+    if (!SHOWCASE_AUTO_LOGIN_READY) return;
     if (!isAuthReady || user) return;
     if (showcaseAutoLoginStartedRef.current) return;
     showcaseAutoLoginStartedRef.current = true;

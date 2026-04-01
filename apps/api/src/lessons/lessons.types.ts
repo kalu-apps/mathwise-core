@@ -11,6 +11,7 @@ export type LessonDto = {
   title: string;
   order: number;
   duration: number;
+  contentVisibility?: "public_preview" | "entitled_full";
   videoUrl?: string;
   videoStreamUrl?: string;
   videoPosterUrl?: string;

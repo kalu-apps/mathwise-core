@@ -2,16 +2,20 @@ export type CheckoutMethodDto = "mock" | "card" | "sbp" | "bnpl";
 
 export type CheckoutStateDto =
   | "created"
-  | "awaiting_payment"
-  | "paid"
+  | "pending_provider"
+  | "provider_confirmed"
+  | "provision_pending"
+  | "provisioned"
+  | "email_verification_pending"
+  | "email_correction_required"
   | "failed"
+  | "provision_failed_retryable"
   | "canceled"
-  | "expired"
-  | "provisioning"
-  | "provisioned";
+  | "expired";
 
 export type CheckoutPaymentStatusDto =
-  | "awaiting_payment"
+  | "awaiting_provider"
+  | "provider_confirmed"
   | "paid"
   | "failed"
   | "canceled"
@@ -21,12 +25,18 @@ export type CheckoutAccessStateDto =
   | "active"
   | "awaiting_profile"
   | "awaiting_verification"
+  | "email_correction_required"
   | "paid_but_restricted";
 
 export type CheckoutPaymentDto = {
   provider: CheckoutMethodDto;
   status: CheckoutPaymentStatusDto;
-  outcome: "applied" | "awaiting_user_action" | "canceled" | "failed";
+  outcome:
+    | "applied"
+    | "awaiting_provider_event"
+    | "awaiting_user_action"
+    | "canceled"
+    | "failed";
   paymentUrl?: string;
   redirectUrl?: string;
   returnUrl?: string;
@@ -58,12 +68,18 @@ export type CheckoutProcessDto = {
   id: string;
   userId?: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
   courseId: string;
   method: CheckoutMethodDto;
   bnplInstallmentsCount?: number;
   amount: number;
   currency: string;
   state: CheckoutStateDto;
+  providerPaymentId?: string;
+  providerEventId?: string;
+  consentSnapshot?: string[];
   createdAt: string;
   updatedAt: string;
   expiresAt?: string;
@@ -168,8 +184,23 @@ export type BnplInstallmentPaymentResponseDto = {
   purchase: PurchaseRecordDto;
 };
 
+export type ProviderWebhookPayloadDto = {
+  eventId: string;
+  checkoutId: string;
+  status:
+    | "awaiting_payment"
+    | "paid"
+    | "failed"
+    | "canceled"
+    | "expired";
+  providerPaymentId?: string;
+  payload?: unknown;
+};
+
 export const isTerminalCheckoutState = (state: CheckoutStateDto) =>
   state === "failed" ||
   state === "canceled" ||
   state === "expired" ||
-  state === "provisioned";
+  state === "provisioned" ||
+  state === "email_verification_pending" ||
+  state === "email_correction_required";

@@ -309,7 +309,13 @@ export type CheckoutPurchaseResponse = {
   checkoutState: string;
   payment?: {
     provider: "mock" | "card" | "sbp" | "bnpl";
-    status: "awaiting_payment" | "paid" | "failed" | "canceled" | "expired";
+    status:
+      | "awaiting_provider"
+      | "provider_confirmed"
+      | "paid"
+      | "failed"
+      | "canceled"
+      | "expired";
     paymentUrl?: string;
     redirectUrl?: string;
     returnUrl?: string;

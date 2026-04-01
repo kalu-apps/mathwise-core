@@ -28,6 +28,7 @@ import type {
   CheckoutPurchaseResponseDto,
   CheckoutStatusResponseDto,
   CheckoutTimelineResponseDto,
+  ProviderWebhookPayloadDto,
   PurchaseRecordDto,
 } from "./purchases.types";
 
@@ -62,9 +63,13 @@ export class PurchasesController {
 
   @Get("purchases")
   async getPurchases(
-    @Query("userId") userId?: string
+    @Query("userId") userId: string | undefined,
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
   ): Promise<PurchaseRecordDto[]> {
+    const actorUser = await this.resolveUserFromRequest(req, res);
     return this.purchasesService.getPurchases({
+      actorUser,
       userId: userId?.trim() || undefined,
     });
   }
@@ -215,21 +220,6 @@ export class PurchasesController {
     });
   }
 
-  @Post("checkouts/:checkoutId/confirm-paid")
-  async confirmCheckoutPaid(
-    @Param("checkoutId") checkoutId: string,
-    @Headers("x-idempotency-key") idempotencyKey: string | undefined,
-    @Req() req: RequestWithCookie,
-    @Res({ passthrough: true }) res: HttpResponseWithHeaders
-  ): Promise<CheckoutActionResponseDto> {
-    const actorUser = await this.resolveUserFromRequest(req, res);
-    return this.purchasesService.confirmCheckoutPaid({
-      checkoutId,
-      actorUser,
-      idempotencyKey,
-    });
-  }
-
   @Get("checkouts/:checkoutId/timeline")
   async getCheckoutTimeline(
     @Param("checkoutId") checkoutId: string,
@@ -239,6 +229,37 @@ export class PurchasesController {
     const actorUser = await this.resolveUserFromRequest(req, res);
     return this.purchasesService.getCheckoutTimeline({
       checkoutId,
+      actorUser,
+    });
+  }
+
+  @Post("payments/providers/card/webhook")
+  async processCardWebhook(
+    @Body() payload: ProviderWebhookPayloadDto,
+    @Headers("x-card-signature") signature: string | undefined,
+    @Headers("x-card-timestamp") timestamp: string | undefined
+  ) {
+    return this.purchasesService.handleProviderWebhook({
+      payload,
+      signature: signature?.trim() || "",
+      timestamp: timestamp?.trim() || "",
+    });
+  }
+
+  @Post("payments/providers/card/refund")
+  async refundCardCheckout(
+    @Body() body: { checkoutId?: string; reason?: string },
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ) {
+    const actorUser = await this.resolveUserFromRequest(req, res);
+    const checkoutId = body?.checkoutId?.trim() || "";
+    if (!checkoutId) {
+      throw new HttpException({ error: "checkoutId обязателен." }, 400);
+    }
+    return this.purchasesService.refundProviderCheckout({
+      checkoutId,
+      reason: body?.reason,
       actorUser,
     });
   }

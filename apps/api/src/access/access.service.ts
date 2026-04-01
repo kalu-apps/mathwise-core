@@ -1,8 +1,10 @@
 import { Injectable, OnModuleInit } from "@nestjs/common";
+import type { AuthUserDto } from "../auth/auth.types";
 import { DatabaseService } from "../db/database.service";
 import { getApiRuntimeConfig } from "../config/runtime.config";
 import { CoursesRepository } from "../courses/courses.repository";
 import { LessonsRepository } from "../lessons/lessons.repository";
+import { markFullLessonContent, redactLessonForPreview } from "../lessons/lessons.redaction";
 import {
   readReadSliceSeedData,
   upsertAccessReadModel,
@@ -45,19 +47,21 @@ export class AccessService implements OnModuleInit {
     await upsertAccessReadModel(this.databaseService, seed.access);
   }
 
-  async getCourseAccessList(userId?: string): Promise<CourseAccessListResponseDto> {
+  async getCourseAccessList(
+    actorUser?: AuthUserDto | null
+  ): Promise<CourseAccessListResponseDto> {
     const courseIds = await this.coursesRepository.findAllIds();
     const decisions = await Promise.all(
-      courseIds.map((courseId) => this.getCourseAccessDecision(courseId, userId))
+      courseIds.map((courseId) => this.getCourseAccessDecision(courseId, actorUser))
     );
     return { decisions };
   }
 
   async getCourseAccessDecision(
     courseId: string,
-    userId?: string
+    actorUser?: AuthUserDto | null
   ): Promise<CourseAccessDecisionDto> {
-    const context = await this.resolveAccessContext(userId);
+    const context = await this.resolveAccessContext(actorUser);
     const courseExists = await this.coursesRepository.existsById(courseId);
 
     if (!courseExists) {
@@ -147,9 +151,9 @@ export class AccessService implements OnModuleInit {
 
   async getLessonAccessDecision(
     lessonId: string,
-    userId?: string
+    actorUser?: AuthUserDto | null
   ): Promise<LessonAccessDecisionDto> {
-    const context = await this.resolveAccessContext(userId);
+    const context = await this.resolveAccessContext(actorUser);
     const lesson = await this.lessonsRepository.findById(lessonId);
     if (!lesson) {
       return {
@@ -169,7 +173,10 @@ export class AccessService implements OnModuleInit {
       };
     }
 
-    const courseDecision = await this.getCourseAccessDecision(lesson.courseId, userId);
+    const courseDecision = await this.getCourseAccessDecision(
+      lesson.courseId,
+      actorUser
+    );
     const previewAllowed = courseDecision.mode === "preview" && lesson.order === 1;
     const canAccess = courseDecision.mode === "full" || previewAllowed;
     const mode: AccessMode = canAccess
@@ -177,6 +184,11 @@ export class AccessService implements OnModuleInit {
         ? "full"
         : "preview"
       : courseDecision.mode;
+
+    const lessonPayload =
+      canAccess && mode === "full"
+        ? markFullLessonContent(lesson)
+        : redactLessonForPreview(lesson);
 
     return {
       lessonId,
@@ -191,13 +203,14 @@ export class AccessService implements OnModuleInit {
       requiresAuth: courseDecision.requiresAuth,
       requiresVerification: courseDecision.requiresVerification,
       resolvedFromSnapshot: false,
-      lesson,
+      lesson: lessonPayload,
     };
   }
 
-  private async resolveAccessContext(userId?: string): Promise<AccessContext> {
-    const normalizedUserId = userId?.trim();
-    if (!normalizedUserId) {
+  private async resolveAccessContext(
+    actorUser?: AuthUserDto | null
+  ): Promise<AccessContext> {
+    if (!actorUser) {
       return {
         role: "anonymous",
         isIdentityVerified: false,
@@ -206,20 +219,11 @@ export class AccessService implements OnModuleInit {
       };
     }
 
-    const user = await this.accessRepository.findUserContext(normalizedUserId);
-    if (!user) {
-      return {
-        role: "anonymous",
-        isIdentityVerified: false,
-        requiresAuth: true,
-        requiresVerification: false,
-      };
-    }
-
-    if (user.role === "teacher") {
+    const user = await this.accessRepository.findUserContext(actorUser.id);
+    if (actorUser.role === "teacher" || user?.role === "teacher") {
       return {
         role: "teacher",
-        userId: user.id,
+        userId: actorUser.id,
         isIdentityVerified: true,
         requiresAuth: false,
         requiresVerification: false,
@@ -228,10 +232,10 @@ export class AccessService implements OnModuleInit {
 
     return {
       role: "student",
-      userId: user.id,
-      isIdentityVerified: Boolean(user.isIdentityVerified),
+      userId: actorUser.id,
+      isIdentityVerified: Boolean(user?.isIdentityVerified ?? false),
       requiresAuth: false,
-      requiresVerification: !user.isIdentityVerified,
+      requiresVerification: !Boolean(user?.isIdentityVerified ?? false),
     };
   }
 

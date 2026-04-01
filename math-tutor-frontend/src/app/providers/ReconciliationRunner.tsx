@@ -12,9 +12,10 @@ import { dispatchDataUpdate } from "@/shared/lib/dataUpdateBus";
 
 const STUDENT_CHECKOUT_RECHECK_STATES = new Set([
   "created",
-  "awaiting_payment",
-  "paid",
-  "provisioning",
+  "pending_provider",
+  "provider_confirmed",
+  "provision_pending",
+  "provision_failed_retryable",
 ]);
 
 const RECONCILE_MIN_INTERVAL_MS = 60_000;
@@ -66,7 +67,7 @@ export function ReconciliationRunner() {
       const accessState = result.value.access?.accessState;
       const paymentStatus = result.value.payment.status;
       return (
-        paymentStatus === "paid" &&
+        paymentStatus === "provider_confirmed" &&
         accessState !== undefined &&
         accessState !== "active"
       );

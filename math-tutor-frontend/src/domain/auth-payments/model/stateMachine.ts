@@ -27,14 +27,22 @@ const assertTransition = <S extends string>(
 };
 
 const checkoutTransitions: TransitionMap<CheckoutState> = {
-  created: ["awaiting_payment", "paid", "canceled", "expired"],
-  awaiting_payment: ["paid", "failed", "canceled", "expired"],
-  paid: ["provisioning", "failed", "canceled", "expired"],
-  failed: ["awaiting_payment", "paid"],
-  canceled: ["awaiting_payment", "paid"],
-  expired: ["awaiting_payment", "paid"],
-  provisioning: ["provisioned"],
+  created: ["pending_provider", "canceled", "expired"],
+  pending_provider: ["provider_confirmed", "failed", "canceled", "expired"],
+  provider_confirmed: ["provision_pending", "provisioned", "failed"],
+  provision_pending: [
+    "provisioned",
+    "email_verification_pending",
+    "provision_failed_retryable",
+    "failed",
+  ],
   provisioned: [],
+  email_verification_pending: [],
+  email_correction_required: ["pending_provider", "provider_confirmed", "failed"],
+  provision_failed_retryable: ["pending_provider", "provider_confirmed", "failed"],
+  failed: ["pending_provider", "provider_confirmed"],
+  canceled: ["pending_provider"],
+  expired: ["pending_provider"],
 };
 
 const identityTransitions: TransitionMap<IdentityState> = {

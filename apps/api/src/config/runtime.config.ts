@@ -2,6 +2,7 @@ import path from "path";
 
 export type ApiAppEnv = "local" | "preview" | "stage" | "prod";
 export type ApiCookieSameSite = "Lax" | "Strict" | "None";
+export type ApiEmailDeliveryMode = "disabled" | "provider";
 
 export type ApiRuntimeConfig = {
   port: number;
@@ -22,6 +23,21 @@ export type ApiRuntimeConfig = {
   authCookieMaxAgeSec: number;
   authDebugTokens: boolean;
   authPasswordPepper: string;
+  cardWebhookSecret: string;
+  cardWebhookMaxSkewSec: number;
+  cardWebhookReplayTtlSec: number;
+  paymentProviderAutoConfirmLocal: boolean;
+  teacherBootstrapEnabled: boolean;
+  teacherBootstrapEmail: string;
+  teacherBootstrapPassword: string;
+  teacherBootstrapFirstName: string;
+  teacherBootstrapLastName: string;
+  authRecoveryCodeTtlSec: number;
+  authRecoveryTokenTtlSec: number;
+  authRecoveryMaxAttempts: number;
+  authRecoveryRateLimitPerHour: number;
+  emailDeliveryMode: ApiEmailDeliveryMode;
+  emailProviderApiKey: string;
   mediaStorageEnabled: boolean;
   s3Endpoint: string;
   s3Region: string;
@@ -67,6 +83,18 @@ const parseCookieSameSite = (raw: string | undefined): ApiCookieSameSite => {
   if (normalized === "strict") return "Strict";
   if (normalized === "none") return "None";
   throw new Error(`[api-runtime] Invalid AUTH_COOKIE_SAMESITE value: ${raw}`);
+};
+
+const parseEmailDeliveryMode = (
+  raw: string | undefined,
+  fallback: ApiEmailDeliveryMode
+): ApiEmailDeliveryMode => {
+  const normalized = (raw ?? fallback).trim().toLowerCase();
+  if (normalized === "disabled") return "disabled";
+  if (normalized === "provider") return "provider";
+  throw new Error(
+    `[api-runtime] Invalid EMAIL_DELIVERY_MODE value: ${raw}. Allowed: disabled|provider`
+  );
 };
 
 const parsePositiveInteger = (raw: string | undefined, fallback: number) => {
@@ -173,6 +201,46 @@ export const getApiRuntimeConfig = (
     throw new Error("[api-runtime] COURSES_SEED_ON_BOOT cannot be enabled in prod");
   }
 
+  const cardWebhookSecret = process.env.CARD_WEBHOOK_SECRET?.trim();
+  if (!isLocal && !cardWebhookSecret) {
+    throw new Error("[api-runtime] Missing required env: CARD_WEBHOOK_SECRET");
+  }
+
+  const teacherBootstrapEnabled = parseBoolean(
+    process.env.TEACHER_BOOTSTRAP_ENABLED,
+    false
+  );
+  const teacherBootstrapEmail =
+    process.env.TEACHER_BOOTSTRAP_EMAIL?.trim().toLowerCase() || "";
+  const teacherBootstrapPassword =
+    process.env.TEACHER_BOOTSTRAP_PASSWORD?.trim() || "";
+  if (teacherBootstrapEnabled) {
+    if (!teacherBootstrapEmail) {
+      throw new Error(
+        "[api-runtime] Missing required env: TEACHER_BOOTSTRAP_EMAIL"
+      );
+    }
+    if (!teacherBootstrapPassword) {
+      throw new Error(
+        "[api-runtime] Missing required env: TEACHER_BOOTSTRAP_PASSWORD"
+      );
+    }
+    if (!isLocal && teacherBootstrapPassword.length < 12) {
+      throw new Error(
+        "[api-runtime] TEACHER_BOOTSTRAP_PASSWORD must be at least 12 characters outside local APP_ENV"
+      );
+    }
+  }
+
+  const emailDeliveryMode = parseEmailDeliveryMode(
+    process.env.EMAIL_DELIVERY_MODE,
+    "disabled"
+  );
+  const emailProviderApiKey = process.env.EMAIL_PROVIDER_API_KEY?.trim() || "";
+  if (emailDeliveryMode === "provider" && !emailProviderApiKey) {
+    throw new Error("[api-runtime] Missing required env: EMAIL_PROVIDER_API_KEY");
+  }
+
   const mediaStorageEnabled = parseBoolean(
     process.env.MEDIA_STORAGE_ENABLED,
     false
@@ -236,6 +304,44 @@ export const getApiRuntimeConfig = (
     authCookieMaxAgeSec,
     authDebugTokens,
     authPasswordPepper: authPasswordPepper || "local-auth-pepper-dev-only",
+    cardWebhookSecret: cardWebhookSecret || "local-card-webhook-secret-dev-only",
+    cardWebhookMaxSkewSec: parsePositiveInteger(
+      process.env.CARD_WEBHOOK_MAX_SKEW_SEC,
+      300
+    ),
+    cardWebhookReplayTtlSec: parsePositiveInteger(
+      process.env.CARD_WEBHOOK_REPLAY_TTL_SEC,
+      15 * 60
+    ),
+    paymentProviderAutoConfirmLocal: parseBoolean(
+      process.env.PAYMENT_PROVIDER_AUTO_CONFIRM_LOCAL,
+      isLocal
+    ),
+    teacherBootstrapEnabled,
+    teacherBootstrapEmail,
+    teacherBootstrapPassword,
+    teacherBootstrapFirstName:
+      process.env.TEACHER_BOOTSTRAP_FIRST_NAME?.trim() || "Teacher",
+    teacherBootstrapLastName:
+      process.env.TEACHER_BOOTSTRAP_LAST_NAME?.trim() || "Account",
+    authRecoveryCodeTtlSec: parsePositiveInteger(
+      process.env.AUTH_RECOVERY_CODE_TTL_SEC,
+      10 * 60
+    ),
+    authRecoveryTokenTtlSec: parsePositiveInteger(
+      process.env.AUTH_RECOVERY_TOKEN_TTL_SEC,
+      15 * 60
+    ),
+    authRecoveryMaxAttempts: parsePositiveInteger(
+      process.env.AUTH_RECOVERY_MAX_ATTEMPTS,
+      6
+    ),
+    authRecoveryRateLimitPerHour: parsePositiveInteger(
+      process.env.AUTH_RECOVERY_RATE_LIMIT_PER_HOUR,
+      20
+    ),
+    emailDeliveryMode,
+    emailProviderApiKey,
     mediaStorageEnabled,
     s3Endpoint,
     s3Region,

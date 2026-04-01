@@ -1,8 +1,11 @@
+import crypto from "node:crypto";
 import { HttpException, Injectable, OnModuleInit } from "@nestjs/common";
 import type { AuthUserDto } from "../auth/auth.types";
-import { AuthRepository } from "../auth/auth.repository";
+import { AuthService } from "../auth/auth.service";
+import { getApiRuntimeConfig } from "../config/runtime.config";
 import { CoursesRepository } from "../courses/courses.repository";
 import { LessonsRepository } from "../lessons/lessons.repository";
+import { NotificationsService } from "../notifications/notifications.service";
 import { RedisService } from "../redis/redis.service";
 import { PurchasesRepository } from "./purchases.repository";
 import {
@@ -14,9 +17,11 @@ import {
   normalizeCheckoutMethod,
   normalizeEmail,
   normalizeInstallmentsCount,
+  normalizePhone,
   nowIso,
   parseBnplPlan,
   toPositiveAmount,
+  validateEmailFormat,
 } from "./purchases.helpers";
 import {
   type BnplInstallmentPaymentResponseDto,
@@ -30,17 +35,45 @@ import {
   type CheckoutStateDto,
   type CheckoutStatusResponseDto,
   type CheckoutTimelineResponseDto,
+  type ProviderWebhookPayloadDto,
   type PurchaseRecordDto,
   isTerminalCheckoutState,
 } from "./purchases.types";
 
+type ProviderWebhookResult = {
+  ok: boolean;
+  event: {
+    status: string;
+    outcome: string;
+  };
+  checkout: {
+    id: string;
+    state: CheckoutStateDto;
+  } | null;
+};
+
+const readCourseSnapshotPrice = (course: {
+  priceGuided: number;
+  priceSelf: number;
+}) => Math.max(0, Math.round(Number(course.priceSelf ?? course.priceGuided ?? 0)));
+
+const timingSafeEquals = (a: string, b: string) => {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  if (left.length !== right.length) return false;
+  return crypto.timingSafeEqual(left, right);
+};
+
 @Injectable()
 export class PurchasesService implements OnModuleInit {
+  private readonly runtimeConfig = getApiRuntimeConfig();
+
   constructor(
     private readonly purchasesRepository: PurchasesRepository,
     private readonly coursesRepository: CoursesRepository,
     private readonly lessonsRepository: LessonsRepository,
-    private readonly authRepository: AuthRepository,
+    private readonly authService: AuthService,
+    private readonly notificationsService: NotificationsService,
     private readonly redisService: RedisService
   ) {}
 
@@ -48,25 +81,41 @@ export class PurchasesService implements OnModuleInit {
     await this.purchasesRepository.ensureSchema();
   }
 
-  async getPurchases(params?: { userId?: string }): Promise<PurchaseRecordDto[]> {
-    return this.purchasesRepository.findPurchases(params);
+  async getPurchases(params: {
+    actorUser: AuthUserDto | null;
+    userId?: string;
+  }): Promise<PurchaseRecordDto[]> {
+    const { actorUser } = params;
+    if (!actorUser) {
+      throw new HttpException({ error: "Требуется авторизация." }, 401);
+    }
+
+    if (actorUser.role === "teacher") {
+      return this.purchasesRepository.findPurchases({
+        userId: params.userId?.trim() || undefined,
+      });
+    }
+
+    return this.purchasesRepository.findPurchases({ userId: actorUser.id });
   }
 
   async savePurchases(
     purchases: PurchaseRecordDto[],
     actorUser: AuthUserDto | null
   ): Promise<void> {
+    if (!actorUser || actorUser.role !== "teacher") {
+      throw new HttpException({ error: "Операция доступна только преподавателю." }, 403);
+    }
+
     if (!Array.isArray(purchases) || purchases.length === 0) return;
     const userId = purchases[0]?.userId?.trim();
     if (!userId) {
       throw new HttpException({ error: "Некорректный payload purchases." }, 400);
     }
-    if (actorUser && actorUser.role !== "teacher" && actorUser.id !== userId) {
-      throw new HttpException({ error: "Недостаточно прав для операции." }, 403);
-    }
-    if (!purchases.every((item) => item.userId === userId)) {
+    if (!purchases.every((item) => item.userId?.trim() === userId)) {
       throw new HttpException({ error: "Все покупки должны принадлежать одному пользователю." }, 400);
     }
+
     await this.purchasesRepository.replacePurchasesForUser(userId, purchases);
   }
 
@@ -90,11 +139,12 @@ export class PurchasesService implements OnModuleInit {
     idempotencyKey?: string;
   }): Promise<CheckoutPurchaseResponseDto> {
     const { payload, actorUser } = params;
-    const method = normalizeCheckoutMethod(payload.paymentMethod);
+
     if (actorUser?.role === "teacher") {
-      throw new HttpException({ error: "Преподаватель не может покупать собственный курс." }, 403);
+      throw new HttpException({ error: "Преподаватель не может покупать курсы." }, 403);
     }
 
+    const method = normalizeCheckoutMethod(payload.paymentMethod);
     const courseId = payload.courseId?.trim();
     if (!courseId) {
       throw new HttpException({ error: "courseId обязателен." }, 400);
@@ -105,17 +155,17 @@ export class PurchasesService implements OnModuleInit {
       throw new HttpException({ error: "Курс не найден." }, 404);
     }
 
-    const email = normalizeEmail(actorUser?.email ?? payload.email);
-    if (!email) {
-      throw new HttpException({ error: "Email обязателен для оформления checkout." }, 400);
+    const email = normalizeEmail(actorUser?.email || payload.email);
+    if (!email || !validateEmailFormat(email)) {
+      throw new HttpException({ error: "Некорректный email для checkout." }, 400);
     }
 
     if (!actorUser && payload.userId) {
-      throw new HttpException({ error: "Авторизуйтесь для checkout c userId." }, 401);
+      throw new HttpException({ error: "Недопустимый checkout context." }, 401);
     }
 
     if (actorUser && payload.userId && payload.userId !== actorUser.id) {
-      throw new HttpException({ error: "Недопустимый контекст checkout." }, 403);
+      throw new HttpException({ error: "Недопустимый checkout context." }, 403);
     }
 
     const normalizedIdempotency = params.idempotencyKey?.trim();
@@ -127,9 +177,14 @@ export class PurchasesService implements OnModuleInit {
       if (cached) return cached;
     }
 
-    const amount = toPositiveAmount(payload.price, course.priceSelf);
+    const amount = toPositiveAmount(payload.price, readCourseSnapshotPrice(course));
     if (amount <= 0) {
       throw new HttpException({ error: "Сумма checkout должна быть больше нуля." }, 400);
+    }
+
+    const acceptedScopes = payload.consents?.acceptedScopes ?? [];
+    if (!Array.isArray(acceptedScopes) || acceptedScopes.length === 0) {
+      throw new HttpException({ error: "Необходимо принять обязательные согласия." }, 400);
     }
 
     const lockKey = `lock:purchase:checkout:create:${actorUser?.id ?? email}:${courseId}`;
@@ -140,21 +195,8 @@ export class PurchasesService implements OnModuleInit {
         courseId,
       });
       if (existingActive) {
-        const effectiveExisting =
-          existingActive.state === "paid" || existingActive.state === "provisioning"
-            ? await this.ensureCheckoutProvisioned(existingActive)
-            : existingActive;
-        const access = await this.buildAccessPayload(effectiveExisting);
-        return {
-          user: actorUser ?? undefined,
-          checkoutId: effectiveExisting.id,
-          checkoutState: effectiveExisting.state,
-          payment: this.buildPaymentPayload(effectiveExisting),
-          identityState: access?.identityState ?? "unverified",
-          entitlementState: access?.entitlementState ?? "none",
-          profileComplete: access?.profileComplete ?? false,
-          accessState: access?.accessState ?? "awaiting_profile",
-        } satisfies CheckoutPurchaseResponseDto;
+        const maybeProvisioned = await this.resumeProvisionIfNeeded(existingActive);
+        return this.buildCheckoutPurchaseResponse(maybeProvisioned, actorUser ?? undefined);
       }
 
       const createdAt = nowIso();
@@ -162,6 +204,9 @@ export class PurchasesService implements OnModuleInit {
         id: ensureId("checkout"),
         userId: actorUser?.id,
         email,
+        firstName: payload.firstName?.trim() || undefined,
+        lastName: payload.lastName?.trim() || undefined,
+        phone: normalizePhone(payload.phone),
         courseId,
         method,
         bnplInstallmentsCount:
@@ -170,37 +215,66 @@ export class PurchasesService implements OnModuleInit {
             : undefined,
         amount,
         currency: "RUB",
-        state: method === "card" || method === "sbp" ? "awaiting_payment" : "paid",
+        state: "pending_provider",
+        consentSnapshot: acceptedScopes,
         createdAt,
         updatedAt: createdAt,
         expiresAt: buildCheckoutExpiresAt(createdAt),
       };
 
       await this.purchasesRepository.insertCheckout(checkout);
-      await this.appendTimelineEvent(
-        checkout.id,
-        "checkout_created",
-        {
-          method: checkout.method,
-          amount: checkout.amount,
-          state: checkout.state,
-        },
-        createdAt
-      );
+      await this.purchasesRepository.upsertConsentRecords({
+        checkoutId: checkout.id,
+        email,
+        scopes: acceptedScopes,
+        acceptedAt: createdAt,
+      });
+      await this.appendTimelineEvent(checkout.id, "checkout_created", {
+        method,
+        amount,
+        actorUserId: actorUser?.id,
+      });
 
-      const effectiveCheckout =
-        checkout.state === "paid" ? await this.ensureCheckoutProvisioned(checkout) : checkout;
-      const access = await this.buildAccessPayload(effectiveCheckout);
-      return {
-        user: actorUser ?? undefined,
-        checkoutId: effectiveCheckout.id,
-        checkoutState: effectiveCheckout.state,
-        payment: this.buildPaymentPayload(effectiveCheckout),
-        identityState: access?.identityState ?? "unverified",
-        entitlementState: access?.entitlementState ?? "none",
-        profileComplete: access?.profileComplete ?? false,
-        accessState: access?.accessState ?? "awaiting_profile",
-      } satisfies CheckoutPurchaseResponseDto;
+      let effectiveCheckout = checkout;
+      if (
+        this.runtimeConfig.appEnv === "local" &&
+        this.runtimeConfig.paymentProviderAutoConfirmLocal
+      ) {
+        const simulatedEventId = `sim_${checkout.id}`;
+        await this.handleProviderWebhook({
+          payload: {
+            eventId: simulatedEventId,
+            checkoutId: checkout.id,
+            status: "paid",
+            providerPaymentId: `local_pi_${checkout.id.slice(-12)}`,
+            payload: {
+              source: "local_auto_confirm",
+              method,
+            },
+          },
+          signature: this.signWebhookPayload(
+            createdAt,
+            {
+              eventId: simulatedEventId,
+              checkoutId: checkout.id,
+              status: "paid",
+              providerPaymentId: `local_pi_${checkout.id.slice(-12)}`,
+              payload: {
+                source: "local_auto_confirm",
+                method,
+              },
+            }
+          ),
+          timestamp: createdAt,
+          allowLocalInsecureFallback: true,
+        });
+        const fresh = await this.purchasesRepository.findCheckoutById(checkout.id);
+        if (fresh) {
+          effectiveCheckout = fresh;
+        }
+      }
+
+      return this.buildCheckoutPurchaseResponse(effectiveCheckout, actorUser ?? undefined);
     });
 
     if (normalizedIdempotency) {
@@ -224,9 +298,6 @@ export class PurchasesService implements OnModuleInit {
     if (!actorUser) {
       throw new HttpException({ error: "Авторизуйтесь для привязки checkout." }, 401);
     }
-    if (actorUser.role !== "student") {
-      throw new HttpException({ error: "Привязка checkout доступна только ученику." }, 403);
-    }
 
     const normalizedIdempotency = params.idempotencyKey?.trim();
     if (normalizedIdempotency) {
@@ -243,40 +314,21 @@ export class PurchasesService implements OnModuleInit {
         allowEmailMatchWithoutUserId: true,
       });
 
-      let effectiveCheckout = checkout;
-      if (!checkout.userId) {
-        effectiveCheckout = {
+      let effective = checkout;
+      if (!checkout.userId && normalizeEmail(checkout.email) === normalizeEmail(actorUser.email)) {
+        effective = {
           ...checkout,
           userId: actorUser.id,
-          email: actorUser.email,
           updatedAt: nowIso(),
         };
-        await this.purchasesRepository.updateCheckout(effectiveCheckout);
-        await this.appendTimelineEvent(
-          effectiveCheckout.id,
-          "checkout_attached",
-          {
-            userId: actorUser.id,
-          },
-          effectiveCheckout.updatedAt
-        );
+        await this.purchasesRepository.updateCheckout(effective);
+        await this.appendTimelineEvent(effective.id, "checkout_attached", {
+          userId: actorUser.id,
+        });
       }
 
-      if (effectiveCheckout.state === "paid" || effectiveCheckout.state === "provisioning") {
-        effectiveCheckout = await this.ensureCheckoutProvisioned(effectiveCheckout);
-      }
-
-      const access = await this.buildAccessPayload(effectiveCheckout);
-      return {
-        user: actorUser,
-        checkoutId: effectiveCheckout.id,
-        checkoutState: effectiveCheckout.state,
-        payment: this.buildPaymentPayload(effectiveCheckout),
-        identityState: access?.identityState ?? "unverified",
-        entitlementState: access?.entitlementState ?? "none",
-        profileComplete: access?.profileComplete ?? false,
-        accessState: access?.accessState ?? "awaiting_profile",
-      } satisfies CheckoutPurchaseResponseDto;
+      effective = await this.resumeProvisionIfNeeded(effective);
+      return this.buildCheckoutPurchaseResponse(effective, actorUser);
     });
 
     if (normalizedIdempotency) {
@@ -297,24 +349,21 @@ export class PurchasesService implements OnModuleInit {
     email?: string;
     courseId?: string;
   }): Promise<CheckoutListItemDto[]> {
-    const { actorUser } = params;
-    const filters: { userId?: string; email?: string; courseId?: string } = {
+    if (!params.actorUser) return [];
+
+    if (params.actorUser.role === "teacher") {
+      return this.purchasesRepository.listCheckouts({
+        userId: params.userId?.trim() || undefined,
+        email: normalizeEmail(params.email) || undefined,
+        courseId: params.courseId?.trim() || undefined,
+      });
+    }
+
+    return this.purchasesRepository.listCheckouts({
+      userId: params.actorUser.id,
+      email: normalizeEmail(params.actorUser.email),
       courseId: params.courseId?.trim() || undefined,
-    };
-
-    if (actorUser?.role === "teacher") {
-      filters.userId = params.userId?.trim() || undefined;
-      filters.email = normalizeEmail(params.email) || undefined;
-      return this.purchasesRepository.listCheckouts(filters);
-    }
-
-    if (!actorUser) {
-      return [];
-    }
-
-    filters.userId = actorUser.id;
-    filters.email = actorUser.email;
-    return this.purchasesRepository.listCheckouts(filters);
+    });
   }
 
   async getCheckoutStatus(params: {
@@ -325,12 +374,8 @@ export class PurchasesService implements OnModuleInit {
       allowEmailMatchWithoutUserId: true,
     });
 
-    const effectiveCheckout =
-      checkout.state === "paid" || checkout.state === "provisioning"
-        ? await this.ensureCheckoutProvisioned(checkout)
-        : checkout;
-
-    return this.buildCheckoutStatusResponse(effectiveCheckout);
+    const effective = await this.resumeProvisionIfNeeded(checkout);
+    return this.buildCheckoutStatusResponse(effective);
   }
 
   async retryCheckout(params: {
@@ -353,45 +398,42 @@ export class PurchasesService implements OnModuleInit {
         allowEmailMatchWithoutUserId: true,
       });
 
-      if (
-        checkout.state === "paid" ||
-        checkout.state === "provisioning" ||
-        checkout.state === "provisioned"
-      ) {
-        throw new HttpException({ error: "Checkout уже подтвержден и не требует повтора." }, 409);
+      if (checkout.state === "provider_confirmed" || checkout.state === "provision_pending") {
+        throw new HttpException({ error: "Checkout уже подтвержден провайдером." }, 409);
+      }
+      if (checkout.state === "provisioned" || checkout.state === "email_verification_pending") {
+        throw new HttpException({ error: "Checkout уже завершен." }, 409);
       }
 
-      const updatedAt = nowIso();
+      if (
+        checkout.state !== "failed" &&
+        checkout.state !== "expired" &&
+        checkout.state !== "canceled" &&
+        checkout.state !== "provision_failed_retryable"
+      ) {
+        throw new HttpException({ error: "Текущий статус checkout не допускает retry." }, 409);
+      }
+
       const retried: CheckoutProcessDto = {
         ...checkout,
-        state:
-          checkout.method === "card" || checkout.method === "sbp"
-            ? "awaiting_payment"
-            : "paid",
-        updatedAt,
-        expiresAt: buildCheckoutExpiresAt(updatedAt),
+        state: "pending_provider",
+        providerEventId: undefined,
+        updatedAt: nowIso(),
+        expiresAt: buildCheckoutExpiresAt(nowIso()),
       };
       await this.purchasesRepository.updateCheckout(retried);
-      await this.appendTimelineEvent(
-        retried.id,
-        "checkout_retry",
-        {
-          state: retried.state,
-          method: retried.method,
-        },
-        updatedAt
-      );
+      await this.appendTimelineEvent(retried.id, "checkout_retry", {
+        previousState: checkout.state,
+      });
 
-      const effectiveCheckout =
-        retried.state === "paid" ? await this.ensureCheckoutProvisioned(retried) : retried;
-
+      const effective = await this.resumeProvisionIfNeeded(retried);
       return {
         ok: true,
-        checkoutId: effectiveCheckout.id,
-        checkoutState: effectiveCheckout.state,
-        payment: this.buildPaymentPayload(effectiveCheckout),
-        access: await this.buildAccessPayload(effectiveCheckout),
-      } satisfies CheckoutActionResponseDto;
+        checkoutId: effective.id,
+        checkoutState: effective.state,
+        payment: this.buildPaymentPayload(effective),
+        access: await this.buildAccessPayload(effective),
+      };
     });
 
     if (normalizedIdempotency) {
@@ -427,21 +469,18 @@ export class PurchasesService implements OnModuleInit {
       });
 
       if (
-        checkout.state === "paid" ||
-        checkout.state === "provisioning" ||
-        checkout.state === "provisioned"
+        checkout.state === "provider_confirmed" ||
+        checkout.state === "provision_pending" ||
+        checkout.state === "provisioned" ||
+        checkout.state === "email_verification_pending"
       ) {
         throw new HttpException(
-          { error: "Оплаченный checkout нельзя отменить через этот сценарий." },
+          { error: "Подтвержденный checkout нельзя отменить через этот сценарий." },
           409
         );
       }
 
-      if (
-        checkout.state === "failed" ||
-        checkout.state === "canceled" ||
-        checkout.state === "expired"
-      ) {
+      if (checkout.state === "failed" || checkout.state === "canceled" || checkout.state === "expired") {
         return {
           ok: true,
           idempotent: true,
@@ -449,7 +488,7 @@ export class PurchasesService implements OnModuleInit {
             id: checkout.id,
             state: checkout.state,
           },
-        } satisfies CancelCheckoutResponseDto;
+        };
       }
 
       const canceled: CheckoutProcessDto = {
@@ -458,14 +497,9 @@ export class PurchasesService implements OnModuleInit {
         updatedAt: nowIso(),
       };
       await this.purchasesRepository.updateCheckout(canceled);
-      await this.appendTimelineEvent(
-        canceled.id,
-        "checkout_canceled",
-        {
-          reason: "api_cancel",
-        },
-        canceled.updatedAt
-      );
+      await this.appendTimelineEvent(canceled.id, "checkout_canceled", {
+        reason: "api_cancel",
+      });
 
       return {
         ok: true,
@@ -473,89 +507,12 @@ export class PurchasesService implements OnModuleInit {
           id: canceled.id,
           state: canceled.state,
         },
-      } satisfies CancelCheckoutResponseDto;
+      };
     });
 
     if (normalizedIdempotency) {
       await this.purchasesRepository.saveIdempotentResponse(
         "purchase:checkout:cancel",
-        normalizedIdempotency,
-        response,
-        IDEMPOTENCY_TTL_SEC
-      );
-    }
-
-    return response;
-  }
-
-  async confirmCheckoutPaid(params: {
-    checkoutId: string;
-    actorUser: AuthUserDto | null;
-    idempotencyKey?: string;
-  }): Promise<CheckoutActionResponseDto> {
-    const normalizedIdempotency = params.idempotencyKey?.trim();
-    if (normalizedIdempotency) {
-      const cached = await this.purchasesRepository.findIdempotentResponse<CheckoutActionResponseDto>(
-        "purchase:checkout:confirm",
-        normalizedIdempotency
-      );
-      if (cached) return cached;
-    }
-
-    const lockKey = `lock:purchase:checkout:confirm:${params.checkoutId}`;
-    const response = await this.withLock(lockKey, async () => {
-      const checkout = await this.requireCheckoutForActor(params.checkoutId, params.actorUser, {
-        allowEmailMatchWithoutUserId: true,
-      });
-
-      if (
-        checkout.state === "failed" ||
-        checkout.state === "canceled" ||
-        checkout.state === "expired"
-      ) {
-        throw new HttpException(
-          { error: "Checkout находится в финальном отрицательном состоянии." },
-          409
-        );
-      }
-
-      const markedPaid: CheckoutProcessDto =
-        checkout.state === "paid" ||
-        checkout.state === "provisioning" ||
-        checkout.state === "provisioned"
-          ? checkout
-          : {
-              ...checkout,
-              state: "paid",
-              updatedAt: nowIso(),
-            };
-
-      if (markedPaid !== checkout) {
-        await this.purchasesRepository.updateCheckout(markedPaid);
-        await this.appendTimelineEvent(
-          markedPaid.id,
-          "checkout_marked_paid",
-          {
-            source: "api_confirm_paid",
-          },
-          markedPaid.updatedAt
-        );
-      }
-
-      const effectiveCheckout = await this.ensureCheckoutProvisioned(markedPaid);
-
-      return {
-        ok: true,
-        checkoutId: effectiveCheckout.id,
-        checkoutState: effectiveCheckout.state,
-        payment: this.buildPaymentPayload(effectiveCheckout),
-        access: await this.buildAccessPayload(effectiveCheckout),
-      } satisfies CheckoutActionResponseDto;
-    });
-
-    if (normalizedIdempotency) {
-      await this.purchasesRepository.saveIdempotentResponse(
-        "purchase:checkout:confirm",
         normalizedIdempotency,
         response,
         IDEMPOTENCY_TTL_SEC
@@ -572,7 +529,6 @@ export class PurchasesService implements OnModuleInit {
     const checkout = await this.requireCheckoutForActor(params.checkoutId, params.actorUser, {
       allowEmailMatchWithoutUserId: true,
     });
-
     const timeline = await this.purchasesRepository.listCheckoutTimelineEvents(checkout.id);
     return {
       checkoutId: checkout.id,
@@ -604,6 +560,193 @@ export class PurchasesService implements OnModuleInit {
     return this.payBnpl({ ...params, mode: "remaining" });
   }
 
+  async handleProviderWebhook(params: {
+    payload: ProviderWebhookPayloadDto;
+    signature: string;
+    timestamp: string;
+    allowLocalInsecureFallback?: boolean;
+  }): Promise<ProviderWebhookResult> {
+    await this.verifyWebhookRequest({
+      payload: params.payload,
+      signature: params.signature,
+      timestamp: params.timestamp,
+      allowLocalInsecureFallback: params.allowLocalInsecureFallback,
+    });
+
+    const eventId = params.payload.eventId.trim();
+    if (!eventId) {
+      throw new HttpException({ error: "eventId обязателен." }, 400);
+    }
+
+    const dedupeKey = `card:${eventId}`;
+    const existingEvent = await this.purchasesRepository.findPaymentEventByDedupeKey(dedupeKey);
+    if (existingEvent) {
+      const checkout = await this.purchasesRepository.findCheckoutById(existingEvent.checkoutId);
+      return {
+        ok: true,
+        event: {
+          status: existingEvent.status,
+          outcome: "duplicate",
+        },
+        checkout: checkout
+          ? {
+              id: checkout.id,
+              state: checkout.state,
+            }
+          : null,
+      };
+    }
+
+    const lockKey = `lock:provider:webhook:${params.payload.checkoutId}`;
+    return this.withLock(lockKey, async () => {
+      const now = nowIso();
+      const checkout = await this.purchasesRepository.findCheckoutById(params.payload.checkoutId);
+      if (!checkout) {
+        await this.purchasesRepository.insertPaymentEvent({
+          id: ensureId("pay_evt"),
+          provider: "card",
+          externalEventId: eventId,
+          dedupeKey,
+          checkoutId: params.payload.checkoutId,
+          status: params.payload.status,
+          outcome: "ignored_missing_checkout",
+          payload: params.payload.payload ?? null,
+          createdAt: now,
+          processedAt: now,
+        });
+        return {
+          ok: true,
+          event: {
+            status: params.payload.status,
+            outcome: "ignored_missing_checkout",
+          },
+          checkout: null,
+        };
+      }
+
+      const transition = this.computeProviderTransition(checkout.state, params.payload.status);
+      let effectiveCheckout = checkout;
+      let outcome = transition.outcome;
+
+      if (transition.nextState && transition.nextState !== checkout.state) {
+        effectiveCheckout = {
+          ...checkout,
+          state: transition.nextState,
+          providerEventId: eventId,
+          providerPaymentId: params.payload.providerPaymentId?.trim() || checkout.providerPaymentId,
+          updatedAt: now,
+        };
+        await this.purchasesRepository.updateCheckout(effectiveCheckout);
+        await this.appendTimelineEvent(effectiveCheckout.id, "provider_event", {
+          provider: "card",
+          status: params.payload.status,
+          eventId,
+          nextState: effectiveCheckout.state,
+        });
+      }
+
+      if (
+        params.payload.status === "paid" &&
+        (effectiveCheckout.state === "provider_confirmed" ||
+          effectiveCheckout.state === "provision_pending" ||
+          effectiveCheckout.state === "provision_failed_retryable")
+      ) {
+        try {
+          effectiveCheckout = await this.ensureCheckoutProvisioned(effectiveCheckout);
+          outcome = "applied";
+        } catch {
+          outcome = "provision_failed_retryable";
+          const refreshed = await this.purchasesRepository.findCheckoutById(
+            effectiveCheckout.id
+          );
+          if (refreshed) {
+            effectiveCheckout = refreshed;
+          }
+        }
+      }
+
+      await this.purchasesRepository.insertPaymentEvent({
+        id: ensureId("pay_evt"),
+        provider: "card",
+        externalEventId: eventId,
+        dedupeKey,
+        checkoutId: effectiveCheckout.id,
+        status: params.payload.status,
+        outcome,
+        payload: params.payload.payload ?? null,
+        createdAt: now,
+        processedAt: now,
+      });
+
+      return {
+        ok: true,
+        event: {
+          status: params.payload.status,
+          outcome,
+        },
+        checkout: {
+          id: effectiveCheckout.id,
+          state: effectiveCheckout.state,
+        },
+      };
+    });
+  }
+
+  async refundProviderCheckout(params: {
+    checkoutId: string;
+    reason?: string;
+    actorUser: AuthUserDto | null;
+  }): Promise<ProviderWebhookResult> {
+    if (!params.actorUser || params.actorUser.role !== "teacher") {
+      throw new HttpException({ error: "Операция доступна только преподавателю." }, 403);
+    }
+
+    const checkout = await this.purchasesRepository.findCheckoutById(params.checkoutId.trim());
+    if (!checkout) {
+      throw new HttpException({ error: "Checkout не найден." }, 404);
+    }
+
+    const now = nowIso();
+    const nextState: CheckoutStateDto = "canceled";
+    if (checkout.state !== "canceled") {
+      await this.purchasesRepository.updateCheckout({
+        ...checkout,
+        state: nextState,
+        updatedAt: now,
+      });
+      await this.appendTimelineEvent(checkout.id, "provider_refund", {
+        reason: params.reason?.trim() || "manual_refund",
+      });
+    }
+
+    await this.purchasesRepository.insertPaymentEvent({
+      id: ensureId("pay_evt"),
+      provider: "card",
+      externalEventId: ensureId("refund"),
+      dedupeKey: `card:refund:${checkout.id}:${now}`,
+      checkoutId: checkout.id,
+      status: "canceled",
+      outcome: "applied",
+      payload: {
+        reason: params.reason?.trim() || "manual_refund",
+      },
+      createdAt: now,
+      processedAt: now,
+    });
+
+    return {
+      ok: true,
+      event: {
+        status: "canceled",
+        outcome: "applied",
+      },
+      checkout: {
+        id: checkout.id,
+        state: nextState,
+      },
+    };
+  }
+
   private async payBnpl(params: {
     purchaseId: string;
     actorUser: AuthUserDto | null;
@@ -614,6 +757,7 @@ export class PurchasesService implements OnModuleInit {
     if (!actorUser) {
       throw new HttpException({ error: "Требуется авторизация." }, 401);
     }
+
     const purchaseId = params.purchaseId.trim();
     if (!purchaseId) {
       throw new HttpException({ error: "purchaseId обязателен." }, 400);
@@ -636,7 +780,6 @@ export class PurchasesService implements OnModuleInit {
           ? plan.installmentsCount
           : Math.min(plan.installmentsCount, plan.paidCount + 1);
       const perInstallment = Math.max(0, Math.round(purchase.price / plan.installmentsCount));
-
       const schedule = plan.schedule.map((item, index) => {
         const paid = index < nextPaidCount;
         return {
@@ -677,7 +820,7 @@ export class PurchasesService implements OnModuleInit {
         ? this.buildPaymentPayload(checkout)
         : ({
             provider: "bnpl",
-            status: completed ? "paid" : "awaiting_payment",
+            status: completed ? "paid" : "provider_confirmed",
             outcome: "applied",
             requiresConfirmation: false,
             lastProcessedAt: nowIso(),
@@ -701,6 +844,103 @@ export class PurchasesService implements OnModuleInit {
     });
   }
 
+  private async verifyWebhookRequest(params: {
+    payload: ProviderWebhookPayloadDto;
+    signature: string;
+    timestamp: string;
+    allowLocalInsecureFallback?: boolean;
+  }) {
+    const timestamp = params.timestamp?.trim();
+    const signature = params.signature?.trim();
+    if (!timestamp || !signature) {
+      throw new HttpException({ error: "Webhook headers are required." }, 400);
+    }
+
+    const tsMs = Date.parse(timestamp);
+    if (!Number.isFinite(tsMs)) {
+      throw new HttpException({ error: "Invalid webhook timestamp." }, 400);
+    }
+
+    const skewSec = Math.abs(Date.now() - tsMs) / 1000;
+    if (skewSec > this.runtimeConfig.cardWebhookMaxSkewSec) {
+      throw new HttpException({ error: "Webhook timestamp is stale." }, 409);
+    }
+
+    const expected = this.signWebhookPayload(timestamp, params.payload);
+    const allowFallback =
+      this.runtimeConfig.appEnv === "local" && params.allowLocalInsecureFallback;
+    if (!allowFallback && !timingSafeEquals(signature, expected)) {
+      throw new HttpException({ error: "Webhook signature mismatch." }, 401);
+    }
+
+    const replayKey = `card:webhook:replay:${signature}`;
+    const acquired = await this.redisService.setIfAbsent(
+      replayKey,
+      "1",
+      this.runtimeConfig.cardWebhookReplayTtlSec
+    );
+    if (!acquired) {
+      throw new HttpException({ error: "Webhook replay detected." }, 409);
+    }
+  }
+
+  private signWebhookPayload(timestamp: string, payload: ProviderWebhookPayloadDto) {
+    return crypto
+      .createHmac("sha256", this.runtimeConfig.cardWebhookSecret)
+      .update(`${timestamp}.${JSON.stringify(payload)}`)
+      .digest("hex");
+  }
+
+  private computeProviderTransition(
+    current: CheckoutStateDto,
+    status: ProviderWebhookPayloadDto["status"]
+  ): { nextState: CheckoutStateDto | null; outcome: string } {
+    if (status === "paid") {
+      if (
+        current === "provider_confirmed" ||
+        current === "provision_pending" ||
+        current === "provisioned" ||
+        current === "email_verification_pending"
+      ) {
+        return { nextState: current, outcome: "duplicate" };
+      }
+      if (current === "failed" || current === "canceled" || current === "expired") {
+        return { nextState: null, outcome: "ignored_out_of_order" };
+      }
+      return { nextState: "provider_confirmed", outcome: "applied" };
+    }
+
+    if (status === "awaiting_payment") {
+      if (isTerminalCheckoutState(current)) {
+        return { nextState: null, outcome: "ignored_out_of_order" };
+      }
+      return { nextState: "pending_provider", outcome: "applied" };
+    }
+
+    if (status === "failed") {
+      if (current === "provisioned" || current === "email_verification_pending") {
+        return { nextState: null, outcome: "ignored_out_of_order" };
+      }
+      return { nextState: "failed", outcome: "applied" };
+    }
+
+    if (status === "canceled") {
+      if (current === "provisioned" || current === "email_verification_pending") {
+        return { nextState: null, outcome: "ignored_out_of_order" };
+      }
+      return { nextState: "canceled", outcome: "applied" };
+    }
+
+    if (status === "expired") {
+      if (current === "provisioned" || current === "email_verification_pending") {
+        return { nextState: null, outcome: "ignored_out_of_order" };
+      }
+      return { nextState: "expired", outcome: "applied" };
+    }
+
+    return { nextState: null, outcome: "ignored_out_of_order" };
+  }
+
   private async requireCheckoutForActor(
     checkoutId: string,
     actorUser: AuthUserDto | null,
@@ -710,6 +950,7 @@ export class PurchasesService implements OnModuleInit {
     if (!normalizedCheckoutId) {
       throw new HttpException({ error: "checkoutId обязателен." }, 400);
     }
+
     const checkout = await this.purchasesRepository.findCheckoutById(normalizedCheckoutId);
     if (!checkout) {
       throw new HttpException({ error: "Checkout не найден." }, 404);
@@ -738,165 +979,239 @@ export class PurchasesService implements OnModuleInit {
     throw new HttpException({ error: "Недопустимый checkout." }, 403);
   }
 
-  private async ensureCheckoutProvisioned(checkout: CheckoutProcessDto): Promise<CheckoutProcessDto> {
-    const userId = checkout.userId;
-    if (!userId) return checkout;
-
-    let working = checkout;
-    if (working.state === "paid") {
-      working = {
-        ...working,
-        state: "provisioning",
-        updatedAt: nowIso(),
-      };
-      await this.purchasesRepository.updateCheckout(working);
-      await this.appendTimelineEvent(working.id, "checkout_provisioning", {}, working.updatedAt);
+  private async resumeProvisionIfNeeded(
+    checkout: CheckoutProcessDto
+  ): Promise<CheckoutProcessDto> {
+    if (
+      checkout.state !== "provider_confirmed" &&
+      checkout.state !== "provision_pending" &&
+      checkout.state !== "provision_failed_retryable"
+    ) {
+      return checkout;
     }
-
-    if (working.state !== "provisioning" && working.state !== "provisioned") {
-      return working;
-    }
-
-    const course = await this.coursesRepository.findById(working.courseId);
-    if (!course) {
-      return working;
-    }
-
-    const lessons = await this.lessonsRepository.findAll(working.courseId);
-    const existing = await this.purchasesRepository.findPurchaseByUserAndCourse(
-      userId,
-      working.courseId
-    );
-    const purchasedAt = nowIso();
-    const purchase: PurchaseRecordDto = {
-      id: existing?.id ?? ensureId("purchase"),
-      userId,
-      courseId: working.courseId,
-      price: working.amount,
-      purchasedAt,
-      paymentMethod: working.method,
-      checkoutId: working.id,
-      bnpl:
-        working.method === "bnpl"
-          ? {
-              provider: "unknown",
-              plan: {
-                installmentsCount: normalizeInstallmentsCount(working.bnplInstallmentsCount),
-                paidCount: 1,
-                nextPaymentDate: new Date(Date.parse(purchasedAt) + 14 * 24 * 60 * 60 * 1000).toISOString(),
-                schedule: Array.from(
-                  { length: normalizeInstallmentsCount(working.bnplInstallmentsCount) },
-                  (_, index) => ({
-                    dueDate: new Date(
-                      Date.parse(purchasedAt) + index * 14 * 24 * 60 * 60 * 1000
-                    ).toISOString(),
-                    amount: Math.max(
-                      0,
-                      Math.ceil(working.amount / normalizeInstallmentsCount(working.bnplInstallmentsCount))
-                    ),
-                    status: index === 0 ? "paid" : "due",
-                  })
-                ),
-              },
-              installmentsCount: normalizeInstallmentsCount(working.bnplInstallmentsCount),
-              paidCount: 1,
-              lastKnownStatus: "active",
-            }
-          : existing?.bnpl,
-      courseSnapshot: course,
-      lessonsSnapshot: lessons,
-      purchasedTestItemIds: existing?.purchasedTestItemIds,
-    };
-
-    const authUser = await this.authRepository.findById(userId);
-    const accessContext = {
-      userId,
-      email: authUser?.email ?? working.email,
-      role: authUser?.role ?? "student",
-      isIdentityVerified: true,
-      courseId: working.courseId,
-      hasActiveEntitlement: true,
-    } as const;
-
-    const nextCheckout: CheckoutProcessDto =
-      working.state === "provisioned"
-        ? working
-        : {
-            ...working,
-            state: "provisioned" as const,
-            updatedAt: nowIso(),
-          };
-
-    await this.purchasesRepository.provisionCheckoutAtomic({
-      checkout: nextCheckout,
-      purchase,
-      accessContext,
-    });
-
-    if (nextCheckout !== working) {
-      await this.appendTimelineEvent(nextCheckout.id, "checkout_provisioned", {
-        purchaseId: purchase.id,
-      }, nextCheckout.updatedAt);
-    }
-
-    return nextCheckout;
+    return this.ensureCheckoutProvisioned(checkout);
   }
 
-  private buildPaymentPayload(checkout: CheckoutProcessDto): CheckoutPaymentDto {
-    const requiresConfirmation =
-      checkout.method === "card" && checkout.state === "awaiting_payment";
-
-    const status: CheckoutPaymentDto["status"] =
-      checkout.state === "created" || checkout.state === "awaiting_payment"
-        ? "awaiting_payment"
-        : checkout.state === "failed"
-          ? "failed"
-          : checkout.state === "canceled"
-            ? "canceled"
-            : checkout.state === "expired"
-              ? "expired"
-              : "paid";
-
-    const outcome: CheckoutPaymentDto["outcome"] =
-      status === "awaiting_payment"
-        ? "awaiting_user_action"
-        : status === "paid"
-          ? "applied"
-          : status === "canceled" || status === "expired"
-            ? "canceled"
-            : "failed";
-
-    const base: CheckoutPaymentDto = {
-      provider: checkout.method,
-      status,
-      outcome,
-      providerPaymentId: `${checkout.method}_pi_${checkout.id.slice(-12)}`,
-      requiresConfirmation,
-      lastProcessedAt:
-        status === "awaiting_payment" ? null : checkout.updatedAt,
-    };
-
-    if (checkout.method === "card") {
-      return {
-        ...base,
-        paymentUrl: `https://pay.mock-card.local/checkout/${checkout.id}`,
-        redirectUrl: `https://pay.mock-card.local/checkout/${checkout.id}`,
-        returnUrl: `/courses/${encodeURIComponent(checkout.courseId)}`,
-      };
+  private async ensureCheckoutProvisioned(
+    checkout: CheckoutProcessDto
+  ): Promise<CheckoutProcessDto> {
+    if (
+      checkout.state !== "provider_confirmed" &&
+      checkout.state !== "provision_pending" &&
+      checkout.state !== "provision_failed_retryable"
+    ) {
+      return checkout;
     }
 
-    if (checkout.method === "sbp") {
-      return {
-        ...base,
-        sbp: {
-          qrUrl: `https://qr.mock-sbp.local/${checkout.id}`,
-          deepLinkUrl: `bankapp://sbp/pay/${checkout.id}`,
-          expiresAt: checkout.expiresAt,
+    const now = nowIso();
+    const provisioningCheckout: CheckoutProcessDto =
+      checkout.state === "provision_pending"
+        ? checkout
+        : {
+            ...checkout,
+            state: "provision_pending",
+            updatedAt: now,
+          };
+
+    if (provisioningCheckout !== checkout) {
+      await this.purchasesRepository.updateCheckout(provisioningCheckout);
+      await this.appendTimelineEvent(provisioningCheckout.id, "provision_pending", {
+        sourceState: checkout.state,
+      });
+    }
+
+    try {
+      const identity = await this.authService.ensureUserByEmail({
+        email: provisioningCheckout.email,
+        firstName: provisioningCheckout.firstName,
+        lastName: provisioningCheckout.lastName,
+        phone: provisioningCheckout.phone,
+      });
+
+      const boundCheckout: CheckoutProcessDto =
+        provisioningCheckout.userId === identity.user.id
+          ? provisioningCheckout
+          : {
+              ...provisioningCheckout,
+              userId: identity.user.id,
+              updatedAt: nowIso(),
+            };
+
+      if (boundCheckout !== provisioningCheckout) {
+        await this.purchasesRepository.updateCheckout(boundCheckout);
+        await this.appendTimelineEvent(boundCheckout.id, "identity_bound", {
+          userId: identity.user.id,
+          isNewUser: identity.isNew,
+        });
+      }
+
+      const course = await this.coursesRepository.findById(boundCheckout.courseId);
+      if (!course) {
+        throw new HttpException({ error: "Курс не найден во время provisioning." }, 404);
+      }
+      const lessons = await this.lessonsRepository.findAll(boundCheckout.courseId);
+
+      const existingPurchase = await this.purchasesRepository.findPurchaseByUserAndCourse(
+        identity.user.id,
+        boundCheckout.courseId
+      );
+
+      const purchase: PurchaseRecordDto = {
+        id: existingPurchase?.id ?? ensureId("purchase"),
+        userId: identity.user.id,
+        courseId: boundCheckout.courseId,
+        price: boundCheckout.amount,
+        purchasedAt: nowIso(),
+        paymentMethod: boundCheckout.method,
+        checkoutId: boundCheckout.id,
+        bnpl:
+          boundCheckout.method === "bnpl"
+            ? {
+                provider: "unknown",
+                plan: {
+                  installmentsCount: normalizeInstallmentsCount(boundCheckout.bnplInstallmentsCount),
+                  paidCount: 1,
+                  nextPaymentDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+                  schedule: Array.from(
+                    { length: normalizeInstallmentsCount(boundCheckout.bnplInstallmentsCount) },
+                    (_, index) => ({
+                      dueDate: new Date(
+                        Date.now() + index * 14 * 24 * 60 * 60 * 1000
+                      ).toISOString(),
+                      amount: Math.max(
+                        0,
+                        Math.ceil(
+                          boundCheckout.amount /
+                            normalizeInstallmentsCount(boundCheckout.bnplInstallmentsCount)
+                        )
+                      ),
+                      status: index === 0 ? "paid" : "due",
+                    })
+                  ),
+                },
+                installmentsCount: normalizeInstallmentsCount(boundCheckout.bnplInstallmentsCount),
+                paidCount: 1,
+                lastKnownStatus: "active",
+              }
+            : existingPurchase?.bnpl,
+        courseSnapshot: course,
+        lessonsSnapshot: lessons,
+        purchasedTestItemIds: existingPurchase?.purchasedTestItemIds,
+      };
+
+      const isIdentityVerified = !identity.isNew;
+      const finalState: CheckoutStateDto = identity.isNew
+        ? "email_verification_pending"
+        : "provisioned";
+      const finalCheckout: CheckoutProcessDto = {
+        ...boundCheckout,
+        state: finalState,
+        updatedAt: nowIso(),
+      };
+
+      await this.purchasesRepository.provisionCheckoutAtomic({
+        checkout: finalCheckout,
+        purchase,
+        accessContext: {
+          userId: identity.user.id,
+          email: identity.user.email,
+          role: identity.user.role,
+          isIdentityVerified,
+          courseId: finalCheckout.courseId,
+          hasActiveEntitlement: true,
         },
-      };
-    }
+        entitlement: {
+          id: ensureId("entl"),
+          state: "active",
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        },
+      });
 
-    return base;
+      await this.purchasesRepository.upsertConsentRecords({
+        checkoutId: finalCheckout.id,
+        email: finalCheckout.email,
+        scopes: finalCheckout.consentSnapshot ?? [],
+        acceptedAt: finalCheckout.createdAt,
+      });
+
+      await this.appendTimelineEvent(finalCheckout.id, "checkout_provisioned", {
+        userId: identity.user.id,
+        purchaseId: purchase.id,
+        identityState: isIdentityVerified ? "verified" : "unverified",
+      });
+
+      if (identity.isNew) {
+        await this.notificationsService.enqueueAndDispatch({
+          id: ensureId("outbox"),
+          template: "registration",
+          dedupeKey: `registration:${identity.user.id}:${finalCheckout.id}`,
+          recipientEmail: identity.user.email,
+          userId: identity.user.id,
+          checkoutId: finalCheckout.id,
+          payload: {
+            reason: "provider_confirmed_payment",
+            checkoutId: finalCheckout.id,
+          },
+        });
+      }
+
+      await this.notificationsService.enqueueAndDispatch({
+        id: ensureId("outbox"),
+        template: "purchase_confirmed",
+        dedupeKey: `purchase_confirmed:${purchase.id}`,
+        recipientEmail: identity.user.email,
+        userId: identity.user.id,
+        checkoutId: finalCheckout.id,
+        payload: {
+          purchaseId: purchase.id,
+          courseId: purchase.courseId,
+          amount: purchase.price,
+        },
+      });
+
+      await this.notificationsService.enqueueAndDispatch({
+        id: ensureId("outbox"),
+        template: "purchase_access_granted",
+        dedupeKey: `purchase_access_granted:${purchase.id}`,
+        recipientEmail: identity.user.email,
+        userId: identity.user.id,
+        checkoutId: finalCheckout.id,
+        payload: {
+          purchaseId: purchase.id,
+          courseId: purchase.courseId,
+          accessState: finalState,
+        },
+      });
+
+      if (!identity.isNew) {
+        await this.notificationsService.enqueueAndDispatch({
+          id: ensureId("outbox"),
+          template: "login_hint",
+          dedupeKey: `login_hint:purchase:${identity.user.id}:${finalCheckout.id}`,
+          recipientEmail: identity.user.email,
+          userId: identity.user.id,
+          checkoutId: finalCheckout.id,
+          payload: {
+            reason: "existing_user_purchase",
+            checkoutId: finalCheckout.id,
+          },
+        });
+      }
+
+      return finalCheckout;
+    } catch (error) {
+      const failedCheckout: CheckoutProcessDto = {
+        ...provisioningCheckout,
+        state: "provision_failed_retryable",
+        updatedAt: nowIso(),
+      };
+      await this.purchasesRepository.updateCheckout(failedCheckout);
+      await this.appendTimelineEvent(failedCheckout.id, "provision_failed", {
+        error: error instanceof Error ? error.message : "unknown",
+      });
+      throw error;
+    }
   }
 
   private async buildAccessPayload(
@@ -951,11 +1266,67 @@ export class PurchasesService implements OnModuleInit {
     };
   }
 
+  private buildPaymentPayload(checkout: CheckoutProcessDto): CheckoutPaymentDto {
+    const status: CheckoutPaymentDto["status"] =
+      checkout.state === "created" || checkout.state === "pending_provider"
+        ? "awaiting_provider"
+        : checkout.state === "provider_confirmed" ||
+            checkout.state === "provision_pending" ||
+            checkout.state === "provisioned" ||
+            checkout.state === "email_verification_pending" ||
+            checkout.state === "email_correction_required"
+          ? "provider_confirmed"
+          : checkout.state === "failed" || checkout.state === "provision_failed_retryable"
+            ? "failed"
+            : checkout.state === "canceled"
+              ? "canceled"
+              : "expired";
+
+    const outcome: CheckoutPaymentDto["outcome"] =
+      status === "awaiting_provider"
+        ? "awaiting_provider_event"
+        : status === "provider_confirmed"
+          ? "applied"
+          : status === "canceled" || status === "expired"
+            ? "canceled"
+            : "failed";
+
+    const base: CheckoutPaymentDto = {
+      provider: checkout.method,
+      status,
+      outcome,
+      providerPaymentId:
+        checkout.providerPaymentId ?? `${checkout.method}_pi_${checkout.id.slice(-12)}`,
+      requiresConfirmation: false,
+      lastProcessedAt: status === "awaiting_provider" ? null : checkout.updatedAt,
+    };
+
+    if (checkout.method === "card") {
+      return {
+        ...base,
+        paymentUrl: `https://pay.mock-card.local/checkout/${checkout.id}`,
+        redirectUrl: `https://pay.mock-card.local/checkout/${checkout.id}`,
+        returnUrl: `/courses/${encodeURIComponent(checkout.courseId)}`,
+      };
+    }
+
+    if (checkout.method === "sbp") {
+      return {
+        ...base,
+        sbp: {
+          qrUrl: `https://qr.mock-sbp.local/${checkout.id}`,
+          deepLinkUrl: `bankapp://sbp/pay/${checkout.id}`,
+          expiresAt: checkout.expiresAt,
+        },
+      };
+    }
+
+    return base;
+  }
+
   private async buildCheckoutStatusResponse(
     checkout: CheckoutProcessDto
   ): Promise<CheckoutStatusResponseDto> {
-    const payment = this.buildPaymentPayload(checkout);
-    const access = await this.buildAccessPayload(checkout);
     return {
       checkoutId: checkout.id,
       state: checkout.state,
@@ -967,23 +1338,39 @@ export class PurchasesService implements OnModuleInit {
       updatedAt: checkout.updatedAt,
       expiresAt: checkout.expiresAt ?? null,
       isTerminal: isTerminalCheckoutState(checkout.state),
-      payment,
-      access,
+      payment: this.buildPaymentPayload(checkout),
+      access: await this.buildAccessPayload(checkout),
+    };
+  }
+
+  private async buildCheckoutPurchaseResponse(
+    checkout: CheckoutProcessDto,
+    actorUser?: AuthUserDto
+  ): Promise<CheckoutPurchaseResponseDto> {
+    const access = await this.buildAccessPayload(checkout);
+    return {
+      user: actorUser,
+      checkoutId: checkout.id,
+      checkoutState: checkout.state,
+      payment: this.buildPaymentPayload(checkout),
+      identityState: access?.identityState ?? "unverified",
+      entitlementState: access?.entitlementState ?? "none",
+      profileComplete: access?.profileComplete ?? false,
+      accessState: access?.accessState ?? "awaiting_profile",
     };
   }
 
   private async appendTimelineEvent(
     checkoutId: string,
     type: string,
-    details: Record<string, unknown>,
-    at: string
+    details: Record<string, unknown>
   ) {
     await this.purchasesRepository.addCheckoutTimelineEvent({
       id: ensureId("checkout_evt"),
       checkoutId,
       type,
       details,
-      createdAt: at,
+      createdAt: nowIso(),
     });
   }
 

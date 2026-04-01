@@ -24,6 +24,7 @@ test("runtime config: stage mode rejects AUTH_DEBUG_TOKENS=true", () => {
     process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
     process.env.AUTH_PASSWORD_PEPPER = "pepper";
     process.env.AUTH_COOKIE_SECURE = "true";
     process.env.AUTH_DEBUG_TOKENS = "true";
@@ -31,6 +32,29 @@ test("runtime config: stage mode rejects AUTH_DEBUG_TOKENS=true", () => {
     assert.throws(
       () => getApiRuntimeConfig(),
       /AUTH_DEBUG_TOKENS must be disabled outside local APP_ENV/
+    );
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("runtime config: provider email mode requires EMAIL_PROVIDER_API_KEY", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.EMAIL_DELIVERY_MODE = "provider";
+    delete process.env.EMAIL_PROVIDER_API_KEY;
+
+    assert.throws(
+      () => getApiRuntimeConfig(),
+      /Missing required env: EMAIL_PROVIDER_API_KEY/
     );
   } finally {
     restoreEnv(snapshot);

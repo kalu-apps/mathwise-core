@@ -94,14 +94,10 @@ export type LessonsGateway = {
 export type AccessGateway = {
   getCourseAccessDecision: (params: {
     courseId: string;
-    userId?: string;
   }) => Promise<CourseAccessDecision>;
-  getCourseAccessList: (params?: {
-    userId?: string;
-  }) => Promise<CourseAccessListResponse>;
+  getCourseAccessList: () => Promise<CourseAccessListResponse>;
   getLessonAccessDecision: (params: {
     lessonId: string;
-    userId?: string;
   }) => Promise<LessonAccessDecision>;
 };
 
@@ -137,7 +133,6 @@ export type PurchasesGateway = {
   cancelCheckout: (checkoutId: string) => Promise<CancelCheckoutResponseContract>;
   getCheckoutStatus: (checkoutId: string) => Promise<CheckoutStatusResponseContract>;
   retryCheckout: (checkoutId: string) => Promise<CheckoutActionResponseContract>;
-  confirmCheckoutPaid: (checkoutId: string) => Promise<CheckoutActionResponseContract>;
   getCheckoutTimeline: (
     checkoutId: string
   ) => Promise<CheckoutTimelineResponseContract>;

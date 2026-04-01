@@ -57,7 +57,6 @@ import type { Course } from "@/entities/course/model/types";
 import type { Lesson } from "@/entities/lesson/model/types";
 import {
   cancelCheckout,
-  confirmCheckoutPaid,
   retryCheckout,
   type CheckoutListItem,
 } from "@/domain/auth-payments/model/api";
@@ -643,8 +642,8 @@ export default function CourseDetails() {
   const showOnboardingPanel =
     !isTeacher && Boolean(pageNoticeState && onboardingStates.includes(pageNoticeState));
   const isAwaitingCheckoutPayment =
-    checkoutFlowStatus?.payment.status === "awaiting_payment";
-  const showManualPaidCheck =
+    checkoutFlowStatus?.payment.status === "awaiting_provider";
+  const shouldShowAwaitingProviderHint =
     isAwaitingCheckoutPayment &&
     (checkoutFlowStatus?.method === "card" || checkoutFlowStatus?.method === "sbp");
   const sbpPaymentView =
@@ -913,33 +912,6 @@ export default function CourseDetails() {
       },
       {
         lockKey: `checkout-action:cancel:${activeCheckoutId}`,
-        retry: { label: t("common.retryCheckoutAction") },
-      }
-    );
-    if (executed === undefined) return;
-  };
-
-  const handleCheckoutConfirmPaid = async () => {
-    if (!activeCheckoutId) return;
-    const executed = await checkoutActionGuard.run(
-      async () => {
-        try {
-          setCheckoutFlowLoading(true);
-          setCheckoutFlowError(null);
-          await confirmCheckoutPaid(activeCheckoutId);
-          await refreshCheckoutFlow(activeCheckoutId, { silent: true });
-        } catch (error) {
-          setCheckoutFlowError(
-            error instanceof Error
-              ? error.message
-              : "Не удалось подтвердить оплату. Попробуйте позже."
-          );
-        } finally {
-          setCheckoutFlowLoading(false);
-        }
-      },
-      {
-        lockKey: `checkout-action:confirm:${activeCheckoutId}`,
         retry: { label: t("common.retryCheckoutAction") },
       }
     );
@@ -2175,7 +2147,9 @@ export default function CourseDetails() {
         <DialogTitleWithClose
           title={
             <span className="course-details__checkout-title">
-              {checkoutFlowStatus?.payment.status === "paid" ? (
+              {checkoutFlowStatus?.payment.status === "provider_confirmed" ||
+              checkoutFlowStatus?.state === "provisioned" ||
+              checkoutFlowStatus?.state === "email_verification_pending" ? (
                 <CheckCircleRounded fontSize="small" />
               ) : (
                 <HourglassTopRounded fontSize="small" />
@@ -2235,6 +2209,11 @@ export default function CourseDetails() {
               вашему профилю.
             </Alert>
           )}
+          {shouldShowAwaitingProviderHint && (
+            <Alert severity="info">
+              Статус оплаты обновляется только после подтверждения от платежного провайдера.
+            </Alert>
+          )}
         </DialogContent>
         <DialogActions>
           <Button
@@ -2261,17 +2240,6 @@ export default function CourseDetails() {
               aria-label={isMobile ? "Открыть страницу оплаты" : undefined}
             >
               {isMobile ? <OpenInNewRounded fontSize="small" /> : "Открыть оплату"}
-            </Button>
-          )}
-          {showManualPaidCheck && (
-            <Button
-              variant="outlined"
-              onClick={() => void handleCheckoutConfirmPaid()}
-              disabled={!activeCheckoutId || checkoutFlowLoading || user?.role !== "student"}
-              sx={mobileDialogActionSx}
-              aria-label={isMobile ? "Я оплатил" : undefined}
-            >
-              {isMobile ? <CheckCircleRounded fontSize="small" /> : "Я оплатил"}
             </Button>
           )}
           <Button

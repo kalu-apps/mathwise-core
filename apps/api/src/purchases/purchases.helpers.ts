@@ -22,6 +22,27 @@ export const lockToken = () =>
 export const normalizeEmail = (value: string | undefined | null) =>
   typeof value === "string" ? value.trim().toLowerCase() : "";
 
+const EMAIL_FORMAT_RE =
+  /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+
+export const validateEmailFormat = (email: string) => EMAIL_FORMAT_RE.test(email);
+
+export const normalizePhone = (value: string | undefined | null) => {
+  if (typeof value !== "string") return "";
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.length === 11 && digits.startsWith("8")) {
+    return `+7${digits.slice(1)}`;
+  }
+  if (digits.length === 11 && digits.startsWith("7")) {
+    return `+${digits}`;
+  }
+  if (digits.length === 10) {
+    return `+7${digits}`;
+  }
+  return value.trim();
+};
+
 export const normalizeCheckoutMethod = (value: unknown): CheckoutMethodDto => {
   if (value === "mock" || value === "card" || value === "sbp" || value === "bnpl") {
     return value;

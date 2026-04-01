@@ -143,7 +143,7 @@ export default function Courses() {
         user?.role === "student"
           ? getPurchases({ userId: user.id }, { forceFresh: true })
           : Promise.resolve([]),
-        getCourseAccessList({ userId: user?.id }),
+        getCourseAccessList(),
       ]);
       const accessByCourse = accessData.decisions.reduce<
         Record<string, CourseAccessDecision>

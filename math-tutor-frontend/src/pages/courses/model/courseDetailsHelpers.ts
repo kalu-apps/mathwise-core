@@ -28,25 +28,32 @@ export const PAYMENT_METHODS: PaymentMethodMeta[] = [
 
 export const RESUMABLE_CHECKOUT_STATES = new Set<string>([
   "created",
-  "awaiting_payment",
+  "pending_provider",
   "failed",
+  "provision_failed_retryable",
   "canceled",
   "expired",
 ]);
 
 export const getCheckoutStatusLabel = (status?: string) => {
-  if (status === "paid") return "Оплачен";
+  if (status === "provider_confirmed") return "Оплачен";
   if (status === "failed") return "Ошибка оплаты";
   if (status === "canceled") return "Платеж отменен";
   if (status === "expired") return "Время истекло";
+  if (status === "provision_pending") return "Активируем доступ";
+  if (status === "provisioned") return "Доступ активирован";
+  if (status === "email_verification_pending") return "Ожидается подтверждение email";
   return "Ожидает подтверждения";
 };
 
 export const getCheckoutDialogTitle = (status?: string) => {
-  if (status === "paid") return "Оплата подтверждена";
+  if (status === "provider_confirmed") return "Оплата подтверждена";
   if (status === "failed") return "Оплата не прошла";
   if (status === "canceled") return "Платеж отменен";
   if (status === "expired") return "Срок оплаты истек";
+  if (status === "provision_pending") return "Активируем доступ к курсу";
+  if (status === "provisioned") return "Доступ к курсу активирован";
+  if (status === "email_verification_pending") return "Нужно подтвердить email";
   return "Подтверждаем оплату";
 };
 
@@ -54,8 +61,17 @@ export const getCheckoutDialogHint = (
   status?: string,
   requiresConfirmation?: boolean
 ) => {
-  if (status === "paid") {
+  if (status === "provider_confirmed") {
     return "Платеж зарегистрирован. Проверяем активацию доступа к материалам курса.";
+  }
+  if (status === "provision_pending") {
+    return "Оплата подтверждена. Активируем доступ к курсу.";
+  }
+  if (status === "provisioned") {
+    return "Оплата подтверждена, доступ к курсу уже активирован.";
+  }
+  if (status === "email_verification_pending") {
+    return "Оплата подтверждена. Для полного доступа подтвердите email.";
   }
   if (status === "failed" || status === "canceled" || status === "expired") {
     return "Платеж не завершен. Повторите попытку или откройте страницу оплаты повторно.";

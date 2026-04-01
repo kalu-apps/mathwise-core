@@ -31,6 +31,19 @@ type IdempotencyRow = {
   response: unknown;
 };
 
+type PaymentEventRow = {
+  id: string;
+  provider: string;
+  externalEventId: string;
+  dedupeKey: string;
+  checkoutId: string;
+  status: string;
+  outcome: string;
+  payload: unknown;
+  createdAt: string;
+  processedAt: string;
+};
+
 @Injectable()
 export class PurchasesRepository {
   constructor(private readonly databaseService: DatabaseService) {}
@@ -201,12 +214,18 @@ export class PurchasesRepository {
           id,
           user_id,
           email,
+          first_name,
+          last_name,
+          phone,
           course_id,
           method,
           bnpl_installments_count,
           amount,
           currency,
           state,
+          provider_payment_id,
+          provider_event_id,
+          consent_snapshot_json,
           created_at,
           updated_at,
           expires_at,
@@ -214,19 +233,26 @@ export class PurchasesRepository {
         )
         VALUES (
           $1, $2, $3, $4, $5, $6,
-          $7, $8, $9, $10, $11, $12, NOW()
+          $7, $8, $9, $10, $11, $12,
+          $13, $14, $15::jsonb, $16, $17, $18, NOW()
         )
       `,
       [
         checkout.id,
         checkout.userId ?? null,
         checkout.email,
+        checkout.firstName ?? null,
+        checkout.lastName ?? null,
+        checkout.phone ?? null,
         checkout.courseId,
         checkout.method,
         checkout.bnplInstallmentsCount ?? null,
         Math.max(0, Math.round(checkout.amount)),
         checkout.currency,
         checkout.state,
+        checkout.providerPaymentId ?? null,
+        checkout.providerEventId ?? null,
+        JSON.stringify(checkout.consentSnapshot ?? null),
         checkout.createdAt,
         checkout.updatedAt,
         checkout.expiresAt ?? null,
@@ -241,15 +267,21 @@ export class PurchasesRepository {
         SET
           user_id = $2,
           email = $3,
-          course_id = $4,
-          method = $5,
-          bnpl_installments_count = $6,
-          amount = $7,
-          currency = $8,
-          state = $9,
-          created_at = $10,
-          updated_at = $11,
-          expires_at = $12,
+          first_name = $4,
+          last_name = $5,
+          phone = $6,
+          course_id = $7,
+          method = $8,
+          bnpl_installments_count = $9,
+          amount = $10,
+          currency = $11,
+          state = $12,
+          provider_payment_id = $13,
+          provider_event_id = $14,
+          consent_snapshot_json = $15::jsonb,
+          created_at = $16,
+          updated_at = $17,
+          expires_at = $18,
           updated_at_ts = NOW()
         WHERE id = $1
       `,
@@ -257,12 +289,18 @@ export class PurchasesRepository {
         checkout.id,
         checkout.userId ?? null,
         checkout.email,
+        checkout.firstName ?? null,
+        checkout.lastName ?? null,
+        checkout.phone ?? null,
         checkout.courseId,
         checkout.method,
         checkout.bnplInstallmentsCount ?? null,
         Math.max(0, Math.round(checkout.amount)),
         checkout.currency,
         checkout.state,
+        checkout.providerPaymentId ?? null,
+        checkout.providerEventId ?? null,
+        JSON.stringify(checkout.consentSnapshot ?? null),
         checkout.createdAt,
         checkout.updatedAt,
         checkout.expiresAt ?? null,
@@ -277,12 +315,18 @@ export class PurchasesRepository {
           id,
           user_id AS "userId",
           email,
+          first_name AS "firstName",
+          last_name AS "lastName",
+          phone,
           course_id AS "courseId",
           method,
           bnpl_installments_count AS "bnplInstallmentsCount",
           amount,
           currency,
           state,
+          provider_payment_id AS "providerPaymentId",
+          provider_event_id AS "providerEventId",
+          consent_snapshot_json AS "consentSnapshot",
           created_at AS "createdAt",
           updated_at AS "updatedAt",
           expires_at AS "expiresAt"
@@ -307,12 +351,18 @@ export class PurchasesRepository {
           id,
           user_id AS "userId",
           email,
+          first_name AS "firstName",
+          last_name AS "lastName",
+          phone,
           course_id AS "courseId",
           method,
           bnpl_installments_count AS "bnplInstallmentsCount",
           amount,
           currency,
           state,
+          provider_payment_id AS "providerPaymentId",
+          provider_event_id AS "providerEventId",
+          consent_snapshot_json AS "consentSnapshot",
           created_at AS "createdAt",
           updated_at AS "updatedAt",
           expires_at AS "expiresAt"
@@ -338,12 +388,18 @@ export class PurchasesRepository {
           id,
           user_id AS "userId",
           email,
+          first_name AS "firstName",
+          last_name AS "lastName",
+          phone,
           course_id AS "courseId",
           method,
           bnpl_installments_count AS "bnplInstallmentsCount",
           amount,
           currency,
           state,
+          provider_payment_id AS "providerPaymentId",
+          provider_event_id AS "providerEventId",
+          consent_snapshot_json AS "consentSnapshot",
           created_at AS "createdAt",
           updated_at AS "updatedAt",
           expires_at AS "expiresAt"
@@ -353,7 +409,7 @@ export class PurchasesRepository {
             ($2::text IS NOT NULL AND user_id = $2)
             OR LOWER(email) = LOWER($3)
           )
-          AND state IN ('created', 'awaiting_payment', 'paid', 'provisioning')
+          AND state IN ('created', 'pending_provider', 'provider_confirmed', 'provision_pending', 'provision_failed_retryable')
         ORDER BY updated_at DESC, id DESC
         LIMIT 1
       `,
@@ -508,6 +564,157 @@ export class PurchasesRepository {
     );
   }
 
+  async upsertCourseEntitlement(params: {
+    id: string;
+    userId: string;
+    courseId: string;
+    purchaseId: string;
+    checkoutId?: string;
+    state: "active" | "revoked" | "expired";
+    createdAt: string;
+    updatedAt: string;
+  }): Promise<void> {
+    await this.databaseService.execute(
+      `
+        INSERT INTO course_entitlements (
+          id,
+          user_id,
+          course_id,
+          purchase_id,
+          checkout_id,
+          state,
+          created_at,
+          updated_at,
+          updated_at_ts
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+        ON CONFLICT (user_id, course_id, purchase_id)
+        DO UPDATE SET
+          checkout_id = EXCLUDED.checkout_id,
+          state = EXCLUDED.state,
+          updated_at = EXCLUDED.updated_at,
+          updated_at_ts = NOW()
+      `,
+      [
+        params.id,
+        params.userId,
+        params.courseId,
+        params.purchaseId,
+        params.checkoutId ?? null,
+        params.state,
+        params.createdAt,
+        params.updatedAt,
+      ]
+    );
+  }
+
+  async upsertConsentRecords(params: {
+    checkoutId: string;
+    email: string;
+    scopes: string[];
+    acceptedAt: string;
+  }): Promise<void> {
+    if (params.scopes.length === 0) return;
+    for (const scope of params.scopes) {
+      await this.databaseService.execute(
+        `
+          INSERT INTO consent_records (
+            id,
+            checkout_id,
+            email,
+            scope,
+            accepted_at,
+            updated_at_ts
+          )
+          VALUES ($1, $2, $3, $4, $5, NOW())
+          ON CONFLICT (checkout_id, scope)
+          DO UPDATE SET
+            email = EXCLUDED.email,
+            accepted_at = EXCLUDED.accepted_at,
+            updated_at_ts = NOW()
+        `,
+        [
+          `${params.checkoutId}:${scope}`,
+          params.checkoutId,
+          params.email,
+          scope,
+          params.acceptedAt,
+        ]
+      );
+    }
+  }
+
+  async findPaymentEventByDedupeKey(
+    dedupeKey: string
+  ): Promise<PaymentEventRow | null> {
+    const rows = await this.databaseService.query<PaymentEventRow>(
+      `
+        SELECT
+          id,
+          provider,
+          external_event_id AS "externalEventId",
+          dedupe_key AS "dedupeKey",
+          checkout_id AS "checkoutId",
+          status,
+          outcome,
+          payload_json AS payload,
+          created_at AS "createdAt",
+          processed_at AS "processedAt"
+        FROM payment_events
+        WHERE dedupe_key = $1
+        LIMIT 1
+      `,
+      [dedupeKey]
+    );
+    return rows[0] ?? null;
+  }
+
+  async insertPaymentEvent(params: {
+    id: string;
+    provider: string;
+    externalEventId: string;
+    dedupeKey: string;
+    checkoutId: string;
+    status: string;
+    outcome: string;
+    payload: unknown;
+    createdAt: string;
+    processedAt: string;
+  }): Promise<void> {
+    await this.databaseService.execute(
+      `
+        INSERT INTO payment_events (
+          id,
+          provider,
+          external_event_id,
+          dedupe_key,
+          checkout_id,
+          status,
+          outcome,
+          payload_json,
+          created_at,
+          processed_at,
+          updated_at_ts
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, NOW())
+        ON CONFLICT (dedupe_key)
+        DO NOTHING
+      `,
+      [
+        params.id,
+        params.provider,
+        params.externalEventId,
+        params.dedupeKey,
+        params.checkoutId,
+        params.status,
+        params.outcome,
+        JSON.stringify(params.payload ?? null),
+        params.createdAt,
+        params.processedAt,
+      ]
+    );
+  }
+
   async provisionCheckoutAtomic(params: {
     checkout: CheckoutProcessDto;
     purchase: PurchaseRecordDto;
@@ -518,6 +725,12 @@ export class PurchasesRepository {
       isIdentityVerified: boolean;
       courseId: string;
       hasActiveEntitlement: boolean;
+    };
+    entitlement: {
+      id: string;
+      state: "active" | "revoked" | "expired";
+      createdAt: string;
+      updatedAt: string;
     };
   }): Promise<void> {
     await this.databaseService.transaction<void>(async (tx) => {
@@ -532,6 +745,16 @@ export class PurchasesRepository {
         userId: params.accessContext.userId,
         courseId: params.accessContext.courseId,
         hasActiveEntitlement: params.accessContext.hasActiveEntitlement,
+      });
+      await this.upsertCourseEntitlementWithExecutor(tx, {
+        id: params.entitlement.id,
+        userId: params.accessContext.userId,
+        courseId: params.accessContext.courseId,
+        purchaseId: params.purchase.id,
+        checkoutId: params.checkout.id,
+        state: params.entitlement.state,
+        createdAt: params.entitlement.createdAt,
+        updatedAt: params.entitlement.updatedAt,
       });
       await this.updateCheckoutWithExecutor(tx, params.checkout);
     });
@@ -676,6 +899,53 @@ export class PurchasesRepository {
     );
   }
 
+  private async upsertCourseEntitlementWithExecutor(
+    executor: DatabaseExecutor,
+    params: {
+      id: string;
+      userId: string;
+      courseId: string;
+      purchaseId: string;
+      checkoutId?: string;
+      state: "active" | "revoked" | "expired";
+      createdAt: string;
+      updatedAt: string;
+    }
+  ): Promise<void> {
+    await executor.execute(
+      `
+        INSERT INTO course_entitlements (
+          id,
+          user_id,
+          course_id,
+          purchase_id,
+          checkout_id,
+          state,
+          created_at,
+          updated_at,
+          updated_at_ts
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+        ON CONFLICT (user_id, course_id, purchase_id)
+        DO UPDATE SET
+          checkout_id = EXCLUDED.checkout_id,
+          state = EXCLUDED.state,
+          updated_at = EXCLUDED.updated_at,
+          updated_at_ts = NOW()
+      `,
+      [
+        params.id,
+        params.userId,
+        params.courseId,
+        params.purchaseId,
+        params.checkoutId ?? null,
+        params.state,
+        params.createdAt,
+        params.updatedAt,
+      ]
+    );
+  }
+
   private async updateCheckoutWithExecutor(
     executor: DatabaseExecutor,
     checkout: CheckoutProcessDto
@@ -686,15 +956,21 @@ export class PurchasesRepository {
         SET
           user_id = $2,
           email = $3,
-          course_id = $4,
-          method = $5,
-          bnpl_installments_count = $6,
-          amount = $7,
-          currency = $8,
-          state = $9,
-          created_at = $10,
-          updated_at = $11,
-          expires_at = $12,
+          first_name = $4,
+          last_name = $5,
+          phone = $6,
+          course_id = $7,
+          method = $8,
+          bnpl_installments_count = $9,
+          amount = $10,
+          currency = $11,
+          state = $12,
+          provider_payment_id = $13,
+          provider_event_id = $14,
+          consent_snapshot_json = $15::jsonb,
+          created_at = $16,
+          updated_at = $17,
+          expires_at = $18,
           updated_at_ts = NOW()
         WHERE id = $1
       `,
@@ -702,12 +978,18 @@ export class PurchasesRepository {
         checkout.id,
         checkout.userId ?? null,
         checkout.email,
+        checkout.firstName ?? null,
+        checkout.lastName ?? null,
+        checkout.phone ?? null,
         checkout.courseId,
         checkout.method,
         checkout.bnplInstallmentsCount ?? null,
         Math.max(0, Math.round(checkout.amount)),
         checkout.currency,
         checkout.state,
+        checkout.providerPaymentId ?? null,
+        checkout.providerEventId ?? null,
+        JSON.stringify(checkout.consentSnapshot ?? null),
         checkout.createdAt,
         checkout.updatedAt,
         checkout.expiresAt ?? null,

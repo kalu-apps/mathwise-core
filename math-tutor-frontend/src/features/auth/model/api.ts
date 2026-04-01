@@ -88,14 +88,14 @@ export async function changePassword(params: {
 export type RequestPasswordResetResponse = {
   ok: boolean;
   message: string;
-  debugToken?: string | null;
+  debugCode?: string | null;
 };
 
 export async function requestPasswordReset(
   email: string
 ): Promise<RequestPasswordResetResponse> {
   return api.post<RequestPasswordResetResponse>(
-    "/auth/password/reset/request",
+    "/auth/recovery/request",
     { email },
     { notifyDataUpdate: false }
   );
@@ -106,78 +106,34 @@ export async function confirmPasswordReset(params: {
   token: string;
   newPassword: string;
 }): Promise<SavePasswordResponse> {
-  return api.post<SavePasswordResponse>(
-    "/auth/password/reset/confirm",
-    params,
-    { notifyDataUpdate: false }
-  );
-}
-
-export type ResendVerificationResponse = {
-  ok: boolean;
-  status: "sent" | "already_verified";
-  message: string;
-};
-
-export async function resendVerification(
-  email: string
-): Promise<ResendVerificationResponse> {
-  return api.post<ResendVerificationResponse>(
-    "/auth/verification/resend",
+  const verification = await api.post<{
+    ok: boolean;
+    message: string;
+    recoveryToken?: string;
+  }>(
+    "/auth/recovery/verify",
     {
-      email,
+      email: params.email,
+      code: params.token,
     },
     { notifyDataUpdate: false }
   );
-}
-
-export type ChangeUnverifiedEmailResponse = {
-  ok: boolean;
-  user: User;
-  message: string;
-};
-
-export async function changeUnverifiedEmail(
-  email: string,
-  newEmail: string
-): Promise<ChangeUnverifiedEmailResponse> {
-  return api.post<ChangeUnverifiedEmailResponse>(
-    "/auth/verification/change-email",
+  if (!verification.ok || !verification.recoveryToken) {
+    throw new Error(verification.message || "Код восстановления недействителен.");
+  }
+  const reset = await api.post<SavePasswordResponse>(
+    "/auth/password/reset",
     {
-      email,
-      newEmail,
+      email: params.email,
+      recoveryToken: verification.recoveryToken,
+      newPassword: params.newPassword,
     },
     { notifyDataUpdate: false }
   );
-}
-
-export type RecoverAccessResponse = {
-  ok: boolean;
-  email: string;
-  user: User | null;
-  verified: boolean;
-  identityState: "anonymous" | "known_unverified" | "verified" | "restricted";
-  checkoutCount: number;
-  paidCheckoutCount: number;
-  purchaseCount: number;
-  hasAnyActiveCourseEntitlement: boolean;
-  pendingEntitlements: number;
-  recommendation:
-    | "complete_profile"
-    | "verify_email"
-    | "login"
-    | "restore_access"
-    | "no_access_records";
-};
-
-export async function recoverAccess(email: string): Promise<RecoverAccessResponse> {
-  return api.post<RecoverAccessResponse>(
-    "/auth/recover-access",
-    {
-      email,
-    },
-    { notifyDataUpdate: false }
-  );
+  if (!reset.ok) {
+    throw new Error(reset.message || "Не удалось обновить пароль.");
+  }
+  return reset;
 }
 
 export type SelfHealAccessResponse = {

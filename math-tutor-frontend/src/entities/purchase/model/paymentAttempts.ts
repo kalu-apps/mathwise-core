@@ -1,6 +1,5 @@
 import {
   cancelCheckout,
-  confirmCheckoutPaid,
   getCheckouts,
   getCheckoutStatus,
   retryCheckout,
@@ -80,13 +79,20 @@ const toPaymentMethod = (
 };
 
 const toPaymentStatus = (value: string | undefined): PaymentStatus => {
-  if (value === "paid" || value === "provisioned" || value === "provisioning") {
+  if (
+    value === "provider_confirmed" ||
+    value === "provision_pending" ||
+    value === "provisioned" ||
+    value === "email_verification_pending"
+  ) {
     return "succeeded";
   }
+  if (value === "provision_failed_retryable") return "failed";
   if (value === "failed") return "failed";
   if (value === "canceled") return "canceled";
   if (value === "expired") return "expired";
   if (value === "created") return "initiated";
+  if (value === "pending_provider" || value === "awaiting_provider") return "pending";
   return "pending";
 };
 
@@ -289,13 +295,4 @@ export const retryPaymentAttempt = async (attemptId: string) => {
 export const cancelPaymentAttempt = async (attemptId: string) => {
   await cancelCheckout(attemptId);
   return getCheckoutStatus(attemptId);
-};
-
-export const confirmPaymentAttemptPaid = async (attemptId: string) => {
-  const result = await confirmCheckoutPaid(attemptId);
-  return {
-    checkoutId: result.checkoutId,
-    checkoutState: result.checkoutState,
-    payment: result.payment,
-  };
 };

@@ -10,20 +10,16 @@ import type { CheckoutMethod, CheckoutState } from "./types";
 
 export async function getCourseAccessDecision(params: {
   courseId: string;
-  userId?: string;
 }): Promise<CourseAccessDecision> {
   return accessGateway.getCourseAccessDecision(params);
 }
 
-export async function getCourseAccessList(params?: {
-  userId?: string;
-}): Promise<CourseAccessListResponse> {
-  return accessGateway.getCourseAccessList(params);
+export async function getCourseAccessList(): Promise<CourseAccessListResponse> {
+  return accessGateway.getCourseAccessList();
 }
 
 export async function getLessonAccessDecision(params: {
   lessonId: string;
-  userId?: string;
 }): Promise<LessonAccessDecision> {
   return accessGateway.getLessonAccessDecision(params);
 }
@@ -170,10 +166,6 @@ export async function getCheckoutStatus(checkoutId: string) {
 
 export async function retryCheckout(checkoutId: string) {
   return purchaseGateway.retryCheckout(checkoutId);
-}
-
-export async function confirmCheckoutPaid(checkoutId: string) {
-  return purchaseGateway.confirmCheckoutPaid(checkoutId);
 }
 
 export async function getCheckoutTimeline(checkoutId: string) {

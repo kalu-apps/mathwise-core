@@ -25,9 +25,7 @@ import { ButtonPending } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import {
   confirmPasswordReset,
-  recoverAccess,
   requestPasswordReset,
-  resendVerification,
 } from "@/features/auth/model/api";
 
 interface AuthModalProps {
@@ -110,12 +108,14 @@ export function AuthModal({
     setRecoverMessage(null);
     setCanResend(false);
     setRecoverSeverity("info");
-    setShowRecover(mode === "recover");
-    if (mode === "recover" && !initialEmail.trim()) {
-      setRecoverMessage(t("auth.recoverEnterEmail"));
+    setShowRecover(false);
+    if (mode === "recover") {
+      setRecoverMessage(
+        initialEmail.trim() ? t("auth.recoverDescription") : t("auth.recoverEnterEmail")
+      );
     }
 
-    setShowResetPassword(false);
+    setShowResetPassword(mode === "recover");
     setResetLoading(false);
     setResetConfirmLoading(false);
     setResetToken("");
@@ -148,41 +148,6 @@ export function AuthModal({
     onClose();
   }, [onClose]);
 
-  const applyRecoverResult = useCallback(
-    (
-      recommendation: Awaited<ReturnType<typeof recoverAccess>>["recommendation"]
-    ) => {
-      if (recommendation === "complete_profile") {
-        setRecoverSeverity("info");
-        setRecoverMessage(t("auth.recoverNeedProfile"));
-        setCanResend(false);
-        return;
-      }
-      if (recommendation === "verify_email") {
-        setRecoverSeverity("warning");
-        setRecoverMessage(t("auth.recoverNeedVerification"));
-        setCanResend(true);
-        return;
-      }
-      if (recommendation === "no_access_records") {
-        setRecoverSeverity("info");
-        setRecoverMessage(t("auth.recoverNoRecords"));
-        setCanResend(false);
-        return;
-      }
-      if (recommendation === "restore_access") {
-        setRecoverSeverity("info");
-        setRecoverMessage(t("auth.recoverRestricted"));
-        setCanResend(false);
-        return;
-      }
-      setRecoverSeverity("success");
-      setRecoverMessage(t("auth.recoverReady"));
-      setCanResend(false);
-    },
-    []
-  );
-
   const runRecoverCheck = useCallback(
     async (nextEmail: string) => {
       if (!nextEmail) {
@@ -191,26 +156,19 @@ export function AuthModal({
         setCanResend(false);
         return;
       }
-      try {
-        setRecoverLoading(true);
-        const result = await recoverAccess(nextEmail);
-        applyRecoverResult(result.recommendation);
-      } catch (recoverError) {
-        setRecoverSeverity("error");
-        setRecoverMessage(
-          recoverError instanceof Error ? recoverError.message : t("auth.loginFailed")
-        );
-        setCanResend(false);
-      } finally {
-        setRecoverLoading(false);
-      }
+      setRecoverLoading(false);
+      setRecoverSeverity("info");
+      setRecoverMessage(t("auth.recoverDescription"));
+      setCanResend(false);
     },
-    [applyRecoverResult]
+    []
   );
 
   useEffect(() => {
     if (!open || mode !== "recover") return;
     void runRecoverCheck(normalizedEmail);
+    setAuthMethod("password");
+    setShowResetPassword(true);
   }, [mode, normalizedEmail, open, runRecoverCheck]);
 
   useEffect(() => {
@@ -324,23 +282,19 @@ export function AuthModal({
   };
 
   const handleRecover = async () => {
-    if (showRecover) {
-      setShowRecover(false);
-      setRecoverMessage(null);
-      setCanResend(false);
-      return;
-    }
-
     setError(null);
-    setRecoverMessage(null);
+    setShowRecover(false);
     setCanResend(false);
-    setShowRecover(true);
+    setAuthMethod("password");
+    setShowResetPassword(true);
     if (!normalizedEmail) {
-      setRecoverSeverity("info");
-      setRecoverMessage(t("auth.recoverEnterEmail"));
+      setResetSeverity("info");
+      setResetMessage(t("auth.recoverEnterEmail"));
       return;
     }
-    await runRecoverCheck(normalizedEmail);
+    setResetSeverity("info");
+    setResetMessage(t("auth.recoverDescription"));
+    await Promise.resolve();
   };
 
   const handleResendVerification = async () => {
@@ -350,9 +304,10 @@ export function AuthModal({
     }
     try {
       setResendLoading(true);
-      const result = await resendVerification(normalizedEmail);
-      setRecoverSeverity("success");
+      const result = await requestPasswordReset(normalizedEmail);
+      setRecoverSeverity("info");
       setRecoverMessage(result.message);
+      setResetDebugToken(showAuthDebug ? (result.debugCode ?? null) : null);
       setShowRecover(true);
     } catch (recoverError) {
       setRecoverSeverity("error");
@@ -374,9 +329,9 @@ export function AuthModal({
     try {
       setResetLoading(true);
       const result = await requestPasswordReset(normalizedEmail);
-      setResetSeverity("success");
+      setResetSeverity("info");
       setResetMessage(result.message);
-      setResetDebugToken(showAuthDebug ? (result.debugToken ?? null) : null);
+      setResetDebugToken(showAuthDebug ? (result.debugCode ?? null) : null);
     } catch (resetError) {
       setResetSeverity("error");
       setResetMessage(

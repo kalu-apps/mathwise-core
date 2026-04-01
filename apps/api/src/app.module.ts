@@ -7,6 +7,7 @@ import { DatabaseModule } from "./db/database.module";
 import { HealthModule } from "./health/health.module";
 import { LessonsModule } from "./lessons/lessons.module";
 import { MediaModule } from "./media/media.module";
+import { NotificationsModule } from "./notifications/notifications.module";
 import { ObservabilityModule } from "./observability/observability.module";
 import { RequestLoggingMiddleware } from "./observability/request-logging.middleware";
 import { ProfileModule } from "./profile/profile.module";
@@ -23,6 +24,7 @@ import { RedisModule } from "./redis/redis.module";
     CoursesModule,
     LessonsModule,
     MediaModule,
+    NotificationsModule,
     AccessModule,
     ProfileModule,
     PurchasesModule,

@@ -218,11 +218,7 @@ export const httpLessonsGateway: LessonsGateway = {
 
 export const httpAccessGateway: AccessGateway = {
   async getCourseAccessDecision(params): Promise<CourseAccessDecision> {
-    const query = new URLSearchParams();
-    if (params.userId) {
-      query.set("userId", params.userId);
-    }
-    const suffix = buildQuerySuffix(query);
+    const suffix = "";
     if (isDefaultApiBase()) {
       return api.get<CourseAccessDecision>(
         `/access/courses/${encodeURIComponent(params.courseId)}${suffix}`
@@ -232,23 +228,15 @@ export const httpAccessGateway: AccessGateway = {
       `/access/courses/${encodeURIComponent(params.courseId)}${suffix}`
     );
   },
-  async getCourseAccessList(params): Promise<CourseAccessListResponse> {
-    const query = new URLSearchParams();
-    if (params?.userId) {
-      query.set("userId", params.userId);
-    }
-    const suffix = buildQuerySuffix(query);
+  async getCourseAccessList(): Promise<CourseAccessListResponse> {
+    const suffix = "";
     if (isDefaultApiBase()) {
       return api.get<CourseAccessListResponse>(`/access/courses${suffix}`);
     }
     return requestHttpJson<CourseAccessListResponse>(`/access/courses${suffix}`);
   },
   async getLessonAccessDecision(params): Promise<LessonAccessDecision> {
-    const query = new URLSearchParams();
-    if (params.userId) {
-      query.set("userId", params.userId);
-    }
-    const suffix = buildQuerySuffix(query);
+    const suffix = "";
     if (isDefaultApiBase()) {
       return api.get<LessonAccessDecision>(
         `/access/lessons/${encodeURIComponent(params.lessonId)}${suffix}`
@@ -368,18 +356,6 @@ export const httpPurchasesGateway: PurchasesGateway = {
         method: "POST",
         body: {},
         headers: buildIdempotencyHeaders("checkout_retry"),
-      }
-    );
-  },
-  async confirmCheckoutPaid(
-    checkoutId
-  ): Promise<CheckoutActionResponseContract> {
-    return requestHttpJson<CheckoutActionResponseContract>(
-      `/checkouts/${encodeURIComponent(checkoutId)}/confirm-paid`,
-      {
-        method: "POST",
-        body: {},
-        headers: buildIdempotencyHeaders("checkout_confirm"),
       }
     );
   },

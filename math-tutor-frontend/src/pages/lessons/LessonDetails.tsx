@@ -60,7 +60,6 @@ export default function LessonDetails() {
         setError(null);
         const decision = await getLessonAccessDecision({
           lessonId: id,
-          userId: user?.id,
         });
         if (!active) return;
         let finalCanAccess = decision.canAccess;
@@ -276,9 +275,13 @@ export default function LessonDetails() {
     navigate(`/courses/${lesson.courseId}`, { state: backState });
   };
   const durationText = formatLessonDuration(lesson.duration);
-  const hasPlayableVideo = Boolean(lesson.videoUrl || lesson.videoStreamUrl);
+  const isRedactedLesson = lesson.contentVisibility === "public_preview";
+  const hasPlayableVideo =
+    !isRedactedLesson && Boolean(lesson.videoUrl || lesson.videoStreamUrl);
   const mediaStatusBanner =
-    lesson.mediaJobStatus === "queued" || lesson.mediaJobStatus === "processing"
+    isRedactedLesson
+      ? null
+      : lesson.mediaJobStatus === "queued" || lesson.mediaJobStatus === "processing"
       ? {
           severity: "info" as const,
           message: hasPlayableVideo
@@ -329,7 +332,9 @@ export default function LessonDetails() {
             </div>
           ) : (
             <div className="lesson-details__video-empty">
-              {lesson.mediaJobStatus === "queued" || lesson.mediaJobStatus === "processing"
+              {isRedactedLesson
+                ? "Видео и материалы доступны после покупки курса."
+                : lesson.mediaJobStatus === "queued" || lesson.mediaJobStatus === "processing"
                 ? "Видео для этого урока подготавливается"
                 : "Видео для этого урока пока не добавлено"}
             </div>

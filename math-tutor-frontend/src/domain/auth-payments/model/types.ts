@@ -1,12 +1,15 @@
 export type CheckoutState =
   | "created"
-  | "awaiting_payment"
-  | "paid"
+  | "pending_provider"
+  | "provider_confirmed"
+  | "provision_pending"
+  | "provisioned"
+  | "email_verification_pending"
+  | "email_correction_required"
+  | "provision_failed_retryable"
   | "failed"
   | "canceled"
-  | "expired"
-  | "provisioning"
-  | "provisioned";
+  | "expired";
 
 export type CheckoutMethod = "card" | "sbp" | "bnpl" | "mock";
 
@@ -32,7 +35,8 @@ export type CheckoutProcess = {
 };
 
 export type PaymentEventStatus =
-  | "awaiting_payment"
+  | "awaiting_provider"
+  | "provider_confirmed"
   | "paid"
   | "failed"
   | "canceled"

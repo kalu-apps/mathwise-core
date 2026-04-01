@@ -157,7 +157,6 @@ export const useCourseDetailsData = ({
       const [decision, purchases] = await Promise.all([
         getCourseAccessDecision({
           courseId: course.id,
-          userId,
         }),
         getPurchases({ userId }, { forceFresh: true }),
       ]);
@@ -274,7 +273,7 @@ export const useCourseDetailsData = ({
           user?.role === "student" &&
           (status.isTerminal ||
             status.access?.accessState === "active" ||
-            status.payment.status === "paid")
+            status.payment.status === "provider_confirmed")
         ) {
           await syncStudentCourseState(user.id);
         }
@@ -322,7 +321,6 @@ export const useCourseDetailsData = ({
               : Promise.resolve([]),
             getCourseAccessDecision({
               courseId,
-              userId: user?.id,
             }),
             user?.role === "student"
               ? getCheckouts({ userId: user.id, courseId })

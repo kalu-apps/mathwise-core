@@ -13,6 +13,7 @@ cp math-tutor-frontend/.env.stage.example math-tutor-frontend/.env.stage
 
 Критично проверить:
 - `apps/api/.env.stage`: `DATABASE_URL`, `REDIS_URL`, `AUTH_PASSWORD_PEPPER`, `API_CORS_ORIGIN`, `AUTH_COOKIE_*`, `MEDIA_STORAGE_ENABLED`, `S3_*`
+- `apps/api/.env.stage`: `EMAIL_DELIVERY_MODE` (`disabled` по умолчанию, `provider` только с `EMAIL_PROVIDER_API_KEY`)
 - `math-tutor-frontend/.env.stage`: `VITE_APP_ENV=stage`, `VITE_API_BASE_URL`, `VITE_GATEWAY_MODE=http`
 
 ## 2) Bootstrap (build + seed)
@@ -50,6 +51,7 @@ cp math-tutor-frontend/.env.stage.example math-tutor-frontend/.env.stage
 - `/ready` — `postgres=up`, `redis=up`, `media=up|disabled`
 
 Примечание: при `MEDIA_STORAGE_ENABLED=false` storage считается `disabled` и stage остается рабочим.
+Примечание: при `EMAIL_DELIVERY_MODE=disabled` письма остаются в outbox с честным статусом `dispatch_disabled` и не считаются доставленными.
 
 Если `/ready` возвращает 503 — stage не считается готовым.
 
@@ -88,6 +90,7 @@ npm run build:stage
 
 - полный вынос media runtime на `mw-media-01`
 - production-grade infra orchestration
+- teacher из seed в non-local (блокируется fail-fast; используйте только `TEACHER_BOOTSTRAP_*`)
 
 ## 7) Media foundation notes
 

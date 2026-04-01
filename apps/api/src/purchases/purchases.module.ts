@@ -2,12 +2,13 @@ import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { CoursesModule } from "../courses/courses.module";
 import { LessonsModule } from "../lessons/lessons.module";
+import { NotificationsModule } from "../notifications/notifications.module";
 import { PurchasesController } from "./purchases.controller";
 import { PurchasesRepository } from "./purchases.repository";
 import { PurchasesService } from "./purchases.service";
 
 @Module({
-  imports: [AuthModule, CoursesModule, LessonsModule],
+  imports: [AuthModule, CoursesModule, LessonsModule, NotificationsModule],
   controllers: [PurchasesController],
   providers: [PurchasesService, PurchasesRepository],
   exports: [PurchasesService, PurchasesRepository],

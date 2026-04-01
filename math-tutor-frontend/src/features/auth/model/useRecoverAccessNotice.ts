@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { recoverAccess, selfHealAccess } from "./api";
+import { selfHealAccess } from "./api";
+import { getCourseAccessList } from "@/domain/auth-payments/model/api";
 import {
-  getRecoverRecommendationUiState,
+  getCatalogAccessUiState,
   type AccessUiState,
 } from "@/domain/auth-payments/model/ui";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
@@ -20,8 +21,13 @@ export function useRecoverAccessNotice({ email, role }: Params) {
       return;
     }
     try {
-      const status = await recoverAccess(email);
-      setState(getRecoverRecommendationUiState(status.recommendation));
+      const access = await getCourseAccessList();
+      setState(
+        getCatalogAccessUiState({
+          decisions: access.decisions,
+          isStudent: true,
+        })
+      );
     } catch {
       setState(null);
     }

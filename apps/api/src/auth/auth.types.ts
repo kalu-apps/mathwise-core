@@ -21,6 +21,42 @@ export type AuthLogoutResponseDto = {
   ok: boolean;
 };
 
+export type AuthRecoveryRequestResponseDto = {
+  ok: boolean;
+  message: string;
+  debugCode?: string | null;
+};
+
+export type AuthRecoveryVerifyResponseDto = {
+  ok: boolean;
+  message: string;
+  recoveryToken?: string;
+};
+
+export type AuthPasswordResetResponseDto = {
+  ok: boolean;
+  message: string;
+};
+
+export type AuthPasswordStatusStateDto =
+  | "none"
+  | "active"
+  | "reset_pending"
+  | "locked_temp";
+
+export type AuthPasswordStatusResponseDto = {
+  ok: boolean;
+  hasPassword: boolean;
+  state: AuthPasswordStatusStateDto;
+  lockedUntil: string | null;
+  lastPasswordChangeAt: string | null;
+};
+
+export type AuthPasswordSaveResponseDto = {
+  ok: boolean;
+  message: string;
+};
+
 export type StoredSession = {
   id: string;
   userId: string;

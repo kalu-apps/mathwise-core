@@ -18,12 +18,18 @@ export type CheckoutRow = {
   id: string;
   userId: string | null;
   email: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
   courseId: string;
   method: "mock" | "card" | "sbp" | "bnpl";
   bnplInstallmentsCount: number | null;
   amount: number;
   currency: string;
   state: CheckoutStateDto;
+  providerPaymentId: string | null;
+  providerEventId: string | null;
+  consentSnapshot: unknown;
   createdAt: string;
   updatedAt: string;
   expiresAt: string | null;
@@ -60,6 +66,9 @@ export const mapCheckoutRow = (row: CheckoutRow): CheckoutProcessDto => ({
   id: row.id,
   userId: row.userId ?? undefined,
   email: row.email,
+  firstName: row.firstName ?? undefined,
+  lastName: row.lastName ?? undefined,
+  phone: row.phone ?? undefined,
   courseId: row.courseId,
   method: row.method,
   bnplInstallmentsCount:
@@ -69,6 +78,13 @@ export const mapCheckoutRow = (row: CheckoutRow): CheckoutProcessDto => ({
   amount: Number(row.amount),
   currency: row.currency || "RUB",
   state: row.state,
+  providerPaymentId: row.providerPaymentId ?? undefined,
+  providerEventId: row.providerEventId ?? undefined,
+  consentSnapshot: Array.isArray(row.consentSnapshot)
+    ? row.consentSnapshot
+        .map((value) => (typeof value === "string" ? value : ""))
+        .filter((value) => value.length > 0)
+    : undefined,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
   expiresAt: row.expiresAt ?? undefined,

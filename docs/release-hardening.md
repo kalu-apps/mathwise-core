@@ -29,6 +29,10 @@ Optimization/budget work — отдельный пакет после релиз
 - [ ] `/ready` отвечает `200`.
 - [ ] `/runtime/version` отвечает и показывает ожидаемый `releaseVersion`.
 - [ ] `/runtime/diagnostics` отвечает и показывает request/error counters.
+- [ ] `EMAIL_DELIVERY_MODE` настроен осознанно:
+  - `disabled` — честно без fake-delivered статусов;
+  - `provider` — только с валидным `EMAIL_PROVIDER_API_KEY` и включенным adapter.
+- [ ] `COURSES_SEED_ON_BOOT=true` в non-local не содержит `teacher` в seed source.
 
 ## 2) Stage-to-release verification
 
@@ -50,6 +54,7 @@ curl -fsS "$API_BASE_URL/runtime/diagnostics"
 Проверить вручную:
 - auth/session restore/logout
 - courses/lessons/access read
+- non-entitled actor не получает full lesson payload (`videoUrl/materials`) в `GET /api/lessons*` и `GET /api/access/lessons/:id`
 - purchases/bookings write flows
 - media endpoints (если `MEDIA_STORAGE_ENABLED=true`)
 - frontend runtime diagnostics в браузере:
