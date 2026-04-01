@@ -58,6 +58,7 @@ import type { Lesson } from "@/entities/lesson/model/types";
 import {
   cancelCheckout,
   retryCheckout,
+  stageConfirmCheckout,
   type CheckoutListItem,
 } from "@/domain/auth-payments/model/api";
 import type { CourseAccessDecision } from "@/domain/auth-payments/model/access";
@@ -99,6 +100,7 @@ import {
   hasLessonChangedFromPurchaseSnapshot,
   type PaymentMethod,
 } from "@/pages/courses/model/courseDetailsHelpers";
+import { isStagePaymentConfirmEnabled } from "@/app/runtime/stageRuntime";
 
 type CourseDetailsLocationState = {
   from?: string;
@@ -119,6 +121,9 @@ const PAYMENT_METHODS: PaymentMethodMeta[] = PAYMENT_METHODS_BASE.map((method) =
   ...method,
   Icon: PAYMENT_METHOD_ICON_BY_ID[method.id],
 }));
+
+// STAGE_ONLY_REMOVE_BEFORE_PROD
+const STAGE_PAYMENT_CONFIRM_ENABLED = isStagePaymentConfirmEnabled();
 
 export default function CourseDetails() {
   const { courseId: courseIdParam } = useParams<{ courseId: string }>();
@@ -610,6 +615,11 @@ export default function CourseDetails() {
     checkoutFlowStatus?.method === "sbp"
       ? checkoutFlowStatus.payment.sbp
       : undefined;
+  const showStagePaymentConfirmAction =
+    STAGE_PAYMENT_CONFIRM_ENABLED &&
+    Boolean(activeCheckoutId) &&
+    user?.role === "student" &&
+    isAwaitingCheckoutPayment;
 
   const mobileDialogActionSx = isMobile
     ? {
@@ -842,6 +852,41 @@ export default function CourseDetails() {
       },
       {
         lockKey: `checkout-action:retry:${activeCheckoutId}`,
+        retry: { label: t("common.retryCheckoutAction") },
+      }
+    );
+    if (executed === undefined) return;
+  };
+
+  // STAGE_ONLY_REMOVE_BEFORE_PROD
+  const handleStageCheckoutConfirm = async () => {
+    if (!activeCheckoutId) return;
+    const executed = await checkoutActionGuard.run(
+      async () => {
+        try {
+          setCheckoutFlowLoading(true);
+          setCheckoutFlowError(null);
+          const result = await stageConfirmCheckout(activeCheckoutId);
+          setCheckoutPaymentUrl(
+            result.payment.redirectUrl ??
+              result.payment.paymentUrl ??
+              result.payment.sbp?.deepLinkUrl ??
+              result.payment.sbp?.qrUrl ??
+              null
+          );
+          await refreshCheckoutFlow(activeCheckoutId, { silent: true });
+        } catch (error) {
+          setCheckoutFlowError(
+            error instanceof Error
+              ? error.message
+              : "Не удалось подтвердить тестовую оплату в stage runtime."
+          );
+        } finally {
+          setCheckoutFlowLoading(false);
+        }
+      },
+      {
+        lockKey: `checkout-action:stage-confirm:${activeCheckoutId}`,
         retry: { label: t("common.retryCheckoutAction") },
       }
     );
@@ -2201,6 +2246,22 @@ export default function CourseDetails() {
               aria-label={isMobile ? "Открыть страницу оплаты" : undefined}
             >
               {isMobile ? <OpenInNewRounded fontSize="small" /> : "Открыть оплату"}
+            </Button>
+          )}
+          {showStagePaymentConfirmAction && (
+            <Button
+              variant="outlined"
+              color="warning"
+              onClick={() => void handleStageCheckoutConfirm()}
+              disabled={!activeCheckoutId || checkoutFlowLoading || user?.role !== "student"}
+              sx={mobileDialogActionSx}
+              aria-label={isMobile ? "Stage test confirm" : undefined}
+            >
+              {isMobile ? (
+                <CheckCircleRounded fontSize="small" />
+              ) : (
+                "Подтвердить тестовую оплату (stage)"
+              )}
             </Button>
           )}
           <Button

@@ -526,6 +526,147 @@ export class PurchasesService implements OnModuleInit {
     return response;
   }
 
+  // STAGE_ONLY_REMOVE_BEFORE_PROD
+  async stageConfirmCheckout(params: {
+    checkoutId: string;
+    actorUser: AuthUserDto | null;
+    idempotencyKey?: string;
+  }): Promise<CheckoutActionResponseDto> {
+    if (
+      this.runtimeConfig.appEnv !== "stage" ||
+      !this.runtimeConfig.stagePaymentConfirmEnabled
+    ) {
+      throw new HttpException(
+        {
+          error: "Stage payment confirm недоступен в текущем runtime.",
+          code: "stage_payment_confirm_unavailable",
+          marker: "STAGE_ONLY_REMOVE_BEFORE_PROD",
+        },
+        404
+      );
+    }
+
+    if (!params.actorUser) {
+      throw new HttpException({ error: "Требуется авторизация." }, 401);
+    }
+    if (params.actorUser.role !== "student") {
+      throw new HttpException(
+        { error: "Stage payment confirm доступен только студенту." },
+        403
+      );
+    }
+    const actorUser = params.actorUser;
+
+    const normalizedIdempotency = params.idempotencyKey?.trim();
+    if (normalizedIdempotency) {
+      const cached = await this.purchasesRepository.findIdempotentResponse<CheckoutActionResponseDto>(
+        "purchase:checkout:stage_confirm",
+        normalizedIdempotency
+      );
+      if (cached) return cached;
+    }
+
+    const lockKey = `lock:purchase:checkout:stage_confirm:${params.checkoutId}`;
+    const response = await this.withLock(lockKey, async () => {
+      const checkout = await this.requireCheckoutForActor(
+        params.checkoutId,
+        actorUser,
+        { allowEmailMatchWithoutUserId: true }
+      );
+
+      if (
+        checkout.state === "provider_confirmed" ||
+        checkout.state === "provision_pending" ||
+        checkout.state === "provision_failed_retryable" ||
+        checkout.state === "provisioned" ||
+        checkout.state === "email_verification_pending"
+      ) {
+        const effective = await this.resumeProvisionIfNeeded(checkout);
+        const status = await this.buildCheckoutStatusResponse(effective);
+        return {
+          ok: true,
+          checkoutId: effective.id,
+          checkoutState: effective.state,
+          payment: status.payment,
+          access: status.access,
+          confirmationSource: "stage_stub" as const,
+        };
+      }
+
+      if (checkout.state !== "created" && checkout.state !== "pending_provider") {
+        throw new HttpException(
+          {
+            error:
+              "Текущий статус checkout не допускает stage test confirm. Создайте новый checkout или выполните retry.",
+          },
+          409
+        );
+      }
+
+      const timestamp = nowIso();
+      const eventId = `stage_stub_${checkout.id}_${Date.now()}`;
+      const providerPaymentId = `stage_stub_pi_${checkout.id.slice(-12)}`;
+      const payload: ProviderWebhookPayloadDto = {
+        eventId,
+        checkoutId: checkout.id,
+        status: "paid",
+        providerPaymentId,
+        payload: {
+          source: "stage_stub",
+          marker: "STAGE_ONLY_REMOVE_BEFORE_PROD",
+          actorUserId: actorUser.id,
+        },
+      };
+
+      await this.appendTimelineEvent(checkout.id, "stage_confirm_requested", {
+        eventId,
+        providerPaymentId,
+        actorUserId: actorUser.id,
+        marker: "STAGE_ONLY_REMOVE_BEFORE_PROD",
+      });
+
+      await this.handleProviderWebhook({
+        payload,
+        signature: signWebhookPayload(
+          this.runtimeConfig.cardWebhookSecret,
+          timestamp,
+          payload
+        ),
+        timestamp,
+      });
+
+      const refreshed = await this.purchasesRepository.findCheckoutById(checkout.id);
+      const effective = refreshed ? await this.resumeProvisionIfNeeded(refreshed) : checkout;
+      const status = await this.buildCheckoutStatusResponse(effective);
+
+      await this.appendTimelineEvent(effective.id, "stage_confirm_applied", {
+        state: effective.state,
+        actorUserId: actorUser.id,
+        marker: "STAGE_ONLY_REMOVE_BEFORE_PROD",
+      });
+
+      return {
+        ok: true,
+        checkoutId: effective.id,
+        checkoutState: effective.state,
+        payment: status.payment,
+        access: status.access,
+        confirmationSource: "stage_stub" as const,
+      };
+    });
+
+    if (normalizedIdempotency) {
+      await this.purchasesRepository.saveIdempotentResponse(
+        "purchase:checkout:stage_confirm",
+        normalizedIdempotency,
+        response,
+        IDEMPOTENCY_TTL_SEC
+      );
+    }
+
+    return response;
+  }
+
   async getCheckoutTimeline(params: {
     checkoutId: string;
     actorUser: AuthUserDto | null;

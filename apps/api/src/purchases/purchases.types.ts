@@ -151,6 +151,7 @@ export type CheckoutActionResponseDto = {
   checkoutState: CheckoutStateDto;
   payment: CheckoutPaymentDto;
   access: CheckoutStatusResponseDto["access"];
+  confirmationSource?: "stage_stub";
 };
 
 export type CancelCheckoutResponseDto = {

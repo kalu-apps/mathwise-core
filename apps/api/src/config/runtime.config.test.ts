@@ -132,3 +132,74 @@ test("runtime config: stage mode rejects frontend mock seed source", () => {
     restoreEnv(snapshot);
   }
 });
+
+test("runtime config: STAGE_SITE_GATE_ENABLED is rejected outside stage", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "preview";
+    process.env.API_CORS_ORIGIN = "https://preview.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.STAGE_SITE_GATE_ENABLED = "true";
+    process.env.STAGE_SITE_GATE_SECRET = "stage-access-secret-123";
+
+    assert.throws(
+      () => getApiRuntimeConfig(),
+      /STAGE_SITE_GATE_ENABLED is allowed only when APP_ENV=stage/
+    );
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("runtime config: stage gate requires secret when enabled", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.STAGE_SITE_GATE_ENABLED = "true";
+    delete process.env.STAGE_SITE_GATE_SECRET;
+
+    assert.throws(
+      () => getApiRuntimeConfig(),
+      /Missing required env: STAGE_SITE_GATE_SECRET/
+    );
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("runtime config: STAGE_PAYMENT_CONFIRM_ENABLED is rejected outside stage", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "preview";
+    process.env.API_CORS_ORIGIN = "https://preview.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.STAGE_PAYMENT_CONFIRM_ENABLED = "true";
+
+    assert.throws(
+      () => getApiRuntimeConfig(),
+      /STAGE_PAYMENT_CONFIRM_ENABLED is allowed only when APP_ENV=stage/
+    );
+  } finally {
+    restoreEnv(snapshot);
+  }
+});

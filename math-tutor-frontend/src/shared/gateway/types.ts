@@ -144,6 +144,10 @@ export type PurchasesGateway = {
   cancelCheckout: (checkoutId: string) => Promise<CancelCheckoutResponseContract>;
   getCheckoutStatus: (checkoutId: string) => Promise<CheckoutStatusResponseContract>;
   retryCheckout: (checkoutId: string) => Promise<CheckoutActionResponseContract>;
+  stageConfirmCheckout: (
+    checkoutId: string,
+    options?: { idempotencyKey?: string }
+  ) => Promise<CheckoutActionResponseContract>;
   getCheckoutTimeline: (
     checkoutId: string
   ) => Promise<CheckoutTimelineResponseContract>;

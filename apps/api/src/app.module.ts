@@ -17,6 +17,8 @@ import { ProfileModule } from "./profile/profile.module";
 import { ProgressModule } from "./progress/progress.module";
 import { PurchasesModule } from "./purchases/purchases.module";
 import { RedisModule } from "./redis/redis.module";
+import { StageAccessModule } from "./stage-access/stage-access.module";
+import { StageAccessGateMiddleware } from "./stage-access/stage-access.middleware";
 import { WorkbookModule } from "./workbook/workbook.module";
 
 @Module({
@@ -38,11 +40,14 @@ import { WorkbookModule } from "./workbook/workbook.module";
     ProfileModule,
     PurchasesModule,
     BookingsModule,
+    StageAccessModule,
     WorkbookModule,
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RequestLoggingMiddleware).forRoutes("*");
+    consumer
+      .apply(RequestLoggingMiddleware, StageAccessGateMiddleware)
+      .forRoutes("*");
   }
 }

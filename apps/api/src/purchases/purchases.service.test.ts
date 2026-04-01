@@ -181,3 +181,153 @@ test("purchases: stage runtime rejects mock checkout method", async () => {
     }
   }
 });
+
+test("purchases: stage confirm endpoint is unavailable outside stage runtime", async () => {
+  await withRequiredRuntimeEnv(async () => {
+    delete process.env.STAGE_PAYMENT_CONFIRM_ENABLED;
+    const service = new PurchasesService(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never
+    );
+
+    await assert.rejects(
+      () =>
+        service.stageConfirmCheckout({
+          checkoutId: "checkout_1",
+          actorUser: {
+            id: "student_1",
+            email: "student@example.com",
+            firstName: "Student",
+            lastName: "One",
+            role: "student",
+          },
+        }),
+      (error: unknown) => {
+        const status =
+          error &&
+          typeof error === "object" &&
+          "getStatus" in error &&
+          typeof (error as { getStatus: () => number }).getStatus === "function"
+            ? (error as { getStatus: () => number }).getStatus()
+            : null;
+        return status === 404;
+      }
+    );
+  });
+});
+
+test("purchases: stage confirm reuses backend provider-confirm chain", async () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.PAYMENT_MOCK_ENABLED = "false";
+    process.env.STAGE_PAYMENT_CONFIRM_ENABLED = "true";
+
+    const checkout = {
+      id: "checkout_stage_1",
+      userId: "student_1",
+      email: "student@example.com",
+      firstName: "Student",
+      lastName: "One",
+      phone: "+79990000000",
+      courseId: "course_1",
+      method: "card",
+      amount: 1000,
+      currency: "RUB",
+      state: "pending_provider",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as const;
+
+    let webhookCalled = false;
+
+    const purchasesRepository = {
+      findIdempotentResponse: async () => null,
+      saveIdempotentResponse: async () => undefined,
+      findCheckoutById: async () => checkout,
+      addCheckoutTimelineEvent: async () => undefined,
+    };
+
+    const redisService = {
+      setIfAbsent: async () => true,
+      releaseLock: async () => undefined,
+    };
+
+    const service = new PurchasesService(
+      purchasesRepository as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      redisService as never
+    );
+
+    (service as unknown as { handleProviderWebhook: (value: unknown) => Promise<void> })
+      .handleProviderWebhook = async () => {
+      webhookCalled = true;
+    };
+    (service as unknown as { buildCheckoutStatusResponse: (value: unknown) => Promise<unknown> })
+      .buildCheckoutStatusResponse = async () => ({
+      checkoutId: checkout.id,
+      state: checkout.state,
+      method: checkout.method,
+      amount: checkout.amount,
+      currency: checkout.currency,
+      createdAt: checkout.createdAt,
+      updatedAt: checkout.updatedAt,
+      expiresAt: null,
+      isTerminal: false,
+      payment: {
+        provider: "card",
+        status: "provider_confirmed",
+        outcome: "applied",
+        requiresConfirmation: false,
+        lastProcessedAt: new Date().toISOString(),
+      },
+      access: null,
+    });
+    (service as unknown as { resumeProvisionIfNeeded: (value: typeof checkout) => Promise<typeof checkout> })
+      .resumeProvisionIfNeeded = async (value) => value;
+
+    const result = await service.stageConfirmCheckout({
+      checkoutId: checkout.id,
+      actorUser: {
+        id: "student_1",
+        email: "student@example.com",
+        firstName: "Student",
+        lastName: "One",
+        role: "student",
+      },
+    });
+
+    assert.equal(webhookCalled, true);
+    assert.equal(result.ok, true);
+    assert.equal(result.checkoutId, checkout.id);
+    assert.equal(result.confirmationSource, "stage_stub");
+  } finally {
+    for (const key of Object.keys(process.env)) {
+      if (!(key in snapshot)) {
+        delete process.env[key];
+      }
+    }
+    for (const [key, value] of Object.entries(snapshot)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+});

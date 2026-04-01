@@ -16,8 +16,9 @@ cp math-tutor-frontend/.env.stage.example math-tutor-frontend/.env.stage
 - `apps/api/.env.stage`: `EMAIL_DELIVERY_MODE` (`disabled` по умолчанию, `provider` только с `EMAIL_PROVIDER_API_KEY`)
 - `apps/api/.env.stage`: `WORKBOOK_LAUNCH_ENABLED`, `WORKBOOK_BOARD_BASE_URL`, `WORKBOOK_LAUNCH_SECRET`
 - `apps/api/.env.stage`: `PAYMENT_MOCK_ENABLED=false` и `PAYMENT_PROVIDER_AUTO_CONFIRM_LOCAL=false`
+- `apps/api/.env.stage`: `STAGE_SITE_GATE_ENABLED=true`, `STAGE_SITE_GATE_SECRET` задан, `STAGE_PAYMENT_CONFIRM_ENABLED=true` (STAGE_ONLY_REMOVE_BEFORE_PROD)
 - `apps/api/.env.stage`: `COURSES_SEED_SOURCE_FILE` не должен указывать на frontend artifacts (`math-tutor-frontend/mock-db.json`)
-- `math-tutor-frontend/.env.stage`: `VITE_APP_ENV=stage`, `VITE_API_BASE_URL`, `VITE_GATEWAY_MODE=http`
+- `math-tutor-frontend/.env.stage`: `VITE_APP_ENV=stage`, `VITE_API_BASE_URL`, `VITE_GATEWAY_MODE=http`, `VITE_STAGE_PAYMENT_CONFIRM_ENABLED=true`
 
 ## 2) Bootstrap (build + seed)
 
@@ -67,6 +68,8 @@ curl -fsS http://127.0.0.1:3001/runtime/diagnostics
 
 Frontend sanity после `start-frontend`:
 - открыть stage frontend
+- до входа в продукт должен открыться stage gate (secret check); это не teacher/student auth
+- после прохождения gate пользователь остается неавторизованным, пока не выполнит обычный login
 - в DevTools проверить `window.__MW_FRONTEND_RUNTIME__`
 - ожидание:
   - `appEnv === "stage"`
@@ -84,6 +87,10 @@ Frontend sanity после `start-frontend`:
   - `/api/capabilities/me` возвращает capability source (`canChatWithTeacher`, `canAccessWorkbook`)
   - запуск рабочей тетради идет только через `POST /api/workbook/launch` -> одноразовый launch artifact
   - direct-open path без backend artifact не используется
+- stage payment stub sanity:
+  - `POST /api/checkouts/:checkoutId/stage-confirm` доступен только при `APP_ENV=stage`
+  - экшен «Подтвердить тестовую оплату (stage)» виден только в stage checkout dialog
+  - после stage confirm entitlement/provisioning проходит через обычный backend lifecycle
 
 ## 5) Rollback / degrade path
 

@@ -28,6 +28,11 @@ export type ApiRuntimeConfig = {
   cardWebhookReplayTtlSec: number;
   paymentProviderAutoConfirmLocal: boolean;
   paymentMockEnabled: boolean;
+  stageSiteGateEnabled: boolean;
+  stageSiteGateSecret: string;
+  stageSiteGateCookieName: string;
+  stageSiteGateTtlSec: number;
+  stagePaymentConfirmEnabled: boolean;
   teacherBootstrapEnabled: boolean;
   teacherBootstrapEmail: string;
   teacherBootstrapPassword: string;
@@ -155,6 +160,7 @@ export const getApiRuntimeConfig = (
   const requireDatabase = options.requireDatabase ?? true;
   const requireRedis = options.requireRedis ?? true;
   const isLocal = appEnv === "local";
+  const isStage = appEnv === "stage";
   const authCookieMaxAgeSec = parsePositiveInteger(
     process.env.AUTH_COOKIE_MAX_AGE_SEC,
     30 * 24 * 60 * 60
@@ -243,6 +249,46 @@ export const getApiRuntimeConfig = (
   if (!isLocal && paymentMockEnabled) {
     throw new Error(
       "[api-runtime] PAYMENT_MOCK_ENABLED must be disabled outside local APP_ENV"
+    );
+  }
+  const stageSiteGateEnabled = parseBoolean(
+    process.env.STAGE_SITE_GATE_ENABLED,
+    false
+  );
+  if (stageSiteGateEnabled && !isStage) {
+    throw new Error(
+      "[api-runtime] STAGE_SITE_GATE_ENABLED is allowed only when APP_ENV=stage"
+    );
+  }
+  const stageSiteGateSecret = process.env.STAGE_SITE_GATE_SECRET?.trim() || "";
+  if (stageSiteGateEnabled) {
+    if (!stageSiteGateSecret) {
+      throw new Error("[api-runtime] Missing required env: STAGE_SITE_GATE_SECRET");
+    }
+    if (stageSiteGateSecret.length < 16) {
+      throw new Error(
+        "[api-runtime] STAGE_SITE_GATE_SECRET must be at least 16 characters"
+      );
+    }
+  }
+  const stageSiteGateCookieName =
+    process.env.STAGE_SITE_GATE_COOKIE_NAME?.trim() || "mt_stage_access";
+  if (!/^[A-Za-z0-9_.-]+$/.test(stageSiteGateCookieName)) {
+    throw new Error(
+      "[api-runtime] STAGE_SITE_GATE_COOKIE_NAME contains unsupported symbols"
+    );
+  }
+  const stageSiteGateTtlSec = parsePositiveInteger(
+    process.env.STAGE_SITE_GATE_TTL_SEC,
+    12 * 60 * 60
+  );
+  const stagePaymentConfirmEnabled = parseBoolean(
+    process.env.STAGE_PAYMENT_CONFIRM_ENABLED,
+    false
+  );
+  if (stagePaymentConfirmEnabled && !isStage) {
+    throw new Error(
+      "[api-runtime] STAGE_PAYMENT_CONFIRM_ENABLED is allowed only when APP_ENV=stage"
     );
   }
 
@@ -391,6 +437,11 @@ export const getApiRuntimeConfig = (
     ),
     paymentProviderAutoConfirmLocal,
     paymentMockEnabled,
+    stageSiteGateEnabled,
+    stageSiteGateSecret,
+    stageSiteGateCookieName,
+    stageSiteGateTtlSec,
+    stagePaymentConfirmEnabled,
     teacherBootstrapEnabled,
     teacherBootstrapEmail,
     teacherBootstrapPassword,

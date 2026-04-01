@@ -7,6 +7,7 @@ import { PerformanceMonitoringProvider } from "./PerformanceMonitoringProvider";
 import { PerformanceModeProvider } from "./PerformanceModeProvider";
 import { runStorageMaintenanceSweep } from "./storageMaintenance";
 import { RumReporterProvider } from "./RumReporterProvider";
+import { StageAccessGateProvider } from "./StageAccessGateProvider";
 
 if (typeof window !== "undefined") {
   runStorageMaintenanceSweep();
@@ -19,10 +20,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <PerformanceModeProvider>
           <ThemeModeProvider>
             <ConnectivityProvider>
-              <AuthProvider>
-                <ReconciliationRunner />
-                {children}
-              </AuthProvider>
+              <StageAccessGateProvider>
+                <AuthProvider>
+                  <ReconciliationRunner />
+                  {children}
+                </AuthProvider>
+              </StageAccessGateProvider>
             </ConnectivityProvider>
           </ThemeModeProvider>
         </PerformanceModeProvider>

@@ -34,6 +34,9 @@ Optimization/budget work — отдельный пакет после релиз
   - `provider` — только с валидным `EMAIL_PROVIDER_API_KEY` и включенным adapter.
 - [ ] `PAYMENT_MOCK_ENABLED=false` и `PAYMENT_PROVIDER_AUTO_CONFIRM_LOCAL=false` в non-local.
 - [ ] `COURSES_SEED_SOURCE_FILE` в non-local указывает только на backend-safe источник (не `math-tutor-frontend/mock-db.json`).
+- [ ] `STAGE_SITE_GATE_ENABLED` и `STAGE_PAYMENT_CONFIRM_ENABLED` не включаются вне `APP_ENV=stage` (fail-fast policy).
+- [ ] При включенном stage gate задан `STAGE_SITE_GATE_SECRET`, а frontend не хранит этот secret.
+- [ ] Stage gate не подменяет user auth (прохождение gate не создает auth session).
 - [ ] `COURSES_SEED_ON_BOOT=true` в non-local не содержит `teacher` в seed source.
 - [ ] `WORKBOOK_LAUNCH_ENABLED=true` в stage/prod сопровождается валидными `WORKBOOK_BOARD_BASE_URL` и `WORKBOOK_LAUNCH_SECRET`.
 - [ ] `/api/capabilities/me` возвращает feature flags и не зависит от price-эвристик на клиенте.
@@ -70,6 +73,10 @@ curl -fsS "$API_BASE_URL/runtime/diagnostics"
   - teacher availability управляется только через `GET/PUT /api/availability/me`
   - public slots читаются через `GET /api/teachers/:teacherId/availability`
   - отмена/перенос меняют статус (`scheduled/rescheduled/canceled/...`), а не удаляют историю
+- stage-only временные меры (STAGE_ONLY_REMOVE_BEFORE_PROD):
+  - stage gate endpoints работают: `/api/stage-access/status|verify|logout`
+  - stage payment confirm endpoint работает только в stage: `POST /api/checkouts/:checkoutId/stage-confirm`
+  - вне stage этот endpoint возвращает deny и не участвует в runtime
 - media endpoints (если `MEDIA_STORAGE_ENABLED=true`)
 - capability + premium gates:
   - non-premium student получает `canChatWithTeacher=false`, `canAccessWorkbook=false`

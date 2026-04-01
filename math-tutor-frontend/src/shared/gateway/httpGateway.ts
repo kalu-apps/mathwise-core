@@ -398,6 +398,22 @@ export const httpPurchasesGateway: PurchasesGateway = {
       }
     );
   },
+  async stageConfirmCheckout(
+    checkoutId,
+    options
+  ): Promise<CheckoutActionResponseContract> {
+    return requestHttpJson<CheckoutActionResponseContract>(
+      `/checkouts/${encodeURIComponent(checkoutId)}/stage-confirm`,
+      {
+        method: "POST",
+        body: {},
+        headers: buildIdempotencyHeaders(
+          "checkout_stage_confirm",
+          options?.idempotencyKey
+        ),
+      }
+    );
+  },
   async getCheckoutTimeline(
     checkoutId
   ): Promise<CheckoutTimelineResponseContract> {

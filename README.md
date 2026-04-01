@@ -54,6 +54,9 @@ cp math-tutor-frontend/.env.stage.example math-tutor-frontend/.env.stage
 Критичная stage policy:
 - `apps/api/.env.stage`: `PAYMENT_MOCK_ENABLED=false`, `PAYMENT_PROVIDER_AUTO_CONFIRM_LOCAL=false`
 - `apps/api/.env.stage`: `COURSES_SEED_SOURCE_FILE` не должен ссылаться на frontend artifacts (`math-tutor-frontend/mock-db.json`)
+- `apps/api/.env.stage`: `STAGE_SITE_GATE_ENABLED=true` только в `APP_ENV=stage` (отдельный site-access gate, не user auth)
+- `apps/api/.env.stage`: `STAGE_PAYMENT_CONFIRM_ENABLED=true` только в `APP_ENV=stage` (временный backend stub для test confirm, без mock-provider)
+- `math-tutor-frontend/.env.stage`: `VITE_STAGE_PAYMENT_CONFIRM_ENABLED=true` только для stage UI
 
 Подробный runbook: [`docs/stage-bootstrap-mw-app-01.md`](docs/stage-bootstrap-mw-app-01.md)
 

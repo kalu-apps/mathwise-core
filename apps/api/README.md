@@ -23,6 +23,7 @@ Non-local policy:
 - `PAYMENT_MOCK_ENABLED=false`
 - `PAYMENT_PROVIDER_AUTO_CONFIRM_LOCAL=false`
 - `COURSES_SEED_SOURCE_FILE` должен указывать только на backend-safe источник (frontend `mock-db.json` запрещен fail-fast проверкой).
+- `STAGE_SITE_GATE_ENABLED` и `STAGE_PAYMENT_CONFIRM_ENABLED` допускаются только при `APP_ENV=stage` (fail-fast вне stage).
 
 ## Critical commerce/auth runtime
 
@@ -36,12 +37,15 @@ Non-local policy:
 - `POST /api/auth/recovery/request`
 - `POST /api/auth/recovery/verify`
 - `POST /api/auth/password/reset`
+- `GET /api/stage-access/status` / `POST /api/stage-access/verify` / `POST /api/stage-access/logout` (stage site gate, STAGE_ONLY_REMOVE_BEFORE_PROD)
+- `POST /api/checkouts/:checkoutId/stage-confirm` (stage-only confirm stub, STAGE_ONLY_REMOVE_BEFORE_PROD)
 
 Важно:
 - ручного `confirm-paid` endpoint больше нет;
 - webhook требует `CARD_WEBHOOK_SECRET`, timestamp/skew и replay protection;
 - provisioning (`user/profile/entitlement`) выполняется только после provider-confirmed события.
 - уроки/контент отдаются в `public_preview` или `entitled_full` режиме только по backend authz.
+- stage gate cookie отделен от auth session cookie и не логинит пользователя автоматически.
 
 ## Media / S3 foundation
 

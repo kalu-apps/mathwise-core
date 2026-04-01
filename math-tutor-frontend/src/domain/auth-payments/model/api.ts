@@ -168,6 +168,13 @@ export async function retryCheckout(checkoutId: string) {
   return purchaseGateway.retryCheckout(checkoutId);
 }
 
+export async function stageConfirmCheckout(
+  checkoutId: string,
+  options?: { idempotencyKey?: string }
+) {
+  return purchaseGateway.stageConfirmCheckout(checkoutId, options);
+}
+
 export async function getCheckoutTimeline(checkoutId: string) {
   return purchaseGateway.getCheckoutTimeline(checkoutId);
 }

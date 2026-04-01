@@ -220,6 +220,21 @@ export class PurchasesController {
     });
   }
 
+  @Post("checkouts/:checkoutId/stage-confirm")
+  async stageConfirmCheckout(
+    @Param("checkoutId") checkoutId: string,
+    @Headers("x-idempotency-key") idempotencyKey: string | undefined,
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<CheckoutActionResponseDto> {
+    const actorUser = await this.resolveUserFromRequest(req, res);
+    return this.purchasesService.stageConfirmCheckout({
+      checkoutId,
+      actorUser,
+      idempotencyKey,
+    });
+  }
+
   @Get("checkouts/:checkoutId/timeline")
   async getCheckoutTimeline(
     @Param("checkoutId") checkoutId: string,

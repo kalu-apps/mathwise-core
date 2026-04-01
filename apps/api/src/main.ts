@@ -31,6 +31,11 @@ const logStartupDiagnostics = (runtimeConfig: ReturnType<typeof getApiRuntimeCon
       authCookieSameSite: runtimeConfig.authCookieSameSite,
       authDebugTokens: runtimeConfig.authDebugTokens,
     },
+    stageOnly: {
+      stageSiteGateEnabled: runtimeConfig.stageSiteGateEnabled,
+      stagePaymentConfirmEnabled: runtimeConfig.stagePaymentConfirmEnabled,
+      marker: "STAGE_ONLY_REMOVE_BEFORE_PROD",
+    },
     timestamp: new Date().toISOString(),
   };
   // eslint-disable-next-line no-console

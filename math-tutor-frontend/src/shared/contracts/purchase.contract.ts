@@ -140,6 +140,7 @@ export type CheckoutActionResponseContract = {
   checkoutState: string;
   payment: CheckoutStatusResponseContract["payment"];
   access?: CheckoutStatusResponseContract["access"];
+  confirmationSource?: "stage_stub";
 };
 
 export type CheckoutTimelineResponseContract = {
