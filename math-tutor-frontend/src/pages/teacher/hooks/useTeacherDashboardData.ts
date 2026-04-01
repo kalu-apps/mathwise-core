@@ -322,6 +322,13 @@ export const useTeacherDashboardData = ({
           const normalizedBooking: Booking = {
             ...booking,
             lessonKind: booking.lessonKind === "trial" ? "trial" : "regular",
+            status:
+              booking.status === "rescheduled" ||
+              booking.status === "canceled" ||
+              booking.status === "completed" ||
+              booking.status === "no_show"
+                ? booking.status
+                : "scheduled",
             paymentStatus: booking.paymentStatus === "paid" ? "paid" : "unpaid",
           };
           if (!student) return normalizedBooking;

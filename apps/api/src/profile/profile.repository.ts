@@ -34,9 +34,11 @@ type BookingRow = {
   startTime: string;
   endTime: string;
   lessonKind: "trial" | "regular";
+  status: "scheduled" | "rescheduled" | "canceled" | "completed" | "no_show";
   paymentStatus: "unpaid" | "paid";
   meetingUrl: string | null;
   materials: unknown;
+  consentSnapshot: unknown;
   createdAt: string;
 };
 
@@ -103,6 +105,32 @@ export class ProfileRepository {
     await this.databaseService.execute(`
       CREATE INDEX IF NOT EXISTS idx_profile_bookings_teacher
       ON profile_bookings (teacher_id, date ASC, start_time ASC)
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE profile_bookings
+      ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'scheduled'
+        CHECK (status IN ('scheduled', 'rescheduled', 'canceled', 'completed', 'no_show'))
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE profile_bookings
+      ADD COLUMN IF NOT EXISTS slot_id TEXT
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE profile_bookings
+      ADD COLUMN IF NOT EXISTS consent_snapshot_json JSONB
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE profile_bookings
+      ADD COLUMN IF NOT EXISTS identity_kind TEXT NOT NULL DEFAULT 'user_bound'
+        CHECK (identity_kind IN ('user_bound', 'guest_pending'))
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE profile_bookings
+      ADD COLUMN IF NOT EXISTS identity_email_canonical TEXT NOT NULL DEFAULT ''
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE profile_bookings
+      ADD COLUMN IF NOT EXISTS canceled_at TEXT
     `);
 
     await this.databaseService.execute(`
@@ -181,9 +209,11 @@ export class ProfileRepository {
           start_time AS "startTime",
           end_time AS "endTime",
           lesson_kind AS "lessonKind",
+          status,
           payment_status AS "paymentStatus",
           meeting_url AS "meetingUrl",
           materials_json AS "materials",
+          consent_snapshot_json AS "consentSnapshot",
           created_at AS "createdAt"
         FROM profile_bookings
         WHERE student_id = $1
@@ -211,9 +241,11 @@ export class ProfileRepository {
           start_time AS "startTime",
           end_time AS "endTime",
           lesson_kind AS "lessonKind",
+          status,
           payment_status AS "paymentStatus",
           meeting_url AS "meetingUrl",
           materials_json AS "materials",
+          consent_snapshot_json AS "consentSnapshot",
           created_at AS "createdAt"
         FROM profile_bookings
         WHERE teacher_id = $1
@@ -265,6 +297,26 @@ export class ProfileRepository {
     return rows.map((row) => this.mapAvailability(row));
   }
 
+  async attachGuestBookingsToStudentByEmail(params: {
+    userId: string;
+    canonicalEmail: string;
+  }): Promise<number> {
+    const rows = await this.databaseService.query<{ id: string }>(
+      `
+        UPDATE profile_bookings
+        SET
+          student_id = $1,
+          identity_kind = 'user_bound',
+          updated_at = NOW()
+        WHERE identity_kind = 'guest_pending'
+          AND LOWER(identity_email_canonical) = LOWER($2)
+        RETURNING id
+      `,
+      [params.userId, params.canonicalEmail]
+    );
+    return rows.length;
+  }
+
   private mapPurchase(row: PurchaseRow): PurchaseContextDto {
     return {
       id: row.id,
@@ -305,11 +357,37 @@ export class ProfileRepository {
       startTime: row.startTime,
       endTime: row.endTime,
       lessonKind: row.lessonKind === "trial" ? "trial" : "regular",
+      status:
+        row.status === "rescheduled" ||
+        row.status === "canceled" ||
+        row.status === "completed" ||
+        row.status === "no_show"
+          ? row.status
+          : "scheduled",
       paymentStatus: row.paymentStatus === "paid" ? "paid" : "unpaid",
       meetingUrl: row.meetingUrl ?? undefined,
       materials: Array.isArray(row.materials)
         ? (row.materials as BookingContextDto["materials"])
         : [],
+      consentSnapshot:
+        row.consentSnapshot &&
+        typeof row.consentSnapshot === "object" &&
+        Array.isArray((row.consentSnapshot as { acceptedScopes?: unknown }).acceptedScopes) &&
+        (((row.consentSnapshot as { source?: unknown }).source === "public_booking" ||
+          (row.consentSnapshot as { source?: unknown }).source === "student_booking") &&
+          typeof (row.consentSnapshot as { acceptedAt?: unknown }).acceptedAt === "string")
+          ? {
+              acceptedScopes: (
+                row.consentSnapshot as {
+                  acceptedScopes: unknown[];
+                }
+              ).acceptedScopes
+                .map((scope) => (typeof scope === "string" ? scope : ""))
+                .filter((scope) => scope.length > 0),
+              source: (row.consentSnapshot as { source: "public_booking" | "student_booking" }).source,
+              acceptedAt: (row.consentSnapshot as { acceptedAt: string }).acceptedAt,
+            }
+          : undefined,
       createdAt: row.createdAt,
     };
   }

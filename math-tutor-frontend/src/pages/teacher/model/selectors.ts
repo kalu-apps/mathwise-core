@@ -68,11 +68,19 @@ export const splitTeacherBookingsByCompletion = (
   bookings: Booking[],
   now = Date.now()
 ) => {
+  const isArchivedStatus = (status: Booking["status"]) =>
+    status === "canceled" || status === "completed" || status === "no_show";
   const scheduled = [...bookings]
-    .filter((booking) => getBookingEndTimestamp(booking) >= now)
+    .filter(
+      (booking) =>
+        !isArchivedStatus(booking.status) && getBookingEndTimestamp(booking) >= now
+    )
     .sort((a, b) => getBookingStartTimestamp(a) - getBookingStartTimestamp(b));
   const completed = [...bookings]
-    .filter((booking) => getBookingEndTimestamp(booking) < now)
+    .filter(
+      (booking) =>
+        isArchivedStatus(booking.status) || getBookingEndTimestamp(booking) < now
+    )
     .sort((a, b) => getBookingEndTimestamp(b) - getBookingEndTimestamp(a));
   return { scheduled, completed };
 };

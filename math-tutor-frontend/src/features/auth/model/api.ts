@@ -208,3 +208,10 @@ export async function getUsers(
     cacheTtlMs: options?.forceFresh ? 0 : undefined,
   });
 }
+
+export async function getPublicTeachers(): Promise<User[]> {
+  return api.get<User[]>("/public/teachers", {
+    dedupe: false,
+    cacheTtlMs: 0,
+  });
+}

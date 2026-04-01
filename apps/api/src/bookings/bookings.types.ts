@@ -7,6 +7,19 @@ export type BookingMaterialDto = {
 
 export type BookingLessonKind = "trial" | "regular";
 export type BookingPaymentStatus = "unpaid" | "paid";
+export type BookingStatus =
+  | "scheduled"
+  | "rescheduled"
+  | "canceled"
+  | "completed"
+  | "no_show";
+export type BookingIdentityKind = "user_bound" | "guest_pending";
+
+export type BookingConsentSnapshotDto = {
+  acceptedScopes: string[];
+  source: "public_booking" | "student_booking";
+  acceptedAt: string;
+};
 
 export type BookingDto = {
   id: string;
@@ -22,9 +35,11 @@ export type BookingDto = {
   startTime: string;
   endTime: string;
   lessonKind: BookingLessonKind;
+  status: BookingStatus;
   paymentStatus: BookingPaymentStatus;
   meetingUrl?: string;
   materials: BookingMaterialDto[];
+  consentSnapshot?: BookingConsentSnapshotDto;
   createdAt: string;
 };
 
@@ -50,7 +65,7 @@ export type CreateBookingPayloadDto = {
 };
 
 export type UpdateBookingPatchDto = Partial<
-  Pick<BookingDto, "meetingUrl" | "materials"> & {
+  Pick<BookingDto, "meetingUrl" | "materials" | "status"> & {
     paymentStatus: BookingPaymentStatus;
     reschedule: {
       slotId: string;
@@ -60,4 +75,7 @@ export type UpdateBookingPatchDto = Partial<
 
 export type BookingRecord = BookingDto & {
   slotId?: string;
+  identityKind: BookingIdentityKind;
+  identityEmailCanonical: string;
+  canceledAt?: string;
 };

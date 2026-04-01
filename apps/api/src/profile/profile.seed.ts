@@ -30,6 +30,16 @@ const normalizeLessonKind = (value: unknown): "trial" | "regular" =>
 const normalizePaymentStatus = (value: unknown): "unpaid" | "paid" =>
   value === "paid" ? "paid" : "unpaid";
 
+const normalizeBookingStatus = (
+  value: unknown
+): BookingContextDto["status"] =>
+  value === "rescheduled" ||
+  value === "canceled" ||
+  value === "completed" ||
+  value === "no_show"
+    ? value
+    : "scheduled";
+
 const mapPurchase = (entry: unknown): PurchaseContextDto | null => {
   if (!entry || typeof entry !== "object") return null;
   const raw = entry as Record<string, unknown>;
@@ -71,6 +81,30 @@ const mapBooking = (entry: unknown): BookingContextDto | null => {
   const teacherId = normalizeString(raw.teacherId);
   const studentId = normalizeString(raw.studentId);
   if (!id || !teacherId || !studentId) return null;
+  const rawConsent =
+    raw.consentSnapshot && typeof raw.consentSnapshot === "object"
+      ? (raw.consentSnapshot as Record<string, unknown>)
+      : null;
+  const consentScopes = Array.isArray(rawConsent?.acceptedScopes)
+    ? rawConsent!.acceptedScopes
+        .map((scope) => (typeof scope === "string" ? scope.trim() : ""))
+        .filter((scope) => scope.length > 0)
+    : [];
+  let consentSource: "public_booking" | "student_booking" | undefined;
+  if (rawConsent?.source === "public_booking" || rawConsent?.source === "student_booking") {
+    consentSource = rawConsent.source;
+  }
+  const consentSnapshot =
+    rawConsent &&
+    consentSource &&
+    typeof rawConsent.acceptedAt === "string" &&
+    consentScopes.length > 0
+      ? {
+          acceptedScopes: consentScopes,
+          source: consentSource,
+          acceptedAt: rawConsent.acceptedAt,
+        }
+      : undefined;
   return {
     id,
     teacherId,
@@ -85,11 +119,13 @@ const mapBooking = (entry: unknown): BookingContextDto | null => {
     startTime: normalizeString(raw.startTime),
     endTime: normalizeString(raw.endTime),
     lessonKind: normalizeLessonKind(raw.lessonKind),
+    status: normalizeBookingStatus(raw.status),
     paymentStatus: normalizePaymentStatus(raw.paymentStatus),
     meetingUrl: normalizeString(raw.meetingUrl) || undefined,
     materials: Array.isArray(raw.materials)
       ? (raw.materials as BookingContextDto["materials"])
       : [],
+    consentSnapshot,
     createdAt: normalizeString(raw.createdAt),
   };
 };
@@ -243,15 +279,20 @@ export const upsertProfileBookings = async (
           start_time,
           end_time,
           lesson_kind,
+          status,
           payment_status,
           meeting_url,
           materials_json,
+          consent_snapshot_json,
+          identity_kind,
+          identity_email_canonical,
+          canceled_at,
           created_at,
           updated_at
         )
         VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9,
-          $10, $11, $12, $13, $14, $15, $16::jsonb, $17, NOW()
+          $10, $11, $12, $13, $14, $15, $16, $17::jsonb, $18::jsonb, $19, $20, $21, $22, NOW()
         )
         ON CONFLICT (id)
         DO UPDATE SET
@@ -267,9 +308,14 @@ export const upsertProfileBookings = async (
           start_time = EXCLUDED.start_time,
           end_time = EXCLUDED.end_time,
           lesson_kind = EXCLUDED.lesson_kind,
+          status = EXCLUDED.status,
           payment_status = EXCLUDED.payment_status,
           meeting_url = EXCLUDED.meeting_url,
           materials_json = EXCLUDED.materials_json,
+          consent_snapshot_json = EXCLUDED.consent_snapshot_json,
+          identity_kind = EXCLUDED.identity_kind,
+          identity_email_canonical = EXCLUDED.identity_email_canonical,
+          canceled_at = EXCLUDED.canceled_at,
           created_at = EXCLUDED.created_at,
           updated_at = NOW()
       `,
@@ -287,9 +333,14 @@ export const upsertProfileBookings = async (
         booking.startTime,
         booking.endTime,
         booking.lessonKind,
+        booking.status,
         booking.paymentStatus,
         booking.meetingUrl ?? null,
         JSON.stringify(booking.materials ?? []),
+        booking.consentSnapshot ? JSON.stringify(booking.consentSnapshot) : null,
+        "user_bound",
+        booking.studentEmail.trim().toLowerCase(),
+        booking.status === "canceled" ? booking.createdAt : null,
         booking.createdAt,
       ]
     );

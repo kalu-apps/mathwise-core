@@ -51,9 +51,14 @@ export class BookingsRepository {
           start_time AS "startTime",
           end_time AS "endTime",
           lesson_kind AS "lessonKind",
+          status,
           payment_status AS "paymentStatus",
           meeting_url AS "meetingUrl",
           materials_json AS "materials",
+          consent_snapshot_json AS "consentSnapshot",
+          identity_kind AS "identityKind",
+          identity_email_canonical AS "identityEmailCanonical",
+          canceled_at AS "canceledAt",
           created_at AS "createdAt"
         FROM profile_bookings
         WHERE ($1::text IS NULL OR teacher_id = $1)
@@ -83,9 +88,14 @@ export class BookingsRepository {
           start_time AS "startTime",
           end_time AS "endTime",
           lesson_kind AS "lessonKind",
+          status,
           payment_status AS "paymentStatus",
           meeting_url AS "meetingUrl",
           materials_json AS "materials",
+          consent_snapshot_json AS "consentSnapshot",
+          identity_kind AS "identityKind",
+          identity_email_canonical AS "identityEmailCanonical",
+          canceled_at AS "canceledAt",
           created_at AS "createdAt"
         FROM profile_bookings
         WHERE id = $1
@@ -115,9 +125,14 @@ export class BookingsRepository {
           start_time AS "startTime",
           end_time AS "endTime",
           lesson_kind AS "lessonKind",
+          status,
           payment_status AS "paymentStatus",
           meeting_url AS "meetingUrl",
           materials_json AS "materials",
+          consent_snapshot_json AS "consentSnapshot",
+          identity_kind AS "identityKind",
+          identity_email_canonical AS "identityEmailCanonical",
+          canceled_at AS "canceledAt",
           created_at AS "createdAt"
         FROM profile_bookings
         WHERE slot_id = $1
@@ -165,14 +180,20 @@ export class BookingsRepository {
           start_time AS "startTime",
           end_time AS "endTime",
           lesson_kind AS "lessonKind",
+          status,
           payment_status AS "paymentStatus",
           meeting_url AS "meetingUrl",
           materials_json AS "materials",
+          consent_snapshot_json AS "consentSnapshot",
+          identity_kind AS "identityKind",
+          identity_email_canonical AS "identityEmailCanonical",
+          canceled_at AS "canceledAt",
           created_at AS "createdAt"
         FROM profile_bookings
         WHERE teacher_id = $1
           AND date = $2
           AND ($3::text IS NULL OR id <> $3)
+          AND status IN ('scheduled', 'rescheduled')
           AND start_time < $5
           AND end_time > $4
         ORDER BY start_time ASC
@@ -208,9 +229,14 @@ export class BookingsRepository {
           start_time,
           end_time,
           lesson_kind,
+          status,
           payment_status,
           meeting_url,
           materials_json,
+          consent_snapshot_json,
+          identity_kind,
+          identity_email_canonical,
+          canceled_at,
           created_at,
           updated_at
         )
@@ -218,7 +244,8 @@ export class BookingsRepository {
           $1, $2, $3, $4, $5,
           $6, $7, $8, $9, $10,
           $11, $12, $13, $14, $15,
-          $16, $17::jsonb, $18, NOW()
+          $16, $17, $18, $19::jsonb, $20::jsonb,
+          $21, $22, $23, $24, NOW()
         )
       `,
       [
@@ -236,9 +263,14 @@ export class BookingsRepository {
         booking.startTime,
         booking.endTime,
         booking.lessonKind,
+        booking.status,
         booking.paymentStatus,
         booking.meetingUrl ?? null,
         JSON.stringify(booking.materials ?? []),
+        booking.consentSnapshot ? JSON.stringify(booking.consentSnapshot) : null,
+        booking.identityKind,
+        booking.identityEmailCanonical,
+        booking.canceledAt ?? null,
         booking.createdAt,
       ]
     );
@@ -262,10 +294,15 @@ export class BookingsRepository {
           start_time = $12,
           end_time = $13,
           lesson_kind = $14,
-          payment_status = $15,
-          meeting_url = $16,
-          materials_json = $17::jsonb,
-          created_at = $18,
+          status = $15,
+          payment_status = $16,
+          meeting_url = $17,
+          materials_json = $18::jsonb,
+          consent_snapshot_json = $19::jsonb,
+          identity_kind = $20,
+          identity_email_canonical = $21,
+          canceled_at = $22,
+          created_at = $23,
           updated_at = NOW()
         WHERE id = $1
       `,
@@ -284,9 +321,14 @@ export class BookingsRepository {
         booking.startTime,
         booking.endTime,
         booking.lessonKind,
+        booking.status,
         booking.paymentStatus,
         booking.meetingUrl ?? null,
         JSON.stringify(booking.materials ?? []),
+        booking.consentSnapshot ? JSON.stringify(booking.consentSnapshot) : null,
+        booking.identityKind,
+        booking.identityEmailCanonical,
+        booking.canceledAt ?? null,
         booking.createdAt,
       ]
     );
@@ -315,6 +357,35 @@ export class BookingsRepository {
       [slotId]
     );
     return rows[0] ?? null;
+  }
+
+  async findAvailabilityByTeacher(
+    teacherId: string,
+    options?: { futureOnly?: boolean }
+  ): Promise<AvailabilityRow[]> {
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const nowTime = now.toISOString().slice(11, 16);
+    const rows = await this.databaseService.query<AvailabilityRow>(
+      `
+        SELECT
+          id,
+          teacher_id AS "teacherId",
+          date,
+          start_time AS "startTime",
+          end_time AS "endTime"
+        FROM profile_teacher_availability
+        WHERE teacher_id = $1
+          AND (
+            $2::boolean = FALSE
+            OR date > $3
+            OR (date = $3 AND start_time > $4)
+          )
+        ORDER BY date ASC, start_time ASC, id ASC
+      `,
+      [teacherId, options?.futureOnly ?? false, today, nowTime]
+    );
+    return rows;
   }
 
   async hasAvailabilitySlotAt(params: {
@@ -367,6 +438,45 @@ export class BookingsRepository {
       `,
       [slot.id, slot.teacherId, slot.date, slot.startTime, slot.endTime]
     );
+  }
+
+  async replaceTeacherAvailabilityAtomic(params: {
+    teacherId: string;
+    slots: AvailabilityRow[];
+  }): Promise<void> {
+    await this.databaseService.transaction(async (tx) => {
+      await tx.execute(
+        `
+          DELETE FROM profile_teacher_availability
+          WHERE teacher_id = $1
+        `,
+        [params.teacherId]
+      );
+
+      for (const slot of params.slots) {
+        await tx.execute(
+          `
+            INSERT INTO profile_teacher_availability (
+              id,
+              teacher_id,
+              date,
+              start_time,
+              end_time,
+              updated_at
+            )
+            VALUES ($1, $2, $3, $4, $5, NOW())
+            ON CONFLICT (id)
+            DO UPDATE SET
+              teacher_id = EXCLUDED.teacher_id,
+              date = EXCLUDED.date,
+              start_time = EXCLUDED.start_time,
+              end_time = EXCLUDED.end_time,
+              updated_at = NOW()
+          `,
+          [slot.id, slot.teacherId, slot.date, slot.startTime, slot.endTime]
+        );
+      }
+    });
   }
 
   async findIdempotentResponse<T>(
@@ -487,6 +597,7 @@ export class BookingsRepository {
 
   async deleteBookingAtomic(params: {
     bookingId: string;
+    canceledAt: string;
     restorePreviousSlot?: AvailabilityRow;
   }): Promise<boolean> {
     return this.databaseService.transaction<boolean>(async (tx) => {
@@ -515,16 +626,42 @@ export class BookingsRepository {
         );
       }
 
-      const deleted = await tx.query<{ id: string }>(
+      const canceled = await tx.query<{ id: string }>(
         `
-          DELETE FROM profile_bookings
+          UPDATE profile_bookings
+          SET
+            status = 'canceled',
+            canceled_at = $2,
+            slot_id = NULL,
+            updated_at = NOW()
           WHERE id = $1
+            AND status IN ('scheduled', 'rescheduled')
           RETURNING id
         `,
-        [params.bookingId]
+        [params.bookingId, params.canceledAt]
       );
-      return deleted.length > 0;
+      return canceled.length > 0;
     });
+  }
+
+  async attachGuestBookingsToUserByEmail(params: {
+    userId: string;
+    canonicalEmail: string;
+  }): Promise<number> {
+    const rows = await this.databaseService.query<{ id: string }>(
+      `
+        UPDATE profile_bookings
+        SET
+          student_id = $1,
+          identity_kind = 'user_bound',
+          updated_at = NOW()
+        WHERE identity_kind = 'guest_pending'
+          AND identity_email_canonical = $2
+        RETURNING id
+      `,
+      [params.userId, params.canonicalEmail]
+    );
+    return rows.length;
   }
 
   private async insertBookingWithExecutor(
@@ -548,9 +685,14 @@ export class BookingsRepository {
           start_time,
           end_time,
           lesson_kind,
+          status,
           payment_status,
           meeting_url,
           materials_json,
+          consent_snapshot_json,
+          identity_kind,
+          identity_email_canonical,
+          canceled_at,
           created_at,
           updated_at
         )
@@ -558,7 +700,8 @@ export class BookingsRepository {
           $1, $2, $3, $4, $5,
           $6, $7, $8, $9, $10,
           $11, $12, $13, $14, $15,
-          $16, $17::jsonb, $18, NOW()
+          $16, $17, $18, $19::jsonb, $20::jsonb,
+          $21, $22, $23, $24, NOW()
         )
       `,
       [
@@ -576,9 +719,14 @@ export class BookingsRepository {
         booking.startTime,
         booking.endTime,
         booking.lessonKind,
+        booking.status,
         booking.paymentStatus,
         booking.meetingUrl ?? null,
         JSON.stringify(booking.materials ?? []),
+        booking.consentSnapshot ? JSON.stringify(booking.consentSnapshot) : null,
+        booking.identityKind,
+        booking.identityEmailCanonical,
+        booking.canceledAt ?? null,
         booking.createdAt,
       ]
     );
@@ -605,10 +753,15 @@ export class BookingsRepository {
           start_time = $12,
           end_time = $13,
           lesson_kind = $14,
-          payment_status = $15,
-          meeting_url = $16,
-          materials_json = $17::jsonb,
-          created_at = $18,
+          status = $15,
+          payment_status = $16,
+          meeting_url = $17,
+          materials_json = $18::jsonb,
+          consent_snapshot_json = $19::jsonb,
+          identity_kind = $20,
+          identity_email_canonical = $21,
+          canceled_at = $22,
+          created_at = $23,
           updated_at = NOW()
         WHERE id = $1
       `,
@@ -627,9 +780,14 @@ export class BookingsRepository {
         booking.startTime,
         booking.endTime,
         booking.lessonKind,
+        booking.status,
         booking.paymentStatus,
         booking.meetingUrl ?? null,
         JSON.stringify(booking.materials ?? []),
+        booking.consentSnapshot ? JSON.stringify(booking.consentSnapshot) : null,
+        booking.identityKind,
+        booking.identityEmailCanonical,
+        booking.canceledAt ?? null,
         booking.createdAt,
       ]
     );

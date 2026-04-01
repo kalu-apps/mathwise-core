@@ -15,12 +15,39 @@ export const BOOKINGS_SCHEMA_STATEMENTS = [
       start_time TEXT NOT NULL DEFAULT '',
       end_time TEXT NOT NULL DEFAULT '',
       lesson_kind TEXT NOT NULL CHECK (lesson_kind IN ('trial', 'regular')),
+      status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'rescheduled', 'canceled', 'completed', 'no_show')),
       payment_status TEXT NOT NULL CHECK (payment_status IN ('unpaid', 'paid')),
       meeting_url TEXT,
       materials_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+      consent_snapshot_json JSONB,
+      identity_kind TEXT NOT NULL DEFAULT 'user_bound' CHECK (identity_kind IN ('user_bound', 'guest_pending')),
+      identity_email_canonical TEXT NOT NULL DEFAULT '',
+      canceled_at TEXT,
       created_at TEXT NOT NULL DEFAULT '',
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `,
+  `
+    ALTER TABLE profile_bookings
+    ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'scheduled'
+      CHECK (status IN ('scheduled', 'rescheduled', 'canceled', 'completed', 'no_show'))
+  `,
+  `
+    ALTER TABLE profile_bookings
+    ADD COLUMN IF NOT EXISTS consent_snapshot_json JSONB
+  `,
+  `
+    ALTER TABLE profile_bookings
+    ADD COLUMN IF NOT EXISTS identity_kind TEXT NOT NULL DEFAULT 'user_bound'
+      CHECK (identity_kind IN ('user_bound', 'guest_pending'))
+  `,
+  `
+    ALTER TABLE profile_bookings
+    ADD COLUMN IF NOT EXISTS identity_email_canonical TEXT NOT NULL DEFAULT ''
+  `,
+  `
+    ALTER TABLE profile_bookings
+    ADD COLUMN IF NOT EXISTS canceled_at TEXT
   `,
   `
     ALTER TABLE profile_bookings
@@ -35,13 +62,25 @@ export const BOOKINGS_SCHEMA_STATEMENTS = [
     ON profile_bookings (teacher_id, date ASC, start_time ASC)
   `,
   `
+    DROP INDEX IF EXISTS idx_profile_bookings_teacher_time_unique
+  `,
+  `
     CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_bookings_teacher_time_unique
     ON profile_bookings (teacher_id, date, start_time, end_time)
+    WHERE status IN ('scheduled', 'rescheduled')
+  `,
+  `
+    DROP INDEX IF EXISTS idx_profile_bookings_slot_unique
   `,
   `
     CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_bookings_slot_unique
     ON profile_bookings (slot_id)
     WHERE slot_id IS NOT NULL
+      AND status IN ('scheduled', 'rescheduled')
+  `,
+  `
+    CREATE INDEX IF NOT EXISTS idx_profile_bookings_identity_lookup
+    ON profile_bookings (identity_kind, identity_email_canonical, date ASC, start_time ASC)
   `,
   `
     CREATE TABLE IF NOT EXISTS profile_teacher_availability (

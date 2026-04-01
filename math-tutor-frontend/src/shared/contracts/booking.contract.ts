@@ -27,7 +27,7 @@ export type CreateBookingPayloadContract = {
 };
 
 export type UpdateBookingPatchContract = Partial<
-  Pick<Booking, "meetingUrl" | "materials"> & {
+  Pick<Booking, "meetingUrl" | "materials" | "status"> & {
     paymentStatus: BookingPaymentStatus;
     reschedule: {
       slotId: string;

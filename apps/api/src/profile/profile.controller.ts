@@ -54,6 +54,11 @@ export class ProfileController {
     return this.resolveUserFromRequest(req, res);
   }
 
+  @Get("public/teachers")
+  async getPublicTeachers(): Promise<AuthUserDto[]> {
+    return this.profileService.getPublicTeachers();
+  }
+
   @Get("student/context")
   async getStudentContext(
     @Req() req: RequestWithCookie,

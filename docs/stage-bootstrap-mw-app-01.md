@@ -69,6 +69,10 @@ Frontend sanity после `start-frontend`:
   - `appEnv === "stage"`
   - `gatewayMode === "http"`
   - все `transports.* === "http"`
+- booking/availability sanity:
+  - teacher управляет слотами через `/api/availability/me`
+  - публичный экран бронирования читает слоты через `/api/teachers/:teacherId/availability`
+  - guest booking с email существующего аккаунта получает `identity_conflict_auth_required` и требует login before attach
 
 ## 5) Rollback / degrade path
 

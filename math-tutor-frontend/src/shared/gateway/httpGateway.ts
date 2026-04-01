@@ -414,36 +414,33 @@ export const httpBookingsGateway: BookingsGateway = {
     if (params?.teacherId) query.set("teacherId", params.teacherId);
     if (params?.studentId) query.set("studentId", params.studentId);
     const suffix = buildQuerySuffix(query);
-    return requestHttpJson<Booking[]>(`/bookings${suffix}`);
+    return api.get<Booking[]>(`/bookings${suffix}`);
   },
   async createBooking(payload, options): Promise<Booking> {
-    return requestHttpJson<Booking>("/bookings", {
-      method: "POST",
-      body: payload,
+    return api.post<Booking>("/bookings", payload, {
       headers: buildIdempotencyHeaders("booking", options?.idempotencyKey),
     });
   },
   async updateBooking(id, patch): Promise<Booking> {
-    return requestHttpJson<Booking>(`/bookings/${encodeURIComponent(id)}`, {
-      method: "PUT",
-      body: patch,
+    return api.put<Booking>(`/bookings/${encodeURIComponent(id)}`, patch, {
       headers: buildIdempotencyHeaders("booking_update"),
     });
   },
   async deleteBooking(id): Promise<DeleteBookingResponseContract> {
-    return requestHttpJson<DeleteBookingResponseContract>(
+    return api.del<DeleteBookingResponseContract>(
       `/bookings/${encodeURIComponent(id)}`,
       {
-        method: "DELETE",
         headers: buildIdempotencyHeaders("booking_delete"),
       }
     );
   },
   async rescheduleBooking(id, slotId): Promise<Booking> {
-    return requestHttpJson<Booking>(`/bookings/${encodeURIComponent(id)}`, {
-      method: "PUT",
-      body: { reschedule: { slotId } },
-      headers: buildIdempotencyHeaders("booking_reschedule"),
-    });
+    return api.put<Booking>(
+      `/bookings/${encodeURIComponent(id)}`,
+      { reschedule: { slotId } },
+      {
+        headers: buildIdempotencyHeaders("booking_reschedule"),
+      }
+    );
   },
 };

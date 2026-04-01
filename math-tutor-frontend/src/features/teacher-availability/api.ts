@@ -6,7 +6,13 @@ import { t } from "@/shared/i18n";
 export async function getTeacherAvailability(
   userId: string
 ): Promise<AvailabilitySlot[]> {
-  return api.get<AvailabilitySlot[]>(`/teacher-availability/${userId}`);
+  return api.get<AvailabilitySlot[]>(
+    `/teachers/${encodeURIComponent(userId)}/availability`,
+    {
+      dedupe: false,
+      cacheTtlMs: 0,
+    }
+  );
 }
 
 export async function saveTeacherAvailability(
@@ -14,17 +20,18 @@ export async function saveTeacherAvailability(
   slots: AvailabilitySlot[]
 ): Promise<AvailabilitySlot[]> {
   try {
-    return await api.put<AvailabilitySlot[]>(
-      `/teacher-availability/${userId}`,
-      slots
-    );
+    return await api.put<AvailabilitySlot[]>("/availability/me", {
+      slots,
+    });
   } catch (error) {
     if (isRecoverableApiError(error)) {
       enqueueOutboxRequest({
         title: t("common.retryTeacherSlotsSaveAction"),
         method: "PUT",
-        path: `/teacher-availability/${userId}`,
-        body: slots,
+        path: "/availability/me",
+        body: {
+          slots,
+        },
         dedupeKey: `teacher-availability:${userId}`,
       });
       return slots;

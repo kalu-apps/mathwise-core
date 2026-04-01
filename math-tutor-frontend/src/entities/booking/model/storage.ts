@@ -45,7 +45,7 @@ export async function createBooking(
 export async function updateBooking(
   id: string,
   patch: Partial<
-    Pick<Booking, "meetingUrl" | "materials"> & {
+    Pick<Booking, "meetingUrl" | "materials" | "status"> & {
       paymentStatus: BookingPaymentStatus;
       reschedule: {
         slotId: string;

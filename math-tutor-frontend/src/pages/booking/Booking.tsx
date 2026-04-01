@@ -15,8 +15,7 @@ import {
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
 import { useNavigate } from "react-router-dom";
-import { getUsers } from "@/features/auth/model/api";
-import { getTeacherProfile } from "@/features/teacher-profile/api";
+import { getPublicTeachers } from "@/features/auth/model/api";
 import { getTeacherAvailability } from "@/features/teacher-availability/api";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
 import { createBooking } from "@/entities/booking/model/storage";
@@ -75,6 +74,7 @@ export default function Booking() {
   const [guestLastName, setGuestLastName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [pendingAuthOpen, setPendingAuthOpen] = useState(false);
+  const [pendingAuthRebookSlotId, setPendingAuthRebookSlotId] = useState<string | null>(null);
   const [bookingAcceptTerms, setBookingAcceptTerms] = useState(false);
   const [bookingAcceptPrivacy, setBookingAcceptPrivacy] = useState(false);
   const bookingActionGuard = useActionGuard();
@@ -92,33 +92,27 @@ export default function Booking() {
   const loadBookingPage = useCallback(async () => {
     try {
       setPageError(null);
-      const teachers = await getUsers("teacher");
+      const teachers = await getPublicTeachers();
       const currentTeacher = teachers[0] ?? null;
       setTeacher(currentTeacher);
       if (currentTeacher) {
-        try {
-          const profileData = await getTeacherProfile(currentTeacher.id);
-          setProfile(profileData);
-          const slots = await getTeacherAvailability(currentTeacher.id);
-          const normalized = slots.map((slot) => ({
-            id: slot.id,
-            date: slot.date,
-            startTime: slot.startTime ?? "",
-            endTime: slot.endTime ?? "",
-          }));
-          setAvailability(normalizeFutureSlots(normalized));
-        } catch {
-          setProfile({
-            firstName: currentTeacher.firstName,
-            lastName: currentTeacher.lastName,
-            about: "",
-            experience: [],
-            achievements: [],
-            diplomas: [],
-            photo: "",
-          });
-          setAvailability([]);
-        }
+        setProfile({
+          firstName: currentTeacher.firstName,
+          lastName: currentTeacher.lastName,
+          about: "",
+          experience: [],
+          achievements: [],
+          diplomas: [],
+          photo: currentTeacher.photo ?? "",
+        });
+        const slots = await getTeacherAvailability(currentTeacher.id);
+        const normalized = slots.map((slot) => ({
+          id: slot.id,
+          date: slot.date,
+          startTime: slot.startTime ?? "",
+          endTime: slot.endTime ?? "",
+        }));
+        setAvailability(normalizeFutureSlots(normalized));
       }
     } catch (error) {
       setPageError(
@@ -184,49 +178,50 @@ export default function Booking() {
     gap: 2,
   } as const;
 
-  const showMessage = (text: string) => {
+  const showMessage = useCallback((text: string) => {
     blurActiveElement();
     setMessageText(text);
     setMessageOpen(true);
-  };
+  }, []);
 
-  const handleBookingConflictError = (
-    error: unknown,
-    slotId?: string
-  ): boolean => {
-    if (
-      error instanceof Error &&
-      error.message.includes(t("booking.slotToken")) &&
-      slotId
-    ) {
-      setAvailability((prev) => prev.filter((s) => s.id !== slotId));
+  const handleBookingConflictError = useCallback(
+    (error: unknown, slotId?: string): boolean => {
+      if (
+        error instanceof Error &&
+        error.message.includes(t("booking.slotToken")) &&
+        slotId
+      ) {
+        setAvailability((prev) => prev.filter((s) => s.id !== slotId));
+        return false;
+      }
+      if (!(error instanceof ApiError)) return false;
+      const details = (error.details ?? {}) as {
+        code?: string;
+        nextAction?: string;
+      };
+      if (
+        details.code === "identity_conflict_auth_required" ||
+        details.nextAction === "login_and_attach"
+      ) {
+        setPendingAuthRebookSlotId(slotId ?? null);
+        setGuestCheckoutOpen(false);
+        setBookingOpen(false);
+        showMessage(t("booking.existingUserLoginRequired"));
+        setPendingAuthOpen(true);
+        return true;
+      }
+      if (
+        details.code === "email_verification_required" ||
+        details.nextAction === "verify_email"
+      ) {
+        showMessage(error.message);
+        setPendingAuthOpen(true);
+        return true;
+      }
       return false;
-    }
-    if (!(error instanceof ApiError)) return false;
-    const details = (error.details ?? {}) as {
-      code?: string;
-      nextAction?: string;
-    };
-    if (
-      details.code === "identity_conflict_auth_required" ||
-      details.nextAction === "login_and_attach"
-    ) {
-      setGuestCheckoutOpen(false);
-      setBookingOpen(false);
-      showMessage(t("booking.existingUserLoginRequired"));
-      setPendingAuthOpen(true);
-      return true;
-    }
-    if (
-      details.code === "email_verification_required" ||
-      details.nextAction === "verify_email"
-    ) {
-      showMessage(error.message);
-      setPendingAuthOpen(true);
-      return true;
-    }
-    return false;
-  };
+    },
+    [showMessage]
+  );
 
   const handleBook = () => {
     if (user?.role === "teacher") {
@@ -359,6 +354,7 @@ export default function Booking() {
           setAvailability((prev) => prev.filter((s) => s.id !== slot.id));
           setGuestCheckoutOpen(false);
           setBookingOpen(false);
+          setPendingAuthRebookSlotId(null);
           showMessage(t("booking.trialBookedSuccess"));
           setPendingAuthOpen(true);
         },
@@ -411,6 +407,76 @@ export default function Booking() {
 
     return () => window.clearTimeout(timer);
   }, [pendingAuthOpen, bookingOpen, guestCheckoutOpen, messageOpen, openAuthModal]);
+
+  useEffect(() => {
+    if (!pendingAuthRebookSlotId) return;
+    if (!user || user.role !== "student") return;
+    if (!teacher) return;
+    const slot = availability.find((candidate) => candidate.id === pendingAuthRebookSlotId);
+    if (!slot) {
+      setPendingAuthRebookSlotId(null);
+      return;
+    }
+    let active = true;
+    const run = async () => {
+      try {
+        const saved = await bookingActionGuard.run(
+          async () => {
+            await createBooking({
+              teacherId: teacher.id,
+              teacherName: `${teacher.firstName} ${teacher.lastName}`.trim(),
+              teacherPhoto: info.photo || teacher.photo,
+              studentId: user.id,
+              studentName: `${user.firstName} ${user.lastName}`.trim() || user.email,
+              studentEmail: user.email,
+              studentPhone: toRuPhoneStorage(user.phone ?? "") || undefined,
+              studentPhoto: user.photo,
+              slotId: slot.id,
+              date: slot.date,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              lessonKind: "regular",
+              consents: {
+                acceptedScopes: ["terms", "privacy", "trial_booking"],
+              },
+            });
+          },
+          {
+            lockKey: `booking:${slot.id}:${user.id}`,
+            retry: { label: t("common.retryBookingAction") },
+          }
+        );
+        if (!active || saved === undefined) return;
+        setAvailability((prev) => prev.filter((candidate) => candidate.id !== slot.id));
+        showMessage(t("booking.bookingSuccess"));
+      } catch (error) {
+        if (!active) return;
+        if (handleBookingConflictError(error, slot.id)) {
+          return;
+        }
+        showMessage(
+          error instanceof Error ? error.message : t("booking.bookingFailed")
+        );
+      } finally {
+        if (active) {
+          setPendingAuthRebookSlotId(null);
+        }
+      }
+    };
+    void run();
+    return () => {
+      active = false;
+    };
+  }, [
+    availability,
+    bookingActionGuard,
+    handleBookingConflictError,
+    info.photo,
+    pendingAuthRebookSlotId,
+    showMessage,
+    teacher,
+    user,
+  ]);
 
   if (loading) {
     return (

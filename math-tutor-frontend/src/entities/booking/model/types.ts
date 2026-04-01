@@ -7,6 +7,12 @@ export type BookingMaterial = {
 
 export type BookingLessonKind = "trial" | "regular";
 export type BookingPaymentStatus = "unpaid" | "paid";
+export type BookingStatus =
+  | "scheduled"
+  | "rescheduled"
+  | "canceled"
+  | "completed"
+  | "no_show";
 
 export type Booking = {
   id: string;
@@ -22,8 +28,14 @@ export type Booking = {
   startTime: string;
   endTime: string;
   lessonKind: BookingLessonKind;
+  status: BookingStatus;
   paymentStatus: BookingPaymentStatus;
   meetingUrl?: string;
   materials: BookingMaterial[];
+  consentSnapshot?: {
+    acceptedScopes: string[];
+    source: "public_booking" | "student_booking";
+    acceptedAt: string;
+  };
   createdAt: string;
 };

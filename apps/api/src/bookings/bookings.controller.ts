@@ -83,6 +83,39 @@ export class BookingsController {
     });
   }
 
+  @Get("teachers/:teacherId/availability")
+  async getTeacherAvailability(
+    @Param("teacherId") teacherId: string
+  ): Promise<Array<{ id: string; date: string; startTime: string; endTime: string }>> {
+    return this.bookingsService.getPublicTeacherAvailability(teacherId);
+  }
+
+  @Get("availability/me")
+  async getMyAvailability(
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<Array<{ id: string; date: string; startTime: string; endTime: string }>> {
+    const actorUser = await this.resolveUserFromRequest(req, res);
+    return this.bookingsService.getMyTeacherAvailability(actorUser);
+  }
+
+  @Put("availability/me")
+  async replaceMyAvailability(
+    @Body()
+    body:
+      | Array<{ id?: string; date: string; startTime: string; endTime: string }>
+      | { slots?: Array<{ id?: string; date: string; startTime: string; endTime: string }> },
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<Array<{ id: string; date: string; startTime: string; endTime: string }>> {
+    const actorUser = await this.resolveUserFromRequest(req, res);
+    const slots = Array.isArray(body) ? body : body?.slots ?? [];
+    return this.bookingsService.replaceTeacherAvailability({
+      actorUser,
+      slots,
+    });
+  }
+
   @Put("bookings/:id")
   async updateBooking(
     @Param("id") id: string,

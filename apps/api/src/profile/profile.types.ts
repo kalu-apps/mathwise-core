@@ -37,9 +37,15 @@ export type BookingContextDto = {
   startTime: string;
   endTime: string;
   lessonKind: "trial" | "regular";
+  status: "scheduled" | "rescheduled" | "canceled" | "completed" | "no_show";
   paymentStatus: "unpaid" | "paid";
   meetingUrl?: string;
   materials: BookingMaterialDto[];
+  consentSnapshot?: {
+    acceptedScopes: string[];
+    source: "public_booking" | "student_booking";
+    acceptedAt: string;
+  };
   createdAt: string;
 };
 

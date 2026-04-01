@@ -60,6 +60,12 @@ curl -fsS "$API_BASE_URL/runtime/diagnostics"
 - non-entitled actor не получает full lesson payload (`videoUrl/materials`) в `GET /api/lessons*` и `GET /api/access/lessons/:id`
 - progress parity: student/teacher читают backend `/api/progress` источник, а не локальные вычисления
 - purchases/bookings write flows
+- booking/availability lifecycle:
+  - публичная запись не принимает `studentId`
+  - для existing email в guest-flow backend возвращает `identity_conflict_auth_required` (без silent attach)
+  - teacher availability управляется только через `GET/PUT /api/availability/me`
+  - public slots читаются через `GET /api/teachers/:teacherId/availability`
+  - отмена/перенос меняют статус (`scheduled/rescheduled/canceled/...`), а не удаляют историю
 - media endpoints (если `MEDIA_STORAGE_ENABLED=true`)
 - frontend runtime diagnostics в браузере:
   - `window.__MW_FRONTEND_RUNTIME__` существует

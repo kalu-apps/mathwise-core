@@ -16,6 +16,7 @@ import type {
   StudentProfileContextDto,
   TeacherDashboardContextDto,
 } from "./profile.types";
+import type { AuthUserDto } from "../auth/auth.types";
 
 @Injectable()
 export class ProfileService implements OnModuleInit {
@@ -46,6 +47,14 @@ export class ProfileService implements OnModuleInit {
   }
 
   async getStudentContext(userId: string): Promise<StudentProfileContextDto> {
+    const profileUser = await this.authRepository.findById(userId);
+    if (profileUser) {
+      await this.profileRepository.attachGuestBookingsToStudentByEmail({
+        userId,
+        canonicalEmail: profileUser.email.toLowerCase(),
+      });
+    }
+
     const [profile, courses, lessons, purchases, bookings, teachers, entitlementRows] =
       await Promise.all([
         this.authRepository.findById(userId),
@@ -160,5 +169,9 @@ export class ProfileService implements OnModuleInit {
         endTime: slot.endTime,
       })),
     };
+  }
+
+  async getPublicTeachers(): Promise<AuthUserDto[]> {
+    return this.authRepository.findByRole("teacher");
   }
 }
