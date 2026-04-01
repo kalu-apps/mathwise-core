@@ -72,6 +72,10 @@ Frontend sanity после `start-frontend`:
   - `appEnv === "stage"`
   - `gatewayMode === "http"`
   - все `transports.* === "http"`
+- perf diagnostics sanity:
+  - на тяжелых экранах (`CourseDetails`, `CourseWithLessonsEditor`, `ChatPage`, `StudentProfile`, `TeacherDashboard`) в `document.body.dataset.perfScreen` видна текущая screen-метка
+  - browser console показывает `[perf] metric:warn|error` с route/screen и значением метрики
+  - при больших коллекциях появляются `[perf] collection-pressure:*` логи без постоянного спама
 - booking/availability sanity:
   - teacher управляет слотами через `/api/availability/me`
   - публичный экран бронирования читает слоты через `/api/teachers/:teacherId/availability`

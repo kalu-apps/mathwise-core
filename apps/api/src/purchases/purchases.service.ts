@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import { HttpException, Injectable, OnModuleInit } from "@nestjs/common";
 import type { AuthUserDto } from "../auth/auth.types";
 import { AuthService } from "../auth/auth.service";
@@ -37,9 +36,16 @@ import {
   type CheckoutTimelineResponseDto,
   type ProviderWebhookPayloadDto,
   type PurchaseRecordDto,
-  type PurchaseTariffDto,
   isTerminalCheckoutState,
 } from "./purchases.types";
+import {
+  buildPaymentPayload,
+  computeProviderTransition,
+  readCourseSnapshotPrice,
+  resolveCheckoutTariff,
+  signWebhookPayload,
+  verifyWebhookRequest,
+} from "./purchases.service.runtime";
 
 type ProviderWebhookResult = {
   ok: boolean;
@@ -51,28 +57,6 @@ type ProviderWebhookResult = {
     id: string;
     state: CheckoutStateDto;
   } | null;
-};
-
-const readCourseSnapshotPrice = (course: {
-  priceGuided: number;
-  priceSelf: number;
-}) => Math.max(0, Math.round(Number(course.priceSelf ?? course.priceGuided ?? 0)));
-
-const resolveCheckoutTariff = (
-  value: unknown,
-  fallback: PurchaseTariffDto = "standard"
-): PurchaseTariffDto =>
-  value === "premium"
-    ? "premium"
-    : value === "standard"
-      ? "standard"
-      : fallback;
-
-const timingSafeEquals = (a: string, b: string) => {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-  if (left.length !== right.length) return false;
-  return crypto.timingSafeEqual(left, right);
 };
 
 @Injectable()
@@ -271,7 +255,8 @@ export class PurchasesService implements OnModuleInit {
               method,
             },
           },
-          signature: this.signWebhookPayload(
+          signature: signWebhookPayload(
+            this.runtimeConfig.cardWebhookSecret,
             createdAt,
             {
               eventId: simulatedEventId,
@@ -450,7 +435,7 @@ export class PurchasesService implements OnModuleInit {
         ok: true,
         checkoutId: effective.id,
         checkoutState: effective.state,
-        payment: this.buildPaymentPayload(effective),
+        payment: buildPaymentPayload(effective),
         access: await this.buildAccessPayload(effective),
       };
     });
@@ -585,11 +570,13 @@ export class PurchasesService implements OnModuleInit {
     timestamp: string;
     allowLocalInsecureFallback?: boolean;
   }): Promise<ProviderWebhookResult> {
-    await this.verifyWebhookRequest({
+    await verifyWebhookRequest({
       payload: params.payload,
       signature: params.signature,
       timestamp: params.timestamp,
       allowLocalInsecureFallback: params.allowLocalInsecureFallback,
+      runtimeConfig: this.runtimeConfig,
+      redisService: this.redisService,
     });
 
     const eventId = params.payload.eventId.trim();
@@ -643,7 +630,10 @@ export class PurchasesService implements OnModuleInit {
         };
       }
 
-      const transition = this.computeProviderTransition(checkout.state, params.payload.status);
+      const transition = computeProviderTransition(
+        checkout.state,
+        params.payload.status
+      );
       let effectiveCheckout = checkout;
       let outcome = transition.outcome;
 
@@ -850,7 +840,7 @@ export class PurchasesService implements OnModuleInit {
         ? await this.purchasesRepository.findCheckoutById(purchase.checkoutId)
         : null;
       const payment = checkout
-        ? this.buildPaymentPayload(checkout)
+        ? buildPaymentPayload(checkout)
         : ({
             provider: "bnpl",
             status: completed ? "paid" : "provider_confirmed",
@@ -875,103 +865,6 @@ export class PurchasesService implements OnModuleInit {
         purchase: updatedPurchase,
       };
     });
-  }
-
-  private async verifyWebhookRequest(params: {
-    payload: ProviderWebhookPayloadDto;
-    signature: string;
-    timestamp: string;
-    allowLocalInsecureFallback?: boolean;
-  }) {
-    const timestamp = params.timestamp?.trim();
-    const signature = params.signature?.trim();
-    if (!timestamp || !signature) {
-      throw new HttpException({ error: "Webhook headers are required." }, 400);
-    }
-
-    const tsMs = Date.parse(timestamp);
-    if (!Number.isFinite(tsMs)) {
-      throw new HttpException({ error: "Invalid webhook timestamp." }, 400);
-    }
-
-    const skewSec = Math.abs(Date.now() - tsMs) / 1000;
-    if (skewSec > this.runtimeConfig.cardWebhookMaxSkewSec) {
-      throw new HttpException({ error: "Webhook timestamp is stale." }, 409);
-    }
-
-    const expected = this.signWebhookPayload(timestamp, params.payload);
-    const allowFallback =
-      this.runtimeConfig.appEnv === "local" && params.allowLocalInsecureFallback;
-    if (!allowFallback && !timingSafeEquals(signature, expected)) {
-      throw new HttpException({ error: "Webhook signature mismatch." }, 401);
-    }
-
-    const replayKey = `card:webhook:replay:${signature}`;
-    const acquired = await this.redisService.setIfAbsent(
-      replayKey,
-      "1",
-      this.runtimeConfig.cardWebhookReplayTtlSec
-    );
-    if (!acquired) {
-      throw new HttpException({ error: "Webhook replay detected." }, 409);
-    }
-  }
-
-  private signWebhookPayload(timestamp: string, payload: ProviderWebhookPayloadDto) {
-    return crypto
-      .createHmac("sha256", this.runtimeConfig.cardWebhookSecret)
-      .update(`${timestamp}.${JSON.stringify(payload)}`)
-      .digest("hex");
-  }
-
-  private computeProviderTransition(
-    current: CheckoutStateDto,
-    status: ProviderWebhookPayloadDto["status"]
-  ): { nextState: CheckoutStateDto | null; outcome: string } {
-    if (status === "paid") {
-      if (
-        current === "provider_confirmed" ||
-        current === "provision_pending" ||
-        current === "provisioned" ||
-        current === "email_verification_pending"
-      ) {
-        return { nextState: current, outcome: "duplicate" };
-      }
-      if (current === "failed" || current === "canceled" || current === "expired") {
-        return { nextState: null, outcome: "ignored_out_of_order" };
-      }
-      return { nextState: "provider_confirmed", outcome: "applied" };
-    }
-
-    if (status === "awaiting_payment") {
-      if (isTerminalCheckoutState(current)) {
-        return { nextState: null, outcome: "ignored_out_of_order" };
-      }
-      return { nextState: "pending_provider", outcome: "applied" };
-    }
-
-    if (status === "failed") {
-      if (current === "provisioned" || current === "email_verification_pending") {
-        return { nextState: null, outcome: "ignored_out_of_order" };
-      }
-      return { nextState: "failed", outcome: "applied" };
-    }
-
-    if (status === "canceled") {
-      if (current === "provisioned" || current === "email_verification_pending") {
-        return { nextState: null, outcome: "ignored_out_of_order" };
-      }
-      return { nextState: "canceled", outcome: "applied" };
-    }
-
-    if (status === "expired") {
-      if (current === "provisioned" || current === "email_verification_pending") {
-        return { nextState: null, outcome: "ignored_out_of_order" };
-      }
-      return { nextState: "expired", outcome: "applied" };
-    }
-
-    return { nextState: null, outcome: "ignored_out_of_order" };
   }
 
   private async requireCheckoutForActor(
@@ -1303,64 +1196,6 @@ export class PurchasesService implements OnModuleInit {
     };
   }
 
-  private buildPaymentPayload(checkout: CheckoutProcessDto): CheckoutPaymentDto {
-    const status: CheckoutPaymentDto["status"] =
-      checkout.state === "created" || checkout.state === "pending_provider"
-        ? "awaiting_provider"
-        : checkout.state === "provider_confirmed" ||
-            checkout.state === "provision_pending" ||
-            checkout.state === "provisioned" ||
-            checkout.state === "email_verification_pending" ||
-            checkout.state === "email_correction_required"
-          ? "provider_confirmed"
-          : checkout.state === "failed" || checkout.state === "provision_failed_retryable"
-            ? "failed"
-            : checkout.state === "canceled"
-              ? "canceled"
-              : "expired";
-
-    const outcome: CheckoutPaymentDto["outcome"] =
-      status === "awaiting_provider"
-        ? "awaiting_provider_event"
-        : status === "provider_confirmed"
-          ? "applied"
-          : status === "canceled" || status === "expired"
-            ? "canceled"
-            : "failed";
-
-    const base: CheckoutPaymentDto = {
-      provider: checkout.method,
-      status,
-      outcome,
-      providerPaymentId:
-        checkout.providerPaymentId ?? `${checkout.method}_pi_${checkout.id.slice(-12)}`,
-      requiresConfirmation: false,
-      lastProcessedAt: status === "awaiting_provider" ? null : checkout.updatedAt,
-    };
-
-    if (checkout.method === "card") {
-      return {
-        ...base,
-        paymentUrl: `https://pay.mock-card.local/checkout/${checkout.id}`,
-        redirectUrl: `https://pay.mock-card.local/checkout/${checkout.id}`,
-        returnUrl: `/courses/${encodeURIComponent(checkout.courseId)}`,
-      };
-    }
-
-    if (checkout.method === "sbp") {
-      return {
-        ...base,
-        sbp: {
-          qrUrl: `https://qr.mock-sbp.local/${checkout.id}`,
-          deepLinkUrl: `bankapp://sbp/pay/${checkout.id}`,
-          expiresAt: checkout.expiresAt,
-        },
-      };
-    }
-
-    return base;
-  }
-
   private async buildCheckoutStatusResponse(
     checkout: CheckoutProcessDto
   ): Promise<CheckoutStatusResponseDto> {
@@ -1375,7 +1210,7 @@ export class PurchasesService implements OnModuleInit {
       updatedAt: checkout.updatedAt,
       expiresAt: checkout.expiresAt ?? null,
       isTerminal: isTerminalCheckoutState(checkout.state),
-      payment: this.buildPaymentPayload(checkout),
+      payment: buildPaymentPayload(checkout),
       access: await this.buildAccessPayload(checkout),
     };
   }
@@ -1389,7 +1224,7 @@ export class PurchasesService implements OnModuleInit {
       user: actorUser,
       checkoutId: checkout.id,
       checkoutState: checkout.state,
-      payment: this.buildPaymentPayload(checkout),
+      payment: buildPaymentPayload(checkout),
       identityState: access?.identityState ?? "unverified",
       entitlementState: access?.entitlementState ?? "none",
       profileComplete: access?.profileComplete ?? false,

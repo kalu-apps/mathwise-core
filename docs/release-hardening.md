@@ -82,6 +82,11 @@ curl -fsS "$API_BASE_URL/runtime/diagnostics"
   - `window.__MW_FRONTEND_RUNTIME__` существует
   - `appEnv=stage`
   - все `transports=*http`
+- frontend perf diagnostics (console):
+  - для `LCP` warnings начинаются от `2500ms`, error-level от `4000ms`
+  - для `INP` warnings начинаются от `200ms`, error-level от `500ms`
+  - long tasks логируются с route/screen контекстом и throttling без console-spam
+  - heavy screens маркируются `document.body.dataset.perfScreen` (`CourseDetails`, `CourseWithLessonsEditor`, `ChatPage`, `StudentProfile`, `TeacherDashboard`)
 
 ## 3) Rollback checklist
 

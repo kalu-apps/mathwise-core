@@ -73,6 +73,7 @@ import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { PageLoader } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { BackNavButton } from "@/shared/ui/BackNavButton";
+import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
 import {
   selectBnplMarketingInfo,
   selectCourseAccessState,
@@ -80,7 +81,7 @@ import {
 } from "@/entities/purchase/model/selectors";
 import { markLessonOpened } from "@/entities/purchase/model/openedLessons";
 import { useCourseDetailsData } from "@/pages/courses/hooks/useCourseDetailsData";
-import { useCourseDetailsUiStore } from "@/pages/courses/model/courseDetailsUiStore";
+import { useCourseDetailsUiState } from "@/pages/courses/hooks/useCourseDetailsUiState";
 import {
   buildCourseProgressVisual,
   getAssessmentKindByItem,
@@ -128,14 +129,60 @@ export default function CourseDetails() {
   const isDesktopCourseLayout = useMediaQuery(theme.breakpoints.up("lg"));
   const courseId = courseIdParam ?? "";
   const { user, openAuthModal, openRecoverModal, updateUser } = useAuth();
-  const modalOpen = useCourseDetailsUiStore((state) => state.modalOpen);
-  const setModalOpen = useCourseDetailsUiStore((state) => state.setModalOpen);
-  const modalMessage = useCourseDetailsUiStore((state) => state.modalMessage);
-  const setModalMessage = useCourseDetailsUiStore((state) => state.setModalMessage);
-  const showLoginAction = useCourseDetailsUiStore((state) => state.showLoginAction);
-  const setShowLoginAction = useCourseDetailsUiStore(
-    (state) => state.setShowLoginAction
-  );
+  const {
+    modalOpen,
+    setModalOpen,
+    modalMessage,
+    setModalMessage,
+    showLoginAction,
+    setShowLoginAction,
+    reloadSeq,
+    setReloadSeq,
+    purchaseOpen,
+    setPurchaseOpen,
+    purchaseEmail,
+    setPurchaseEmail,
+    purchaseFirstName,
+    setPurchaseFirstName,
+    purchaseLastName,
+    setPurchaseLastName,
+    purchasePhone,
+    setPurchasePhone,
+    purchaseAcceptTerms,
+    setPurchaseAcceptTerms,
+    purchaseAcceptPrivacy,
+    setPurchaseAcceptPrivacy,
+    purchaseMethod,
+    setPurchaseMethod,
+    purchaseBnplInstallmentsCount,
+    setPurchaseBnplInstallmentsCount,
+    purchaseLoading,
+    setPurchaseLoading,
+    checkoutFlowOpen,
+    setCheckoutFlowOpen,
+    checkoutFlowLoading,
+    setCheckoutFlowLoading,
+    checkoutFlowError,
+    setCheckoutFlowError,
+    activeCheckoutId,
+    setActiveCheckoutId,
+    checkoutFlowStatus,
+    setCheckoutFlowStatus,
+    checkoutPaymentUrl,
+    setCheckoutPaymentUrl,
+    checkoutProviderLabel,
+    setCheckoutProviderLabel,
+    resumeCheckout,
+    setResumeCheckout,
+    pendingAttachCheckoutId,
+    setPendingAttachCheckoutId,
+    lessonsPage,
+    setLessonsPage,
+    bnplInfoOpen,
+    setBnplInfoOpen,
+    resetCourseDetailsUiState,
+  } = useCourseDetailsUiState();
+  usePerfScreenTag("CourseDetails");
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [courseBlocks, setCourseBlocks] = useState<CourseMaterialBlock[]>([]);
@@ -166,110 +213,9 @@ export default function CourseDetails() {
   );
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown | null>(null);
-  const reloadSeq = useCourseDetailsUiStore((state) => state.reloadSeq);
-  const setReloadSeq = useCourseDetailsUiStore((state) => state.setReloadSeq);
   const [pendingType, setPendingType] = useState<"guided" | "self" | null>(null);
-  const purchaseOpen = useCourseDetailsUiStore((state) => state.purchaseOpen);
-  const setPurchaseOpen = useCourseDetailsUiStore((state) => state.setPurchaseOpen);
-  const purchaseEmail = useCourseDetailsUiStore((state) => state.purchaseEmail);
-  const setPurchaseEmail = useCourseDetailsUiStore((state) => state.setPurchaseEmail);
-  const purchaseFirstName = useCourseDetailsUiStore(
-    (state) => state.purchaseFirstName
-  );
-  const setPurchaseFirstName = useCourseDetailsUiStore(
-    (state) => state.setPurchaseFirstName
-  );
-  const purchaseLastName = useCourseDetailsUiStore(
-    (state) => state.purchaseLastName
-  );
-  const setPurchaseLastName = useCourseDetailsUiStore(
-    (state) => state.setPurchaseLastName
-  );
-  const purchasePhone = useCourseDetailsUiStore((state) => state.purchasePhone);
-  const setPurchasePhone = useCourseDetailsUiStore((state) => state.setPurchasePhone);
-  const purchaseAcceptTerms = useCourseDetailsUiStore(
-    (state) => state.purchaseAcceptTerms
-  );
-  const setPurchaseAcceptTerms = useCourseDetailsUiStore(
-    (state) => state.setPurchaseAcceptTerms
-  );
-  const purchaseAcceptPrivacy = useCourseDetailsUiStore(
-    (state) => state.purchaseAcceptPrivacy
-  );
-  const setPurchaseAcceptPrivacy = useCourseDetailsUiStore(
-    (state) => state.setPurchaseAcceptPrivacy
-  );
-  const purchaseMethod = useCourseDetailsUiStore((state) => state.purchaseMethod);
-  const setPurchaseMethod = useCourseDetailsUiStore((state) => state.setPurchaseMethod);
-  const purchaseBnplInstallmentsCount = useCourseDetailsUiStore(
-    (state) => state.purchaseBnplInstallmentsCount
-  );
-  const setPurchaseBnplInstallmentsCount = useCourseDetailsUiStore(
-    (state) => state.setPurchaseBnplInstallmentsCount
-  );
-  const purchaseLoading = useCourseDetailsUiStore((state) => state.purchaseLoading);
-  const setPurchaseLoading = useCourseDetailsUiStore(
-    (state) => state.setPurchaseLoading
-  );
-  const checkoutFlowOpen = useCourseDetailsUiStore(
-    (state) => state.checkoutFlowOpen
-  );
-  const setCheckoutFlowOpen = useCourseDetailsUiStore(
-    (state) => state.setCheckoutFlowOpen
-  );
-  const checkoutFlowLoading = useCourseDetailsUiStore(
-    (state) => state.checkoutFlowLoading
-  );
-  const setCheckoutFlowLoading = useCourseDetailsUiStore(
-    (state) => state.setCheckoutFlowLoading
-  );
-  const checkoutFlowError = useCourseDetailsUiStore(
-    (state) => state.checkoutFlowError
-  );
-  const setCheckoutFlowError = useCourseDetailsUiStore(
-    (state) => state.setCheckoutFlowError
-  );
-  const activeCheckoutId = useCourseDetailsUiStore(
-    (state) => state.activeCheckoutId
-  );
-  const setActiveCheckoutId = useCourseDetailsUiStore(
-    (state) => state.setActiveCheckoutId
-  );
-  const checkoutFlowStatus = useCourseDetailsUiStore(
-    (state) => state.checkoutFlowStatus
-  );
-  const setCheckoutFlowStatus = useCourseDetailsUiStore(
-    (state) => state.setCheckoutFlowStatus
-  );
-  const checkoutPaymentUrl = useCourseDetailsUiStore(
-    (state) => state.checkoutPaymentUrl
-  );
-  const setCheckoutPaymentUrl = useCourseDetailsUiStore(
-    (state) => state.setCheckoutPaymentUrl
-  );
-  const checkoutProviderLabel = useCourseDetailsUiStore(
-    (state) => state.checkoutProviderLabel
-  );
-  const setCheckoutProviderLabel = useCourseDetailsUiStore(
-    (state) => state.setCheckoutProviderLabel
-  );
-  const resumeCheckout = useCourseDetailsUiStore((state) => state.resumeCheckout);
-  const setResumeCheckout = useCourseDetailsUiStore((state) => state.setResumeCheckout);
-  const pendingAttachCheckoutId = useCourseDetailsUiStore(
-    (state) => state.pendingAttachCheckoutId
-  );
-  const setPendingAttachCheckoutId = useCourseDetailsUiStore(
-    (state) => state.setPendingAttachCheckoutId
-  );
-  const lessonsPage = useCourseDetailsUiStore((state) => state.lessonsPage);
-  const setLessonsPage = useCourseDetailsUiStore((state) => state.setLessonsPage);
   const [checkoutNoticeState, setCheckoutNoticeState] = useState<AccessUiState | null>(
     null
-  );
-  const bnplInfoOpen = useCourseDetailsUiStore((state) => state.bnplInfoOpen);
-  const setBnplInfoOpen = useCourseDetailsUiStore((state) => state.setBnplInfoOpen);
-  const resetCourseDetailsUiState = useCourseDetailsUiStore(
-    (state) => state.resetCourseDetailsUiState
   );
   const purchaseSubmitGuard = useActionGuard();
   const checkoutActionGuard = useActionGuard();
@@ -445,6 +391,20 @@ export default function CourseDetails() {
     const start = (safeLessonsPage - 1) * lessonsPageSize;
     return visibleCourseItems.slice(start, start + lessonsPageSize);
   }, [visibleCourseItems, safeLessonsPage, lessonsPageSize]);
+
+  useEffect(() => {
+    logCollectionPressure({
+      screen: "CourseDetails",
+      metric: "course-items-visible",
+      size: visibleCourseItems.length,
+      warnAt: 120,
+      errorAt: 260,
+      details: {
+        lessons: lessons.length,
+        blocks: courseBlocks.length,
+      },
+    });
+  }, [courseBlocks.length, lessons.length, visibleCourseItems.length]);
 
   const handlePageNoticeRecheck = useCallback(() => {
     if (user?.role !== "student") return;

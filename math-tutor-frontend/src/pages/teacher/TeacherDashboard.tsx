@@ -45,6 +45,7 @@ import { StudyCabinetPanel } from "@/shared/ui/StudyCabinetPanel";
 import { openExternalWhiteboard } from "@/shared/lib/openExternalWhiteboard";
 import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { ListSkeleton } from "@/shared/ui/loading";
+import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
 
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -53,6 +54,7 @@ import {
   type TeacherDashboardStudentCardData,
   useTeacherDashboardData,
 } from "@/pages/teacher/hooks/useTeacherDashboardData";
+import { useTeacherDashboardUiState } from "@/pages/teacher/hooks/useTeacherDashboardUiState";
 import {
   TEACHER_TAB_KEYS,
   SLOT_TIME_OPTIONS,
@@ -68,7 +70,6 @@ import {
   toMinutes,
   selectUpcomingBookingReminder,
 } from "@/pages/teacher/model/selectors";
-import { useTeacherDashboardUiStore } from "@/pages/teacher/model/teacherDashboardUiStore";
 
 import {
   deleteCourse,
@@ -122,24 +123,51 @@ export default function TeacherDashboard() {
   const isNonDesktop = useMediaQuery(theme.breakpoints.down("lg"));
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-
-  const tab = useTeacherDashboardUiStore((state) => state.tab);
-  const setTab = useTeacherDashboardUiStore((state) => state.setTab);
+  const {
+    tab,
+    setTab,
+    studentQuery,
+    setStudentQuery,
+    courseQuery,
+    setCourseQuery,
+    slotDate,
+    setSlotDate,
+    slotStart,
+    setSlotStart,
+    slotEnd,
+    setSlotEnd,
+    availabilityOpen,
+    setAvailabilityOpen,
+    studentsPage,
+    setStudentsPage,
+    coursesPage,
+    setCoursesPage,
+    chatUnreadCount,
+    setChatUnreadCount,
+    studyActivityVersion,
+    setStudyActivityVersion,
+    studyReminderCount,
+    setStudyReminderCount,
+    slotsDateFilter,
+    setSlotsDateFilter,
+    tabMenuOpen,
+    setTabMenuOpen,
+    scheduledPage,
+    setScheduledPage,
+    completedPage,
+    setCompletedPage,
+    resetTeacherDashboardUiState,
+  } = useTeacherDashboardUiState();
+  usePerfScreenTag("TeacherDashboard");
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [isEditorOpen, setEditorOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [studentCards, setStudentCards] = useState<TeacherDashboardStudentCardData[]>([]);
   const [lessonCounts, setLessonCounts] = useState<Record<string, number>>({});
   const [testCounts, setTestCounts] = useState<Record<string, number>>({});
-  const studentQuery = useTeacherDashboardUiStore((state) => state.studentQuery);
-  const setStudentQuery = useTeacherDashboardUiStore(
-    (state) => state.setStudentQuery
-  );
   const [studentFeedbackFilter, setStudentFeedbackFilter] = useState<
     "all" | "with_feedback" | "without_feedback"
   >("with_feedback");
-  const courseQuery = useTeacherDashboardUiStore((state) => state.courseQuery);
-  const setCourseQuery = useTeacherDashboardUiStore((state) => state.setCourseQuery);
   const [courseStatusFilter, setCourseStatusFilter] = useState<"published" | "draft">(
     "published"
   );
@@ -148,79 +176,22 @@ export default function TeacherDashboard() {
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
-  const slotDate = useTeacherDashboardUiStore((state) => state.slotDate);
-  const setSlotDate = useTeacherDashboardUiStore((state) => state.setSlotDate);
-  const slotStart = useTeacherDashboardUiStore((state) => state.slotStart);
-  const setSlotStart = useTeacherDashboardUiStore((state) => state.setSlotStart);
-  const slotEnd = useTeacherDashboardUiStore((state) => state.slotEnd);
-  const setSlotEnd = useTeacherDashboardUiStore((state) => state.setSlotEnd);
   const [slotError, setSlotError] = useState<string | null>(null);
-  const availabilityOpen = useTeacherDashboardUiStore(
-    (state) => state.availabilityOpen
-  );
-  const setAvailabilityOpen = useTeacherDashboardUiStore(
-    (state) => state.setAvailabilityOpen
-  );
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSavingId, setBookingSavingId] = useState<string | null>(null);
   const [bookingDeletingId, setBookingDeletingId] = useState<string | null>(null);
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
-  const studentsPage = useTeacherDashboardUiStore((state) => state.studentsPage);
-  const setStudentsPage = useTeacherDashboardUiStore(
-    (state) => state.setStudentsPage
-  );
-  const coursesPage = useTeacherDashboardUiStore((state) => state.coursesPage);
-  const setCoursesPage = useTeacherDashboardUiStore((state) => state.setCoursesPage);
-  const chatUnreadCount = useTeacherDashboardUiStore(
-    (state) => state.chatUnreadCount
-  );
-  const setChatUnreadCount = useTeacherDashboardUiStore(
-    (state) => state.setChatUnreadCount
-  );
   const [studyNotes, setStudyNotes] = useState<StudyCabinetNote[]>([]);
-  const studyActivityVersion = useTeacherDashboardUiStore(
-    (state) => state.studyActivityVersion
-  );
-  const setStudyActivityVersion = useTeacherDashboardUiStore(
-    (state) => state.setStudyActivityVersion
-  );
-  const studyReminderCount = useTeacherDashboardUiStore(
-    (state) => state.studyReminderCount
-  );
-  const setStudyReminderCount = useTeacherDashboardUiStore(
-    (state) => state.setStudyReminderCount
-  );
   const [studentsWithFeedbackIds, setStudentsWithFeedbackIds] = useState<
     string[]
   >([]);
   const [chatThreadIdsByStudentId, setChatThreadIdsByStudentId] = useState<
     Record<string, string>
   >({});
-  const slotsDateFilter = useTeacherDashboardUiStore(
-    (state) => state.slotsDateFilter
-  );
-  const setSlotsDateFilter = useTeacherDashboardUiStore(
-    (state) => state.setSlotsDateFilter
-  );
   const [expandedSlotsDate, setExpandedSlotsDate] = useState<string | null>(
     null
-  );
-  const tabMenuOpen = useTeacherDashboardUiStore((state) => state.tabMenuOpen);
-  const setTabMenuOpen = useTeacherDashboardUiStore(
-    (state) => state.setTabMenuOpen
-  );
-  const scheduledPage = useTeacherDashboardUiStore((state) => state.scheduledPage);
-  const setScheduledPage = useTeacherDashboardUiStore(
-    (state) => state.setScheduledPage
-  );
-  const completedPage = useTeacherDashboardUiStore((state) => state.completedPage);
-  const setCompletedPage = useTeacherDashboardUiStore(
-    (state) => state.setCompletedPage
-  );
-  const resetTeacherDashboardUiState = useTeacherDashboardUiStore(
-    (state) => state.resetTeacherDashboardUiState
   );
   const [confirm, setConfirm] = useState<{
     title: string;
@@ -398,6 +369,26 @@ export default function TeacherDashboard() {
     () => paginateList(completedBookings, safeCompletedPage, bookingsPageSize),
     [completedBookings, safeCompletedPage, bookingsPageSize]
   );
+
+  useEffect(() => {
+    logCollectionPressure({
+      screen: "TeacherDashboard",
+      metric: "teacher-dashboard-collections",
+      size:
+        studentCards.length +
+        courses.length +
+        bookings.length +
+        availability.length,
+      warnAt: 180,
+      errorAt: 360,
+      details: {
+        students: studentCards.length,
+        courses: courses.length,
+        bookings: bookings.length,
+        availability: availability.length,
+      },
+    });
+  }, [availability.length, bookings.length, courses.length, studentCards.length]);
 
   const handleTeacherCreateNote = useCallback(
     (payload: {

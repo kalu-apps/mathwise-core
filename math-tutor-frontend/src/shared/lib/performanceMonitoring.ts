@@ -20,6 +20,8 @@ export type PerformanceMetricEventDetail = {
   rating: MetricRating;
   timestamp: string;
   details?: {
+    route?: string | null;
+    screen?: string | null;
     interactionType?: string | null;
     interactionId?: number | null;
     target?: string | null;
@@ -36,6 +38,28 @@ const THRESHOLDS = {
 } as const;
 
 const IS_DEV = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
+const LOG_THROTTLE_WINDOW_MS = 8_000;
+const metricLogAtByKey = new Map<string, number>();
+
+const getPerfContext = () => {
+  if (typeof window === "undefined") {
+    return {
+      route: null,
+      screen: null,
+    };
+  }
+
+  const route = `${window.location.pathname}${window.location.search}`;
+  const screen =
+    typeof document !== "undefined" && document.body
+      ? document.body.dataset.perfScreen ?? null
+      : null;
+
+  return {
+    route,
+    screen,
+  };
+};
 
 const getRating = (
   name: MetricName,
@@ -68,13 +92,34 @@ const emitMetric = (detail: PerformanceMetricEventDetail) => {
     // ignore
   }
 
+  const context = getPerfContext();
+  const loggerMeta = {
+    route: detail.details?.route ?? context.route,
+    screen: detail.details?.screen ?? context.screen,
+    value: detail.value,
+    threshold: THRESHOLDS[detail.name],
+    ...(detail.details ?? {}),
+  };
+  const logKey = `${detail.name}:${detail.rating}:${loggerMeta.route ?? "unknown"}:${loggerMeta.screen ?? "none"}`;
+  const nowMs = Date.now();
+  const lastLoggedAt = metricLogAtByKey.get(logKey) ?? 0;
+  if (nowMs - lastLoggedAt < LOG_THROTTLE_WINDOW_MS) {
+    return;
+  }
+  metricLogAtByKey.set(logKey, nowMs);
+
   if (detail.rating === "poor") {
-    console.warn("[perf]", detail.name, detail.value, detail.details ?? {});
+    console.error("[perf] metric:error", detail.name, loggerMeta);
     return;
   }
 
-  if (IS_DEV && detail.rating === "needs-improvement") {
-    console.info("[perf]", detail.name, detail.value, detail.details ?? {});
+  if (detail.rating === "needs-improvement") {
+    console.warn("[perf] metric:warn", detail.name, loggerMeta);
+    return;
+  }
+
+  if (IS_DEV) {
+    console.info("[perf] metric:ok", detail.name, loggerMeta);
   }
 };
 
@@ -87,7 +132,10 @@ const toMetricDetail = (
   value,
   rating: getRating(name, value),
   timestamp: new Date().toISOString(),
-  details,
+  details: {
+    ...getPerfContext(),
+    ...(details ?? {}),
+  },
 });
 
 const observe = (

@@ -75,7 +75,7 @@ import {
   sortBookingsByTimeline,
   splitBookingsByCompletion,
 } from "@/pages/profile/model/selectors";
-import { useStudentProfileUiStore } from "@/pages/profile/model/studentProfileUiStore";
+import { useStudentProfileUiState } from "@/pages/profile/hooks/useStudentProfileUiState";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { selectPurchaseFinancialView } from "@/entities/purchase/model/selectors";
 import { BnplReminderFeed } from "@/entities/purchase/ui/BnplReminderFeed";
@@ -104,6 +104,7 @@ import {
   isBookingCompleted,
 } from "@/shared/lib/time";
 import { ListSkeleton, SectionLoader } from "@/shared/ui/loading";
+import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
 import {
   buildStudyCabinetWeekActivity,
   type StudyCabinetNote,
@@ -118,12 +119,42 @@ export default function StudentProfile() {
   const userId = user?.id;
   const navigate = useNavigate();
   const location = useLocation();
-  const tab = useStudentProfileUiStore((state) => state.tab);
-  const setTab = useStudentProfileUiStore((state) => state.setTab);
+  const {
+    tab,
+    setTab,
+    courseQuery,
+    setCourseQuery,
+    createDate,
+    setCreateDate,
+    createSlotId,
+    setCreateSlotId,
+    rescheduleDate,
+    setRescheduleDate,
+    rescheduleSlotId,
+    setRescheduleSlotId,
+    chatUnreadCount,
+    setChatUnreadCount,
+    tabMenuOpen,
+    setTabMenuOpen,
+    studyActivityVersion,
+    setStudyActivityVersion,
+    coursesPage,
+    setCoursesPage,
+    scheduledPage,
+    setScheduledPage,
+    completedPage,
+    setCompletedPage,
+    createSlotsExpanded,
+    setCreateSlotsExpanded,
+    createAcceptTerms,
+    setCreateAcceptTerms,
+    createAcceptPrivacy,
+    setCreateAcceptPrivacy,
+    resetStudentProfileUiState,
+  } = useStudentProfileUiState();
+  usePerfScreenTag("StudentProfile");
   const [saving, setSaving] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
-  const courseQuery = useStudentProfileUiStore((state) => state.courseQuery);
-  const setCourseQuery = useStudentProfileUiStore((state) => state.setCourseQuery);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(true);
@@ -135,18 +166,6 @@ export default function StudentProfile() {
   const [scheduleLoading, setScheduleLoading] = useState(true);
   const [teacher, setTeacher] = useState<User | null>(null);
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
-  const createDate = useStudentProfileUiStore((state) => state.createDate);
-  const setCreateDate = useStudentProfileUiStore((state) => state.setCreateDate);
-  const createSlotId = useStudentProfileUiStore((state) => state.createSlotId);
-  const setCreateSlotId = useStudentProfileUiStore((state) => state.setCreateSlotId);
-  const rescheduleDate = useStudentProfileUiStore((state) => state.rescheduleDate);
-  const setRescheduleDate = useStudentProfileUiStore((state) => state.setRescheduleDate);
-  const rescheduleSlotId = useStudentProfileUiStore(
-    (state) => state.rescheduleSlotId
-  );
-  const setRescheduleSlotId = useStudentProfileUiStore(
-    (state) => state.setRescheduleSlotId
-  );
   const [bookingToReschedule, setBookingToReschedule] = useState<Booking | null>(
     null
   );
@@ -159,52 +178,7 @@ export default function StudentProfile() {
   } | null>(null);
   const [chatEligibility, setChatEligibility] =
     useState<TeacherChatEligibility | null>(null);
-  const chatUnreadCount = useStudentProfileUiStore(
-    (state) => state.chatUnreadCount
-  );
-  const setChatUnreadCount = useStudentProfileUiStore(
-    (state) => state.setChatUnreadCount
-  );
-  const tabMenuOpen = useStudentProfileUiStore((state) => state.tabMenuOpen);
-  const setTabMenuOpen = useStudentProfileUiStore((state) => state.setTabMenuOpen);
   const [studyNotes, setStudyNotes] = useState<StudyCabinetNote[]>([]);
-  const studyActivityVersion = useStudentProfileUiStore(
-    (state) => state.studyActivityVersion
-  );
-  const setStudyActivityVersion = useStudentProfileUiStore(
-    (state) => state.setStudyActivityVersion
-  );
-  const coursesPage = useStudentProfileUiStore((state) => state.coursesPage);
-  const setCoursesPage = useStudentProfileUiStore((state) => state.setCoursesPage);
-  const scheduledPage = useStudentProfileUiStore((state) => state.scheduledPage);
-  const setScheduledPage = useStudentProfileUiStore(
-    (state) => state.setScheduledPage
-  );
-  const completedPage = useStudentProfileUiStore((state) => state.completedPage);
-  const setCompletedPage = useStudentProfileUiStore(
-    (state) => state.setCompletedPage
-  );
-  const createSlotsExpanded = useStudentProfileUiStore(
-    (state) => state.createSlotsExpanded
-  );
-  const setCreateSlotsExpanded = useStudentProfileUiStore(
-    (state) => state.setCreateSlotsExpanded
-  );
-  const createAcceptTerms = useStudentProfileUiStore(
-    (state) => state.createAcceptTerms
-  );
-  const setCreateAcceptTerms = useStudentProfileUiStore(
-    (state) => state.setCreateAcceptTerms
-  );
-  const createAcceptPrivacy = useStudentProfileUiStore(
-    (state) => state.createAcceptPrivacy
-  );
-  const setCreateAcceptPrivacy = useStudentProfileUiStore(
-    (state) => state.setCreateAcceptPrivacy
-  );
-  const resetStudentProfileUiState = useStudentProfileUiStore(
-    (state) => state.resetStudentProfileUiState
-  );
   const {
     state: accessNoticeState,
     recheck: recheckAccessNotice,
@@ -383,6 +357,21 @@ export default function StudentProfile() {
     () => paginateItems(completedBookings, safeCompletedPage, bookingsPageSize),
     [completedBookings, safeCompletedPage, bookingsPageSize]
   );
+
+  useEffect(() => {
+    logCollectionPressure({
+      screen: "StudentProfile",
+      metric: "student-dashboard-collections",
+      size: items.length + bookings.length + availability.length,
+      warnAt: 120,
+      errorAt: 240,
+      details: {
+        courses: items.length,
+        bookings: bookings.length,
+        availability: availability.length,
+      },
+    });
+  }, [availability.length, bookings.length, items.length]);
 
   const bnplReminderItems = useMemo(() => buildBnplReminderItems(items), [items]);
 

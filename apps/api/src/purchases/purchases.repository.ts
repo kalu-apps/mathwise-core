@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { DatabaseService, type DatabaseExecutor } from "../db/database.service";
+import { DatabaseService } from "../db/database.service";
 import type {
   CheckoutListItemDto,
   CheckoutProcessDto,
@@ -12,6 +12,13 @@ import {
   type PurchaseRow,
 } from "./purchases.mappers";
 import { PURCHASES_SCHEMA_STATEMENTS } from "./purchases.schema";
+import {
+  writeAccessContext,
+  writeCheckout,
+  writeCourseEntitlement,
+  writeCourseEntitlementFlag,
+  writePurchase,
+} from "./purchases.repository.mutations";
 
 type CheckoutTimelineRow = {
   id: string;
@@ -93,57 +100,7 @@ export class PurchasesRepository {
   }
 
   async upsertPurchase(purchase: PurchaseRecordDto): Promise<void> {
-    await this.databaseService.execute(
-      `
-        INSERT INTO profile_purchases (
-          id,
-          user_id,
-          course_id,
-          price,
-          tariff,
-          purchased_at,
-          payment_method,
-          checkout_id,
-          bnpl_json,
-          course_snapshot_json,
-          lessons_snapshot_json,
-          purchased_test_item_ids_json,
-          updated_at
-        )
-        VALUES (
-          $1, $2, $3, $4, $5,
-          $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, NOW()
-        )
-        ON CONFLICT (id)
-        DO UPDATE SET
-          user_id = EXCLUDED.user_id,
-          course_id = EXCLUDED.course_id,
-          price = EXCLUDED.price,
-          tariff = EXCLUDED.tariff,
-          purchased_at = EXCLUDED.purchased_at,
-          payment_method = EXCLUDED.payment_method,
-          checkout_id = EXCLUDED.checkout_id,
-          bnpl_json = EXCLUDED.bnpl_json,
-          course_snapshot_json = EXCLUDED.course_snapshot_json,
-          lessons_snapshot_json = EXCLUDED.lessons_snapshot_json,
-          purchased_test_item_ids_json = EXCLUDED.purchased_test_item_ids_json,
-          updated_at = NOW()
-      `,
-      [
-        purchase.id,
-        purchase.userId,
-        purchase.courseId,
-        Math.max(0, Math.round(purchase.price)),
-        purchase.tariff ?? null,
-        purchase.purchasedAt,
-        purchase.paymentMethod ?? null,
-        purchase.checkoutId ?? null,
-        JSON.stringify(purchase.bnpl ?? null),
-        JSON.stringify(purchase.courseSnapshot ?? null),
-        JSON.stringify(purchase.lessonsSnapshot ?? null),
-        JSON.stringify(purchase.purchasedTestItemIds ?? null),
-      ]
-    );
+    await writePurchase(this.databaseService, purchase);
   }
 
   async findPurchaseByUserAndCourse(
@@ -298,53 +255,7 @@ export class PurchasesRepository {
   }
 
   async updateCheckout(checkout: CheckoutProcessDto): Promise<void> {
-    await this.databaseService.execute(
-      `
-        UPDATE checkout_processes
-        SET
-          user_id = $2,
-          email = $3,
-          first_name = $4,
-          last_name = $5,
-          phone = $6,
-          course_id = $7,
-          method = $8,
-          bnpl_installments_count = $9,
-          amount = $10,
-          tariff = $11,
-          currency = $12,
-          state = $13,
-          provider_payment_id = $14,
-          provider_event_id = $15,
-          consent_snapshot_json = $16::jsonb,
-          created_at = $17,
-          updated_at = $18,
-          expires_at = $19,
-          updated_at_ts = NOW()
-        WHERE id = $1
-      `,
-      [
-        checkout.id,
-        checkout.userId ?? null,
-        checkout.email,
-        checkout.firstName ?? null,
-        checkout.lastName ?? null,
-        checkout.phone ?? null,
-        checkout.courseId,
-        checkout.method,
-        checkout.bnplInstallmentsCount ?? null,
-        Math.max(0, Math.round(checkout.amount)),
-        checkout.tariff ?? null,
-        checkout.currency,
-        checkout.state,
-        checkout.providerPaymentId ?? null,
-        checkout.providerEventId ?? null,
-        JSON.stringify(checkout.consentSnapshot ?? null),
-        checkout.createdAt,
-        checkout.updatedAt,
-        checkout.expiresAt ?? null,
-      ]
-    );
+    await writeCheckout(this.databaseService, checkout);
   }
 
   async findCheckoutById(checkoutId: string): Promise<CheckoutProcessDto | null> {
@@ -562,25 +473,7 @@ export class PurchasesRepository {
     role: "student" | "teacher";
     isIdentityVerified: boolean;
   }): Promise<void> {
-    await this.databaseService.execute(
-      `
-        INSERT INTO access_users (
-          id,
-          email,
-          role,
-          is_identity_verified,
-          updated_at
-        )
-        VALUES ($1, $2, $3, $4, NOW())
-        ON CONFLICT (id)
-        DO UPDATE SET
-          email = EXCLUDED.email,
-          role = EXCLUDED.role,
-          is_identity_verified = EXCLUDED.is_identity_verified,
-          updated_at = NOW()
-      `,
-      [params.userId, params.email, params.role, params.isIdentityVerified]
-    );
+    await writeAccessContext(this.databaseService, params);
   }
 
   async setCourseEntitlement(
@@ -588,22 +481,11 @@ export class PurchasesRepository {
     courseId: string,
     hasActiveEntitlement: boolean
   ): Promise<void> {
-    await this.databaseService.execute(
-      `
-        INSERT INTO user_course_access (
-          user_id,
-          course_id,
-          has_active_entitlement,
-          updated_at
-        )
-        VALUES ($1, $2, $3, NOW())
-        ON CONFLICT (user_id, course_id)
-        DO UPDATE SET
-          has_active_entitlement = EXCLUDED.has_active_entitlement,
-          updated_at = NOW()
-      `,
-      [userId, courseId, hasActiveEntitlement]
-    );
+    await writeCourseEntitlementFlag(this.databaseService, {
+      userId,
+      courseId,
+      hasActiveEntitlement,
+    });
   }
 
   async upsertCourseEntitlement(params: {
@@ -616,38 +498,7 @@ export class PurchasesRepository {
     createdAt: string;
     updatedAt: string;
   }): Promise<void> {
-    await this.databaseService.execute(
-      `
-        INSERT INTO course_entitlements (
-          id,
-          user_id,
-          course_id,
-          purchase_id,
-          checkout_id,
-          state,
-          created_at,
-          updated_at,
-          updated_at_ts
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-        ON CONFLICT (user_id, course_id, purchase_id)
-        DO UPDATE SET
-          checkout_id = EXCLUDED.checkout_id,
-          state = EXCLUDED.state,
-          updated_at = EXCLUDED.updated_at,
-          updated_at_ts = NOW()
-      `,
-      [
-        params.id,
-        params.userId,
-        params.courseId,
-        params.purchaseId,
-        params.checkoutId ?? null,
-        params.state,
-        params.createdAt,
-        params.updatedAt,
-      ]
-    );
+    await writeCourseEntitlement(this.databaseService, params);
   }
 
   async upsertConsentRecords(params: {
@@ -776,19 +627,19 @@ export class PurchasesRepository {
     };
   }): Promise<void> {
     await this.databaseService.transaction<void>(async (tx) => {
-      await this.upsertPurchaseWithExecutor(tx, params.purchase);
-      await this.ensureAccessContextWithExecutor(tx, {
+      await writePurchase(tx, params.purchase);
+      await writeAccessContext(tx, {
         userId: params.accessContext.userId,
         email: params.accessContext.email,
         role: params.accessContext.role,
         isIdentityVerified: params.accessContext.isIdentityVerified,
       });
-      await this.setCourseEntitlementWithExecutor(tx, {
+      await writeCourseEntitlementFlag(tx, {
         userId: params.accessContext.userId,
         courseId: params.accessContext.courseId,
         hasActiveEntitlement: params.accessContext.hasActiveEntitlement,
       });
-      await this.upsertCourseEntitlementWithExecutor(tx, {
+      await writeCourseEntitlement(tx, {
         id: params.entitlement.id,
         userId: params.accessContext.userId,
         courseId: params.accessContext.courseId,
@@ -798,7 +649,7 @@ export class PurchasesRepository {
         createdAt: params.entitlement.createdAt,
         updatedAt: params.entitlement.updatedAt,
       });
-      await this.updateCheckoutWithExecutor(tx, params.checkout);
+      await writeCheckout(tx, params.checkout);
     });
   }
 
@@ -836,7 +687,7 @@ export class PurchasesRepository {
       );
 
       const hasActiveEntitlement = Number(activeRows[0]?.count ?? 0) > 0;
-      await this.setCourseEntitlementWithExecutor(tx, {
+      await writeCourseEntitlementFlag(tx, {
         userId: params.userId,
         courseId: params.courseId,
         hasActiveEntitlement,
@@ -873,216 +724,4 @@ export class PurchasesRepository {
     };
   }
 
-  private async upsertPurchaseWithExecutor(
-    executor: DatabaseExecutor,
-    purchase: PurchaseRecordDto
-  ): Promise<void> {
-    await executor.execute(
-      `
-        INSERT INTO profile_purchases (
-          id,
-          user_id,
-          course_id,
-          price,
-          tariff,
-          purchased_at,
-          payment_method,
-          checkout_id,
-          bnpl_json,
-          course_snapshot_json,
-          lessons_snapshot_json,
-          purchased_test_item_ids_json,
-          updated_at
-        )
-        VALUES (
-          $1, $2, $3, $4, $5,
-          $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, NOW()
-        )
-        ON CONFLICT (id)
-        DO UPDATE SET
-          user_id = EXCLUDED.user_id,
-          course_id = EXCLUDED.course_id,
-          price = EXCLUDED.price,
-          tariff = EXCLUDED.tariff,
-          purchased_at = EXCLUDED.purchased_at,
-          payment_method = EXCLUDED.payment_method,
-          checkout_id = EXCLUDED.checkout_id,
-          bnpl_json = EXCLUDED.bnpl_json,
-          course_snapshot_json = EXCLUDED.course_snapshot_json,
-          lessons_snapshot_json = EXCLUDED.lessons_snapshot_json,
-          purchased_test_item_ids_json = EXCLUDED.purchased_test_item_ids_json,
-          updated_at = NOW()
-      `,
-      [
-        purchase.id,
-        purchase.userId,
-        purchase.courseId,
-        Math.max(0, Math.round(purchase.price)),
-        purchase.tariff ?? null,
-        purchase.purchasedAt,
-        purchase.paymentMethod ?? null,
-        purchase.checkoutId ?? null,
-        JSON.stringify(purchase.bnpl ?? null),
-        JSON.stringify(purchase.courseSnapshot ?? null),
-        JSON.stringify(purchase.lessonsSnapshot ?? null),
-        JSON.stringify(purchase.purchasedTestItemIds ?? null),
-      ]
-    );
-  }
-
-  private async ensureAccessContextWithExecutor(
-    executor: DatabaseExecutor,
-    params: {
-      userId: string;
-      email: string;
-      role: "student" | "teacher";
-      isIdentityVerified: boolean;
-    }
-  ): Promise<void> {
-    await executor.execute(
-      `
-        INSERT INTO access_users (
-          id,
-          email,
-          role,
-          is_identity_verified,
-          updated_at
-        )
-        VALUES ($1, $2, $3, $4, NOW())
-        ON CONFLICT (id)
-        DO UPDATE SET
-          email = EXCLUDED.email,
-          role = EXCLUDED.role,
-          is_identity_verified = EXCLUDED.is_identity_verified,
-          updated_at = NOW()
-      `,
-      [params.userId, params.email, params.role, params.isIdentityVerified]
-    );
-  }
-
-  private async setCourseEntitlementWithExecutor(
-    executor: DatabaseExecutor,
-    params: {
-      userId: string;
-      courseId: string;
-      hasActiveEntitlement: boolean;
-    }
-  ): Promise<void> {
-    await executor.execute(
-      `
-        INSERT INTO user_course_access (
-          user_id,
-          course_id,
-          has_active_entitlement,
-          updated_at
-        )
-        VALUES ($1, $2, $3, NOW())
-        ON CONFLICT (user_id, course_id)
-        DO UPDATE SET
-          has_active_entitlement = EXCLUDED.has_active_entitlement,
-          updated_at = NOW()
-      `,
-      [params.userId, params.courseId, params.hasActiveEntitlement]
-    );
-  }
-
-  private async upsertCourseEntitlementWithExecutor(
-    executor: DatabaseExecutor,
-    params: {
-      id: string;
-      userId: string;
-      courseId: string;
-      purchaseId: string;
-      checkoutId?: string;
-      state: "active" | "revoked" | "expired";
-      createdAt: string;
-      updatedAt: string;
-    }
-  ): Promise<void> {
-    await executor.execute(
-      `
-        INSERT INTO course_entitlements (
-          id,
-          user_id,
-          course_id,
-          purchase_id,
-          checkout_id,
-          state,
-          created_at,
-          updated_at,
-          updated_at_ts
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-        ON CONFLICT (user_id, course_id, purchase_id)
-        DO UPDATE SET
-          checkout_id = EXCLUDED.checkout_id,
-          state = EXCLUDED.state,
-          updated_at = EXCLUDED.updated_at,
-          updated_at_ts = NOW()
-      `,
-      [
-        params.id,
-        params.userId,
-        params.courseId,
-        params.purchaseId,
-        params.checkoutId ?? null,
-        params.state,
-        params.createdAt,
-        params.updatedAt,
-      ]
-    );
-  }
-
-  private async updateCheckoutWithExecutor(
-    executor: DatabaseExecutor,
-    checkout: CheckoutProcessDto
-  ): Promise<void> {
-    await executor.execute(
-      `
-        UPDATE checkout_processes
-        SET
-          user_id = $2,
-          email = $3,
-          first_name = $4,
-          last_name = $5,
-          phone = $6,
-          course_id = $7,
-          method = $8,
-          bnpl_installments_count = $9,
-          amount = $10,
-          tariff = $11,
-          currency = $12,
-          state = $13,
-          provider_payment_id = $14,
-          provider_event_id = $15,
-          consent_snapshot_json = $16::jsonb,
-          created_at = $17,
-          updated_at = $18,
-          expires_at = $19,
-          updated_at_ts = NOW()
-        WHERE id = $1
-      `,
-      [
-        checkout.id,
-        checkout.userId ?? null,
-        checkout.email,
-        checkout.firstName ?? null,
-        checkout.lastName ?? null,
-        checkout.phone ?? null,
-        checkout.courseId,
-        checkout.method,
-        checkout.bnplInstallmentsCount ?? null,
-        Math.max(0, Math.round(checkout.amount)),
-        checkout.tariff ?? null,
-        checkout.currency,
-        checkout.state,
-        checkout.providerPaymentId ?? null,
-        checkout.providerEventId ?? null,
-        JSON.stringify(checkout.consentSnapshot ?? null),
-        checkout.createdAt,
-        checkout.updatedAt,
-        checkout.expiresAt ?? null,
-      ]
-    );
-  }
 }

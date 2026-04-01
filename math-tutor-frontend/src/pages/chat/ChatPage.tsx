@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type ReactNode,
 } from "react";
 import {
   Alert,
@@ -32,10 +31,6 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import AttachFileRoundedIcon from "@mui/icons-material/AttachFileRounded";
 import MicRoundedIcon from "@mui/icons-material/MicRounded";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
-import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
-import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import DoneRoundedIcon from "@mui/icons-material/DoneRounded";
 import DoneAllRoundedIcon from "@mui/icons-material/DoneAllRounded";
 import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
@@ -62,8 +57,28 @@ import type {
   TeacherChatMessage,
   TeacherChatThread,
 } from "@/features/chat/model/types";
-import { fileToDataUrl } from "@/shared/lib/files";
 import { generateId } from "@/shared/lib/id";
+import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
+import {
+  createAttachmentFromFile,
+  formatDayLabel,
+  formatDuration,
+  formatThreadDate,
+  formatTime,
+  getAttachmentKind,
+  getComposerAttachmentTitle,
+  MAX_ATTACHMENTS_PER_MESSAGE,
+  MAX_ATTACHMENT_SIZE_BYTES,
+  normalizeChatMessage,
+  normalizeChatThread,
+  renderChatMessageText,
+  toDayKey,
+  truncateFileName,
+} from "@/pages/chat/model/chatPageUtils";
+import {
+  AudioMessagePlayer,
+  VideoMessagePlayer,
+} from "@/pages/chat/ui/ChatMediaPlayers";
 
 type LocationState = {
   from?: string;
@@ -93,444 +108,8 @@ type TimelineItem =
       message: TeacherChatMessage;
     };
 
-const formatThreadDate = (value?: string) => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
-
-const formatTime = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("ru-RU", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
-
-const toDayKey = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "unknown";
-  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-};
-
-const formatDayLabel = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Без даты";
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const sameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-  if (sameDay(date, today)) return "Сегодня";
-  if (sameDay(date, yesterday)) return "Вчера";
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(date);
-};
-
-const formatDuration = (seconds: number) => {
-  const mins = Math.floor(seconds / 60)
-    .toString()
-    .padStart(2, "0");
-  const secs = Math.floor(seconds % 60)
-    .toString()
-    .padStart(2, "0");
-  return `${mins}:${secs}`;
-};
-
-const formatPlaybackTime = (seconds: number) => {
-  if (!Number.isFinite(seconds) || seconds <= 0) return "00:00";
-  const mins = Math.floor(seconds / 60)
-    .toString()
-    .padStart(2, "0");
-  const secs = Math.floor(seconds % 60)
-    .toString()
-    .padStart(2, "0");
-  return `${mins}:${secs}`;
-};
-
-const CHAT_LINK_PATTERN = /\b((?:https?:\/\/|www\.)[^\s]+)/gi;
-
-const normalizeChatLinkUrl = (value: string) =>
-  /^https?:\/\//i.test(value) ? value : `https://${value}`;
-
-const splitChatLinkToken = (token: string) => {
-  let tail = "";
-  let urlToken = token;
-  while (
-    urlToken.length > 0 &&
-    /[),.!?:;"'\]]/.test(urlToken[urlToken.length - 1] ?? "")
-  ) {
-    tail = `${urlToken[urlToken.length - 1]}${tail}`;
-    urlToken = urlToken.slice(0, -1);
-  }
-  return {
-    urlToken,
-    tail,
-  };
-};
-
-const renderChatMessageText = (value: string): ReactNode => {
-  const text = value ?? "";
-  if (!text) return "";
-  const nodes: ReactNode[] = [];
-  let cursor = 0;
-  CHAT_LINK_PATTERN.lastIndex = 0;
-  let match: RegExpExecArray | null = CHAT_LINK_PATTERN.exec(text);
-  while (match) {
-    const full = match[0] ?? "";
-    const index = match.index ?? 0;
-    if (index > cursor) {
-      nodes.push(
-        <span key={`text-${cursor}`}>{text.slice(cursor, index)}</span>
-      );
-    }
-    const { urlToken, tail } = splitChatLinkToken(full);
-    if (urlToken) {
-      nodes.push(
-        <a
-          key={`link-${index}-${urlToken}`}
-          href={normalizeChatLinkUrl(urlToken)}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="chat-page__message-link"
-        >
-          {urlToken}
-        </a>
-      );
-    }
-    if (tail) {
-      nodes.push(<span key={`tail-${index}`}>{tail}</span>);
-    }
-    cursor = index + full.length;
-    match = CHAT_LINK_PATTERN.exec(text);
-  }
-  if (cursor < text.length) {
-    nodes.push(<span key={`text-tail-${cursor}`}>{text.slice(cursor)}</span>);
-  }
-  return nodes;
-};
-
-const getAttachmentKind = (mimeType: string) => {
-  const normalized = mimeType.toLowerCase();
-  if (normalized.startsWith("image/")) return "image";
-  if (normalized.startsWith("video/")) return "video";
-  if (normalized.startsWith("audio/")) return "audio";
-  return "file";
-};
-
-const truncateFileName = (name: string, maxLength = 28) => {
-  const safeName = name.trim();
-  if (safeName.length <= maxLength) return safeName;
-  const lastDot = safeName.lastIndexOf(".");
-  if (lastDot <= 0 || lastDot >= safeName.length - 1) {
-    return `${safeName.slice(0, maxLength - 1)}…`;
-  }
-  const ext = safeName.slice(lastDot);
-  const base = safeName.slice(0, lastDot);
-  const allowedBaseLength = Math.max(8, maxLength - ext.length - 1);
-  return `${base.slice(0, allowedBaseLength)}…${ext}`;
-};
-
-const getComposerAttachmentTitle = (attachment: TeacherChatAttachment) => {
-  const kind = getAttachmentKind(attachment.mimeType);
-  if (kind === "audio") return "Голосовое сообщение";
-  if (kind === "video") return "Видеофайл";
-  return attachment.name;
-};
-
-const MAX_ATTACHMENTS_PER_MESSAGE = 10;
-const MAX_ATTACHMENT_SIZE_BYTES = 24 * 1024 * 1024;
-
-const isValidChatAttachment = (
-  value: TeacherChatAttachment | null | undefined
-): value is TeacherChatAttachment =>
-  Boolean(
-    value &&
-      typeof value.id === "string" &&
-      value.id.trim() &&
-      typeof value.name === "string" &&
-      value.name.trim() &&
-      typeof value.mimeType === "string" &&
-      value.mimeType.trim() &&
-      typeof value.url === "string" &&
-      value.url.trim()
-  );
-
-const normalizeChatMessage = (message: TeacherChatMessage): TeacherChatMessage => ({
-  ...message,
-  text: typeof message.text === "string" ? message.text : "",
-  attachments: Array.isArray(message.attachments)
-    ? message.attachments.filter((attachment) => isValidChatAttachment(attachment))
-    : [],
-});
-
-const normalizeChatThread = (thread: TeacherChatThread): TeacherChatThread => ({
-  ...thread,
-  studentName: thread.studentName?.trim() || "Студент",
-  studentEmail: thread.studentEmail?.trim() || "—",
-  teacherName: thread.teacherName?.trim() || "Преподаватель",
-  unreadCount:
-    typeof thread.unreadCount === "number" && Number.isFinite(thread.unreadCount)
-      ? Math.max(0, Math.floor(thread.unreadCount))
-      : 0,
-});
-
-const createAttachmentFromFile = async (
-  file: File
-): Promise<TeacherChatAttachment> => ({
-  id:
-    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID()
-      : `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-  name: file.name,
-  mimeType: file.type || "application/octet-stream",
-  size: file.size,
-  url: await fileToDataUrl(file),
-});
-
-function AudioMessagePlayer({ src }: { src: string }) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-
-  const togglePlayback = useCallback(async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (audio.paused) {
-      try {
-        await audio.play();
-        setIsPlaying(true);
-      } catch {
-        setIsPlaying(false);
-      }
-      return;
-    }
-    audio.pause();
-    setIsPlaying(false);
-  }, []);
-
-  const handleSeek = useCallback((value: number) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.currentTime = value;
-    setCurrentTime(value);
-  }, []);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const onLoadedMetadata = () => {
-      setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
-    };
-    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const onPause = () => setIsPlaying(false);
-    const onPlay = () => setIsPlaying(true);
-    const onEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-    audio.addEventListener("loadedmetadata", onLoadedMetadata);
-    audio.addEventListener("timeupdate", onTimeUpdate);
-    audio.addEventListener("pause", onPause);
-    audio.addEventListener("play", onPlay);
-    audio.addEventListener("ended", onEnded);
-    return () => {
-      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
-      audio.removeEventListener("timeupdate", onTimeUpdate);
-      audio.removeEventListener("pause", onPause);
-      audio.removeEventListener("play", onPlay);
-      audio.removeEventListener("ended", onEnded);
-      audio.pause();
-    };
-  }, [src]);
-
-  return (
-    <div className="chat-page__audio-player">
-      <audio ref={audioRef} preload="metadata" src={src} />
-      <button
-        type="button"
-        className="chat-page__audio-toggle"
-        onClick={() => void togglePlayback()}
-        aria-label={isPlaying ? "Пауза" : "Воспроизвести"}
-      >
-        {isPlaying ? (
-          <PauseRoundedIcon fontSize="inherit" />
-        ) : (
-          <PlayArrowRoundedIcon fontSize="inherit" />
-        )}
-      </button>
-      <div className="chat-page__audio-track">
-        <input
-          type="range"
-          min={0}
-          max={Math.max(duration, 1)}
-          step={0.1}
-          value={Math.min(currentTime, duration || 0)}
-          onChange={(event) => handleSeek(Number(event.target.value))}
-          aria-label="Позиция аудио"
-        />
-        <div className="chat-page__audio-time">
-          <span>{formatPlaybackTime(currentTime)}</span>
-          <span>{formatPlaybackTime(duration)}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function VideoMessagePlayer({
-  src,
-  fileName,
-}: {
-  src: string;
-  fileName: string;
-}) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-
-  const togglePlayback = useCallback(async () => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      try {
-        await video.play();
-        setIsPlaying(true);
-      } catch {
-        setIsPlaying(false);
-      }
-      return;
-    }
-    video.pause();
-    setIsPlaying(false);
-  }, []);
-
-  const toggleMute = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.muted = !video.muted;
-    setIsMuted(video.muted);
-  }, []);
-
-  const handleSeek = useCallback((value: number) => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.currentTime = value;
-    setCurrentTime(value);
-  }, []);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const onLoadedMetadata = () => {
-      setDuration(Number.isFinite(video.duration) ? video.duration : 0);
-    };
-    const onTimeUpdate = () => setCurrentTime(video.currentTime);
-    const onPause = () => setIsPlaying(false);
-    const onPlay = () => setIsPlaying(true);
-    const onEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-    const onVolumeChange = () => setIsMuted(video.muted);
-    video.addEventListener("loadedmetadata", onLoadedMetadata);
-    video.addEventListener("timeupdate", onTimeUpdate);
-    video.addEventListener("pause", onPause);
-    video.addEventListener("play", onPlay);
-    video.addEventListener("ended", onEnded);
-    video.addEventListener("volumechange", onVolumeChange);
-    return () => {
-      video.removeEventListener("loadedmetadata", onLoadedMetadata);
-      video.removeEventListener("timeupdate", onTimeUpdate);
-      video.removeEventListener("pause", onPause);
-      video.removeEventListener("play", onPlay);
-      video.removeEventListener("ended", onEnded);
-      video.removeEventListener("volumechange", onVolumeChange);
-      video.pause();
-    };
-  }, [src]);
-
-  return (
-    <div className="chat-page__video-player">
-      <video ref={videoRef} preload="metadata" src={src} playsInline />
-      <button
-        type="button"
-        className={`chat-page__video-play ${isPlaying ? "is-playing" : ""}`}
-        onClick={() => void togglePlayback()}
-        aria-label={isPlaying ? "Пауза" : "Воспроизвести"}
-      >
-        {isPlaying ? (
-          <PauseRoundedIcon fontSize="inherit" />
-        ) : (
-          <PlayArrowRoundedIcon fontSize="inherit" />
-        )}
-      </button>
-      <div className="chat-page__video-controls">
-        <button
-          type="button"
-          className="chat-page__video-control-btn"
-          onClick={() => void togglePlayback()}
-          aria-label={isPlaying ? "Пауза" : "Воспроизвести"}
-        >
-          {isPlaying ? (
-            <PauseRoundedIcon fontSize="inherit" />
-          ) : (
-            <PlayArrowRoundedIcon fontSize="inherit" />
-          )}
-        </button>
-        <input
-          type="range"
-          min={0}
-          max={Math.max(duration, 1)}
-          step={0.1}
-          value={Math.min(currentTime, duration || 0)}
-          onChange={(event) => handleSeek(Number(event.target.value))}
-          aria-label="Позиция видео"
-        />
-        <span className="chat-page__video-time">
-          {formatPlaybackTime(currentTime)} / {formatPlaybackTime(duration)}
-        </span>
-        <button
-          type="button"
-          className="chat-page__video-control-btn"
-          onClick={toggleMute}
-          aria-label={isMuted ? "Включить звук" : "Выключить звук"}
-        >
-          {isMuted ? (
-            <VolumeOffRoundedIcon fontSize="inherit" />
-          ) : (
-            <VolumeUpRoundedIcon fontSize="inherit" />
-          )}
-        </button>
-        <a
-          className="chat-page__video-download"
-          href={src}
-          download={fileName}
-          title="Скачать видео"
-        >
-          <DownloadRoundedIcon fontSize="inherit" />
-        </a>
-      </div>
-    </div>
-  );
-}
-
 export default function ChatPage() {
+  usePerfScreenTag("ChatPage");
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -820,6 +399,20 @@ export default function ChatPage() {
     if (messages.length <= visibleCount) return messages;
     return messages.slice(-visibleCount);
   }, [messages, visibleCount]);
+
+  useEffect(() => {
+    logCollectionPressure({
+      screen: "ChatPage",
+      metric: "chat-thread-message-collections",
+      size: threads.length + messages.length,
+      warnAt: 220,
+      errorAt: 440,
+      details: {
+        threads: threads.length,
+        messages: messages.length,
+      },
+    });
+  }, [messages.length, threads.length]);
 
   const hasOlderMessages = messages.length > visibleCount;
 
