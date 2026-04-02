@@ -42,7 +42,10 @@ import { TeacherProfile } from "@/features/teacher-profile/ui/TeacherProfile";
 import { NewsFeedPanel } from "@/features/news-feed/ui/NewsFeedPanel";
 import { ListPagination } from "@/shared/ui/ListPagination";
 import { StudyCabinetPanel } from "@/shared/ui/StudyCabinetPanel";
-import { openExternalWhiteboard } from "@/shared/lib/openExternalWhiteboard";
+import {
+  openExternalWhiteboard,
+  WORKBOOK_POPUP_BLOCKED_MESSAGE,
+} from "@/shared/lib/openExternalWhiteboard";
 import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { ListSkeleton } from "@/shared/ui/loading";
 import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
@@ -1703,10 +1706,8 @@ export default function TeacherDashboard() {
                 launch.error ??
                   "Не удалось открыть рабочую тетрадь. Проверьте настройки запуска."
               );
-            } else if (!launch.opened) {
-              setDashboardError(
-                "Браузер заблокировал новое окно. Разрешите pop-up для запуска рабочей тетради."
-              );
+            } else if (launch.code === "popup_blocked") {
+              setDashboardError(WORKBOOK_POPUP_BLOCKED_MESSAGE);
             }
           }}
           onChatClick={() => {

@@ -691,21 +691,21 @@ textarea::placeholder {
 .ui-dialog-title__close {
   margin-top: -2px !important;
   color: var(--text-secondary) !important;
-  border: 1px solid var(--border-subtle) !important;
-  background: color-mix(in srgb, var(--surface-soft) 78%, transparent) !important;
-  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease,
-    transform 160ms ease !important;
+  border: none !important;
+  background: transparent !important;
+  transition: color 160ms ease, background-color 160ms ease, transform 160ms ease,
+    box-shadow 160ms ease !important;
 }
 
 .ui-dialog-title__close:hover {
   color: var(--text-primary) !important;
-  border-color: var(--border-strong) !important;
-  background: color-mix(in srgb, var(--surface-soft) 92%, transparent) !important;
+  background: color-mix(in srgb, var(--surface-soft) 86%, transparent) !important;
   transform: translateY(-1px);
 }
 
 .ui-dialog-title__close:focus-visible {
   box-shadow: var(--focus-ring) !important;
+  background: color-mix(in srgb, var(--surface-soft) 86%, transparent) !important;
 }
 
 .ui-alert {

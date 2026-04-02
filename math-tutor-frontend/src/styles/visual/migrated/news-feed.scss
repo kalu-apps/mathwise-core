@@ -243,6 +243,24 @@
   color: var(--text-secondary);
   text-align: center;
   padding: 16px;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.news-feed__empty-title {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.news-feed__empty-caption {
+  max-width: 42ch;
+  line-height: 1.45;
+}
+
+.news-feed__empty--error {
+  border: 1px solid color-mix(in srgb, var(--feedback-danger) 40%, var(--border-subtle));
+  background: color-mix(in srgb, var(--feedback-danger) 10%, var(--surface-soft));
 }
 
 .news-feed__item {

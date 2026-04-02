@@ -52,6 +52,8 @@ export const ru = {
     methodMagic: "По ссылке",
     methodPassword: "По паролю",
     magicCodeSent: "Код входа отправлен на email.",
+    magicCodeRequestAccepted:
+      "Если аккаунт с таким email существует, мы отправили код для входа.",
     magicCodeLabel: "Код подтверждения",
     magicCodeConfirm: "Подтвердить код",
     magicCodeRequired: "Введите код подтверждения из письма.",
@@ -64,6 +66,14 @@ export const ru = {
     passwordResetRequest: "Отправить код сброса",
     passwordResetTokenLabel: "Код из письма",
     passwordResetNewLabel: "Новый пароль",
+    passwordResetRequestAccepted:
+      "Если аккаунт с таким email существует, мы отправили код восстановления.",
+    passwordResetRequestFailed:
+      "Не удалось обработать запрос восстановления. Проверьте соединение и попробуйте снова.",
+    passwordResetTokenRequired: "Введите код восстановления.",
+    passwordResetTokenInvalid: "Код должен состоять из 6 цифр.",
+    passwordResetPasswordRequired: "Введите новый пароль.",
+    passwordResetPasswordTooShort: "Пароль должен содержать минимум 10 символов.",
     passwordPolicyHint:
       "Новый пароль: 10-64 символа, только латиница, минимум одна заглавная, строчная, цифра и спецсимвол.",
     passwordResetConfirm: "Сохранить новый пароль",

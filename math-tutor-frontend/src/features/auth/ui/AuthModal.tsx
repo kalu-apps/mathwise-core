@@ -27,6 +27,7 @@ import {
   confirmPasswordReset,
   requestPasswordReset,
 } from "@/features/auth/model/api";
+import { validateRecoveryResetFields } from "@/features/auth/model/recoveryValidation";
 
 interface AuthModalProps {
   open: boolean;
@@ -89,6 +90,9 @@ export function AuthModal({
     "success" | "info" | "warning" | "error"
   >("info");
   const [resetDebugToken, setResetDebugToken] = useState<string | null>(null);
+  const [resetFormError, setResetFormError] = useState<string | null>(null);
+  const [resetTokenError, setResetTokenError] = useState<string | null>(null);
+  const [resetPasswordError, setResetPasswordError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -124,6 +128,9 @@ export function AuthModal({
     setResetMessage(null);
     setResetSeverity("info");
     setResetDebugToken(null);
+    setResetFormError(null);
+    setResetTokenError(null);
+    setResetPasswordError(null);
   }, [initialEmail, mode, open]);
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -200,6 +207,9 @@ export function AuthModal({
     setShowResetPassword(false);
     setResetMessage(null);
     setResetDebugToken(null);
+    setResetFormError(null);
+    setResetTokenError(null);
+    setResetPasswordError(null);
   }, [authMethod]);
 
   const collapseRecoverPanels = useCallback(() => {
@@ -236,6 +246,12 @@ export function AuthModal({
     [showResetPassword]
   );
 
+  const clearResetValidationErrors = useCallback(() => {
+    setResetFormError(null);
+    setResetTokenError(null);
+    setResetPasswordError(null);
+  }, []);
+
   const handleSubmit = async () => {
     setError(null);
 
@@ -271,7 +287,7 @@ export function AuthModal({
         }
         setLoginCodeSent(true);
         setLoginCodeEmail(normalizedEmail);
-        setLoginCodeMessage(result.message ?? t("auth.magicCodeSent"));
+        setLoginCodeMessage(result.message ?? t("auth.magicCodeRequestAccepted"));
         setLoginCodeDebug(showAuthDebug ? (result.debugCode ?? null) : null);
         return;
       }
@@ -283,6 +299,7 @@ export function AuthModal({
 
   const handleRecover = async () => {
     setError(null);
+    clearResetValidationErrors();
     setShowRecover(false);
     setCanResend(false);
     setAuthMethod("password");
@@ -306,13 +323,15 @@ export function AuthModal({
       setResendLoading(true);
       const result = await requestPasswordReset(normalizedEmail);
       setRecoverSeverity("info");
-      setRecoverMessage(result.message);
+      setRecoverMessage(result.message || t("auth.passwordResetRequestAccepted"));
       setResetDebugToken(showAuthDebug ? (result.debugCode ?? null) : null);
       setShowRecover(true);
     } catch (recoverError) {
       setRecoverSeverity("error");
       setRecoverMessage(
-        recoverError instanceof Error ? recoverError.message : t("auth.sendLinkFailed")
+        recoverError instanceof Error
+          ? recoverError.message
+          : t("auth.passwordResetRequestFailed")
       );
       setShowRecover(true);
     } finally {
@@ -322,20 +341,22 @@ export function AuthModal({
 
   const handleRequestReset = async () => {
     setError(null);
+    clearResetValidationErrors();
     if (!normalizedEmail) {
-      setError(t("auth.emailRequired"));
+      setResetFormError(t("auth.emailRequired"));
       return;
     }
     try {
       setResetLoading(true);
       const result = await requestPasswordReset(normalizedEmail);
       setResetSeverity("info");
-      setResetMessage(result.message);
+      setResetMessage(result.message || t("auth.passwordResetRequestAccepted"));
       setResetDebugToken(showAuthDebug ? (result.debugCode ?? null) : null);
     } catch (resetError) {
-      setResetSeverity("error");
-      setResetMessage(
-        resetError instanceof Error ? resetError.message : t("auth.loginFailed")
+      setResetFormError(
+        resetError instanceof Error
+          ? resetError.message
+          : t("auth.passwordResetRequestFailed")
       );
       setResetDebugToken(null);
     } finally {
@@ -345,8 +366,24 @@ export function AuthModal({
 
   const handleConfirmReset = async () => {
     setError(null);
-    if (!normalizedEmail || !resetToken.trim() || !resetPassword.trim()) {
-      setError(t("auth.passwordResetFieldsRequired"));
+    clearResetValidationErrors();
+    if (!normalizedEmail) {
+      setResetFormError(t("auth.emailRequired"));
+      return;
+    }
+    const validationResult = validateRecoveryResetFields(
+      resetToken,
+      resetPassword,
+      {
+        tokenRequired: t("auth.passwordResetTokenRequired"),
+        tokenInvalidFormat: t("auth.passwordResetTokenInvalid"),
+        passwordRequired: t("auth.passwordResetPasswordRequired"),
+        passwordTooShort: t("auth.passwordResetPasswordTooShort"),
+      }
+    );
+    if (validationResult.tokenError || validationResult.passwordError) {
+      setResetTokenError(validationResult.tokenError);
+      setResetPasswordError(validationResult.passwordError);
       return;
     }
     try {
@@ -364,9 +401,10 @@ export function AuthModal({
       setResetToken("");
       setResetPassword("");
     } catch (confirmError) {
-      setResetSeverity("error");
-      setResetMessage(
-        confirmError instanceof Error ? confirmError.message : t("auth.loginFailed")
+      setResetFormError(
+        confirmError instanceof Error
+          ? confirmError.message
+          : t("auth.passwordResetRequestFailed")
       );
       setResetDebugToken(null);
     } finally {
@@ -618,6 +656,12 @@ export function AuthModal({
 
           {authMethod === "password" && showResetPassword && (
             <div className="auth-modal__reset-panel">
+              {resetFormError && (
+                <Alert severity="error" className="auth-modal__recover-state">
+                  {resetFormError}
+                </Alert>
+              )}
+
               {resetMessage && (
                 <Alert severity={resetSeverity} className="auth-modal__recover-state">
                   {resetMessage}
@@ -648,7 +692,17 @@ export function AuthModal({
               <TextField
                 label={t("auth.passwordResetTokenLabel")}
                 value={resetToken}
-                onChange={(e) => setResetToken(e.target.value)}
+                onChange={(e) => {
+                  setResetToken(e.target.value);
+                  if (resetTokenError) {
+                    setResetTokenError(null);
+                  }
+                  if (resetFormError) {
+                    setResetFormError(null);
+                  }
+                }}
+                error={Boolean(resetTokenError)}
+                helperText={resetTokenError ?? " "}
                 fullWidth
                 autoComplete="one-time-code"
                 InputLabelProps={{ shrink: true }}
@@ -658,7 +712,17 @@ export function AuthModal({
                 label={t("auth.passwordResetNewLabel")}
                 type={showResetPasswordValue ? "text" : "password"}
                 value={resetPassword}
-                onChange={(e) => setResetPassword(e.target.value)}
+                onChange={(e) => {
+                  setResetPassword(e.target.value);
+                  if (resetPasswordError) {
+                    setResetPasswordError(null);
+                  }
+                  if (resetFormError) {
+                    setResetFormError(null);
+                  }
+                }}
+                error={Boolean(resetPasswordError)}
+                helperText={resetPasswordError ?? " "}
                 fullWidth
                 autoComplete="new-password"
                 InputLabelProps={{ shrink: true }}

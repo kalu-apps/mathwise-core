@@ -9,6 +9,10 @@ import { useAuth } from "@/features/auth/model/AuthContext";
 import { useThemeMode } from "@/app/theme/themeModeContext";
 import { t } from "@/shared/i18n";
 import { useAppShellStore } from "@/app/store/appShellStore";
+import {
+  formatUserShortName,
+  getUserAvatarInitial,
+} from "@/shared/lib/userDisplayName";
 
 export function Header() {
   const { user, logout, openAuthModal } = useAuth();
@@ -37,6 +41,9 @@ export function Header() {
     logout();
     navigate("/", { replace: true });
   };
+
+  const userDisplayName = user ? formatUserShortName(user) : "";
+  const userAvatarInitial = user ? getUserAvatarInitial(user) : "";
 
   return (
     <header className="header">
@@ -107,12 +114,8 @@ export function Header() {
                   className="header__profile-btn"
                   color="inherit"
                 >
-                  <div className="header__avatar">
-                    {(user.firstName || user.email)[0]}
-                  </div>
-                  <span className="header__profile-name">
-                    {user.firstName || user.email}
-                  </span>
+                  <div className="header__avatar">{userAvatarInitial}</div>
+                  <span className="header__profile-name">{userDisplayName}</span>
                 </Button>
               </Tooltip>
 

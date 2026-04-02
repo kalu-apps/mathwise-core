@@ -95,6 +95,7 @@ export function NewsFeedPanel({ user }: Props) {
   const [saving, setSaving] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [feedLoadError, setFeedLoadError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -107,12 +108,12 @@ export function NewsFeedPanel({ user }: Props) {
 
   const loadFeed = async () => {
     try {
-      setError(null);
+      setFeedLoadError(null);
       setLoading(true);
       const data = await getNewsFeed();
       setItems(data);
     } catch {
-      setError("Не удалось загрузить новости.");
+      setFeedLoadError("Не удалось загрузить новости.");
     } finally {
       setLoading(false);
     }
@@ -460,8 +461,29 @@ export function NewsFeedPanel({ user }: Props) {
               />
             ))}
           </>
+        ) : feedLoadError && items.length === 0 ? (
+          <div className="news-feed__empty news-feed__empty--error" role="status">
+            <div className="news-feed__empty-title">{feedLoadError}</div>
+            <div className="news-feed__empty-caption">
+              Проверьте соединение и повторите попытку.
+            </div>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                void loadFeed();
+              }}
+            >
+              Повторить
+            </Button>
+          </div>
         ) : items.length === 0 ? (
-          <div className="news-feed__empty">Пока нет публикаций.</div>
+          <div className="news-feed__empty">
+            <div className="news-feed__empty-title">Пока нет объявлений.</div>
+            <div className="news-feed__empty-caption">
+              Здесь будут появляться новости и сообщения преподавателя.
+            </div>
+          </div>
         ) : (
           pagedItems.map((item) => {
             const isEditing = editingId === item.id;

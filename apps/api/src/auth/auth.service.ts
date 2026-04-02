@@ -142,6 +142,8 @@ export class AuthService implements OnModuleInit {
 
   async requestMagicLink(email: string): Promise<RequestMagicCodeResponseDto> {
     const normalizedEmail = normalizeEmail(email);
+    const uniformMessage =
+      "Если аккаунт с таким email существует, мы отправили код для входа.";
     if (!normalizedEmail) {
       return {
         ok: false,
@@ -155,7 +157,7 @@ export class AuthService implements OnModuleInit {
     if (!user) {
       return {
         ok: true,
-        message: "Если аккаунт существует, код входа будет отправлен на email.",
+        message: uniformMessage,
         expiresAt: null,
         debugCode: null,
       };
@@ -176,7 +178,7 @@ export class AuthService implements OnModuleInit {
     });
     return {
       ok: true,
-      message: "Код входа отправлен. Введите его для подтверждения входа.",
+      message: uniformMessage,
       expiresAt: issued.expiresAt,
       debugCode: this.runtimeConfig.authDebugTokens ? issued.rawCode : null,
     };

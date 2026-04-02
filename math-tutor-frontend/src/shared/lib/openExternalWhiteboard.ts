@@ -19,6 +19,9 @@ export type WorkbookLaunchResult = {
   code?: string;
 };
 
+export const WORKBOOK_POPUP_BLOCKED_MESSAGE =
+  "Не удалось открыть рабочую тетрадь. Разрешите открытие всплывающих окон для этого сайта и попробуйте снова.";
+
 const buildLaunchRequestUrl = () => {
   const base = resolveHttpApiBase();
   const normalizedBase = base.endsWith("/") ? base.slice(0, -1) : base;
@@ -100,14 +103,24 @@ export const openExternalWhiteboard = async (params?: { from?: string }) => {
       ok: true,
       opened: false,
       launchUrl: launchPayload.launchUrl,
+      code: "board_launch_unavailable",
     } satisfies WorkbookLaunchResult;
   }
 
   const target = buildAbsoluteLaunchUrl(launchPayload.launchUrl);
   const win = window.open(target, "_blank", "noopener,noreferrer");
+  if (!win) {
+    return {
+      ok: true,
+      opened: false,
+      launchUrl: target,
+      code: "popup_blocked",
+    } satisfies WorkbookLaunchResult;
+  }
+
   return {
     ok: true,
-    opened: Boolean(win),
+    opened: true,
     launchUrl: target,
   } satisfies WorkbookLaunchResult;
 };

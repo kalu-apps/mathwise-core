@@ -59,7 +59,10 @@ import { ListPagination } from "@/shared/ui/ListPagination";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
 import type { User } from "@/entities/user/model/types";
 import { StudyCabinetPanel } from "@/shared/ui/StudyCabinetPanel";
-import { openExternalWhiteboard } from "@/shared/lib/openExternalWhiteboard";
+import {
+  openExternalWhiteboard,
+  WORKBOOK_POPUP_BLOCKED_MESSAGE,
+} from "@/shared/lib/openExternalWhiteboard";
 import type { StudentStudyCabinetCourseItem } from "@/features/study-cabinet/student/model/types";
 import { useStudentProfileData } from "@/pages/profile/hooks/useStudentProfileData";
 import {
@@ -109,6 +112,7 @@ import {
   buildStudyCabinetWeekActivity,
   type StudyCabinetNote,
 } from "@/shared/lib/studyCabinet";
+import { getUserAvatarInitial } from "@/shared/lib/userDisplayName";
 
 export default function StudentProfile() {
   const CHAT_TAB_INDEX = 4;
@@ -652,11 +656,10 @@ export default function StudentProfile() {
             launch.error ??
             "Не удалось открыть рабочую тетрадь. Попробуйте позже.",
         });
-      } else if (!launch.opened) {
+      } else if (launch.code === "popup_blocked") {
         setChatNotice({
           severity: "warning",
-          message:
-            "Браузер заблокировал новое окно. Разрешите pop-up для запуска рабочей тетради.",
+          message: WORKBOOK_POPUP_BLOCKED_MESSAGE,
         });
       }
     } catch (error) {
@@ -1637,7 +1640,7 @@ export default function StudentProfile() {
                   className="student-profile__avatar"
                   sx={avatarResponsiveSx}
                 >
-                  {(user.firstName || user.email)[0]}
+                  {getUserAvatarInitial(user)}
                 </Avatar>
                 {!profileEditing && (
                   <span
