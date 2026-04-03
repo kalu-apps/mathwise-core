@@ -17,8 +17,10 @@ import { ProfileModule } from "./profile/profile.module";
 import { ProgressModule } from "./progress/progress.module";
 import { PurchasesModule } from "./purchases/purchases.module";
 import { RedisModule } from "./redis/redis.module";
+import { NewsModule } from "./news/news.module";
 import { StageAccessModule } from "./stage-access/stage-access.module";
 import { StageAccessGateMiddleware } from "./stage-access/stage-access.middleware";
+import { TelemetryModule } from "./telemetry/telemetry.module";
 import { WorkbookModule } from "./workbook/workbook.module";
 
 @Module({
@@ -34,12 +36,14 @@ import { WorkbookModule } from "./workbook/workbook.module";
     ProgressModule,
     MediaModule,
     NotificationsModule,
+    NewsModule,
     AccessModule,
     CapabilitiesModule,
     ChatModule,
     ProfileModule,
     PurchasesModule,
     BookingsModule,
+    TelemetryModule,
     StageAccessModule,
     WorkbookModule,
   ],

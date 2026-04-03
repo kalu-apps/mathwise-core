@@ -44,9 +44,19 @@ const createRumReporterSession = () => {
 
   const buffer: RumEvent[] = [];
   let flushing = false;
+  let endpointUnavailable = false;
+  let endpointUnavailableNotified = false;
+
+  const markEndpointUnavailable = () => {
+    endpointUnavailable = true;
+    if (endpointUnavailableNotified) return;
+    endpointUnavailableNotified = true;
+    console.warn("[rum] endpoint unavailable; reporter paused");
+  };
 
   const flushBatch = async () => {
     if (flushing || buffer.length === 0) return;
+    if (endpointUnavailable) return;
     if (typeof navigator !== "undefined" && navigator.onLine === false) return;
 
     flushing = true;
@@ -55,7 +65,7 @@ const createRumReporterSession = () => {
     const timeoutId = window.setTimeout(() => controller.abort(), RUM_TIMEOUT_MS);
 
     try {
-      await fetch(RUM_ENDPOINT, {
+      const response = await fetch(RUM_ENDPOINT, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -63,6 +73,15 @@ const createRumReporterSession = () => {
         signal: controller.signal,
         keepalive: true,
       });
+      if (!response.ok) {
+        if (response.status === 404 || response.status === 405 || response.status === 501) {
+          markEndpointUnavailable();
+          return;
+        }
+        if (response.status >= 500 || response.status === 429 || response.status === 408) {
+          buffer.unshift(...batch);
+        }
+      }
     } catch {
       buffer.unshift(...batch);
     } finally {
@@ -82,6 +101,7 @@ const createRumReporterSession = () => {
   };
 
   const flushOnLifecycle = (reason: "hidden" | "pagehide") => {
+    if (endpointUnavailable) return;
     if (
       reason === "hidden" &&
       typeof document !== "undefined" &&

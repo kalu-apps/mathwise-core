@@ -58,6 +58,18 @@ export const reportFrontendRuntimeDiagnostics = () => {
   }
 
   if (!import.meta.env.DEV) {
-    console.info("[runtime]", payload);
+    const markerKey = "__mw_runtime_logged";
+    let alreadyLogged = false;
+    if (typeof sessionStorage !== "undefined") {
+      const marker = sessionStorage.getItem(markerKey);
+      if (marker === payload.releaseVersion) {
+        alreadyLogged = true;
+      } else {
+        sessionStorage.setItem(markerKey, payload.releaseVersion);
+      }
+    }
+    if (!alreadyLogged) {
+      console.info("[runtime]", payload);
+    }
   }
 };

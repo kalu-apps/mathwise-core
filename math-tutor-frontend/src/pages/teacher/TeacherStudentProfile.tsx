@@ -42,6 +42,7 @@ import { ListPagination } from "@/shared/ui/ListPagination";
 import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { ListSkeleton } from "@/shared/ui/loading";
+import { isTeacherScopeAccessError, shouldRunTeacherScopedRequest, TEACHER_UNAUTHORIZED_COOLDOWN_MS } from "@/pages/teacher/model/lifecycleGuards";
 import {
   getAssessmentCourseProgress,
   getAssessmentKnowledgeProgress,
@@ -103,20 +104,34 @@ export default function TeacherStudentProfile() {
     "all" | "active" | "completed"
   >("all");
   const hasLoadedRef = useRef(false);
+  const unauthorizedCooldownUntilRef = useRef(0);
+  const loadInFlightRef = useRef(false);
 
   const loadStudentData = useCallback(async () => {
     if (!studentId || !user) return;
+    if (
+      !shouldRunTeacherScopedRequest({
+        userId: user.id,
+        isTeacher: user.role === "teacher",
+        blockedUntilTs: unauthorizedCooldownUntilRef.current,
+      })
+    ) {
+      return;
+    }
+    if (loadInFlightRef.current) return;
+    loadInFlightRef.current = true;
     try {
       if (!hasLoadedRef.current) {
         setLoading(true);
       }
       setError(null);
       const [students, allCourses, purchases, bookingData] = await Promise.all([
-        getUsers("student", { forceFresh: true }),
-        getCourses({ forceFresh: true }),
-        getPurchases({ userId: studentId }, { forceFresh: true }),
+        getUsers("student"),
+        getCourses(),
+        getPurchases({ userId: studentId }),
         getBookings({ teacherId: user.id, studentId }),
       ]);
+      unauthorizedCooldownUntilRef.current = 0;
 
       const selected = students.find((u) => u.id === studentId) ?? null;
       const studentPurchases = purchases;
@@ -227,12 +242,19 @@ export default function TeacherStudentProfile() {
           paymentStatus: booking.paymentStatus === "paid" ? "paid" : "unpaid",
         }))
       );
-    } catch {
+    } catch (error) {
+      if (isTeacherScopeAccessError(error)) {
+        unauthorizedCooldownUntilRef.current =
+          Date.now() + TEACHER_UNAUTHORIZED_COOLDOWN_MS;
+        setError("Сессия преподавателя завершена. Войдите снова, чтобы продолжить.");
+        return;
+      }
       setError(t("teacherStudentProfile.loadStudentError"));
       setStudent(null);
       setCourses([]);
       setBookings([]);
     } finally {
+      loadInFlightRef.current = false;
       hasLoadedRef.current = true;
       setLoading(false);
     }
@@ -240,6 +262,8 @@ export default function TeacherStudentProfile() {
 
   useEffect(() => {
     hasLoadedRef.current = false;
+    unauthorizedCooldownUntilRef.current = 0;
+    loadInFlightRef.current = false;
     void loadStudentData();
     const unsubscribe = subscribeAppDataUpdates(() => {
       void loadStudentData();
@@ -248,24 +272,6 @@ export default function TeacherStudentProfile() {
       unsubscribe();
     };
   }, [loadStudentData]);
-
-  useEffect(() => {
-    if (!studentId || !user) return;
-    const handleFocus = () => {
-      void loadStudentData();
-    };
-    const handleVisibility = () => {
-      if (typeof document === "undefined") return;
-      if (document.visibilityState !== "visible") return;
-      void loadStudentData();
-    };
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, [loadStudentData, studentId, user]);
 
   const getBookingStart = (booking: Booking) => getBookingStartTimestamp(booking);
   const getBookingEnd = (booking: Booking) => getBookingEndTimestamp(booking);

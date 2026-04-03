@@ -7,7 +7,6 @@ import {
   runSupportReconciliation,
 } from "@/domain/auth-payments/model/api";
 import { selfHealAccess } from "@/features/auth/model/api";
-import { getBookings } from "@/entities/booking/model/storage";
 import { dispatchDataUpdate } from "@/shared/lib/dataUpdateBus";
 
 const STUDENT_CHECKOUT_RECHECK_STATES = new Set([
@@ -49,10 +48,7 @@ export function ReconciliationRunner() {
   );
 
   const runStudentReconciliation = useCallback(async (userId: string) => {
-    const [checkouts, bookings] = await Promise.all([
-      getCheckouts({ userId }),
-      getBookings({ studentId: userId }),
-    ]);
+    const checkouts = await getCheckouts({ userId });
 
     const recentCheckouts = checkouts
       .filter((checkout) => STUDENT_CHECKOUT_RECHECK_STATES.has(checkout.state))
@@ -82,22 +78,18 @@ export function ReconciliationRunner() {
       }
     }
 
-    return recentCheckouts.length > 0 || bookings.length > 0 || hasPotentialAccessGap;
+    return hasPotentialAccessGap;
   }, []);
 
   const runTeacherReconciliation = useCallback(async (userId: string) => {
-    const [supportResult, bookings] = await Promise.all([
-      runSupportReconciliation({
-        dryRun: false,
-        includeHighRisk: false,
-      }),
-      getBookings({ teacherId: userId }),
-    ]);
-
+    void userId;
+    const supportResult = await runSupportReconciliation({
+      dryRun: false,
+      includeHighRisk: false,
+    });
     return (
-      bookings.length > 0 ||
-      (typeof supportResult.appliedCount === "number" &&
-        supportResult.appliedCount > 0)
+      typeof supportResult.appliedCount === "number" &&
+      supportResult.appliedCount > 0
     );
   }, []);
 

@@ -1,5 +1,6 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import { ApiError } from "@/shared/api/client";
 import type { Course } from "@/entities/course/model/types";
 import type { Booking } from "@/entities/booking/model/types";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
@@ -16,6 +17,11 @@ import { dispatchDataUpdate } from "@/shared/lib/dataUpdateBus";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { t } from "@/shared/i18n";
 import { getTeacherDashboardContext } from "@/entities/profile/model/storage";
+import {
+  isTeacherScopeAccessError,
+  shouldRunTeacherScopedRequest,
+  TEACHER_UNAUTHORIZED_COOLDOWN_MS,
+} from "@/pages/teacher/model/lifecycleGuards";
 
 export type TeacherDashboardStudentCardData = {
   id: string;
@@ -49,6 +55,66 @@ type UseTeacherDashboardDataParams = {
   setBookingError: Dispatch<SetStateAction<string | null>>;
 };
 
+const mapAvailabilitySlots = (slots: AvailabilitySlot[]) => {
+  const normalized = slots.map((slot) => ({
+    id: slot.id,
+    date: slot.date,
+    startTime:
+      (slot as AvailabilitySlot & { time?: string }).startTime ??
+      (slot as AvailabilitySlot & { time?: string }).time ??
+      "",
+    endTime: slot.endTime ?? "",
+  }));
+  return normalizeFutureSlots(normalized);
+};
+
+const normalizeBookings = (
+  bookings: Booking[],
+  students: Array<{
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    photo?: string;
+  }>
+): Booking[] => {
+  const studentsById = new Map(students.map((student) => [student.id, student]));
+  return bookings.map((booking) => {
+    const student = studentsById.get(booking.studentId);
+    const normalizedBooking: Booking = {
+      ...booking,
+      lessonKind: booking.lessonKind === "trial" ? "trial" : "regular",
+      status:
+        booking.status === "rescheduled" ||
+        booking.status === "canceled" ||
+        booking.status === "completed" ||
+        booking.status === "no_show"
+          ? booking.status
+          : "scheduled",
+      paymentStatus: booking.paymentStatus === "paid" ? "paid" : "unpaid",
+    };
+    if (!student) return normalizedBooking;
+
+    const studentName =
+      `${student.firstName ?? ""} ${student.lastName ?? ""}`.trim() ||
+      normalizedBooking.studentName;
+    return {
+      ...normalizedBooking,
+      studentName,
+      studentEmail: student.email ?? normalizedBooking.studentEmail,
+      studentPhone: student.phone ?? normalizedBooking.studentPhone,
+      studentPhoto: student.photo ?? normalizedBooking.studentPhoto,
+    };
+  });
+};
+
+const isUnauthorizedApiError = (error: unknown) => {
+  if (isTeacherScopeAccessError(error)) return true;
+  if (!(error instanceof ApiError)) return false;
+  return error.status === 401 || error.status === 403;
+};
+
 export const useTeacherDashboardData = ({
   userId,
   isTeacher,
@@ -72,77 +138,204 @@ export const useTeacherDashboardData = ({
   setBookingLoading,
   setBookingError,
 }: UseTeacherDashboardDataParams) => {
-  const refreshAll = useCallback(async () => {
-    if (!userId || !isTeacher) {
-      setCourses([]);
-      setStudentCards([]);
-      setLessonCounts({});
-      setTestCounts({});
-      return;
-    }
-    try {
-      setDashboardLoading(true);
-      setDashboardError(null);
-      const context = await getTeacherDashboardContext();
-      const teacherCourses = context.courses;
-      const allLessons = context.lessons;
-      const studentUsers = context.students;
-      const counts = allLessons.reduce<Record<string, number>>((acc, lesson) => {
-        acc[lesson.courseId] = (acc[lesson.courseId] ?? 0) + 1;
-        return acc;
-      }, {});
-      const testsByCourse: Record<string, number> = {};
-      await Promise.all(
-        teacherCourses.map(async (course) => {
-          const lessonsForCourse = allLessons.filter(
-            (lesson) => lesson.courseId === course.id
-          );
-          const queue = await getCourseContentItems(course.id, lessonsForCourse);
-          testsByCourse[course.id] = queue.filter((item) => item.type === "test").length;
-        })
-      );
+  const hasPrimaryLoadRef = useRef(false);
+  const blockedUntilRef = useRef(0);
+  const contextRequestRef = useRef<
+    Promise<Awaited<ReturnType<typeof getTeacherDashboardContext>>> | null
+  >(null);
 
-      const cards: TeacherDashboardStudentCardData[] = studentUsers.map((student) => ({
-        id: student.id,
-        name: `${student.firstName} ${student.lastName}`,
-        email: student.email,
-        phone: student.phone,
-        photo: student.photo,
-      }));
-
-      setCourses(teacherCourses);
-      setStudentCards(cards);
-      setLessonCounts(counts);
-      setTestCounts(testsByCourse);
-    } catch {
-      setDashboardError(t("teacherDashboard.loadDashboardError"));
-      setTestCounts({});
-    } finally {
-      setDashboardLoading(false);
-    }
+  const clearTeacherScopedData = useCallback(() => {
+    setCourses([]);
+    setStudentCards([]);
+    setLessonCounts({});
+    setTestCounts({});
+    setAvailability([]);
+    setBookings([]);
+    setChatUnreadCount(0);
+    setStudentsWithFeedbackIds([]);
+    setChatThreadIdsByStudentId({});
+    setStudyNotes([]);
+    setStudyReminderCount(0);
   }, [
-    userId,
-    isTeacher,
+    setAvailability,
+    setBookings,
+    setChatThreadIdsByStudentId,
+    setChatUnreadCount,
     setCourses,
-    setStudentCards,
     setLessonCounts,
+    setStudentCards,
+    setStudentsWithFeedbackIds,
+    setStudyNotes,
+    setStudyReminderCount,
     setTestCounts,
-    setDashboardLoading,
-    setDashboardError,
   ]);
 
+  const markUnauthorizedStop = useCallback(() => {
+    blockedUntilRef.current = Date.now() + TEACHER_UNAUTHORIZED_COOLDOWN_MS;
+    setDashboardLoading(false);
+    setAvailabilityLoading(false);
+    setBookingLoading(false);
+    setDashboardError("Сессия преподавателя завершена. Войдите снова, чтобы продолжить.");
+    setAvailabilityError(null);
+    setBookingError(null);
+    clearTeacherScopedData();
+  }, [
+    clearTeacherScopedData,
+    setAvailabilityError,
+    setAvailabilityLoading,
+    setBookingError,
+    setBookingLoading,
+    setDashboardError,
+    setDashboardLoading,
+  ]);
+
+  const loadDashboardContext = useCallback(async () => {
+    if (contextRequestRef.current) {
+      return contextRequestRef.current;
+    }
+    const promise = getTeacherDashboardContext().finally(() => {
+      contextRequestRef.current = null;
+    });
+    contextRequestRef.current = promise;
+    return promise;
+  }, []);
+
+  const refreshAll = useCallback(
+    async (options?: { forceHardLoading?: boolean }) => {
+      if (
+        !shouldRunTeacherScopedRequest({
+          userId,
+          isTeacher,
+          blockedUntilTs: blockedUntilRef.current,
+        })
+      ) {
+        if (!userId || !isTeacher) {
+          hasPrimaryLoadRef.current = false;
+          blockedUntilRef.current = 0;
+          clearTeacherScopedData();
+          setDashboardLoading(false);
+          setAvailabilityLoading(false);
+          setBookingLoading(false);
+          setDashboardError(null);
+          setAvailabilityError(null);
+          setBookingError(null);
+        }
+        return;
+      }
+
+      const hardLoading = options?.forceHardLoading === true || !hasPrimaryLoadRef.current;
+      if (hardLoading) {
+        setDashboardLoading(true);
+        setAvailabilityLoading(true);
+        setBookingLoading(true);
+      }
+      if (hardLoading) {
+        setDashboardError(null);
+        setAvailabilityError(null);
+        setBookingError(null);
+      }
+
+      try {
+        const context = await loadDashboardContext();
+        blockedUntilRef.current = 0;
+
+        const teacherCourses = context.courses;
+        const allLessons = context.lessons;
+        const studentUsers = context.students;
+        const counts = allLessons.reduce<Record<string, number>>((acc, lesson) => {
+          acc[lesson.courseId] = (acc[lesson.courseId] ?? 0) + 1;
+          return acc;
+        }, {});
+
+        const testsByCourse: Record<string, number> = {};
+        await Promise.all(
+          teacherCourses.map(async (course) => {
+            const lessonsForCourse = allLessons.filter(
+              (lesson) => lesson.courseId === course.id
+            );
+            const queue = await getCourseContentItems(course.id, lessonsForCourse);
+            testsByCourse[course.id] = queue.filter((item) => item.type === "test").length;
+          })
+        );
+
+        const cards: TeacherDashboardStudentCardData[] = studentUsers.map((student) => ({
+          id: student.id,
+          name: `${student.firstName} ${student.lastName}`,
+          email: student.email,
+          phone: student.phone,
+          photo: student.photo,
+        }));
+
+        setCourses(teacherCourses);
+        setStudentCards(cards);
+        setLessonCounts(counts);
+        setTestCounts(testsByCourse);
+        setAvailability(mapAvailabilitySlots(context.availability));
+        setBookings(normalizeBookings(context.bookings, context.students));
+
+        hasPrimaryLoadRef.current = true;
+      } catch (error) {
+        if (isUnauthorizedApiError(error)) {
+          markUnauthorizedStop();
+          return;
+        }
+
+        setDashboardError(t("teacherDashboard.loadDashboardError"));
+        setAvailabilityError(t("teacherDashboard.loadSlotsError"));
+        setBookingError(t("teacherDashboard.loadBookingsError"));
+        if (hardLoading) {
+          setTestCounts({});
+        }
+      } finally {
+        if (hardLoading) {
+          setDashboardLoading(false);
+          setAvailabilityLoading(false);
+          setBookingLoading(false);
+        }
+      }
+    },
+    [
+      clearTeacherScopedData,
+      isTeacher,
+      loadDashboardContext,
+      markUnauthorizedStop,
+      setAvailability,
+      setAvailabilityError,
+      setAvailabilityLoading,
+      setBookingError,
+      setBookingLoading,
+      setBookings,
+      setCourses,
+      setDashboardError,
+      setDashboardLoading,
+      setLessonCounts,
+      setStudentCards,
+      setTestCounts,
+      userId,
+    ]
+  );
+
   const retryDashboardData = useCallback(() => {
-    void refreshAll();
+    blockedUntilRef.current = 0;
+    hasPrimaryLoadRef.current = false;
+    void refreshAll({ forceHardLoading: true });
     dispatchDataUpdate("teacher-dashboard-retry");
   }, [refreshAll]);
 
   const refreshChatUnread = useCallback(async () => {
-    if (!userId || !isTeacher) {
+    if (
+      !shouldRunTeacherScopedRequest({
+        userId,
+        isTeacher,
+        blockedUntilTs: blockedUntilRef.current,
+      })
+    ) {
       setChatUnreadCount(0);
       setStudentsWithFeedbackIds([]);
       setChatThreadIdsByStudentId({});
       return;
     }
+
     try {
       const threads = await getTeacherChatThreads();
       const unread = threads.reduce(
@@ -158,17 +351,20 @@ export const useTeacherDashboardData = ({
       setChatUnreadCount(unread);
       setStudentsWithFeedbackIds(Array.from(feedbackStudentIds));
       setChatThreadIdsByStudentId(nextThreadIdsByStudentId);
-    } catch {
+    } catch (error) {
+      if (isUnauthorizedApiError(error)) {
+        blockedUntilRef.current = Date.now() + TEACHER_UNAUTHORIZED_COOLDOWN_MS;
+      }
       setChatUnreadCount(0);
       setStudentsWithFeedbackIds([]);
       setChatThreadIdsByStudentId({});
     }
   }, [
-    userId,
     isTeacher,
+    setChatThreadIdsByStudentId,
     setChatUnreadCount,
     setStudentsWithFeedbackIds,
-    setChatThreadIdsByStudentId,
+    userId,
   ]);
 
   const syncStudyNotes = useCallback(() => {
@@ -183,7 +379,32 @@ export const useTeacherDashboardData = ({
   }, [userId, isTeacher, setStudyNotes, setStudyReminderCount]);
 
   useEffect(() => {
-    Promise.resolve().then(() => void refreshAll());
+    hasPrimaryLoadRef.current = false;
+    blockedUntilRef.current = 0;
+    contextRequestRef.current = null;
+    if (!userId || !isTeacher) {
+      clearTeacherScopedData();
+      setDashboardLoading(false);
+      setAvailabilityLoading(false);
+      setBookingLoading(false);
+      setDashboardError(null);
+      setAvailabilityError(null);
+      setBookingError(null);
+    }
+  }, [
+    clearTeacherScopedData,
+    isTeacher,
+    setAvailabilityError,
+    setAvailabilityLoading,
+    setBookingError,
+    setBookingLoading,
+    setDashboardError,
+    setDashboardLoading,
+    userId,
+  ]);
+
+  useEffect(() => {
+    void refreshAll({ forceHardLoading: true });
     const unsubscribe = subscribeAppDataUpdates(() => {
       void refreshAll();
     });
@@ -217,17 +438,6 @@ export const useTeacherDashboardData = ({
   }, [syncStudyNotes]);
 
   useEffect(() => {
-    if (tab !== 4) return;
-    syncStudyNotes();
-    const unsubscribe = subscribeAppDataUpdates(() => {
-      syncStudyNotes();
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, [tab, syncStudyNotes]);
-
-  useEffect(() => {
     if (tab !== 4 || !userId || !isTeacher) return;
     let lastMarkAt = Date.now();
     const intervalId = window.setInterval(() => {
@@ -255,117 +465,6 @@ export const useTeacherDashboardData = ({
       setStudyActivityVersion((prev) => prev + 1);
     };
   }, [tab, userId, isTeacher, setStudyActivityVersion]);
-
-  useEffect(() => {
-    if (!userId || !isTeacher) {
-      setAvailability([]);
-      return;
-    }
-    let active = true;
-    const loadAvailability = async () => {
-      setAvailabilityLoading(true);
-      setAvailabilityError(null);
-      try {
-        const context = await getTeacherDashboardContext();
-        const slots = context.availability;
-        if (!active) return;
-        const normalized = slots.map((slot) => ({
-          id: slot.id,
-          date: slot.date,
-          startTime:
-            (slot as AvailabilitySlot & { time?: string }).startTime ??
-            (slot as AvailabilitySlot & { time?: string }).time ??
-            "",
-          endTime: slot.endTime ?? "",
-        }));
-        setAvailability(normalizeFutureSlots(normalized));
-      } catch {
-        if (!active) return;
-        setAvailabilityError(t("teacherDashboard.loadSlotsError"));
-      } finally {
-        if (active) setAvailabilityLoading(false);
-      }
-    };
-    void loadAvailability();
-    const unsubscribe = subscribeAppDataUpdates(() => {
-      void loadAvailability();
-    });
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, [
-    userId,
-    isTeacher,
-    setAvailability,
-    setAvailabilityLoading,
-    setAvailabilityError,
-  ]);
-
-  useEffect(() => {
-    if (!userId || !isTeacher) {
-      setBookings([]);
-      return;
-    }
-    let active = true;
-    const loadBookings = async () => {
-      setBookingLoading(true);
-      setBookingError(null);
-      try {
-        const context = await getTeacherDashboardContext();
-        const data = context.bookings;
-        const students = context.students;
-        if (!active) return;
-        const studentsById = new Map(students.map((student) => [student.id, student]));
-        const normalized = data.map((booking) => {
-          const student = studentsById.get(booking.studentId);
-          const normalizedBooking: Booking = {
-            ...booking,
-            lessonKind: booking.lessonKind === "trial" ? "trial" : "regular",
-            status:
-              booking.status === "rescheduled" ||
-              booking.status === "canceled" ||
-              booking.status === "completed" ||
-              booking.status === "no_show"
-                ? booking.status
-                : "scheduled",
-            paymentStatus: booking.paymentStatus === "paid" ? "paid" : "unpaid",
-          };
-          if (!student) return normalizedBooking;
-          const studentName =
-            `${student.firstName ?? ""} ${student.lastName ?? ""}`.trim() ||
-            normalizedBooking.studentName;
-          return {
-            ...normalizedBooking,
-            studentName,
-            studentEmail: student.email ?? normalizedBooking.studentEmail,
-            studentPhone: student.phone ?? normalizedBooking.studentPhone,
-            studentPhoto: student.photo ?? normalizedBooking.studentPhoto,
-          };
-        });
-        setBookings(normalized);
-      } catch {
-        if (!active) return;
-        setBookingError(t("teacherDashboard.loadBookingsError"));
-      } finally {
-        if (active) setBookingLoading(false);
-      }
-    };
-    void loadBookings();
-    const unsubscribe = subscribeAppDataUpdates(() => {
-      void loadBookings();
-    });
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, [
-    userId,
-    isTeacher,
-    setBookings,
-    setBookingLoading,
-    setBookingError,
-  ]);
 
   return {
     refreshAll,

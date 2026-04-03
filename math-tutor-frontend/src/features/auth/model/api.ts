@@ -1,4 +1,4 @@
-import { api, isRecoverableApiError } from "@/shared/api/client";
+import { ApiError, api, isRecoverableApiError } from "@/shared/api/client";
 import type { User } from "@/entities/user/model/types";
 import { enqueueOutboxRequest } from "@/shared/lib/outbox";
 import { t } from "@/shared/i18n";
@@ -215,14 +215,25 @@ export async function getUsers(
     return getPublicTeachers();
   }
   if (role === "student") {
-    const context = await api.get<TeacherDashboardContextResponseContract>(
-      "/teacher/context",
-      {
-        dedupe: options?.forceFresh ? false : undefined,
-        cacheTtlMs: options?.forceFresh ? 0 : undefined,
+    const authUser = readStorage<User | null>(AUTH_STORAGE_KEY, null);
+    if (!authUser || authUser.role !== "teacher") {
+      return [];
+    }
+    try {
+      const context = await api.get<TeacherDashboardContextResponseContract>(
+        "/teacher/context",
+        {
+          dedupe: options?.forceFresh ? false : undefined,
+          cacheTtlMs: options?.forceFresh ? 0 : undefined,
+        }
+      );
+      return context.students;
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        return [];
       }
-    );
-    return context.students;
+      throw error;
+    }
   }
   return [];
 }

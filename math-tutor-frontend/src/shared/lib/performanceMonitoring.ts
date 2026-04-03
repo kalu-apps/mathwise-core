@@ -38,7 +38,7 @@ const THRESHOLDS = {
 } as const;
 
 const IS_DEV = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
-const LOG_THROTTLE_WINDOW_MS = 8_000;
+const LOG_THROTTLE_WINDOW_MS = 30_000;
 const metricLogAtByKey = new Map<string, number>();
 
 const getPerfContext = () => {
