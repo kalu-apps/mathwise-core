@@ -20,8 +20,14 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import PlayCircleFilledWhiteRoundedIcon from "@mui/icons-material/PlayCircleFilledWhiteRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { generateId } from "@/shared/lib/id";
 import { formatLessonDuration, videoSecondsToStoredMinutes } from "@/shared/lib/duration";
 import { t } from "@/shared/i18n";
@@ -345,13 +351,6 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
     setPreviewUrl(null);
     setPreviewExternalHref(null);
     resetLocalPreview();
-  };
-
-  const resolveMaterialStatus = (material: EditableLessonMaterial) => {
-    if (material.file) return "Готов к загрузке";
-    if (material.mediaObjectId) return "Готово";
-    if (material.url) return "Внешний источник";
-    return "Требуется файл";
   };
 
   const canPreviewMaterial = (material: EditableLessonMaterial) =>
@@ -744,7 +743,29 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
               {materials.length > 0 && (
                 <Box className="lesson-editor__materials-grid">
                   {materials.map((m) => (
-                    <Box key={m.id} className="lesson-editor__material-card">
+                    <Box
+                      key={m.id}
+                      className={`lesson-editor__material-card ${
+                        canPreviewMaterial(m) ? "is-clickable" : "is-disabled"
+                      }`}
+                      role={canPreviewMaterial(m) ? "button" : undefined}
+                      tabIndex={canPreviewMaterial(m) ? 0 : undefined}
+                      aria-label={
+                        canPreviewMaterial(m)
+                          ? `Открыть предпросмотр материала ${m.name}`
+                          : undefined
+                      }
+                      onClick={() => {
+                        if (!canPreviewMaterial(m)) return;
+                        void handleOpenMaterialPreview(m);
+                      }}
+                      onKeyDown={(event: ReactKeyboardEvent<HTMLDivElement>) => {
+                        if (!canPreviewMaterial(m)) return;
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
+                        void handleOpenMaterialPreview(m);
+                      }}
+                    >
                       <Stack
                         direction="row"
                         justifyContent="space-between"
@@ -764,7 +785,18 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                           ) : (
                             <DescriptionIcon fontSize="small" />
                           )}
-                          <Typography variant="subtitle2" noWrap>
+                          <Typography
+                            component={canPreviewMaterial(m) ? "button" : "span"}
+                            type={canPreviewMaterial(m) ? "button" : undefined}
+                            variant="subtitle2"
+                            noWrap
+                            className="lesson-editor__material-card-name"
+                            onClick={(event: ReactMouseEvent<HTMLElement>) => {
+                              event.stopPropagation();
+                              if (!canPreviewMaterial(m)) return;
+                              void handleOpenMaterialPreview(m);
+                            }}
+                          >
                             {m.name}
                           </Typography>
                         </Stack>
@@ -772,41 +804,16 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                           <IconButton
                             size="small"
                             className="lesson-editor__material-card-remove"
-                            onClick={() => handleRemoveMaterial(m.id)}
+                            onClick={(event: ReactMouseEvent<HTMLButtonElement>) => {
+                              event.stopPropagation();
+                              handleRemoveMaterial(m.id);
+                            }}
                             aria-label="Удалить материал"
                           >
                             <CloseRoundedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       </Stack>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        className="lesson-editor__material-card-status"
-                      >
-                        {resolveMaterialStatus(m)}
-                      </Typography>
-                      <Box className="lesson-editor__material-card-actions">
-                        <Tooltip
-                          title={m.type === "pdf" ? "Предпросмотр" : "Открыть файл"}
-                        >
-                          <span>
-                            <IconButton
-                              size="small"
-                              className="lesson-editor__material-card-preview"
-                              onClick={() => void handleOpenMaterialPreview(m)}
-                              disabled={!canPreviewMaterial(m)}
-                              aria-label={
-                                m.type === "pdf"
-                                  ? "Открыть предпросмотр файла"
-                                  : "Открыть файл"
-                              }
-                            >
-                              <VisibilityRoundedIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                      </Box>
                     </Box>
                   ))}
                 </Box>

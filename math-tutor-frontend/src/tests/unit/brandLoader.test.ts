@@ -11,7 +11,7 @@ describe("brand loader", () => {
 
     expect(markup).toContain("data-loader=\"brand-matrix\"");
     expect(markup).toContain("ui-loader-brand--md");
-    expect(markup.match(/data-brand-cell=/g)?.length).toBe(10);
+    expect(markup.match(/data-brand-cell=/g)?.length).toBe(25);
   });
 
   it("supports size variants and visibility state", () => {

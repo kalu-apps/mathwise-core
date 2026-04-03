@@ -1,12 +1,12 @@
 .ui-loader-brand {
-  --loader-size: 64px;
+  --loader-size: 160px;
   position: relative;
   width: var(--loader-size);
-  height: calc(var(--loader-size) * 0.56);
+  height: var(--loader-size);
   display: inline-grid;
   place-items: center;
   opacity: 0;
-  transform: translateY(2px) scale(0.96);
+  transform: translateY(4px) scale(0.96);
   transition: opacity 180ms ease, transform 220ms ease;
 }
 
@@ -16,15 +16,30 @@
 }
 
 .ui-loader-brand--sm {
-  --loader-size: 42px;
+  --loader-size: clamp(84px, 10vw, 120px);
 }
 
 .ui-loader-brand--md {
-  --loader-size: 64px;
+  --loader-size: clamp(140px, 18vw, 220px);
 }
 
 .ui-loader-brand--lg {
-  --loader-size: clamp(70px, 8.4vw, 96px);
+  --loader-size: clamp(300px, 48vw, 620px);
+}
+
+.ui-loader--page {
+  min-height: clamp(360px, 64vh, 860px);
+}
+
+.ui-loader--page .ui-loader__content {
+  min-height: inherit;
+  width: 100%;
+  align-items: center;
+  justify-items: center;
+}
+
+.ui-loader--page .ui-loader-brand {
+  margin-inline: auto;
 }
 
 .ui-loader-brand__svg {
@@ -35,40 +50,106 @@
 }
 
 .ui-loader-brand__cell {
-  fill: color-mix(in srgb, var(--brand-solid) 26%, var(--surface-elevated));
-  stroke: color-mix(in srgb, var(--brand-violet) 22%, var(--border-subtle));
-  stroke-width: 0.8;
-  opacity: 0.34;
-  animation: ds-brand-loader-wave 1.85s cubic-bezier(0.4, 0.05, 0.2, 1) infinite;
+  fill: color-mix(in srgb, var(--surface-popover) 90%, transparent);
+  stroke: color-mix(in srgb, var(--feedback-info) 42%, var(--border-strong));
+  stroke-width: 1.24;
+  opacity: 0.36;
+  animation: ds-brand-loader-wave 2.4s cubic-bezier(0.4, 0.08, 0.2, 1) infinite;
   animation-delay: var(--cell-delay, 0ms);
 }
 
-.ui-loader-brand__cell:nth-child(5),
-.ui-loader-brand__cell:nth-child(6),
-.ui-loader-brand__cell:nth-child(9) {
-  fill: color-mix(in srgb, var(--feedback-info) 30%, var(--brand-solid));
+.ui-loader-brand__cell.is-core {
+  fill: color-mix(in srgb, var(--brand-soft) 34%, var(--surface-popover));
+  stroke: color-mix(in srgb, var(--feedback-info) 56%, var(--brand-solid));
+  stroke-width: 1.46;
+}
+
+.ui-loader-brand__grid-line {
+  stroke: color-mix(in srgb, var(--feedback-info) 30%, var(--border-subtle));
+  stroke-width: 1.02;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.34;
+  animation: ds-brand-loader-grid 4.8s ease-in-out infinite;
+  animation-delay: var(--line-delay, 0ms);
+}
+
+.ui-loader-brand__grid-line.is-diagonal {
+  stroke-dasharray: 4 6;
+  opacity: 0.24;
+}
+
+.ui-loader-brand__node {
+  fill: color-mix(in srgb, var(--feedback-info) 46%, var(--surface-popover));
+  opacity: 0.42;
+  animation: ds-brand-loader-node 2.9s ease-in-out infinite;
+  animation-delay: var(--node-delay, 0ms);
+}
+
+.ui-loader-brand__center-mark {
+  stroke: color-mix(in srgb, var(--feedback-info) 76%, var(--brand-violet));
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  opacity: 0.82;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--feedback-info) 30%, transparent));
 }
 
 .ui-loader__inline-brand {
   justify-self: center;
-  margin-top: 2px;
+  margin-top: 6px;
+}
+
+.ui-loader--section .ui-loader-brand--sm {
+  --loader-size: clamp(68px, 8vw, 102px);
 }
 
 @keyframes ds-brand-loader-wave {
   0%,
   100% {
-    opacity: 0.32;
-    fill: color-mix(in srgb, var(--brand-solid) 24%, var(--surface-elevated));
+    opacity: 0.3;
+    transform: rotate(45deg) scale(0.86);
+    fill: color-mix(in srgb, var(--surface-popover) 90%, transparent);
+    stroke: color-mix(in srgb, var(--feedback-info) 40%, var(--border-subtle));
   }
   52% {
-    opacity: 0.98;
-    fill: color-mix(in srgb, var(--feedback-info) 44%, var(--brand-solid));
+    opacity: 0.95;
+    transform: rotate(45deg) scale(1.08);
+    fill: color-mix(in srgb, var(--brand-soft) 38%, var(--surface-popover));
+    stroke: color-mix(in srgb, var(--feedback-info) 68%, var(--brand-solid));
+  }
+}
+
+@keyframes ds-brand-loader-grid {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  45% {
+    opacity: 0.42;
+  }
+}
+
+@keyframes ds-brand-loader-node {
+  0%,
+  100% {
+    opacity: 0.24;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.26);
   }
 }
 
 :root[data-performance-mode="degraded"] .ui-loader-brand__cell {
   animation: none !important;
   opacity: 0.76;
+}
+
+:root[data-performance-mode="degraded"] .ui-loader-brand__grid-line,
+:root[data-performance-mode="degraded"] .ui-loader-brand__node {
+  animation: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -80,5 +161,10 @@
   .ui-loader-brand__cell {
     animation: none !important;
     opacity: 0.76;
+  }
+
+  .ui-loader-brand__grid-line,
+  .ui-loader-brand__node {
+    animation: none !important;
   }
 }

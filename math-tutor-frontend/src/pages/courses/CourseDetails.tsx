@@ -1248,24 +1248,24 @@ export default function CourseDetails() {
           {getCheckoutStatusLabel(resumeCheckout.state)}.
         </Alert>
       )}
-      <div className="course-details__offer">
-        <ul className="course-details__offer-list">
-          <li>Проверка домашних заданий и обратная связь</li>
-          <li>Индивидуальные консультации по темам</li>
-          <li>Приоритетные ответы преподавателя</li>
-        </ul>
+      <div className="course-details__offer course-details__offer--premium">
         <div className="course-details__card course-details__card--premium">
           <div className="course-details__card-header">
             <Star className="course-details__card-icon" />
             <span>Премиум</span>
           </div>
+          <p className="course-details__card-plan">С обратной связью и проверкой</p>
           <div className="course-details__card-price">
             {course.priceGuided} ₽
             <Diamond className="course-details__premium-icon" />
           </div>
+          <ul className="course-details__benefits">
+            <li>Проверка домашних заданий и обратная связь</li>
+            <li>Индивидуальные консультации по темам</li>
+            <li>Приоритетные ответы преподавателя</li>
+          </ul>
           <div className="course-details__card-tooltip">
-            {guidedBnplLine}
-            {" • "}
+            <span className="course-details__installment-line">{guidedBnplLine}</span>
             <button
               type="button"
               className="course-details__inline-link"
@@ -1288,21 +1288,21 @@ export default function CourseDetails() {
         </div>
       </div>
 
-      <div className="course-details__offer">
-        <ul className="course-details__offer-list">
-          <li>Видеоуроки 24/7 в удобном темпе</li>
-          <li>Дополнительные материалы и конспекты</li>
-          <li>Доступ к курсу с любого устройства</li>
-        </ul>
+      <div className="course-details__offer course-details__offer--basic">
         <div className="course-details__card course-details__card--basic">
           <div className="course-details__card-header">
             <RocketLaunch className="course-details__card-icon" />
             <span>Базовый</span>
           </div>
+          <p className="course-details__card-plan">Самостоятельный формат</p>
           <div className="course-details__card-price">{course.priceSelf} ₽</div>
+          <ul className="course-details__benefits">
+            <li>Видеоуроки 24/7 в удобном темпе</li>
+            <li>Дополнительные материалы и конспекты</li>
+            <li>Доступ к курсу с любого устройства</li>
+          </ul>
           <div className="course-details__card-tooltip">
-            {selfBnplLine}
-            {" • "}
+            <span className="course-details__installment-line">{selfBnplLine}</span>
             <button
               type="button"
               className="course-details__inline-link"

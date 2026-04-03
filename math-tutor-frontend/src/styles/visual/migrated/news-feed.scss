@@ -251,11 +251,21 @@
 .news-feed__empty-title {
   font-weight: 700;
   color: var(--text-primary);
+  border: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 
 .news-feed__empty-caption {
   max-width: 42ch;
   line-height: 1.45;
+  border: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 
 .news-feed__empty--plain {

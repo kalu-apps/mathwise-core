@@ -16,6 +16,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import LockIcon from "@mui/icons-material/Lock";
 import DiamondRoundedIcon from "@mui/icons-material/DiamondRounded";
+import Grid4x4RoundedIcon from "@mui/icons-material/Grid4x4Rounded";
 
 import type { Course } from "@/entities/course/model/types";
 
@@ -52,6 +53,8 @@ type Props = {
 
 const clampPercent = (value: number) =>
   Math.max(0, Math.min(100, Math.round(value)));
+
+const formatPriceRub = (value: number) => `${value.toLocaleString("ru-RU")} ₽`;
 
 const buildProgressVisual = (value: number) => {
   const percent = clampPercent(value);
@@ -285,57 +288,136 @@ export function CourseCard({
 
         {/* Цены с одинаковым отступом */}
         {showPrices ? (
-          <Stack direction="column" spacing={0.5} sx={{ mb: 1 }}>
-            <Typography
-              variant="body2"
+          <Box
+            sx={{
+              mb: 1.2,
+              display: "grid",
+              gap: 0.8,
+            }}
+          >
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="baseline"
+              flexWrap="wrap"
+              spacing={1}
               sx={{
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                color: "var(--text-primary)",
+                lineHeight: 1.2,
               }}
             >
-              С обратной связью: {course.priceGuided} ₽
-              <Tooltip title="Преподаватель проверяет задания и отвечает на вопросы студента">
-                <InfoOutlinedIcon
-                  fontSize="small"
-                  sx={{ ml: 0.5, color: "var(--price-icon-color)" }}
-                />
-              </Tooltip>
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                color: "var(--text-primary)",
-              }}
-            >
-              Без обратной связи: {course.priceSelf} ₽
-            </Typography>
-            {!isTeacherView && bnplAvailable && (
-              <Chip
-                size="small"
-                label={
-                  bnplFromAmount
-                    ? `Оплата частями: от ${bnplFromAmount} ₽ в месяц`
-                    : "Оплата частями доступна"
-                }
+              <Stack direction="row" spacing={0.55} alignItems="center">
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: 11,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    fontWeight: 700,
+                    color: "var(--price-title-color)",
+                  }}
+                >
+                  С обратной связью
+                </Typography>
+                <Tooltip title="Преподаватель проверяет задания и отвечает на вопросы студента">
+                  <InfoOutlinedIcon
+                    fontSize="inherit"
+                    sx={{
+                      fontSize: 14,
+                      color: "var(--price-icon-color)",
+                      opacity: 0.88,
+                    }}
+                  />
+                </Tooltip>
+              </Stack>
+              <Typography
+                component="strong"
                 sx={{
-                  mt: 0.4,
-                  alignSelf: "flex-start",
-                  borderRadius: 999,
-                  fontWeight: 700,
-                  letterSpacing: "0.01em",
-                  border: "1px solid color-mix(in srgb, var(--brand-soft) 40%, var(--border-strong))",
-                  background:
-                    "linear-gradient(145deg, color-mix(in srgb, var(--brand-solid) 18%, transparent), color-mix(in srgb, var(--brand-mint) 16%, transparent))",
-                  color: "var(--text-primary)",
+                  fontSize: { xs: 24, md: 26 },
+                  fontWeight: 900,
+                  lineHeight: 1,
+                  letterSpacing: "-0.02em",
+                  color: "var(--price-value-color)",
+                  textShadow:
+                    "0 10px 18px color-mix(in srgb, var(--feedback-info) 14%, transparent)",
                 }}
-              />
+              >
+                {formatPriceRub(course.priceGuided)}
+              </Typography>
+            </Stack>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="baseline"
+              flexWrap="wrap"
+              spacing={1}
+              sx={{
+                lineHeight: 1.2,
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  fontSize: 11,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  fontWeight: 700,
+                  color: "color-mix(in srgb, var(--text-secondary) 90%, var(--accent-soft))",
+                }}
+              >
+                Без обратной связи
+              </Typography>
+              <Typography
+                component="span"
+                sx={{
+                  fontSize: { xs: 18, md: 19 },
+                  fontWeight: 760,
+                  lineHeight: 1,
+                  letterSpacing: "-0.01em",
+                  color: "color-mix(in srgb, var(--text-primary) 92%, var(--accent-soft))",
+                }}
+              >
+                {formatPriceRub(course.priceSelf)}
+              </Typography>
+            </Stack>
+            {!isTeacherView && bnplAvailable && (
+              <Stack
+                direction="row"
+                spacing={0.7}
+                alignItems="center"
+                sx={{
+                  alignSelf: "flex-start",
+                  mt: 0.1,
+                  fontWeight: 650,
+                  lineHeight: 1.35,
+                  color: "var(--accent-text)",
+                  textShadow:
+                    "0 6px 18px color-mix(in srgb, var(--feedback-info) 14%, transparent)",
+                }}
+              >
+                <Grid4x4RoundedIcon
+                  sx={{
+                    fontSize: 15,
+                    color: "color-mix(in srgb, var(--feedback-info) 76%, var(--brand-violet))",
+                    filter:
+                      "drop-shadow(0 3px 10px color-mix(in srgb, var(--feedback-info) 30%, transparent))",
+                  }}
+                />
+                <Typography
+                  component="span"
+                  sx={{
+                    fontSize: 13,
+                    fontWeight: 680,
+                    letterSpacing: "0.01em",
+                    color: "color-mix(in srgb, var(--text-primary) 94%, var(--accent-soft))",
+                  }}
+                >
+                  {bnplFromAmount
+                    ? `Оплата частями · от ${bnplFromAmount.toLocaleString("ru-RU")} ₽ / мес`
+                    : "Оплата частями доступна"}
+                </Typography>
+              </Stack>
             )}
-          </Stack>
+          </Box>
         ) : null}
 
         {/* Мета информация с статусом на одной линии */}

@@ -82,56 +82,84 @@
 }
 
 .lesson-editor__material-card {
+  position: relative;
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   background: var(--surface-translucent);
-  padding: 10px;
+  padding: 10px 42px 10px 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 118px;
+  gap: 6px;
+  min-height: 72px;
   min-width: 0;
   overflow: hidden;
+  transition: border-color 160ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.lesson-editor__material-card.is-clickable {
+  cursor: pointer;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--feedback-info) 42%, var(--border-subtle));
+    box-shadow: 0 7px 16px color-mix(in srgb, var(--feedback-info) 10%, transparent);
+    background: color-mix(in srgb, var(--surface-elevated) 92%, var(--surface-translucent));
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: color-mix(in srgb, var(--feedback-info) 62%, var(--brand-solid));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--feedback-info) 22%, transparent);
+  }
+}
+
+.lesson-editor__material-card.is-disabled {
+  opacity: 0.72;
+  cursor: default;
 }
 
 .lesson-editor__material-card-head {
   min-width: 0;
+  align-items: center !important;
 }
 
 .lesson-editor__material-card-file {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+}
+
+.lesson-editor__material-card-name {
+  all: unset;
+  width: 100%;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary);
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    color: color-mix(in srgb, var(--feedback-info) 72%, var(--text-primary));
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  &:focus-visible {
+    border-radius: 6px;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--feedback-info) 30%, transparent);
+  }
 }
 
 .lesson-editor__material-card-remove {
+  position: absolute !important;
+  top: 7px;
+  right: 7px;
   flex-shrink: 0 !important;
-}
-
-.lesson-editor__material-card-status {
-  min-height: 18px;
-}
-
-.lesson-editor__material-card-actions {
-  margin-top: auto;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.lesson-editor__material-card-preview {
-  width: 32px !important;
-  height: 32px !important;
-  border-radius: 10px !important;
-  border: 1px solid color-mix(in srgb, var(--brand-solid) 28%, var(--border-subtle));
-  background: color-mix(in srgb, var(--surface-elevated) 90%, transparent) !important;
-
-  .MuiSvgIcon-root {
-    font-size: 18px;
-  }
-
-  &.Mui-disabled {
-    border-color: color-mix(in srgb, var(--border-subtle) 88%, transparent);
-  }
+  background: color-mix(in srgb, var(--surface-popover) 86%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 86%, transparent) !important;
 }
 
 .lesson-editor__preview-content {
