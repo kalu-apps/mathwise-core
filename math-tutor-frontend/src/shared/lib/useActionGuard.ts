@@ -9,6 +9,7 @@ import {
 type GuardRunOptions = {
   lockKey?: string;
   timeoutMs?: number;
+  onTimeout?: () => void;
   retry?: {
     id?: string;
     label?: string;
@@ -18,7 +19,7 @@ type GuardRunOptions = {
 
 const DEFAULT_ACTION_TIMEOUT_MS = 30_000;
 const MIN_ACTION_TIMEOUT_MS = 3_000;
-const MAX_ACTION_TIMEOUT_MS = 120_000;
+const MAX_ACTION_TIMEOUT_MS = 600_000;
 
 const globalActionLocks = new Set<string>();
 export const APP_ACTION_GUARD_EVENT = "app-action-guard";
@@ -127,6 +128,11 @@ export const useActionGuard = () => {
       try {
         const timeoutPromise = new Promise<never>((_, reject) => {
           timeoutId = globalThis.setTimeout(() => {
+            try {
+              options.onTimeout?.();
+            } catch {
+              // ignore timeout callback failures
+            }
             reject(new ActionGuardTimeoutError(timeoutMs));
           }, timeoutMs);
         });

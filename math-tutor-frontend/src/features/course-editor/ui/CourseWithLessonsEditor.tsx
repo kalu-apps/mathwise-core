@@ -459,7 +459,15 @@ export function CourseWithLessonsEditor({
   );
 
   const queueLessonVideoProcessing = useCallback(
-    async (lesson: LessonDraft): Promise<LessonDraft> => {
+    async (
+      lesson: LessonDraft,
+      options?: {
+        signal?: AbortSignal;
+      }
+    ): Promise<LessonDraft> => {
+      if (options?.signal?.aborted) {
+        throw new DOMException("Save cancelled", "AbortError");
+      }
       const preflight = preflightLessonVideo({
         lessonTitle: lesson.title,
         videoFile: lesson.videoFile,
@@ -478,7 +486,12 @@ export function CourseWithLessonsEditor({
         videoUrl: lesson.videoUrl,
         videoStreamUrl: lesson.videoStreamUrl,
         videoPosterUrl: lesson.videoPosterUrl,
+      }, {
+        signal: options?.signal,
       });
+      if (options?.signal?.aborted) {
+        throw new DOMException("Save cancelled", "AbortError");
+      }
       return {
         ...lesson,
         videoFile: null,
@@ -525,13 +538,21 @@ export function CourseWithLessonsEditor({
     };
   }, [applyMediaJobStateToLesson, lessons]);
 
-  const handleSaveLesson = async (lesson: LessonDraft) => {
+  const handleSaveLesson = async (
+    lesson: LessonDraft,
+    options?: {
+      signal?: AbortSignal;
+    }
+  ) => {
     setSaveError(null);
     const normalizedLessonBase: LessonDraft = {
       ...lesson,
       id: lesson.id ?? generateId(),
     };
-    const normalizedLesson = await queueLessonVideoProcessing(normalizedLessonBase);
+    const normalizedLesson = await queueLessonVideoProcessing(normalizedLessonBase, options);
+    if (options?.signal?.aborted) {
+      throw new DOMException("Save cancelled", "AbortError");
+    }
     const nextLessons =
       editingIndex === null
         ? [...lessons, normalizedLesson]
@@ -544,6 +565,9 @@ export function CourseWithLessonsEditor({
       nextLessons,
       defaultBlockId
     );
+    if (options?.signal?.aborted) {
+      throw new DOMException("Save cancelled", "AbortError");
+    }
     setLessons(nextLessons);
     setCourseContentItems(nextQueue);
     if (!isEditMode) {

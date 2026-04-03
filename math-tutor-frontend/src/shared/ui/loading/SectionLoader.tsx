@@ -1,5 +1,6 @@
 import { Skeleton } from "@mui/material";
 import { useDelayedLoading } from "@/shared/lib/useDelayedLoading";
+import { BrandLoader } from "./BrandLoader";
 
 type SectionLoaderProps = {
   className?: string;
@@ -46,7 +47,7 @@ export function SectionLoader({
         ))}
       </div>
       {showRing && showLongWaitRing ? (
-        <div className="ui-loader__inline-ring" aria-hidden="true" />
+        <BrandLoader size="sm" className="ui-loader__inline-brand" />
       ) : null}
     </div>
   );

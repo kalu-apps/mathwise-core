@@ -510,6 +510,15 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
         const apiError =
           error instanceof ApiError
             ? error
+            : options.signal?.aborted
+            ? new ApiError(
+                "Запрос отменен пользователем.",
+                0,
+                { requestId, path, method },
+                "unknown",
+                requestId,
+                false
+              )
             : timedOut
             ? new ApiError(
                 "Превышено время ожидания ответа сервера.",
@@ -603,21 +612,24 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 export const api = {
   get: <T>(
     path: string,
-    options?: Pick<RequestOptions, "headers" | "dedupe" | "cacheTtlMs" | "staleIfErrorMs">
+    options?: Pick<
+      RequestOptions,
+      "headers" | "dedupe" | "cacheTtlMs" | "staleIfErrorMs" | "signal" | "timeoutMs"
+    >
   ) => request<T>(path, { method: "GET", ...options }),
   post: <T>(
     path: string,
     body?: unknown,
-    options?: Pick<RequestOptions, "notifyDataUpdate" | "headers">
+    options?: Pick<RequestOptions, "notifyDataUpdate" | "headers" | "signal" | "timeoutMs">
   ) => request<T>(path, { method: "POST", body, ...options }),
   put: <T>(
     path: string,
     body?: unknown,
-    options?: Pick<RequestOptions, "notifyDataUpdate" | "headers">
+    options?: Pick<RequestOptions, "notifyDataUpdate" | "headers" | "signal" | "timeoutMs">
   ) => request<T>(path, { method: "PUT", body, ...options }),
   del: <T>(
     path: string,
-    options?: Pick<RequestOptions, "notifyDataUpdate" | "headers">
+    options?: Pick<RequestOptions, "notifyDataUpdate" | "headers" | "signal" | "timeoutMs">
   ) =>
     request<T>(path, { method: "DELETE", ...options }),
 };

@@ -1,5 +1,6 @@
 import { useDelayedLoading } from "@/shared/lib/useDelayedLoading";
 import { t } from "@/shared/i18n";
+import { BrandLoader } from "./BrandLoader";
 
 type PageLoaderProps = {
   title?: string;
@@ -38,12 +39,7 @@ export function PageLoader({
       aria-label={title}
     >
       <div className="ui-loader__content">
-        <div
-          className={`ui-loader__spinner ${showRing ? "is-visible" : ""}`}
-          aria-hidden="true"
-        >
-          <span className="ui-loader__spinner-core" />
-        </div>
+        <BrandLoader size="lg" visible={showRing} />
       </div>
     </section>
   );

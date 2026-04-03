@@ -112,12 +112,18 @@ describe("mediaPipeline", () => {
       "/media/upload-url",
       expect.objectContaining({
         category: "lesson-video",
+      }),
+      expect.objectContaining({
+        signal: undefined,
       })
     );
     expect(postMock).toHaveBeenNthCalledWith(
       2,
       "/media/media_lesson_1/complete",
-      expect.any(Object)
+      expect.any(Object),
+      expect.objectContaining({
+        signal: undefined,
+      })
     );
   });
 
@@ -176,7 +182,10 @@ describe("mediaPipeline", () => {
     expect(result.status).toBe("failed");
     expect(postMock).toHaveBeenCalledWith(
       "/media/media_lesson_failed/finalize-failed",
-      {}
+      {},
+      expect.objectContaining({
+        signal: undefined,
+      })
     );
   });
 
@@ -247,6 +256,9 @@ describe("mediaPipeline", () => {
       "/media/multipart/initiate",
       expect.objectContaining({
         category: "lesson-video",
+      }),
+      expect.objectContaining({
+        signal: undefined,
       })
     );
     expect(postMock).toHaveBeenCalledWith(
@@ -254,6 +266,9 @@ describe("mediaPipeline", () => {
       expect.objectContaining({
         uploadId: "upload_1",
         partCount: 2,
+      }),
+      expect.objectContaining({
+        signal: undefined,
       })
     );
   });
@@ -296,7 +311,40 @@ describe("mediaPipeline", () => {
       "/media/multipart/media_multipart_fail/abort",
       expect.objectContaining({
         uploadId: "upload_fail",
+      }),
+      expect.objectContaining({
+        signal: undefined,
       })
     );
+  });
+
+  it("propagates abort cancellation instead of creating failed lesson state", async () => {
+    postMock.mockResolvedValue({
+      objectId: "media_abort_1",
+      uploadUrl: "https://s3.example.test/upload",
+      method: "PUT" as const,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new DOMException("Upload aborted", "AbortError"))
+    );
+    const controller = new AbortController();
+    controller.abort();
+
+    const { startLessonVideoPipeline } = await import("@/shared/lib/mediaPipeline");
+
+    await expect(
+      startLessonVideoPipeline(
+        {
+          lessonTitle: "Отмена загрузки",
+          videoFile: createVideoFile(8 * 1024 * 1024),
+        },
+        {
+          signal: controller.signal,
+        }
+      )
+    ).rejects.toMatchObject({
+      name: "AbortError",
+    });
   });
 });

@@ -57,6 +57,15 @@
   padding: 10px 12px 12px;
 }
 
+.lesson-editor__video-card-meta-row {
+  width: 100%;
+}
+
+.lesson-editor__video-card-duration {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .lesson-editor__video-card-remove {
   position: absolute !important;
   top: 8px;
@@ -69,16 +78,60 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 10px;
+  align-items: stretch;
 }
 
 .lesson-editor__material-card {
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   background: var(--surface-translucent);
-  padding: 10px 10px 8px;
-  display: grid;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  min-height: 108px;
+  min-height: 118px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.lesson-editor__material-card-head {
+  min-width: 0;
+}
+
+.lesson-editor__material-card-file {
+  flex: 1;
+  min-width: 0;
+}
+
+.lesson-editor__material-card-remove {
+  flex-shrink: 0 !important;
+}
+
+.lesson-editor__material-card-status {
+  min-height: 18px;
+}
+
+.lesson-editor__material-card-actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.lesson-editor__material-card-preview {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 10px !important;
+  border: 1px solid color-mix(in srgb, var(--brand-solid) 28%, var(--border-subtle));
+  background: color-mix(in srgb, var(--surface-elevated) 90%, transparent) !important;
+
+  .MuiSvgIcon-root {
+    font-size: 18px;
+  }
+
+  &.Mui-disabled {
+    border-color: color-mix(in srgb, var(--border-subtle) 88%, transparent);
+  }
 }
 
 .lesson-editor__preview-content {

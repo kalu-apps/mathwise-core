@@ -18,14 +18,15 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import DescriptionIcon from "@mui/icons-material/Description";
 import PlayCircleFilledWhiteRoundedIcon from "@mui/icons-material/PlayCircleFilledWhiteRounded";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { generateId } from "@/shared/lib/id";
 import { formatLessonDuration, videoSecondsToStoredMinutes } from "@/shared/lib/duration";
 import { t } from "@/shared/i18n";
 import { useActionGuard } from "@/shared/lib/useActionGuard";
+import { ApiError } from "@/shared/api/client";
 import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { ButtonPending } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
@@ -88,7 +89,12 @@ type Props = {
       disablePrintableDownloads?: boolean;
     };
   };
-  onSave: (lesson: LessonDraft) => Promise<void> | void;
+  onSave: (
+    lesson: LessonDraft,
+    options?: {
+      signal?: AbortSignal;
+    }
+  ) => Promise<void> | void;
   onCancel: () => void;
 };
 
@@ -136,6 +142,14 @@ const getVideoDuration = (src: string) =>
 
 const isLikelyHlsSource = (src?: string) =>
   Boolean(src && /\.m3u8(?:$|[?#])/i.test(src.trim()));
+
+const isAbortError = (error: unknown) => {
+  if (error instanceof DOMException && error.name === "AbortError") return true;
+  if (error instanceof ApiError) {
+    return error.status === 0 && error.message === "Запрос отменен пользователем.";
+  }
+  return false;
+};
 
 const toComparableLessonSnapshot = (input: {
   title: string;
@@ -232,6 +246,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
   const saveGuard = useActionGuard();
   const isSaving = saveGuard.pending;
   const lessonId = initialLesson?.id;
+  const saveAbortRef = useRef<AbortController | null>(null);
 
   const materialInputRef = useRef<HTMLInputElement | null>(null);
   const localPreviewUrlRef = useRef<string | null>(null);
@@ -317,6 +332,8 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
   useEffect(() => {
     return () => {
       resetLocalPreview();
+      saveAbortRef.current?.abort();
+      saveAbortRef.current = null;
     };
   }, []);
 
@@ -446,6 +463,9 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
     }
     setVideoPreflightNote(preflight.note ?? null);
     setSaveError(null);
+    const saveAbortController = new AbortController();
+    saveAbortRef.current?.abort();
+    saveAbortRef.current = saveAbortController;
     try {
       const saved = await saveGuard.run(
         async () => {
@@ -482,18 +502,29 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
             settings: {
               disablePrintableDownloads,
             },
-          });
+          }, { signal: saveAbortController.signal });
         },
         {
           lockKey: `lesson-save:${lessonId ?? "new"}:${title.trim()}`,
+          timeoutMs: 300_000,
+          onTimeout: () => {
+            saveAbortController.abort();
+          },
           retry: { label: t("common.retryLessonSaveAction") },
         }
       );
       if (saved === undefined) return;
     } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
       setSaveError(
         error instanceof Error ? error.message : "Не удалось сохранить урок."
       );
+    } finally {
+      if (saveAbortRef.current === saveAbortController) {
+        saveAbortRef.current = null;
+      }
     }
   };
 
@@ -551,7 +582,17 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
   );
   const editorPreviewPoster = videoPosterUrl?.trim() || PREVIEW_VIDEO_FALLBACK_POSTER;
 
+  const abortSaveAndClose = () => {
+    saveAbortRef.current?.abort();
+    saveAbortRef.current = null;
+    onCancel();
+  };
+
   const handleCloseRequest = () => {
+    if (isSaving) {
+      abortSaveAndClose();
+      return;
+    }
     if (!hasUnsavedChanges) {
       onCancel();
       return;
@@ -621,7 +662,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                       }}
                       aria-label="Удалить видео"
                     >
-                      <DeleteOutlineRoundedIcon fontSize="small" />
+                      <CloseRoundedIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
                   <button
@@ -640,9 +681,28 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                       <PlayCircleFilledWhiteRoundedIcon className="lesson-editor__video-card-play" />
                     </Box>
                     <Stack spacing={0.25} className="lesson-editor__video-card-meta">
-                      <Typography variant="subtitle2" noWrap>
-                        Видео прикреплено
-                      </Typography>
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        spacing={1}
+                        className="lesson-editor__video-card-meta-row"
+                      >
+                        <Typography variant="subtitle2" noWrap>
+                          Видео прикреплено
+                        </Typography>
+                        {duration > 0 ? (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            className="lesson-editor__video-card-duration"
+                          >
+                            {t("lessonEditor.durationMinutes", {
+                              duration: formatLessonDuration(duration),
+                            })}
+                          </Typography>
+                        ) : null}
+                      </Stack>
                     </Stack>
                   </button>
                 </Box>
@@ -675,13 +735,6 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                   />
                 </Button>
               )}
-              {duration > 0 && (
-                <Typography variant="caption" color="text.secondary">
-                  {t("lessonEditor.durationMinutes", {
-                    duration: formatLessonDuration(duration),
-                  })}
-                </Typography>
-              )}
             </Stack>
 
             <Stack spacing={1}>
@@ -697,8 +750,15 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                         justifyContent="space-between"
                         alignItems="flex-start"
                         spacing={1}
+                        className="lesson-editor__material-card-head"
                       >
-                        <Stack direction="row" spacing={1} alignItems="center" minWidth={0}>
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          minWidth={0}
+                          className="lesson-editor__material-card-file"
+                        >
                           {m.type === "pdf" ? (
                             <PictureAsPdfIcon fontSize="small" color="error" />
                           ) : (
@@ -711,24 +771,42 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                         <Tooltip title="Удалить файл">
                           <IconButton
                             size="small"
+                            className="lesson-editor__material-card-remove"
                             onClick={() => handleRemoveMaterial(m.id)}
                             aria-label="Удалить материал"
                           >
-                            <DeleteOutlineRoundedIcon fontSize="small" />
+                            <CloseRoundedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       </Stack>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        className="lesson-editor__material-card-status"
+                      >
                         {resolveMaterialStatus(m)}
                       </Typography>
-                      <Button
-                        variant="text"
-                        size="small"
-                        onClick={() => void handleOpenMaterialPreview(m)}
-                        disabled={!canPreviewMaterial(m)}
-                      >
-                        {m.type === "pdf" ? "Открыть предпросмотр" : "Открыть файл"}
-                      </Button>
+                      <Box className="lesson-editor__material-card-actions">
+                        <Tooltip
+                          title={m.type === "pdf" ? "Предпросмотр" : "Открыть файл"}
+                        >
+                          <span>
+                            <IconButton
+                              size="small"
+                              className="lesson-editor__material-card-preview"
+                              onClick={() => void handleOpenMaterialPreview(m)}
+                              disabled={!canPreviewMaterial(m)}
+                              aria-label={
+                                m.type === "pdf"
+                                  ? "Открыть предпросмотр файла"
+                                  : "Открыть файл"
+                              }
+                            >
+                              <VisibilityRoundedIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </Box>
                     </Box>
                   ))}
                 </Box>
@@ -769,7 +847,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
         </DialogContent>
 
         <DialogActions className="lesson-editor-dialog__actions">
-          <Button onClick={onCancel} startIcon={<CloseRoundedIcon />}>
+          <Button onClick={handleCloseRequest} startIcon={<CloseRoundedIcon />}>
             <span className="lesson-editor-dialog__action-text">
               {t("common.cancel")}
             </span>
@@ -876,7 +954,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
             color="inherit"
             onClick={() => {
               setCloseConfirmOpen(false);
-              onCancel();
+              abortSaveAndClose();
             }}
           >
             <span className="lesson-editor-dialog__action-text">Выйти без сохранения</span>

@@ -113,6 +113,19 @@ const normalizeSource = (value?: string) => value?.trim() || undefined;
 const wait = (ms: number) =>
   new Promise((resolve) => globalThis.setTimeout(resolve, ms));
 
+const isAbortLikeError = (error: unknown, signal?: AbortSignal) => {
+  if (signal?.aborted) return true;
+  if (error instanceof DOMException && error.name === "AbortError") return true;
+  if (
+    error instanceof ApiError &&
+    error.status === 0 &&
+    error.message === "Запрос отменен пользователем."
+  ) {
+    return true;
+  }
+  return false;
+};
+
 const buildUploadFailureMessage = (
   stage: UploadStage,
   category: string
@@ -206,6 +219,7 @@ const toResolvedState = (
 const uploadObjectToStorage = async (params: {
   file: File;
   category: string;
+  signal?: AbortSignal;
 }): Promise<{ objectId: string }> => {
   const contentType = params.file.type || "application/octet-stream";
   let upload: CreateUploadUrlResponse;
@@ -215,8 +229,13 @@ const uploadObjectToStorage = async (params: {
       contentType,
       sizeBytes: params.file.size,
       category: params.category,
+    }, {
+      signal: params.signal,
     });
   } catch (error) {
+    if (isAbortLikeError(error, params.signal)) {
+      throw error;
+    }
     logUploadFailure({
       stage: "presign",
       category: params.category,
@@ -232,6 +251,7 @@ const uploadObjectToStorage = async (params: {
       method: upload.method || "PUT",
       headers: upload.headers,
       body: params.file,
+      signal: params.signal,
     });
     if (!uploadResponse.ok) {
       logUploadFailure({
@@ -244,6 +264,9 @@ const uploadObjectToStorage = async (params: {
       throw new Error(buildUploadFailureMessage("upload", params.category));
     }
   } catch (error) {
+    if (isAbortLikeError(error, params.signal)) {
+      throw error;
+    }
     if (error instanceof Error && error.message === buildUploadFailureMessage("upload", params.category)) {
       throw error;
     }
@@ -260,20 +283,32 @@ const uploadObjectToStorage = async (params: {
   try {
     await api.post<CompleteUploadResponse>(`/media/${upload.objectId}/complete`, {
       sizeBytes: params.file.size,
+    }, {
+      signal: params.signal,
     });
   } catch (error) {
+    if (isAbortLikeError(error, params.signal)) {
+      throw error;
+    }
     let resolvedError: unknown = error;
     try {
       await api.post<CompleteUploadResponse>(`/media/${upload.objectId}/complete`, {
         sizeBytes: params.file.size,
+      }, {
+        signal: params.signal,
       });
       return {
         objectId: upload.objectId,
       };
     } catch (finalizeError) {
+      if (isAbortLikeError(finalizeError, params.signal)) {
+        throw finalizeError;
+      }
       resolvedError = finalizeError;
       try {
-        await api.post(`/media/${upload.objectId}/finalize-failed`, {});
+        await api.post(`/media/${upload.objectId}/finalize-failed`, {}, {
+          signal: params.signal,
+        });
       } catch (reconcileError) {
         if (typeof console !== "undefined") {
           console.warn("[media-upload] finalize-failed-reconcile", {
@@ -312,18 +347,26 @@ const uploadMultipartPartWithRetry = async (params: {
   sizeBytes: number;
   category: string;
   partNumber: number;
+  signal?: AbortSignal;
 }) => {
   for (let attempt = 1; attempt <= MULTIPART_PART_UPLOAD_MAX_RETRIES; attempt += 1) {
+    if (params.signal?.aborted) {
+      throw new DOMException("Upload aborted", "AbortError");
+    }
     try {
       const response = await fetch(params.uploadUrl, {
         method: params.method,
         body: params.body,
+        signal: params.signal,
       });
       if (!response.ok) {
         throw new Error(`multipart_part_http_${response.status}`);
       }
       return;
     } catch (error) {
+      if (isAbortLikeError(error, params.signal)) {
+        throw error;
+      }
       if (attempt >= MULTIPART_PART_UPLOAD_MAX_RETRIES) {
         logUploadFailure({
           stage: "upload",
@@ -347,6 +390,7 @@ const uploadMultipartPartWithRetry = async (params: {
 const uploadMultipartObjectToStorage = async (params: {
   file: File;
   category: string;
+  signal?: AbortSignal;
 }): Promise<{ objectId: string }> => {
   let initiated: CreateMultipartUploadResponse;
   try {
@@ -357,9 +401,15 @@ const uploadMultipartObjectToStorage = async (params: {
         contentType: params.file.type || "application/octet-stream",
         sizeBytes: params.file.size,
         category: params.category,
+      },
+      {
+        signal: params.signal,
       }
     );
   } catch (error) {
+    if (isAbortLikeError(error, params.signal)) {
+      throw error;
+    }
     logUploadFailure({
       stage: "presign",
       category: params.category,
@@ -392,6 +442,7 @@ const uploadMultipartObjectToStorage = async (params: {
           sizeBytes: params.file.size,
           category: params.category,
           partNumber: part.partNumber,
+          signal: params.signal,
         });
       } catch (error) {
         uploadError = error;
@@ -404,9 +455,14 @@ const uploadMultipartObjectToStorage = async (params: {
   );
 
   if (uploadError) {
+    if (isAbortLikeError(uploadError, params.signal)) {
+      throw uploadError;
+    }
     try {
       await api.post(`/media/multipart/${initiated.objectId}/abort`, {
         uploadId: initiated.uploadId,
+      }, {
+        signal: params.signal,
       });
     } catch {
       // Best effort abort for abandoned multipart sessions.
@@ -421,13 +477,22 @@ const uploadMultipartObjectToStorage = async (params: {
         uploadId: initiated.uploadId,
         partCount: initiated.partCount,
         sizeBytes: params.file.size,
+      },
+      {
+        signal: params.signal,
       }
     );
   } catch (error) {
+    if (isAbortLikeError(error, params.signal)) {
+      throw error;
+    }
     try {
       await api.post<CompleteUploadResponse>(
         `/media/${initiated.objectId}/finalize-failed`,
-        {}
+        {},
+        {
+          signal: params.signal,
+        }
       );
     } catch {
       // finalize-failed reconciliation is best effort
@@ -477,7 +542,10 @@ export const preflightLessonVideo = (
 };
 
 export async function startLessonVideoPipeline(
-  input: ResolveLessonVideoSourcesInput
+  input: ResolveLessonVideoSourcesInput,
+  options?: {
+    signal?: AbortSignal;
+  }
 ): Promise<LessonMediaJobState> {
   if (!input.videoFile) {
     return toResolvedState(buildFallbackResult(input), "ready");
@@ -489,10 +557,12 @@ export async function startLessonVideoPipeline(
         ? await uploadMultipartObjectToStorage({
             file: input.videoFile,
             category: "lesson-video",
+            signal: options?.signal,
           })
         : await uploadObjectToStorage({
             file: input.videoFile,
             category: "lesson-video",
+            signal: options?.signal,
           });
     return toResolvedState(
       {
@@ -503,6 +573,9 @@ export async function startLessonVideoPipeline(
       uploaded.objectId
     );
   } catch (error) {
+    if (isAbortLikeError(error, options?.signal)) {
+      throw error;
+    }
     const message =
       error instanceof Error && error.message.trim().length > 0
         ? error.message
@@ -585,10 +658,14 @@ export async function resolveLessonVideoSources(
   };
 }
 
-export async function uploadLessonMaterialFile(file: File): Promise<string> {
+export async function uploadLessonMaterialFile(
+  file: File,
+  options?: { signal?: AbortSignal }
+): Promise<string> {
   const uploaded = await uploadObjectToStorage({
     file,
     category: "lesson-material",
+    signal: options?.signal,
   });
   return uploaded.objectId;
 }
