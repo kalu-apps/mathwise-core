@@ -36,7 +36,8 @@ describe("brand loader", () => {
     const pageSource = fs.readFileSync(pageLoaderPath, "utf-8");
     const sectionSource = fs.readFileSync(sectionLoaderPath, "utf-8");
 
-    expect(pageSource.includes("<BrandLoader size=\"lg\" visible={showRing} />")).toBe(
+    expect(pageSource.includes("loaderSize = \"lg\"")).toBe(true);
+    expect(pageSource.includes("<BrandLoader size={loaderSize} visible={showRing} />")).toBe(
       true
     );
     expect(sectionSource.includes("<BrandLoader size=\"sm\" className=\"ui-loader__inline-brand\" />")).toBe(true);

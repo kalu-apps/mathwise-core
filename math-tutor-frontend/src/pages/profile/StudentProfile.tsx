@@ -808,6 +808,9 @@ export default function StudentProfile() {
           <Tabs
             value={tab}
             onChange={(_, next) => setTabWithQuery(next, { replace: true })}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
             className="student-profile__tabs"
           >
             {studentTabItems.map((item) => (

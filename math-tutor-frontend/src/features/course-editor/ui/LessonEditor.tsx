@@ -12,6 +12,7 @@ import {
   Alert,
   CircularProgress,
   IconButton,
+  LinearProgress,
   Tooltip,
   useMediaQuery,
   useTheme,
@@ -101,6 +102,7 @@ type Props = {
     lesson: LessonDraft,
     options?: {
       signal?: AbortSignal;
+      onVideoUploadProgress?: (percent: number) => void;
     }
   ) => Promise<void> | void;
   onCancel: () => void;
@@ -244,6 +246,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
   const [warningOpen, setWarningOpen] = useState(false);
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveVideoProgressPercent, setSaveVideoProgressPercent] = useState<number | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewKind, setPreviewKind] = useState<PreviewKind>("video");
   const [previewTitle, setPreviewTitle] = useState("Предпросмотр");
@@ -466,6 +469,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
     }
     setVideoPreflightNote(preflight.note ?? null);
     setSaveError(null);
+    setSaveVideoProgressPercent(videoFile ? 0 : null);
     const saveAbortController = new AbortController();
     saveAbortRef.current?.abort();
     saveAbortRef.current = saveAbortController;
@@ -505,7 +509,18 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
             settings: {
               disablePrintableDownloads,
             },
-          }, { signal: saveAbortController.signal });
+          }, {
+            signal: saveAbortController.signal,
+            onVideoUploadProgress: videoFile
+              ? (percent) => {
+                  setSaveVideoProgressPercent((prev) => {
+                    const safe = Math.max(0, Math.min(100, Math.round(percent)));
+                    if (prev === null) return safe;
+                    return Math.max(prev, safe);
+                  });
+                }
+              : undefined,
+          });
         },
         {
           lockKey: `lesson-save:${lessonId ?? "new"}:${title.trim()}`,
@@ -528,6 +543,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
       if (saveAbortRef.current === saveAbortController) {
         saveAbortRef.current = null;
       }
+      setSaveVideoProgressPercent(null);
     }
   };
 
@@ -588,6 +604,11 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
     videoFile || mediaJobStatus === "processing"
       ? "Загружаем и привязываем видео"
       : "Сохраняем урок";
+  const saveProgressPercent =
+    saveVideoProgressPercent === null
+      ? 0
+      : Math.max(0, Math.min(100, Math.round(saveVideoProgressPercent)));
+  const showSaveProgressLine = saveVideoProgressPercent !== null;
   const modalLoaderSize = isNarrowModal ? "sm" : "md";
 
   const abortSaveAndClose = () => {
@@ -642,9 +663,29 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
           >
             <Stack spacing={1.25} alignItems="center" className="lesson-editor-dialog__save-overlay-inner">
               <BrandLoader size={modalLoaderSize} />
-              <Typography className="lesson-editor-dialog__save-status">
-                {saveStatusText}
-              </Typography>
+              {showSaveProgressLine ? (
+                <Box
+                  className="lesson-editor-dialog__save-progress"
+                  role="progressbar"
+                  aria-label="Прогресс загрузки видео"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={saveProgressPercent}
+                >
+                  <LinearProgress
+                    variant="determinate"
+                    value={saveProgressPercent}
+                    className="lesson-editor-dialog__save-progress-bar"
+                  />
+                  <Typography className="lesson-editor-dialog__save-progress-value">
+                    {saveProgressPercent}%
+                  </Typography>
+                </Box>
+              ) : (
+                <Typography className="lesson-editor-dialog__save-status">
+                  {saveStatusText}
+                </Typography>
+              )}
             </Stack>
           </Box>
         ) : null}
@@ -668,9 +709,6 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
             />
 
             <Stack spacing={1}>
-              <Typography variant="subtitle2">
-                {t("lessonEditor.videoRequiredTitle")}
-              </Typography>
               {mediaStatusAlert ? (
                 <Alert severity={mediaStatusAlert.severity}>{mediaStatusAlert.message}</Alert>
               ) : null}

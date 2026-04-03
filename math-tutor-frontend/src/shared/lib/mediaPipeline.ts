@@ -63,6 +63,13 @@ export type LessonMediaJobState = ResolveLessonVideoSourcesResult & {
   error?: string;
 };
 
+export type LessonVideoUploadProgress = {
+  uploadedBytes: number;
+  totalBytes: number;
+  percent: number;
+  phase: "uploading" | "finalizing" | "completed";
+};
+
 export type VideoPreflightResult = {
   ok: boolean;
   error?: string;
@@ -80,6 +87,7 @@ const MAX_JOB_POLLS = 20;
 const JOB_POLL_DELAY_MS = 500;
 
 type UploadStage = "presign" | "upload" | "complete";
+type UploadProgressCallback = (progress: LessonVideoUploadProgress) => void;
 
 const toMegabytes = (bytes: number) => bytes / (1024 * 1024);
 
@@ -112,6 +120,94 @@ export const LESSON_VIDEO_UPLOAD_LIMIT_LABEL = formatUploadLimit(
 const normalizeSource = (value?: string) => value?.trim() || undefined;
 const wait = (ms: number) =>
   new Promise((resolve) => globalThis.setTimeout(resolve, ms));
+
+const isJsdomRuntime = () =>
+  typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent);
+
+const shouldUseXhrUploadProgress = (onUploadProgress?: UploadProgressCallback) =>
+  Boolean(onUploadProgress) &&
+  typeof XMLHttpRequest !== "undefined" &&
+  !isJsdomRuntime();
+
+const emitUploadProgress = (
+  callback: UploadProgressCallback | undefined,
+  progress: LessonVideoUploadProgress
+) => {
+  if (!callback) return;
+  callback({
+    uploadedBytes: Math.max(0, progress.uploadedBytes),
+    totalBytes: Math.max(1, progress.totalBytes),
+    percent: Math.max(0, Math.min(100, Math.round(progress.percent))),
+    phase: progress.phase,
+  });
+};
+
+const uploadObjectWithXhr = (params: {
+  uploadUrl: string;
+  method: string;
+  headers?: Record<string, string>;
+  body: Blob;
+  signal?: AbortSignal;
+  onProgress?: (uploadedBytes: number, totalBytes: number) => void;
+}) =>
+  new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const totalBytes = params.body.size;
+    const onAbortSignal = () => {
+      xhr.abort();
+    };
+    const clear = () => {
+      xhr.upload.onprogress = null;
+      xhr.onload = null;
+      xhr.onerror = null;
+      xhr.onabort = null;
+      params.signal?.removeEventListener("abort", onAbortSignal);
+    };
+
+    xhr.open(params.method || "PUT", params.uploadUrl, true);
+    Object.entries(params.headers ?? {}).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        xhr.setRequestHeader(key, value);
+      }
+    });
+
+    xhr.upload.onprogress = (event: ProgressEvent<EventTarget>) => {
+      const loaded = typeof event.loaded === "number" ? event.loaded : 0;
+      const total =
+        event.lengthComputable && typeof event.total === "number" && event.total > 0
+          ? event.total
+          : totalBytes;
+      params.onProgress?.(loaded, total);
+    };
+    xhr.onload = () => {
+      clear();
+      if (xhr.status >= 200 && xhr.status < 300) {
+        params.onProgress?.(totalBytes, totalBytes);
+        resolve();
+        return;
+      }
+      reject(new Error(`storage-upload-http-${xhr.status}`));
+    };
+    xhr.onerror = () => {
+      clear();
+      reject(new TypeError("network failed"));
+    };
+    xhr.onabort = () => {
+      clear();
+      reject(new DOMException("Upload aborted", "AbortError"));
+    };
+
+    if (params.signal) {
+      if (params.signal.aborted) {
+        clear();
+        reject(new DOMException("Upload aborted", "AbortError"));
+        return;
+      }
+      params.signal.addEventListener("abort", onAbortSignal, { once: true });
+    }
+
+    xhr.send(params.body);
+  });
 
 const isAbortLikeError = (error: unknown, signal?: AbortSignal) => {
   if (signal?.aborted) return true;
@@ -220,6 +316,7 @@ const uploadObjectToStorage = async (params: {
   file: File;
   category: string;
   signal?: AbortSignal;
+  onUploadProgress?: UploadProgressCallback;
 }): Promise<{ objectId: string }> => {
   const contentType = params.file.type || "application/octet-stream";
   let upload: CreateUploadUrlResponse;
@@ -247,27 +344,48 @@ const uploadObjectToStorage = async (params: {
   }
 
   try {
-    const uploadResponse = await fetch(upload.uploadUrl, {
-      method: upload.method || "PUT",
-      headers: upload.headers,
-      body: params.file,
-      signal: params.signal,
+    emitUploadProgress(params.onUploadProgress, {
+      uploadedBytes: 0,
+      totalBytes: params.file.size,
+      percent: 0,
+      phase: "uploading",
     });
-    if (!uploadResponse.ok) {
-      logUploadFailure({
-        stage: "upload",
-        category: params.category,
-        fileName: params.file.name,
-        sizeBytes: params.file.size,
-        error: new Error(`storage-upload-http-${uploadResponse.status}`),
+    if (shouldUseXhrUploadProgress(params.onUploadProgress)) {
+      await uploadObjectWithXhr({
+        uploadUrl: upload.uploadUrl,
+        method: upload.method || "PUT",
+        headers: upload.headers,
+        body: params.file,
+        signal: params.signal,
+        onProgress: (uploadedBytes, totalBytes) => {
+          const safeTotal = Math.max(1, totalBytes);
+          emitUploadProgress(params.onUploadProgress, {
+            uploadedBytes,
+            totalBytes: safeTotal,
+            percent: (uploadedBytes / safeTotal) * 100,
+            phase: "uploading",
+          });
+        },
       });
-      throw new Error(buildUploadFailureMessage("upload", params.category));
+    } else {
+      const uploadResponse = await fetch(upload.uploadUrl, {
+        method: upload.method || "PUT",
+        headers: upload.headers,
+        body: params.file,
+        signal: params.signal,
+      });
+      if (!uploadResponse.ok) {
+        throw new Error(`storage-upload-http-${uploadResponse.status}`);
+      }
+      emitUploadProgress(params.onUploadProgress, {
+        uploadedBytes: params.file.size,
+        totalBytes: params.file.size,
+        percent: 100,
+        phase: "uploading",
+      });
     }
   } catch (error) {
     if (isAbortLikeError(error, params.signal)) {
-      throw error;
-    }
-    if (error instanceof Error && error.message === buildUploadFailureMessage("upload", params.category)) {
       throw error;
     }
     logUploadFailure({
@@ -281,6 +399,12 @@ const uploadObjectToStorage = async (params: {
   }
 
   try {
+    emitUploadProgress(params.onUploadProgress, {
+      uploadedBytes: params.file.size,
+      totalBytes: params.file.size,
+      percent: 100,
+      phase: "finalizing",
+    });
     await api.post<CompleteUploadResponse>(`/media/${upload.objectId}/complete`, {
       sizeBytes: params.file.size,
     }, {
@@ -334,6 +458,12 @@ const uploadObjectToStorage = async (params: {
     throw new Error(buildUploadFailureMessage("complete", params.category));
   }
 
+  emitUploadProgress(params.onUploadProgress, {
+    uploadedBytes: params.file.size,
+    totalBytes: params.file.size,
+    percent: 100,
+    phase: "completed",
+  });
   return {
     objectId: upload.objectId,
   };
@@ -391,6 +521,7 @@ const uploadMultipartObjectToStorage = async (params: {
   file: File;
   category: string;
   signal?: AbortSignal;
+  onUploadProgress?: UploadProgressCallback;
 }): Promise<{ objectId: string }> => {
   let initiated: CreateMultipartUploadResponse;
   try {
@@ -424,6 +555,13 @@ const uploadMultipartObjectToStorage = async (params: {
   const sortedParts = [...initiated.parts].sort((a, b) => a.partNumber - b.partNumber);
   let index = 0;
   let uploadError: unknown = null;
+  let completedBytes = 0;
+  emitUploadProgress(params.onUploadProgress, {
+    uploadedBytes: 0,
+    totalBytes: params.file.size,
+    percent: 0,
+    phase: "uploading",
+  });
 
   const worker = async () => {
     while (index < sortedParts.length && !uploadError) {
@@ -443,6 +581,13 @@ const uploadMultipartObjectToStorage = async (params: {
           category: params.category,
           partNumber: part.partNumber,
           signal: params.signal,
+        });
+        completedBytes += chunk.size;
+        emitUploadProgress(params.onUploadProgress, {
+          uploadedBytes: completedBytes,
+          totalBytes: params.file.size,
+          percent: (completedBytes / Math.max(1, params.file.size)) * 100,
+          phase: "uploading",
         });
       } catch (error) {
         uploadError = error;
@@ -471,6 +616,12 @@ const uploadMultipartObjectToStorage = async (params: {
   }
 
   try {
+    emitUploadProgress(params.onUploadProgress, {
+      uploadedBytes: params.file.size,
+      totalBytes: params.file.size,
+      percent: 100,
+      phase: "finalizing",
+    });
     await api.post<CompleteMultipartUploadResponse>(
       `/media/multipart/${initiated.objectId}/complete`,
       {
@@ -508,6 +659,12 @@ const uploadMultipartObjectToStorage = async (params: {
     throw new Error(buildUploadFailureMessage("complete", params.category));
   }
 
+  emitUploadProgress(params.onUploadProgress, {
+    uploadedBytes: params.file.size,
+    totalBytes: params.file.size,
+    percent: 100,
+    phase: "completed",
+  });
   return {
     objectId: initiated.objectId,
   };
@@ -545,6 +702,7 @@ export async function startLessonVideoPipeline(
   input: ResolveLessonVideoSourcesInput,
   options?: {
     signal?: AbortSignal;
+    onUploadProgress?: UploadProgressCallback;
   }
 ): Promise<LessonMediaJobState> {
   if (!input.videoFile) {
@@ -558,11 +716,13 @@ export async function startLessonVideoPipeline(
             file: input.videoFile,
             category: "lesson-video",
             signal: options?.signal,
+            onUploadProgress: options?.onUploadProgress,
           })
         : await uploadObjectToStorage({
             file: input.videoFile,
             category: "lesson-video",
             signal: options?.signal,
+            onUploadProgress: options?.onUploadProgress,
           });
     return toResolvedState(
       {

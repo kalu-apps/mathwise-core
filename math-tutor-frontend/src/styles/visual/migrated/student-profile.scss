@@ -189,22 +189,27 @@
 
 .student-profile__tabs {
   .MuiTabs-scroller {
-    display: flex;
-    justify-content: stretch;
     width: 100%;
+    overflow-x: auto !important;
+    scrollbar-width: none;
+  }
+
+  .MuiTabs-scroller::-webkit-scrollbar {
+    display: none;
   }
 
   .MuiTabs-flexContainer {
     flex-wrap: nowrap;
-    justify-content: stretch;
-    width: 100%;
+    justify-content: flex-start;
+    width: max-content;
+    min-width: 100%;
     gap: 6px;
   }
 
   .MuiTab-root {
-    min-width: 0;
+    min-width: max-content;
     max-width: none;
-    flex: 1 1 0;
+    flex: 0 0 auto;
     gap: 6px;
     white-space: nowrap;
 
@@ -318,10 +323,10 @@
 .student-profile__tab-label {
   display: block;
   min-width: 0;
-  max-width: 100%;
+  max-width: none;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .student-profile__courses {

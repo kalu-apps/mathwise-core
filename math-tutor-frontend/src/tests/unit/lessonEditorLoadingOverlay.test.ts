@@ -12,7 +12,8 @@ describe("lesson editor saving overlay", () => {
 
     expect(source.includes("<BrandLoader size={modalLoaderSize} />")).toBe(true);
     expect(source.includes("lesson-editor-dialog__save-overlay")).toBe(true);
-    expect(source.includes("saveStatusText")).toBe(true);
+    expect(source.includes("lesson-editor-dialog__save-progress")).toBe(true);
+    expect(source.includes("saveVideoProgressPercent")).toBe(true);
   });
 
   it("keeps CTA spinner path for save action", () => {

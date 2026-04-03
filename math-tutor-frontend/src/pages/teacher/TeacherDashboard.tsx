@@ -1040,6 +1040,9 @@ export default function TeacherDashboard() {
             setTab(v);
             setSearchParams({ tab: TEACHER_TAB_KEYS[v] });
           }}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
           className="teacher-dashboard__tabs"
         >
           {teacherTabItems.map((item) => (

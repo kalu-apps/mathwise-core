@@ -2,6 +2,8 @@ import { useDelayedLoading } from "@/shared/lib/useDelayedLoading";
 import { t } from "@/shared/i18n";
 import { BrandLoader } from "./BrandLoader";
 
+type BrandLoaderSize = "sm" | "md" | "lg";
+
 type PageLoaderProps = {
   title?: string;
   description?: string;
@@ -9,6 +11,7 @@ type PageLoaderProps = {
   minHeight?: number | string;
   showRingDelayMs?: number;
   showRingMinVisibleMs?: number;
+  loaderSize?: BrandLoaderSize;
 };
 
 export function PageLoader({
@@ -18,6 +21,7 @@ export function PageLoader({
   minHeight = 320,
   showRingDelayMs = 220,
   showRingMinVisibleMs = 280,
+  loaderSize = "lg",
 }: PageLoaderProps) {
   void _description;
 
@@ -39,7 +43,7 @@ export function PageLoader({
       aria-label={title}
     >
       <div className="ui-loader__content">
-        <BrandLoader size="lg" visible={showRing} />
+        <BrandLoader size={loaderSize} visible={showRing} />
       </div>
     </section>
   );

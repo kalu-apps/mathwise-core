@@ -127,6 +127,52 @@ describe("mediaPipeline", () => {
     );
   });
 
+  it("reports upload progress for lesson video pipeline", async () => {
+    postMock.mockImplementation(async (path: string) => {
+      if (path === "/media/upload-url") {
+        return {
+          objectId: "media_progress_1",
+          uploadUrl: "https://s3.example.test/upload",
+          method: "PUT" as const,
+        };
+      }
+      if (path === "/media/media_progress_1/complete") {
+        return {
+          ok: true,
+          media: { id: "media_progress_1" },
+        };
+      }
+      throw new Error(`unexpected path ${path}`);
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+      })
+    );
+
+    const progressPercents: number[] = [];
+    const { startLessonVideoPipeline } = await import("@/shared/lib/mediaPipeline");
+
+    const result = await startLessonVideoPipeline(
+      {
+        lessonTitle: "Прогресс видео",
+        videoFile: createVideoFile(16 * 1024 * 1024),
+      },
+      {
+        onUploadProgress: (snapshot) => {
+          progressPercents.push(snapshot.percent);
+        },
+      }
+    );
+
+    expect(result.status).toBe("ready");
+    expect(progressPercents.length).toBeGreaterThan(1);
+    expect(progressPercents[0]).toBe(0);
+    expect(progressPercents.at(-1)).toBe(100);
+    expect(progressPercents.every((value, index) => index === 0 || value >= progressPercents[index - 1])).toBe(true);
+  });
+
   it("enforces configurable lesson video cap above 250MB", async () => {
     const {
       LESSON_VIDEO_UPLOAD_LIMIT_BYTES,
@@ -271,6 +317,70 @@ describe("mediaPipeline", () => {
         signal: undefined,
       })
     );
+  });
+
+  it("reports incremental progress for multipart uploads", async () => {
+    postMock.mockImplementation(async (path: string) => {
+      if (path === "/media/multipart/initiate") {
+        return {
+          objectId: "media_multipart_progress",
+          uploadId: "upload_progress",
+          partSizeBytes: 8 * 1024 * 1024,
+          partCount: 3,
+          parts: [
+            {
+              partNumber: 1,
+              uploadUrl: "https://s3.example.test/part-1",
+              method: "PUT" as const,
+            },
+            {
+              partNumber: 2,
+              uploadUrl: "https://s3.example.test/part-2",
+              method: "PUT" as const,
+            },
+            {
+              partNumber: 3,
+              uploadUrl: "https://s3.example.test/part-3",
+              method: "PUT" as const,
+            },
+          ],
+        };
+      }
+      if (path === "/media/multipart/media_multipart_progress/complete") {
+        return {
+          ok: true,
+          media: { id: "media_multipart_progress" },
+        };
+      }
+      throw new Error(`unexpected path ${path}`);
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+      })
+    );
+
+    const progressPercents: number[] = [];
+    const { startLessonVideoPipeline } = await import("@/shared/lib/mediaPipeline");
+
+    const result = await startLessonVideoPipeline(
+      {
+        lessonTitle: "Большой урок с прогрессом",
+        videoFile: createVideoFile(300 * 1024 * 1024),
+      },
+      {
+        onUploadProgress: (snapshot) => {
+          progressPercents.push(snapshot.percent);
+        },
+      }
+    );
+
+    expect(result.status).toBe("ready");
+    expect(progressPercents[0]).toBe(0);
+    expect(progressPercents.at(-1)).toBe(100);
+    expect(progressPercents.some((value) => value > 0 && value < 100)).toBe(true);
+    expect(progressPercents.every((value, index) => index === 0 || value >= progressPercents[index - 1])).toBe(true);
   });
 
   it("aborts multipart upload on failed part and returns teacher-friendly error", async () => {

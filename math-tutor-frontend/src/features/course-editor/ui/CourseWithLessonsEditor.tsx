@@ -463,6 +463,7 @@ export function CourseWithLessonsEditor({
       lesson: LessonDraft,
       options?: {
         signal?: AbortSignal;
+        onVideoUploadProgress?: (percent: number) => void;
       }
     ): Promise<LessonDraft> => {
       if (options?.signal?.aborted) {
@@ -488,6 +489,9 @@ export function CourseWithLessonsEditor({
         videoPosterUrl: lesson.videoPosterUrl,
       }, {
         signal: options?.signal,
+        onUploadProgress: (progress) => {
+          options?.onVideoUploadProgress?.(progress.percent);
+        },
       });
       if (options?.signal?.aborted) {
         throw new DOMException("Save cancelled", "AbortError");
@@ -542,6 +546,7 @@ export function CourseWithLessonsEditor({
     lesson: LessonDraft,
     options?: {
       signal?: AbortSignal;
+      onVideoUploadProgress?: (percent: number) => void;
     }
   ) => {
     setSaveError(null);
@@ -549,7 +554,10 @@ export function CourseWithLessonsEditor({
       ...lesson,
       id: lesson.id ?? generateId(),
     };
-    const normalizedLesson = await queueLessonVideoProcessing(normalizedLessonBase, options);
+    const normalizedLesson = await queueLessonVideoProcessing(normalizedLessonBase, {
+      signal: options?.signal,
+      onVideoUploadProgress: options?.onVideoUploadProgress,
+    });
     if (options?.signal?.aborted) {
       throw new DOMException("Save cancelled", "AbortError");
     }
@@ -1184,6 +1192,7 @@ export function CourseWithLessonsEditor({
             title={t("courseEditor.loadingCourse")}
             description={t("courseEditor.loadingCourse")}
             minHeight={isMobile ? 180 : 220}
+            loaderSize={isMobile ? "sm" : "md"}
           />
         </DialogContent>
       </Dialog>
