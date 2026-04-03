@@ -40,7 +40,7 @@ import {
   BoltRounded,
   TrendingUpRounded,
   FlagRounded,
-  HelpOutlineRounded,
+  InfoOutlined,
 } from "@mui/icons-material";
 import { ListPagination } from "@/shared/ui/ListPagination";
 import type {
@@ -1281,7 +1281,7 @@ export default function CourseDetails() {
                 title="Как работает сплит"
                 onClick={() => setBnplInfoOpen(true)}
               >
-                <HelpOutlineRounded fontSize="inherit" />
+                <InfoOutlined fontSize="inherit" />
               </button>
             </span>
           </div>
@@ -1327,7 +1327,7 @@ export default function CourseDetails() {
                 title="Как работает сплит"
                 onClick={() => setBnplInfoOpen(true)}
               >
-                <HelpOutlineRounded fontSize="inherit" />
+                <InfoOutlined fontSize="inherit" />
               </button>
             </span>
           </div>

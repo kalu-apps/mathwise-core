@@ -25,6 +25,7 @@ export function CourseVisualBackground({
     "--course-visual-pattern": layers.patternImage,
     "--course-visual-glow": layers.glowGradient,
     "--course-visual-shimmer": layers.shimmerGradient,
+    "--course-visual-veil": layers.veilGradient,
   } as CSSProperties;
 
   return (

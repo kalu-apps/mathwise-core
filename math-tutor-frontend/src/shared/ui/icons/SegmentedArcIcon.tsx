@@ -14,6 +14,10 @@ export function SegmentedArcIcon({
   title,
 }: SegmentedArcIconProps) {
   const labelled = Boolean(title);
+  const radius = 7.1;
+  const circumference = 2 * Math.PI * radius;
+  const segmentLength = circumference * 0.235;
+  const segmentGap = circumference - segmentLength;
 
   return (
     <svg
@@ -31,26 +35,47 @@ export function SegmentedArcIcon({
     >
       {title ? <title>{title}</title> : null}
       <path
-        d="M12 3.75C14.6 3.75 17.02 4.95 18.59 6.98"
-        stroke="currentColor"
-        strokeWidth="1.95"
-        strokeLinecap="round"
-        opacity="0.58"
+        d="M12 6.2L13.15 8.55L15.75 8.94L13.88 10.75L14.32 13.32L12 12.08L9.68 13.32L10.12 10.75L8.25 8.94L10.85 8.55L12 6.2Z"
+        fill="currentColor"
+        opacity="0.12"
       />
-      <path
-        d="M20.2 11.3C20.28 14.22 18.86 17 16.43 18.62"
+      <circle
+        cx="12"
+        cy="12"
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.85"
+        strokeLinecap="round"
+        strokeDasharray={`${segmentLength.toFixed(2)} ${segmentGap.toFixed(2)}`}
+        transform="rotate(-96 12 12)"
+        opacity="0.56"
+      />
+      <circle
+        cx="12"
+        cy="12"
+        r={radius}
+        fill="none"
         stroke="var(--split-icon-accent, #52B9D7)"
-        strokeWidth="1.95"
+        strokeWidth="1.85"
         strokeLinecap="round"
+        strokeDasharray={`${segmentLength.toFixed(2)} ${segmentGap.toFixed(2)}`}
+        transform="rotate(24 12 12)"
       />
-      <path
-        d="M13.1 20.05C9.87 20.5 6.62 19.1 4.71 16.39C3.89 15.24 3.39 13.93 3.22 12.58"
+      <circle
+        cx="12"
+        cy="12"
+        r={radius}
+        fill="none"
         stroke="currentColor"
-        strokeWidth="1.95"
+        strokeWidth="1.85"
         strokeLinecap="round"
-        opacity="0.7"
+        strokeDasharray={`${segmentLength.toFixed(2)} ${segmentGap.toFixed(2)}`}
+        transform="rotate(144 12 12)"
+        opacity="0.72"
       />
-      <circle cx="12" cy="12" r="1.8" fill="currentColor" opacity="0.92" />
+      <circle cx="12" cy="12" r="2.05" fill="currentColor" opacity="0.2" />
+      <circle cx="12" cy="12" r="1.16" fill="currentColor" opacity="0.92" />
     </svg>
   );
 }

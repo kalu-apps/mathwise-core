@@ -106,6 +106,11 @@ export function NewsFeedPanel({ user }: Props) {
   const [editDraft, setEditDraft] = useState<NewsDraft | null>(null);
   const pageSize = isMobile ? 1 : 2;
 
+  const closeCreateModal = () => {
+    if (saving) return;
+    setCreateOpen(false);
+  };
+
   const loadFeed = async () => {
     try {
       setFeedLoadError(null);
@@ -314,12 +319,12 @@ export function NewsFeedPanel({ user }: Props) {
           <IconButton
             className="news-feed__add"
             onClick={() => {
-              setCreateOpen((prev) => !prev);
+              setCreateOpen(true);
               resetEditor();
             }}
             aria-label="Создать новость"
           >
-            {createOpen ? <CloseRoundedIcon /> : <AddRoundedIcon />}
+            <AddRoundedIcon />
           </IconButton>
         )}
       </div>
@@ -328,126 +333,6 @@ export function NewsFeedPanel({ user }: Props) {
         <Alert severity="error" onClose={() => setError(null)}>
           {error}
         </Alert>
-      )}
-
-      {isTeacher && createOpen && (
-        <div className="news-feed__composer news-feed__composer--accent">
-          <TextField
-            placeholder="Заголовок новости"
-            value={draft.title}
-            onChange={(e) =>
-              setDraft((prev) => ({ ...prev, title: e.target.value }))
-            }
-            fullWidth
-            InputProps={{
-              endAdornment: draft.title ? (
-                <InputAdornment position="end">
-                  <IconButton
-                    size="small"
-                    onClick={() => setDraft((prev) => ({ ...prev, title: "" }))}
-                    aria-label="Очистить заголовок"
-                  >
-                    <CloseRoundedIcon fontSize="small" />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-            }}
-          />
-
-          <TextField
-            placeholder="Текст новости"
-            value={draft.content}
-            onChange={(e) =>
-              setDraft((prev) => ({ ...prev, content: e.target.value }))
-            }
-            multiline
-            minRows={3}
-            fullWidth
-          />
-
-          <TextField
-            placeholder="Ссылка (необязательно)"
-            value={draft.externalUrl}
-            onChange={(e) =>
-              setDraft((prev) => ({ ...prev, externalUrl: e.target.value }))
-            }
-            fullWidth
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <LinkRoundedIcon fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <div className="news-feed__tone-list">
-            {composerToneOptions.map((tone) => (
-              <button
-                key={tone}
-                type="button"
-                className={cn("news-feed__tone", `news-feed__tone--${tone}`, {
-                  "is-active": draft.tone === tone,
-                })}
-                onClick={() => setDraft((prev) => ({ ...prev, tone }))}
-              >
-                {toneLabels[tone]}
-              </button>
-            ))}
-          </div>
-
-          <div className="news-feed__composer-actions">
-            <Button
-              variant={draft.highlighted ? "contained" : "outlined"}
-              onClick={() =>
-                setDraft((prev) => ({
-                  ...prev,
-                  highlighted: !prev.highlighted,
-                }))
-              }
-            >
-              {draft.highlighted ? "Подсветка включена" : "Подсветить новость"}
-            </Button>
-
-            <Button
-              variant="outlined"
-              startIcon={<ImageRoundedIcon />}
-              onClick={() => createImageInputRef.current?.click()}
-            >
-              {draft.imageUrl ? "Заменить изображение" : "Добавить изображение"}
-            </Button>
-            <input
-              hidden
-              ref={createImageInputRef}
-              type="file"
-              accept="image/*"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const imageUrl = await fileToDataUrl(file);
-                setDraft((prev) => ({ ...prev, imageUrl }));
-                e.target.value = "";
-              }}
-            />
-
-            {draft.imageUrl && (
-              <Button
-                color="inherit"
-                onClick={() => setDraft((prev) => ({ ...prev, imageUrl: "" }))}
-              >
-                Убрать изображение
-              </Button>
-            )}
-
-            <Button
-              variant="contained"
-              onClick={() => void handleSubmit()}
-              disabled={!canSubmit}
-            >
-              {saving ? <CircularProgress size={18} color="inherit" /> : "Опубликовать"}
-            </Button>
-          </div>
-        </div>
       )}
 
       <div className="news-feed__list">
@@ -728,6 +613,164 @@ export function NewsFeedPanel({ user }: Props) {
           pageSize={pageSize}
           onPageChange={setPage}
         />
+      )}
+
+      {isTeacher && (
+        <Dialog
+          open={createOpen}
+          onClose={closeCreateModal}
+          fullWidth
+          maxWidth="sm"
+          className="news-feed__create-dialog"
+        >
+          <DialogTitleWithClose
+            title="Создать новость"
+            onClose={closeCreateModal}
+          />
+          <DialogContent className="news-feed__create-content">
+            <div className="news-feed__compose-fields">
+              <TextField
+                placeholder="Заголовок новости"
+                value={draft.title}
+                onChange={(e) =>
+                  setDraft((prev) => ({ ...prev, title: e.target.value }))
+                }
+                fullWidth
+                InputProps={{
+                  endAdornment: draft.title ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                          setDraft((prev) => ({ ...prev, title: "" }))
+                        }
+                        aria-label="Очистить заголовок"
+                      >
+                        <CloseRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
+
+              <TextField
+                className="news-feed__compose-textarea"
+                placeholder="Текст новости"
+                value={draft.content}
+                onChange={(e) =>
+                  setDraft((prev) => ({ ...prev, content: e.target.value }))
+                }
+                multiline
+                minRows={6}
+                fullWidth
+              />
+
+              <TextField
+                placeholder="Ссылка (необязательно)"
+                value={draft.externalUrl}
+                onChange={(e) =>
+                  setDraft((prev) => ({ ...prev, externalUrl: e.target.value }))
+                }
+                fullWidth
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LinkRoundedIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </div>
+
+            <div className="news-feed__tone-list news-feed__tone-list--create">
+              {composerToneOptions.map((tone) => (
+                <button
+                  key={tone}
+                  type="button"
+                  className={cn("news-feed__tone", `news-feed__tone--${tone}`, {
+                    "is-active": draft.tone === tone,
+                  })}
+                  onClick={() => setDraft((prev) => ({ ...prev, tone }))}
+                >
+                  {toneLabels[tone]}
+                </button>
+              ))}
+            </div>
+
+            <div className="news-feed__composer-actions news-feed__composer-actions--create">
+              <Button
+                variant={draft.highlighted ? "contained" : "text"}
+                onClick={() =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    highlighted: !prev.highlighted,
+                  }))
+                }
+              >
+                {draft.highlighted ? "Подсветка включена" : "Подсветить новость"}
+              </Button>
+
+              <Button
+                variant="text"
+                startIcon={<ImageRoundedIcon />}
+                onClick={() => createImageInputRef.current?.click()}
+              >
+                {draft.imageUrl ? "Заменить изображение" : "Добавить изображение"}
+              </Button>
+              <input
+                hidden
+                ref={createImageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const imageUrl = await fileToDataUrl(file);
+                  setDraft((prev) => ({ ...prev, imageUrl }));
+                  e.target.value = "";
+                }}
+              />
+
+              {draft.imageUrl && (
+                <Button
+                  color="inherit"
+                  variant="text"
+                  onClick={() =>
+                    setDraft((prev) => ({ ...prev, imageUrl: "" }))
+                  }
+                >
+                  Убрать изображение
+                </Button>
+              )}
+            </div>
+
+            {draft.imageUrl && (
+              <div className="news-feed__image-wrap news-feed__image-wrap--create">
+                <img src={draft.imageUrl} alt="Превью новости" />
+              </div>
+            )}
+          </DialogContent>
+          <DialogActions className="news-feed__create-actions">
+            <Button
+              variant="text"
+              onClick={closeCreateModal}
+              disabled={saving}
+            >
+              Отмена
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => void handleSubmit()}
+              disabled={!canSubmit}
+            >
+              {saving ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : (
+                "Опубликовать"
+              )}
+            </Button>
+          </DialogActions>
+        </Dialog>
       )}
 
       <Dialog

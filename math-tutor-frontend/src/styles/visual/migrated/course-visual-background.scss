@@ -19,65 +19,40 @@
     background-image: var(--course-visual-pattern);
     background-repeat: no-repeat;
     background-size: cover;
-    opacity: 0.78;
+    background-position: center;
+    opacity: 0.94;
     mix-blend-mode: multiply;
+    transform: scale(1.01);
+    transform-origin: center;
   }
 
   &__layer--glow {
     background: var(--course-visual-glow);
-    opacity: 0.72;
+    opacity: 0.78;
   }
 
   &__layer--shimmer {
     background: var(--course-visual-shimmer);
-    opacity: 0.42;
-    transform: translate3d(-14%, 0, 0);
-    animation: course-visual-shimmer-shift 12s linear infinite;
+    opacity: 0.36;
+    mix-blend-mode: soft-light;
   }
 
   &__layer--veil {
-    background:
-      linear-gradient(
-        165deg,
-        color-mix(in srgb, var(--surface-elevated) 86%, transparent) 0%,
-        color-mix(in srgb, var(--surface-elevated) 70%, transparent) 48%,
-        color-mix(in srgb, var(--surface-soft) 62%, transparent) 100%
-      );
-    opacity: 0.92;
+    background: var(--course-visual-veil);
+    opacity: 0.9;
   }
 
   &--featured {
     .course-visual-bg__layer--pattern {
-      opacity: 0.84;
+      opacity: 0.98;
     }
 
     .course-visual-bg__layer--shimmer {
-      opacity: 0.52;
-      animation-duration: 10s;
+      opacity: 0.44;
     }
 
     .course-visual-bg__layer--veil {
-      opacity: 0.84;
+      opacity: 0.82;
     }
-  }
-}
-
-@keyframes course-visual-shimmer-shift {
-  0% {
-    transform: translate3d(-16%, 0, 0);
-  }
-  50% {
-    transform: translate3d(8%, 0, 0);
-  }
-  100% {
-    transform: translate3d(-16%, 0, 0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .course-visual-bg__layer--shimmer {
-    animation: none;
-    transform: none;
-    opacity: 0.28;
   }
 }

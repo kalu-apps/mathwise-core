@@ -1,0 +1,25 @@
+<svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="analytic-b-bg" x1="18" y1="14" x2="400" y2="244" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F2F6FF"/>
+      <stop offset="0.58" stop-color="#E4ECFF"/>
+      <stop offset="1" stop-color="#DAE3F6"/>
+    </linearGradient>
+  </defs>
+  <rect width="420" height="260" rx="24" fill="url(#analytic-b-bg)"/>
+
+  <g stroke-linecap="round" fill="none">
+    <path d="M52 170C98 90 170 62 232 94C290 124 330 102 368 54" stroke="#667CD1" stroke-opacity="0.44" stroke-width="1.8"/>
+    <path d="M52 196C114 136 182 126 230 154C280 182 332 166 374 120" stroke="#63B7D8" stroke-opacity="0.46" stroke-width="1.6"/>
+    <ellipse cx="224" cy="136" rx="142" ry="52" stroke="#6C83CD" stroke-opacity="0.34" stroke-width="1.2"/>
+    <ellipse cx="224" cy="136" rx="108" ry="36" stroke="#66B9D9" stroke-opacity="0.34" stroke-width="1.2"/>
+    <path d="M34 136H388" stroke="#6D84CE" stroke-opacity="0.24" stroke-width="1.1"/>
+    <path d="M224 40V226" stroke="#6D84CE" stroke-opacity="0.24" stroke-width="1.1"/>
+    <path d="M84 54L350 208" stroke="#637AD0" stroke-opacity="0.18" stroke-width="1"/>
+  </g>
+
+  <path d="M124 88L292 58L322 166L154 198L124 88Z" fill="#FFFFFF" fill-opacity="0.22" stroke="#6C82CD" stroke-opacity="0.28" stroke-width="1.1"/>
+  <path d="M154 198L322 166L286 214L128 232L154 198Z" fill="#9FC2EA" fill-opacity="0.18"/>
+  <circle cx="224" cy="136" r="3.6" fill="#667CD1" fill-opacity="0.58"/>
+</svg>
+

@@ -2,6 +2,7 @@ export type CourseStatus = "draft" | "published";
 export type CourseVisualStyle =
   | "polyhedra"
   | "function-fields"
+  | "projection-wireframe"
   | "lattice"
   | "topology"
   | "analytic-sections"

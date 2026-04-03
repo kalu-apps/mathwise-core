@@ -1,0 +1,35 @@
+<svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="wire-b-bg" x1="26" y1="8" x2="392" y2="252" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEF4FF"/>
+      <stop offset="0.5" stop-color="#E0E9FF"/>
+      <stop offset="1" stop-color="#D7E3F7"/>
+    </linearGradient>
+  </defs>
+  <rect width="420" height="260" rx="24" fill="url(#wire-b-bg)"/>
+
+  <g stroke="#6279CC" stroke-opacity="0.34" stroke-width="1.15" fill="none" stroke-linejoin="round">
+    <path d="M60 178L126 128L198 134L132 184L60 178Z"/>
+    <path d="M126 128V72L198 78V134"/>
+    <path d="M60 178V122L126 72V128"/>
+
+    <path d="M150 202L228 144L306 152L228 210L150 202Z"/>
+    <path d="M228 144V88L306 96V152"/>
+    <path d="M150 202V146L228 88V144"/>
+
+    <path d="M246 188L320 132L384 138L310 194L246 188Z"/>
+    <path d="M320 132V76L384 82V138"/>
+    <path d="M246 188V132L320 76V132"/>
+  </g>
+
+  <g stroke="#65B9D8" stroke-opacity="0.32" stroke-width="1.05" fill="none">
+    <path d="M42 214L152 48L278 58L396 170"/>
+    <path d="M42 154L396 124"/>
+    <path d="M84 230L194 64L332 74"/>
+  </g>
+
+  <circle cx="198" cy="134" r="2.5" fill="#637AD0" fill-opacity="0.56"/>
+  <circle cx="306" cy="152" r="2.5" fill="#66B9D8" fill-opacity="0.58"/>
+  <circle cx="384" cy="138" r="2.5" fill="#637AD0" fill-opacity="0.52"/>
+</svg>
+

@@ -3,7 +3,7 @@ import type { CourseCatalogItemDto } from "./courses.types";
 export const COURSE_VISUAL_STYLES = [
   "polyhedra",
   "function-fields",
-  "lattice",
+  "projection-wireframe",
   "topology",
   "analytic-sections",
   "signal-waves",
@@ -28,10 +28,15 @@ export type CourseVisualMetadataDto = {
 };
 
 const MAX_VISUAL_SEED = 2_147_483_647;
-const MAX_VISUAL_VARIANT = 11;
+const MAX_VISUAL_VARIANT = 255;
 
 const isVisualStyle = (value: unknown): value is CourseVisualStyleDto =>
   typeof value === "string" && COURSE_VISUAL_STYLES.includes(value as CourseVisualStyleDto);
+
+const normalizeVisualStyle = (value: unknown): CourseVisualStyleDto | null => {
+  if (value === "lattice") return "projection-wireframe";
+  return isVisualStyle(value) ? value : null;
+};
 
 const isVisualPalette = (value: unknown): value is CourseVisualPaletteDto =>
   typeof value === "string" && COURSE_VISUAL_PALETTES.includes(value as CourseVisualPaletteDto);
@@ -89,9 +94,7 @@ export const resolveCourseVisualMetadata = (
   const fallback = deriveCourseVisualMetadata(courseId);
 
   return {
-    visualStyle: isVisualStyle(input?.visualStyle)
-      ? input.visualStyle
-      : fallback.visualStyle,
+    visualStyle: normalizeVisualStyle(input?.visualStyle) ?? fallback.visualStyle,
     visualSeed:
       clampInt(input?.visualSeed, 0, MAX_VISUAL_SEED) ?? fallback.visualSeed,
     visualPalette: isVisualPalette(input?.visualPalette)

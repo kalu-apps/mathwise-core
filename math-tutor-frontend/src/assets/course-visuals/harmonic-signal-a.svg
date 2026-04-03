@@ -1,0 +1,35 @@
+<svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="harm-a-bg" x1="18" y1="10" x2="402" y2="248" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EFF5FF"/>
+      <stop offset="0.52" stop-color="#E2EBFF"/>
+      <stop offset="1" stop-color="#D7E3F8"/>
+    </linearGradient>
+  </defs>
+  <rect width="420" height="260" rx="24" fill="url(#harm-a-bg)"/>
+
+  <g fill="none" stroke-linecap="round">
+    <path d="M16 154C46 132 74 170 104 148C132 128 160 176 190 152C218 132 248 168 278 146C306 126 338 156 404 116" stroke="#647BCF" stroke-opacity="0.56" stroke-width="1.95"/>
+    <path d="M16 130C44 114 72 144 102 128C132 112 160 144 190 126C220 108 248 140 278 124C308 108 338 128 404 98" stroke="#67B9D8" stroke-opacity="0.52" stroke-width="1.7"/>
+    <path d="M16 178C46 156 74 198 104 174C132 154 162 206 192 180C222 156 252 194 282 168C312 144 340 170 404 134" stroke="#8BA3E8" stroke-opacity="0.4" stroke-width="1.5"/>
+  </g>
+
+  <g fill="#64B8D8" fill-opacity="0.3">
+    <rect x="54" y="186" width="10" height="42" rx="3"/>
+    <rect x="98" y="168" width="10" height="60" rx="3"/>
+    <rect x="142" y="194" width="10" height="34" rx="3"/>
+    <rect x="186" y="154" width="10" height="74" rx="3"/>
+    <rect x="230" y="176" width="10" height="52" rx="3"/>
+    <rect x="274" y="160" width="10" height="68" rx="3"/>
+    <rect x="318" y="184" width="10" height="44" rx="3"/>
+  </g>
+
+  <g stroke="#637ACF" stroke-opacity="0.28" stroke-width="1">
+    <path d="M34 72H388"/>
+    <path d="M34 104H388"/>
+    <path d="M34 136H388"/>
+    <path d="M34 168H388"/>
+    <path d="M34 200H388"/>
+  </g>
+</svg>
+

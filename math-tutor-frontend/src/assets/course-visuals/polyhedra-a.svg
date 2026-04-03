@@ -1,0 +1,41 @@
+<svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="poly-a-bg" x1="26" y1="16" x2="386" y2="248" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEF3FF"/>
+      <stop offset="0.48" stop-color="#DDE5FF"/>
+      <stop offset="1" stop-color="#D5DEF8"/>
+    </linearGradient>
+    <linearGradient id="poly-a-crystal" x1="115" y1="44" x2="256" y2="196" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FBFF" stop-opacity="0.95"/>
+      <stop offset="0.5" stop-color="#CFE0FF" stop-opacity="0.78"/>
+      <stop offset="1" stop-color="#9BB6F7" stop-opacity="0.52"/>
+    </linearGradient>
+    <linearGradient id="poly-a-crystal-2" x1="219" y1="84" x2="346" y2="214" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F2FBFF" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#86CBE8" stop-opacity="0.46"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="420" height="260" rx="24" fill="url(#poly-a-bg)"/>
+  <circle cx="354" cy="54" r="66" fill="#8AA8F6" opacity="0.18"/>
+  <circle cx="66" cy="218" r="78" fill="#72C9E6" opacity="0.15"/>
+
+  <g stroke="#5E73C8" stroke-opacity="0.45" stroke-width="1.4" stroke-linejoin="round">
+    <path d="M74 168L136 86L232 80L286 162L202 222L102 220Z" fill="url(#poly-a-crystal)"/>
+    <path d="M136 86L156 64L254 56L308 138L286 162"/>
+    <path d="M232 80L254 56L348 74L370 162L286 162"/>
+    <path d="M202 222L286 162L370 162L282 236L176 242Z"/>
+    <line x1="136" y1="86" x2="232" y2="80"/>
+    <line x1="136" y1="86" x2="202" y2="222"/>
+    <line x1="232" y1="80" x2="286" y2="162"/>
+    <line x1="102" y1="220" x2="202" y2="222"/>
+    <line x1="74" y1="168" x2="136" y2="86"/>
+  </g>
+
+  <g stroke="#5DB4D7" stroke-opacity="0.4" stroke-width="1.2">
+    <path d="M226 108L284 88L338 130L320 196L250 202L210 158Z" fill="url(#poly-a-crystal-2)"/>
+    <line x1="226" y1="108" x2="338" y2="130"/>
+    <line x1="284" y1="88" x2="250" y2="202"/>
+    <line x1="210" y1="158" x2="320" y2="196"/>
+  </g>
+</svg>

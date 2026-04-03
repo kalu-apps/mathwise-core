@@ -150,10 +150,64 @@
   box-shadow: 0 14px 28px color-mix(in srgb, var(--brand-solid) 18%, transparent);
 }
 
+.news-feed__create-dialog {
+  .MuiDialog-paper {
+    border-radius: 20px;
+    border: 1px solid color-mix(in srgb, var(--brand-solid) 22%, var(--border-subtle));
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-elevated) 95%, transparent),
+      color-mix(in srgb, var(--surface-soft) 92%, transparent)
+    );
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+}
+
+.news-feed__create-content {
+  display: grid;
+  gap: 16px;
+  padding-top: 8px !important;
+}
+
+.news-feed__compose-fields {
+  display: grid;
+  gap: 12px;
+
+  .MuiTextField-root {
+    background: transparent;
+  }
+
+  .MuiOutlinedInput-root {
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  }
+}
+
+.news-feed__compose-textarea {
+  .MuiOutlinedInput-root {
+    border-radius: 16px;
+    align-items: stretch;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .MuiInputBase-inputMultiline {
+    line-height: 1.52;
+    min-height: 172px;
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+  }
+}
+
 .news-feed__tone-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.news-feed__tone-list--create {
+  gap: 7px;
 }
 
 .news-feed__tone {
@@ -230,6 +284,45 @@
   }
 }
 
+.news-feed__composer-actions--create {
+  gap: 6px;
+  margin-top: -2px;
+
+  .MuiButton-root {
+    border-radius: 12px;
+    min-height: 34px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 650;
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+  }
+
+  .MuiButton-root:hover {
+    color: var(--text-primary);
+    border-color: color-mix(in srgb, var(--brand-solid) 16%, var(--border-subtle));
+    background: color-mix(in srgb, var(--brand-solid) 8%, transparent);
+  }
+
+  .MuiButton-contained {
+    color: var(--text-primary);
+    border-color: color-mix(in srgb, var(--brand-solid) 22%, var(--border-subtle));
+    background: color-mix(in srgb, var(--brand-solid) 14%, var(--surface-elevated));
+  }
+}
+
+.news-feed__create-actions {
+  padding: 10px 24px 20px !important;
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 86%, transparent);
+
+  .MuiButton-root {
+    text-transform: none;
+    border-radius: 13px;
+    min-width: 112px;
+    font-weight: 700;
+  }
+}
+
 .news-feed__list {
   display: grid;
   gap: 12px;
@@ -295,6 +388,10 @@
 .news-feed__empty--error {
   border: 1px solid color-mix(in srgb, var(--feedback-danger) 40%, var(--border-subtle));
   background: color-mix(in srgb, var(--feedback-danger) 10%, var(--surface-soft));
+}
+
+.news-feed__image-wrap--create {
+  margin-top: -4px;
 }
 
 .news-feed__item {

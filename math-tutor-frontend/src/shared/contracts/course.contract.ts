@@ -3,6 +3,7 @@ export type CourseStatusContract = "draft" | "published";
 export type CourseVisualStyleContract =
   | "polyhedra"
   | "function-fields"
+  | "projection-wireframe"
   | "lattice"
   | "topology"
   | "analytic-sections"

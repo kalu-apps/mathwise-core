@@ -25,7 +25,7 @@ test("course visuals: fallback for invalid metadata", () => {
   assert.equal(resolved.visualStyle, fallback.visualStyle);
   assert.equal(resolved.visualPalette, fallback.visualPalette);
   assert.equal(resolved.visualSeed, 0);
-  assert.equal(resolved.visualVariant, 11);
+  assert.equal(resolved.visualVariant, 255);
 });
 
 test("course visuals: accepts explicit valid metadata", () => {
@@ -42,4 +42,15 @@ test("course visuals: accepts explicit valid metadata", () => {
     visualSeed: 334455,
     visualVariant: 4,
   });
+});
+
+test("course visuals: maps legacy lattice to projection-wireframe", () => {
+  const resolved = resolveCourseVisualMetadata("course_legacy", {
+    visualStyle: "lattice",
+    visualPalette: "graphite-aurora",
+    visualSeed: 1010,
+    visualVariant: 7,
+  });
+
+  assert.equal(resolved.visualStyle, "projection-wireframe");
 });
