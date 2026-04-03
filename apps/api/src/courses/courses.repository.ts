@@ -49,6 +49,9 @@ type PublishReleaseInput = {
   assessmentsSnapshot: CourseAssessmentReleaseItemDto[];
 };
 
+const MAX_VISUAL_SEED = 2_147_483_647;
+const MAX_VISUAL_VARIANT = 255;
+
 @Injectable()
 export class CoursesRepository {
   constructor(private readonly databaseService: DatabaseService) {}
@@ -351,9 +354,9 @@ export class CoursesRepository {
         course.teacherId,
         course.status,
         course.visualStyle,
-        Math.max(0, Math.round(course.visualSeed ?? 0)),
+        Math.min(MAX_VISUAL_SEED, Math.max(0, Math.round(course.visualSeed ?? 0))),
         course.visualPalette,
-        Math.max(0, Math.round(course.visualVariant ?? 0)),
+        Math.min(MAX_VISUAL_VARIANT, Math.max(0, Math.round(course.visualVariant ?? 0))),
       ]
     );
     return course;

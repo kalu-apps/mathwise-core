@@ -620,7 +620,7 @@ export function NewsFeedPanel({ user }: Props) {
           open={createOpen}
           onClose={closeCreateModal}
           fullWidth
-          maxWidth="sm"
+          maxWidth="xs"
           className="news-feed__create-dialog"
         >
           <DialogTitleWithClose
@@ -661,11 +661,12 @@ export function NewsFeedPanel({ user }: Props) {
                   setDraft((prev) => ({ ...prev, content: e.target.value }))
                 }
                 multiline
-                minRows={6}
+                minRows={4}
                 fullWidth
               />
 
               <TextField
+                className="news-feed__compose-link"
                 placeholder="Ссылка (необязательно)"
                 value={draft.externalUrl}
                 onChange={(e) =>

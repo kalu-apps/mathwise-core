@@ -13,6 +13,8 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
@@ -34,7 +36,7 @@ import { t } from "@/shared/i18n";
 import { useActionGuard } from "@/shared/lib/useActionGuard";
 import { ApiError } from "@/shared/api/client";
 import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
-import { ButtonPending } from "@/shared/ui/loading";
+import { BrandLoader, ButtonPending } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import {
   getOwnedMediaDownloadUrl,
@@ -251,6 +253,8 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
   const [previewExternalHref, setPreviewExternalHref] = useState<string | null>(null);
   const saveGuard = useActionGuard();
   const isSaving = saveGuard.pending;
+  const theme = useTheme();
+  const isNarrowModal = useMediaQuery(theme.breakpoints.down("sm"));
   const lessonId = initialLesson?.id;
   const saveAbortRef = useRef<AbortController | null>(null);
 
@@ -580,6 +584,11 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
     videoFile || videoMediaObjectId || videoStreamUrl || videoUrl
   );
   const editorPreviewPoster = videoPosterUrl?.trim() || PREVIEW_VIDEO_FALLBACK_POSTER;
+  const saveStatusText =
+    videoFile || mediaJobStatus === "processing"
+      ? "Загружаем и привязываем видео"
+      : "Сохраняем урок";
+  const modalLoaderSize = isNarrowModal ? "sm" : "md";
 
   const abortSaveAndClose = () => {
     saveAbortRef.current?.abort();
@@ -588,10 +597,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
   };
 
   const handleCloseRequest = () => {
-    if (isSaving) {
-      abortSaveAndClose();
-      return;
-    }
+    if (isSaving) return;
     if (!hasUnsavedChanges) {
       onCancel();
       return;
@@ -599,15 +605,25 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
     setCloseConfirmOpen(true);
   };
 
+  const handleDialogClose = () => {
+    if (isSaving) return;
+    handleCloseRequest();
+  };
+
   return (
     <>
       {/* ===== LESSON EDITOR DIALOG ===== */}
       <Dialog
         open
-        onClose={handleCloseRequest}
+        onClose={handleDialogClose}
         maxWidth="sm"
         fullWidth
-        className="lesson-editor-dialog ui-dialog ui-dialog--wide"
+        className={[
+          "lesson-editor-dialog ui-dialog ui-dialog--wide",
+          isSaving ? "lesson-editor-dialog--saving" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
       >
         <DialogTitleWithClose
           title={
@@ -618,8 +634,26 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
           onClose={handleCloseRequest}
           closeAriaLabel={t("common.close")}
         />
+        {isSaving ? (
+          <Box
+            className="lesson-editor-dialog__save-overlay"
+            role="status"
+            aria-live="polite"
+          >
+            <Stack spacing={1.25} alignItems="center" className="lesson-editor-dialog__save-overlay-inner">
+              <BrandLoader size={modalLoaderSize} />
+              <Typography className="lesson-editor-dialog__save-status">
+                {saveStatusText}
+              </Typography>
+            </Stack>
+          </Box>
+        ) : null}
         <DialogContent className="lesson-editor-dialog__content">
-          <Stack spacing={3} className="lesson-editor">
+          <Stack
+            spacing={3}
+            className={["lesson-editor", isSaving ? "is-saving" : ""].filter(Boolean).join(" ")}
+            aria-busy={isSaving}
+          >
             {saveError && <RecoverableErrorAlert error={saveError} />}
             <TextField
               label={t("lessonEditor.lessonNameLabel")}
@@ -630,6 +664,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
               }}
               fullWidth
               required
+              disabled={isSaving}
             />
 
             <Stack spacing={1}>
@@ -648,6 +683,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                     <IconButton
                       size="small"
                       className="lesson-editor__video-card-remove"
+                      disabled={isSaving}
                       onClick={() => {
                         setVideoFile(null);
                         setVideoMediaObjectId(undefined);
@@ -667,6 +703,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                   <button
                     type="button"
                     className="lesson-editor__video-card-preview"
+                    disabled={isSaving}
                     onClick={() => void handleOpenVideoPreview()}
                   >
                     <Box
@@ -706,7 +743,12 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                   </button>
                 </Box>
               ) : (
-                <Button component="label" variant="outlined" startIcon={<UploadFileIcon />}>
+                <Button
+                  component="label"
+                  variant="outlined"
+                  startIcon={<UploadFileIcon />}
+                  disabled={isSaving}
+                >
                   {t("lessonEditor.uploadVideo")}
                   <input
                     hidden
@@ -746,20 +788,22 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                     <Box
                       key={m.id}
                       className={`lesson-editor__material-card ${
-                        canPreviewMaterial(m) ? "is-clickable" : "is-disabled"
+                        !isSaving && canPreviewMaterial(m) ? "is-clickable" : "is-disabled"
                       }`}
-                      role={canPreviewMaterial(m) ? "button" : undefined}
-                      tabIndex={canPreviewMaterial(m) ? 0 : undefined}
+                      role={!isSaving && canPreviewMaterial(m) ? "button" : undefined}
+                      tabIndex={!isSaving && canPreviewMaterial(m) ? 0 : undefined}
                       aria-label={
-                        canPreviewMaterial(m)
+                        !isSaving && canPreviewMaterial(m)
                           ? `Открыть предпросмотр материала ${m.name}`
                           : undefined
                       }
                       onClick={() => {
+                        if (isSaving) return;
                         if (!canPreviewMaterial(m)) return;
                         void handleOpenMaterialPreview(m);
                       }}
                       onKeyDown={(event: ReactKeyboardEvent<HTMLDivElement>) => {
+                        if (isSaving) return;
                         if (!canPreviewMaterial(m)) return;
                         if (event.key !== "Enter" && event.key !== " ") return;
                         event.preventDefault();
@@ -786,12 +830,13 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                             <DescriptionIcon fontSize="small" />
                           )}
                           <Typography
-                            component={canPreviewMaterial(m) ? "button" : "span"}
-                            type={canPreviewMaterial(m) ? "button" : undefined}
+                            component={!isSaving && canPreviewMaterial(m) ? "button" : "span"}
+                            type={!isSaving && canPreviewMaterial(m) ? "button" : undefined}
                             variant="subtitle2"
                             noWrap
                             className="lesson-editor__material-card-name"
                             onClick={(event: ReactMouseEvent<HTMLElement>) => {
+                              if (isSaving) return;
                               event.stopPropagation();
                               if (!canPreviewMaterial(m)) return;
                               void handleOpenMaterialPreview(m);
@@ -804,6 +849,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                           <IconButton
                             size="small"
                             className="lesson-editor__material-card-remove"
+                            disabled={isSaving}
                             onClick={(event: ReactMouseEvent<HTMLButtonElement>) => {
                               event.stopPropagation();
                               handleRemoveMaterial(m.id);
@@ -823,6 +869,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                 component="label"
                 variant="outlined"
                 startIcon={<UploadFileIcon />}
+                disabled={isSaving}
               >
                 {t("lessonEditor.addPdfOrWord")}
                 <input
@@ -842,6 +889,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                 control={
                   <Checkbox
                     checked={disablePrintableDownloads}
+                    disabled={isSaving}
                     onChange={(event) =>
                       setDisablePrintableDownloads(event.target.checked)
                     }
@@ -854,7 +902,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
         </DialogContent>
 
         <DialogActions className="lesson-editor-dialog__actions">
-          <Button onClick={handleCloseRequest} startIcon={<CloseRoundedIcon />}>
+          <Button onClick={handleCloseRequest} startIcon={<CloseRoundedIcon />} disabled={isSaving}>
             <span className="lesson-editor-dialog__action-text">
               {t("common.cancel")}
             </span>

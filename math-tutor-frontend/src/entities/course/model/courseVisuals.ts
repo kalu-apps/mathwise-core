@@ -201,10 +201,11 @@ const pickSceneBySeed = (
 export const deriveCourseVisualMetadata = (courseId: string): CourseVisualMetadata => {
   const normalizedId = courseId.trim() || "course";
   const hash = hashString(normalizedId);
+  const mixedSeed = (hash * 2654435761) >>> 0;
   return {
     visualStyle: CANONICAL_VISUAL_STYLES[hash % CANONICAL_VISUAL_STYLES.length],
     visualPalette: COURSE_VISUAL_PALETTES[(hash >>> 5) % COURSE_VISUAL_PALETTES.length],
-    visualSeed: (hash * 2654435761) >>> 0,
+    visualSeed: mixedSeed % (MAX_VISUAL_SEED + 1),
     visualVariant: (hash >>> 11) % (MAX_VISUAL_VARIANT + 1),
   };
 };

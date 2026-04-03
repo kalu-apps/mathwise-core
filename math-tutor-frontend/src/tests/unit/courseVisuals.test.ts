@@ -12,6 +12,8 @@ describe("course visual system", () => {
     const second = deriveCourseVisualMetadata("course_linear_algebra");
 
     expect(second).toEqual(first);
+    expect(first.visualSeed).toBeGreaterThanOrEqual(0);
+    expect(first.visualSeed).toBeLessThanOrEqual(2_147_483_647);
   });
 
   it("respects explicit metadata when it is valid", () => {
@@ -70,5 +72,14 @@ describe("course visual system", () => {
     const second = buildCourseVisualLayers(metadata, "featured");
 
     expect(first.patternImage).toEqual(second.patternImage);
+  });
+
+  it("clamps oversized explicit seed to int4-safe max", () => {
+    const resolved = resolveCourseVisualMetadata({
+      id: "course_massive_seed",
+      visualSeed: 9_999_999_999,
+    });
+
+    expect(resolved.visualSeed).toBe(2_147_483_647);
   });
 });

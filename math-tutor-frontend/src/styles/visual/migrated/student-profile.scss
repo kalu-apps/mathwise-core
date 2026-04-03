@@ -206,6 +206,7 @@
     max-width: none;
     flex: 1 1 0;
     gap: 6px;
+    white-space: nowrap;
 
     .MuiSvgIcon-root {
       font-size: 19px;
@@ -315,7 +316,12 @@
 }
 
 .student-profile__tab-label {
-  display: inline-flex;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .student-profile__courses {

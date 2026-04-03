@@ -6,6 +6,10 @@
   }
 }
 
+.lesson-editor.is-saving {
+  opacity: 0.58;
+}
+
 .materials-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -213,6 +217,7 @@
 .course-editor-dialog,
 .lesson-editor-dialog {
   .MuiDialog-paper {
+    position: relative;
     box-sizing: border-box;
     border-radius: 18px;
     border: 1px solid var(--card-border);
@@ -274,6 +279,18 @@
     padding: 0 !important;
   }
 
+  .MuiTextField-root.course-editor-dialog__description-field
+    .MuiOutlinedInput-root.MuiInputBase-multiline {
+    border: 1px solid var(--card-border);
+    box-shadow: none !important;
+  }
+
+  .MuiTextField-root.course-editor-dialog__description-field
+    .MuiOutlinedInput-root
+    .MuiOutlinedInput-notchedOutline {
+    border: 0 !important;
+  }
+
   .MuiDialogActions-root {
     padding: 10px 16px 14px;
     border-top: 1px solid var(--border-subtle);
@@ -294,6 +311,13 @@
     background: var(--surface-soft);
     padding: 12px;
     min-width: 0;
+  }
+
+  &__blocks-title {
+    font-size: clamp(0.94rem, 0.2vw + 0.88rem, 1.05rem) !important;
+    line-height: 1.3;
+    font-weight: 650 !important;
+    letter-spacing: -0.01em;
   }
 
   &__block-card {
@@ -424,6 +448,40 @@
     gap: 6px;
     flex-wrap: nowrap;
   }
+}
+
+.lesson-editor-dialog__save-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  padding: clamp(12px, 3vw, 22px);
+  background: color-mix(in srgb, var(--surface-popover) 72%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.lesson-editor-dialog__save-overlay-inner {
+  min-width: min(100%, 220px);
+  max-width: min(100%, 340px);
+  text-align: center;
+}
+
+.lesson-editor-dialog__save-status {
+  margin: 0;
+  font-size: clamp(0.76rem, 0.36vw + 0.7rem, 0.9rem);
+  font-weight: 700;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--text-primary) 92%, var(--accent-soft));
+  letter-spacing: 0.01em;
+}
+
+.lesson-editor-dialog__save-overlay .ui-loader-brand--md {
+  --loader-size: clamp(122px, 22vw, 170px);
+}
+
+.lesson-editor-dialog__save-overlay .ui-loader-brand--sm {
+  --loader-size: clamp(86px, 30vw, 112px);
 }
 
 @media (max-width: 600px) {

@@ -71,7 +71,8 @@ export const deriveCourseVisualMetadata = (courseId: string): CourseVisualMetada
   const hash = hashString(normalizedId);
   const style = COURSE_VISUAL_STYLES[hash % COURSE_VISUAL_STYLES.length];
   const palette = COURSE_VISUAL_PALETTES[(hash >>> 5) % COURSE_VISUAL_PALETTES.length];
-  const visualSeed = (hash * 2654435761) >>> 0;
+  const mixedSeed = (hash * 2654435761) >>> 0;
+  const visualSeed = mixedSeed % (MAX_VISUAL_SEED + 1);
   const visualVariant = (hash >>> 9) % (MAX_VISUAL_VARIANT + 1);
 
   return {

@@ -1233,6 +1233,7 @@ export function CourseWithLessonsEditor({
               size="small"
             />
             <TextField
+              className="course-editor-dialog__description-field"
               label={t("courseEditor.descriptionLabel")}
               value={description}
               onChange={(e) => {
@@ -1293,7 +1294,12 @@ export function CourseWithLessonsEditor({
                 flexWrap="wrap"
                 gap={1}
               >
-                <Typography variant="h6">Объединить материалы в блоки</Typography>
+                <Typography
+                  variant="h6"
+                  className="course-editor-dialog__blocks-title"
+                >
+                  Объединить материалы в блоки
+                </Typography>
                 <Button
                   startIcon={
                     blocksPanelOpen ? <RemoveRoundedIcon /> : <AddRoundedIcon />

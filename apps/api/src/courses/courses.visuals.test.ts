@@ -11,6 +11,8 @@ test("course visuals: deterministic metadata from course id", () => {
 
   assert.deepEqual(second, first);
   assert.equal(typeof first.visualSeed, "number");
+  assert.ok(first.visualSeed >= 0);
+  assert.ok(first.visualSeed <= 2_147_483_647);
 });
 
 test("course visuals: fallback for invalid metadata", () => {
@@ -53,4 +55,12 @@ test("course visuals: maps legacy lattice to projection-wireframe", () => {
   });
 
   assert.equal(resolved.visualStyle, "projection-wireframe");
+});
+
+test("course visuals: clamps explicit oversized seed to int4-safe max", () => {
+  const resolved = resolveCourseVisualMetadata("course_seed_clamp", {
+    visualSeed: 4_000_000_000,
+  });
+
+  assert.equal(resolved.visualSeed, 2_147_483_647);
 });

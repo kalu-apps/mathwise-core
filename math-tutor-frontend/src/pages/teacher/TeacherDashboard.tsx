@@ -73,6 +73,7 @@ import {
   toMinutes,
   selectUpcomingBookingReminder,
 } from "@/pages/teacher/model/selectors";
+import { deleteCourseWithCascade } from "@/pages/teacher/model/courseDeleteFlow";
 
 import {
   deleteCourse,
@@ -83,7 +84,6 @@ import {
   getPurchases,
 } from "@/entities/purchase/model/storage";
 import {
-  deleteLessonsByCourse,
   getLessonsByCourse,
 } from "@/entities/lesson/model/storage";
 import {
@@ -486,12 +486,23 @@ export default function TeacherDashboard() {
   );
 
   const deleteCourseFull = async (courseId: string) => {
-    await deleteCourse(courseId);
-    await deleteLessonsByCourse(courseId);
-    await deleteCourseContentItems(courseId);
-    await deletePurchasesByCourse(courseId);
-    await deleteProgressByCourse(courseId);
-    await refreshAll();
+    await deleteCourseWithCascade(courseId, {
+      deleteCourse,
+      deleteCourseContentItems,
+      deletePurchasesByCourse,
+      deleteProgressByCourse,
+      refreshAll,
+    });
+  };
+
+  const handleDeleteCourseConfirm = (courseId: string) => {
+    void deleteCourseFull(courseId)
+      .catch(() => {
+        setDashboardError("Не удалось удалить курс. Попробуйте снова.");
+      })
+      .finally(() => {
+        setConfirm(null);
+      });
   };
 
   const publishCourse = async (course: Course) => {
@@ -1352,8 +1363,7 @@ export default function TeacherDashboard() {
                       description: t("teacherDashboard.deleteCourseDescription"),
                       danger: true,
                       onConfirm: () => {
-                        void deleteCourseFull(course.id);
-                        setConfirm(null);
+                        handleDeleteCourseConfirm(course.id);
                       },
                     })
                   }
