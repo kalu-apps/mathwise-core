@@ -5,6 +5,19 @@ import { VideoPlayer } from "@/entities/lesson/ui/VideoPlayer";
 import { shouldShowVideoPlayerLoading } from "@/entities/lesson/model/videoPlayerUi";
 
 describe("video player runtime ui polish", () => {
+  it("renders glass polyhedron preview scene with compact lesson-start CTA", () => {
+    const markup = renderToStaticMarkup(
+      createElement(VideoPlayer, {
+        src: "https://cdn.example.com/lesson.mp4",
+      })
+    );
+
+    expect(markup).toContain("video-player__polyhedron-scene");
+    expect(markup).toContain("video-player__poster-grid");
+    expect(markup).toContain("Смотреть урок");
+    expect(markup).not.toContain("Подготовить видео");
+  });
+
   it("does not render old technical placeholder copy", () => {
     const markup = renderToStaticMarkup(
       createElement(VideoPlayer, {

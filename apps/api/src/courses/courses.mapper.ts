@@ -1,4 +1,5 @@
 import type { CourseCatalogItemDto } from "./courses.types";
+import { resolveCourseVisualMetadata } from "./courses.visuals";
 
 const isCourseStatus = (value: unknown): value is "draft" | "published" => {
   return value === "draft" || value === "published";
@@ -19,6 +20,13 @@ export const mapUnknownCourseToDto = (
   const title = typeof raw.title === "string" ? raw.title : "";
   if (!id || !title) return null;
 
+  const visual = resolveCourseVisualMetadata(id, {
+    visualStyle: raw.visualStyle,
+    visualSeed: raw.visualSeed,
+    visualPalette: raw.visualPalette,
+    visualVariant: raw.visualVariant,
+  });
+
   return {
     id,
     title,
@@ -28,5 +36,6 @@ export const mapUnknownCourseToDto = (
     priceSelf: toFiniteNumber(raw.priceSelf),
     teacherId: typeof raw.teacherId === "string" ? raw.teacherId : "",
     status: isCourseStatus(raw.status) ? raw.status : "draft",
+    ...visual,
   };
 };

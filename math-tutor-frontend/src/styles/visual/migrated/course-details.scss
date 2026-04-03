@@ -1336,16 +1336,61 @@
       color: var(--text-secondary);
       width: 100%;
       display: flex;
-      align-items: baseline;
-      justify-content: space-between;
+      align-items: center;
+      justify-content: flex-start;
       gap: 12px;
       flex-wrap: wrap;
       line-height: 1.45;
       overflow-wrap: anywhere;
 
+      .course-details__installment-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .course-details__split-brand-icon {
+        color: color-mix(in srgb, var(--feedback-info) 72%, var(--brand-violet));
+        --split-icon-accent: color-mix(in srgb, var(--accent-strong) 82%, var(--feedback-info));
+        filter: drop-shadow(
+          0 4px 10px color-mix(in srgb, var(--feedback-info) 24%, transparent)
+        );
+        flex-shrink: 0;
+      }
+
       .course-details__installment-line {
         color: color-mix(in srgb, var(--text-secondary) 92%, var(--brand-soft));
         font-weight: 560;
+      }
+
+      .course-details__split-help {
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--accent-strong) 26%, var(--border-subtle));
+        background: linear-gradient(
+          145deg,
+          color-mix(in srgb, var(--surface-elevated) 90%, #edf3ff),
+          color-mix(in srgb, var(--surface-elevated) 94%, #f8fbff)
+        );
+        color: color-mix(in srgb, var(--accent-text) 82%, var(--brand-solid));
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        box-shadow: 0 4px 10px color-mix(in srgb, var(--brand-shadow) 18%, transparent);
+        transition: transform 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+      }
+
+      .course-details__split-help:hover,
+      .course-details__split-help:focus-visible {
+        color: var(--text-primary);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 12px color-mix(in srgb, var(--brand-shadow) 24%, transparent);
+        outline: none;
       }
     }
 
@@ -1448,24 +1493,6 @@
       );
       box-shadow: 0 4px 10px color-mix(in srgb, var(--brand-solid) 22%, transparent);
     }
-  }
-}
-
-.course-details__inline-link {
-  border: none;
-  background: transparent;
-  color: color-mix(in srgb, var(--accent-text) 84%, var(--brand-solid));
-  font-weight: 650;
-  cursor: pointer;
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-thickness: 1.5px;
-  white-space: nowrap;
-
-  &:hover,
-  &:focus-visible {
-    color: var(--text-primary);
   }
 }
 

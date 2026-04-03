@@ -40,6 +40,7 @@ import {
   BoltRounded,
   TrendingUpRounded,
   FlagRounded,
+  HelpOutlineRounded,
 } from "@mui/icons-material";
 import { ListPagination } from "@/shared/ui/ListPagination";
 import type {
@@ -75,6 +76,7 @@ import { PageLoader } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { BackNavButton } from "@/shared/ui/BackNavButton";
 import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
+import { SegmentedArcIcon } from "@/shared/ui/icons/SegmentedArcIcon";
 import {
   selectBnplMarketingInfo,
   selectCourseAccessState,
@@ -1265,14 +1267,23 @@ export default function CourseDetails() {
             <li>Приоритетные ответы преподавателя</li>
           </ul>
           <div className="course-details__card-tooltip">
-            <span className="course-details__installment-line">{guidedBnplLine}</span>
-            <button
-              type="button"
-              className="course-details__inline-link"
-              onClick={() => setBnplInfoOpen(true)}
-            >
-              Как работает сплит
-            </button>
+            <span className="course-details__installment-meta">
+              <SegmentedArcIcon
+                className="course-details__split-brand-icon"
+                size={17}
+                title="Оплата частями"
+              />
+              <span className="course-details__installment-line">{guidedBnplLine}</span>
+              <button
+                type="button"
+                className="course-details__split-help"
+                aria-label="Как работает оплата частями"
+                title="Как работает сплит"
+                onClick={() => setBnplInfoOpen(true)}
+              >
+                <HelpOutlineRounded fontSize="inherit" />
+              </button>
+            </span>
           </div>
           <Button
             className="course-details__card-button"
@@ -1302,14 +1313,23 @@ export default function CourseDetails() {
             <li>Доступ к курсу с любого устройства</li>
           </ul>
           <div className="course-details__card-tooltip">
-            <span className="course-details__installment-line">{selfBnplLine}</span>
-            <button
-              type="button"
-              className="course-details__inline-link"
-              onClick={() => setBnplInfoOpen(true)}
-            >
-              Как работает сплит
-            </button>
+            <span className="course-details__installment-meta">
+              <SegmentedArcIcon
+                className="course-details__split-brand-icon"
+                size={17}
+                title="Оплата частями"
+              />
+              <span className="course-details__installment-line">{selfBnplLine}</span>
+              <button
+                type="button"
+                className="course-details__split-help"
+                aria-label="Как работает оплата частями"
+                title="Как работает сплит"
+                onClick={() => setBnplInfoOpen(true)}
+              >
+                <HelpOutlineRounded fontSize="inherit" />
+              </button>
+            </span>
           </div>
           <Button
             className="course-details__card-button course-details__card-button--secondary"

@@ -16,9 +16,10 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import LockIcon from "@mui/icons-material/Lock";
 import DiamondRoundedIcon from "@mui/icons-material/DiamondRounded";
-import Grid4x4RoundedIcon from "@mui/icons-material/Grid4x4Rounded";
 
 import type { Course } from "@/entities/course/model/types";
+import { SegmentedArcIcon } from "@/shared/ui/icons/SegmentedArcIcon";
+import { CourseVisualBackground } from "@/entities/course/ui/CourseVisualBackground";
 
 type PurchasedProgressDetails = {
   lessonsViewed: number;
@@ -141,9 +142,14 @@ export function CourseCard({
         },
         minHeight: 180,
         position: "relative",
+        isolation: "isolate",
         opacity: locked && !isTeacherView ? 0.85 : 1,
       }}
     >
+      <CourseVisualBackground
+        course={course}
+        mode={isTeacherView ? "featured" : "card"}
+      />
       {!isTeacherView && locked && (
         <Box
           sx={{
@@ -163,6 +169,7 @@ export function CourseCard({
               "linear-gradient(135deg, color-mix(in srgb, var(--brand-solid) 20%, transparent), color-mix(in srgb, var(--surface-soft) 86%, transparent))",
             border: "1px solid var(--border-subtle)",
             boxShadow: "var(--shadow-xs)",
+            zIndex: 2,
           }}
         >
           <LockIcon sx={{ fontSize: 16 }} />
@@ -176,6 +183,7 @@ export function CourseCard({
             position: "absolute",
             top: 12,
             right: 12,
+            zIndex: 2,
             width: 56,
             height: 56,
             borderRadius: "50%",
@@ -215,6 +223,8 @@ export function CourseCard({
           flexDirection: "column",
           justifyContent: "flex-start",
           overflow: "hidden",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         {/* Название и описание */}
@@ -394,12 +404,17 @@ export function CourseCard({
                     "0 6px 18px color-mix(in srgb, var(--feedback-info) 14%, transparent)",
                 }}
               >
-                <Grid4x4RoundedIcon
-                  sx={{
-                    fontSize: 15,
+                <SegmentedArcIcon
+                  title="Оплата частями"
+                  size={16}
+                  className="course-card__split-icon"
+                  style={{
                     color: "color-mix(in srgb, var(--feedback-info) 76%, var(--brand-violet))",
                     filter:
                       "drop-shadow(0 3px 10px color-mix(in srgb, var(--feedback-info) 30%, transparent))",
+                    ["--split-icon-accent" as string]:
+                      "color-mix(in srgb, var(--accent-strong) 80%, var(--feedback-info))",
+                    flexShrink: 0,
                   }}
                 />
                 <Typography
@@ -513,6 +528,8 @@ export function CourseCard({
             pl: { xs: 0, lg: 1.25 },
             display: "grid",
             alignContent: "start",
+            position: "relative",
+            zIndex: 1,
           }}
         >
           <Stack
@@ -644,6 +661,8 @@ export function CourseCard({
             minWidth: 48,
             alignItems: "center",
             justifyContent: "flex-start",
+            position: "relative",
+            zIndex: 1,
           }}
         >
           {onEdit && (

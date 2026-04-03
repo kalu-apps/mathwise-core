@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCourses } from "@/entities/course/model/storage";
 import type { Course } from "@/entities/course/model/types";
+import { CourseVisualBackground } from "@/entities/course/ui/CourseVisualBackground";
 export function CoursesPreview() {
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -54,6 +55,7 @@ export function CoursesPreview() {
       <div className="courses-preview__grid">
         {previewCourses.map((course) => (
           <Card key={course.id} className="courses-preview__card" elevation={0}>
+            <CourseVisualBackground course={course} mode="featured" />
             <CardContent className="courses-preview__content">
               <span className="courses-preview__tag">Курс</span>
               <h3 className="courses-preview__title">{course.title}</h3>

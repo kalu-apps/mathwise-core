@@ -8,12 +8,15 @@
   position: relative;
   width: 100%;
   padding-top: 56.25%;
-  background: var(--bg-canvas);
+  background: linear-gradient(
+    152deg,
+    color-mix(in srgb, #0a1222 86%, var(--surface-elevated)),
+    color-mix(in srgb, #0c1a30 88%, var(--surface-soft))
+  );
   border-radius: 16px;
   overflow: hidden;
-
-  /* 🎨 лёгкая стилизация */
   box-shadow: var(--shadow-md);
+  isolation: isolate;
 }
 
 .video-player__poster-shell {
@@ -25,50 +28,140 @@
   padding: 0;
   cursor: pointer;
   color: inherit;
+  outline: none;
   background:
     radial-gradient(
-      circle at 18% 22%,
-      color-mix(in srgb, var(--accent-strong) 18%, transparent),
-      transparent 38%
+      100% 90% at 18% 18%,
+      color-mix(in srgb, var(--accent-strong) 20%, transparent),
+      transparent 48%
     ),
     radial-gradient(
-      circle at 84% 76%,
-      color-mix(in srgb, var(--brand-soft, var(--accent-strong)) 14%, transparent),
-      transparent 34%
+      84% 66% at 80% 82%,
+      color-mix(in srgb, var(--brand-violet) 16%, transparent),
+      transparent 62%
     ),
-    linear-gradient(145deg, color-mix(in srgb, var(--surface-elevated) 94%, transparent), #05070d);
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, #0e1a30 90%, var(--surface-elevated)),
+      color-mix(in srgb, #081019 92%, var(--surface-soft))
+    );
+  overflow: hidden;
+}
+
+.video-player__poster-shell:focus-visible {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent-strong) 62%, transparent);
+}
+
+.video-player__poster-image {
+  position: absolute;
+  inset: -8%;
+  z-index: 0;
+  background-image: var(--video-poster-image);
   background-size: cover;
   background-position: center;
+  opacity: 0.22;
+  filter: saturate(0.68) blur(2px);
+  transform: scale(1.04);
+}
+
+.video-player__poster-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-elevated) 6%, transparent) 0%,
+      color-mix(in srgb, #02060b 36%, transparent) 100%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      color-mix(in srgb, #d3e2ff 10%, transparent) 0 1px,
+      transparent 1px 34px
+    ),
+    repeating-linear-gradient(
+      60deg,
+      color-mix(in srgb, #9fc0ff 9%, transparent) 0 1px,
+      transparent 1px 36px
+    ),
+    repeating-linear-gradient(
+      -60deg,
+      color-mix(in srgb, #88c6dd 8%, transparent) 0 1px,
+      transparent 1px 36px
+    );
+  opacity: 0.46;
+  animation: videoPosterGridDrift 24s linear infinite;
+}
+
+.video-player__polyhedron-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   display: grid;
   place-items: center;
-  overflow: hidden;
+  pointer-events: none;
+}
+
+.video-player__polyhedron-halo {
+  position: absolute;
+  width: clamp(180px, 38%, 330px);
+  aspect-ratio: 1 / 1;
+  border-radius: 999px;
+  background:
+    radial-gradient(
+      circle,
+      color-mix(in srgb, #cae1ff 28%, transparent) 0%,
+      color-mix(in srgb, #87b2ff 10%, transparent) 52%,
+      transparent 78%
+    );
+  filter: blur(10px);
+  opacity: 0.84;
+  transform: translateY(8px);
+}
+
+.video-player__polyhedron-svg {
+  width: clamp(150px, 28%, 240px);
+  height: auto;
+  opacity: 0.9;
+  transform-origin: 50% 56%;
+  filter: drop-shadow(0 14px 28px rgba(5, 13, 27, 0.45));
+  animation: videoPolyhedronFloat 6s ease-in-out infinite;
 }
 
 .video-player__poster-backdrop {
   position: absolute;
   inset: 0;
+  z-index: 3;
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, #05070d 24%, transparent),
-      color-mix(in srgb, #05070d 82%, transparent)
+      color-mix(in srgb, #04080f 22%, transparent),
+      color-mix(in srgb, #04080f 78%, transparent)
     ),
-    color-mix(in srgb, var(--bg-canvas) 34%, transparent);
-  backdrop-filter: blur(10px);
+    radial-gradient(
+      circle at 50% 58%,
+      color-mix(in srgb, #9cc4ff 7%, transparent),
+      transparent 62%
+    );
+  backdrop-filter: blur(3px);
 }
 
 .video-player__poster-content {
   position: relative;
-  z-index: 1;
-  max-width: min(52%, 320px);
+  z-index: 4;
+  width: min(100%, 360px);
+  position: absolute;
+  left: 50%;
+  bottom: clamp(14px, 4.2%, 28px);
+  transform: translateX(-50%);
   display: grid;
   justify-items: center;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--surface-translucent) 84%, transparent);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-sm);
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-translucent) 70%, transparent);
+  box-shadow: 0 10px 22px color-mix(in srgb, #03070d 32%, transparent);
+  backdrop-filter: blur(9px);
   text-align: center;
 }
 
@@ -86,19 +179,44 @@
 :root[data-theme="light"] .video-player__poster-shell {
   background:
     radial-gradient(
-      circle at 18% 22%,
-      color-mix(in srgb, var(--accent-strong) 16%, transparent),
-      transparent 40%
+      100% 90% at 18% 18%,
+      color-mix(in srgb, var(--accent-strong) 18%, transparent),
+      transparent 50%
     ),
     radial-gradient(
-      circle at 84% 76%,
-      color-mix(in srgb, var(--brand-soft, var(--accent-strong)) 12%, transparent),
-      transparent 36%
+      84% 66% at 80% 82%,
+      color-mix(in srgb, var(--brand-violet) 12%, transparent),
+      transparent 64%
     ),
     linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--surface-elevated) 94%, #ffffff),
-      color-mix(in srgb, var(--surface-soft) 92%, #eef4ff)
+      150deg,
+      color-mix(in srgb, var(--surface-elevated) 92%, #f6f9ff),
+      color-mix(in srgb, var(--surface-soft) 90%, #dfeaff)
+    );
+}
+
+:root[data-theme="light"] .video-player__poster-grid {
+  opacity: 0.4;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, #f3f7ff 24%, transparent) 0%,
+      color-mix(in srgb, #ceddf7 32%, transparent) 100%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      color-mix(in srgb, #8ca7cf 12%, transparent) 0 1px,
+      transparent 1px 34px
+    ),
+    repeating-linear-gradient(
+      60deg,
+      color-mix(in srgb, #7ea3cc 10%, transparent) 0 1px,
+      transparent 1px 36px
+    ),
+    repeating-linear-gradient(
+      -60deg,
+      color-mix(in srgb, #83b1c3 9%, transparent) 0 1px,
+      transparent 1px 36px
     );
 }
 
@@ -106,18 +224,21 @@
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, #ffffff 22%, transparent),
-      color-mix(in srgb, #dfe9ff 60%, transparent)
+      color-mix(in srgb, #ffffff 20%, transparent),
+      color-mix(in srgb, #d9e4fb 46%, transparent)
     ),
-    color-mix(in srgb, var(--surface-elevated) 28%, transparent);
+    radial-gradient(
+      circle at 50% 58%,
+      color-mix(in srgb, #b2d2ff 10%, transparent),
+      transparent 64%
+    );
 }
 
 :root[data-theme="light"] .video-player__poster-content {
-  background: color-mix(in srgb, var(--surface-elevated) 94%, #ffffff);
-  border-color: color-mix(in srgb, var(--accent-strong) 18%, var(--border-subtle));
+  background: color-mix(in srgb, var(--surface-elevated) 88%, #ffffff);
   box-shadow:
-    0 12px 24px color-mix(in srgb, var(--accent-strong) 10%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 72%, transparent);
+    0 12px 24px color-mix(in srgb, var(--accent-strong) 8%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 70%, transparent);
 }
 
 :root[data-theme="light"] .video-player__poster-hint {
@@ -125,27 +246,35 @@
 }
 
 .video-player__poster-action {
-  min-height: 24px;
-  padding: 0 9px;
-  border-radius: 999px;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 12px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 9px;
+  gap: 6px;
+  font-size: 11px;
   line-height: 1;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: color-mix(in srgb, var(--text-primary) 92%, var(--accent-soft));
-  background: color-mix(in srgb, var(--surface-translucent) 88%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-strong) 20%, var(--border-subtle));
-  box-shadow:
-    0 4px 10px color-mix(in srgb, #000 16%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #fff 12%, transparent);
+  font-weight: 680;
+  letter-spacing: 0.015em;
+  color: color-mix(in srgb, var(--text-primary) 92%, #f5f9ff);
+  background: linear-gradient(
+    138deg,
+    color-mix(in srgb, var(--accent-strong) 34%, transparent),
+    color-mix(in srgb, var(--brand-violet) 26%, transparent)
+  );
+  border: 0;
+  box-shadow: 0 8px 18px color-mix(in srgb, #09101d 36%, transparent);
   backdrop-filter: blur(6px);
 
   .MuiSvgIcon-root {
-    font-size: 13px;
+    font-size: 15px;
   }
+}
+
+.video-player__poster-shell:hover .video-player__poster-action,
+.video-player__poster-shell:focus-visible .video-player__poster-action {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px color-mix(in srgb, #09101d 42%, transparent);
 }
 
 .video-player__ratio video {
@@ -222,6 +351,25 @@
   margin-bottom: 10px;
 }
 
+@keyframes videoPolyhedronFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(2deg);
+  }
+}
+
+@keyframes videoPosterGridDrift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, -14px, 0);
+  }
+}
+
 body.video-player-restore {
   overflow-x: hidden;
   touch-action: manipulation;
@@ -233,8 +381,8 @@ body.video-player-restore {
 
 @media (max-width: 900px) {
   .video-player__poster-content {
-    max-width: calc(100% - 28px);
-    padding: 12px 12px;
+    width: calc(100% - 28px);
+    padding: 9px 11px;
   }
 
   .video-player__poster-hint {
@@ -242,8 +390,19 @@ body.video-player-restore {
   }
 
   .video-player__poster-action {
-    min-height: 22px;
-    padding: 0 8px;
-    font-size: 8px;
+    min-height: 32px;
+    padding: 0 12px;
+    font-size: 10px;
+  }
+
+  .video-player__polyhedron-svg {
+    width: clamp(130px, 38%, 188px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-player__poster-grid,
+  .video-player__polyhedron-svg {
+    animation: none !important;
   }
 }

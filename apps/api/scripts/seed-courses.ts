@@ -30,6 +30,10 @@ const ensureCoursesSchema = async (executor: SeedExecutor) => {
       price_self INTEGER NOT NULL DEFAULT 0,
       teacher_id TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL CHECK (status IN ('draft', 'published')),
+      visual_style TEXT NOT NULL DEFAULT 'polyhedra',
+      visual_seed INTEGER NOT NULL DEFAULT 0,
+      visual_palette TEXT NOT NULL DEFAULT 'indigo-mineral',
+      visual_variant INTEGER NOT NULL DEFAULT 0,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);

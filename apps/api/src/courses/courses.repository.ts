@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { DatabaseService } from "../db/database.service";
 import { mapUnknownCourseToDto } from "./courses.mapper";
+import { resolveCourseVisualMetadata, withCourseVisualMetadata } from "./courses.visuals";
 import type {
   CourseAssessmentReleaseItemDto,
   CourseCatalogItemDto,
@@ -16,6 +17,10 @@ type CourseRow = {
   priceSelf: number;
   teacherId: string;
   status: "draft" | "published";
+  visualStyle: string | null;
+  visualSeed: number | null;
+  visualPalette: string | null;
+  visualVariant: number | null;
 };
 
 type CourseSnapshotRow = {
@@ -59,8 +64,28 @@ export class CoursesRepository {
         price_self INTEGER NOT NULL DEFAULT 0,
         teacher_id TEXT NOT NULL DEFAULT '',
         status TEXT NOT NULL CHECK (status IN ('draft', 'published')),
+        visual_style TEXT NOT NULL DEFAULT 'polyhedra',
+        visual_seed INTEGER NOT NULL DEFAULT 0,
+        visual_palette TEXT NOT NULL DEFAULT 'indigo-mineral',
+        visual_variant INTEGER NOT NULL DEFAULT 0,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE courses_catalog
+      ADD COLUMN IF NOT EXISTS visual_style TEXT NOT NULL DEFAULT 'polyhedra'
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE courses_catalog
+      ADD COLUMN IF NOT EXISTS visual_seed INTEGER NOT NULL DEFAULT 0
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE courses_catalog
+      ADD COLUMN IF NOT EXISTS visual_palette TEXT NOT NULL DEFAULT 'indigo-mineral'
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE courses_catalog
+      ADD COLUMN IF NOT EXISTS visual_variant INTEGER NOT NULL DEFAULT 0
     `);
     await this.databaseService.execute(`
       CREATE TABLE IF NOT EXISTS course_releases (
@@ -114,7 +139,11 @@ export class CoursesRepository {
         price_guided AS "priceGuided",
         price_self AS "priceSelf",
         teacher_id AS "teacherId",
-        status
+        status,
+        visual_style AS "visualStyle",
+        visual_seed AS "visualSeed",
+        visual_palette AS "visualPalette",
+        visual_variant AS "visualVariant"
       FROM courses_catalog
       ORDER BY title ASC
     `);
@@ -132,7 +161,11 @@ export class CoursesRepository {
           price_guided AS "priceGuided",
           price_self AS "priceSelf",
           teacher_id AS "teacherId",
-          status
+          status,
+          visual_style AS "visualStyle",
+          visual_seed AS "visualSeed",
+          visual_palette AS "visualPalette",
+          visual_variant AS "visualVariant"
         FROM courses_catalog
         WHERE teacher_id = $1
         ORDER BY updated_at DESC, title ASC
@@ -201,7 +234,11 @@ export class CoursesRepository {
           price_guided AS "priceGuided",
           price_self AS "priceSelf",
           teacher_id AS "teacherId",
-          status
+          status,
+          visual_style AS "visualStyle",
+          visual_seed AS "visualSeed",
+          visual_palette AS "visualPalette",
+          visual_variant AS "visualVariant"
         FROM courses_catalog
         WHERE id = $1
         LIMIT 1
@@ -282,9 +319,13 @@ export class CoursesRepository {
           price_self,
           teacher_id,
           status,
+          visual_style,
+          visual_seed,
+          visual_palette,
+          visual_variant,
           updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
         ON CONFLICT (id)
         DO UPDATE SET
           title = EXCLUDED.title,
@@ -294,6 +335,10 @@ export class CoursesRepository {
           price_self = EXCLUDED.price_self,
           teacher_id = EXCLUDED.teacher_id,
           status = EXCLUDED.status,
+          visual_style = EXCLUDED.visual_style,
+          visual_seed = EXCLUDED.visual_seed,
+          visual_palette = EXCLUDED.visual_palette,
+          visual_variant = EXCLUDED.visual_variant,
           updated_at = NOW()
       `,
       [
@@ -305,6 +350,10 @@ export class CoursesRepository {
         Math.max(0, Math.round(course.priceSelf)),
         course.teacherId,
         course.status,
+        course.visualStyle,
+        Math.max(0, Math.round(course.visualSeed ?? 0)),
+        course.visualPalette,
+        Math.max(0, Math.round(course.visualVariant ?? 0)),
       ]
     );
     return course;
@@ -412,13 +461,20 @@ export class CoursesRepository {
   private mapCourseSnapshot(snapshot: unknown): CourseCatalogItemDto | null {
     const mapped = mapUnknownCourseToDto(snapshot);
     if (!mapped) return null;
-    return {
+    return withCourseVisualMetadata({
       ...mapped,
       status: "published",
-    };
+    });
   }
 
   private mapRow(row: CourseRow): CourseCatalogItemDto {
+    const visual = resolveCourseVisualMetadata(row.id, {
+      visualStyle: row.visualStyle,
+      visualSeed: row.visualSeed,
+      visualPalette: row.visualPalette,
+      visualVariant: row.visualVariant,
+    });
+
     return {
       id: row.id,
       title: row.title,
@@ -428,6 +484,7 @@ export class CoursesRepository {
       priceSelf: Number(row.priceSelf),
       teacherId: row.teacherId,
       status: row.status,
+      ...visual,
     };
   }
 }

@@ -1,5 +1,20 @@
 export type CourseStatusContract = "draft" | "published";
 
+export type CourseVisualStyleContract =
+  | "polyhedra"
+  | "function-fields"
+  | "lattice"
+  | "topology"
+  | "analytic-sections"
+  | "signal-waves";
+
+export type CourseVisualPaletteContract =
+  | "indigo-mineral"
+  | "cobalt-cyan"
+  | "violet-mint"
+  | "graphite-aurora"
+  | "slate-gold";
+
 export type CourseCatalogItemContract = {
   id: string;
   title: string;
@@ -9,6 +24,10 @@ export type CourseCatalogItemContract = {
   priceSelf: number;
   teacherId: string;
   status: CourseStatusContract;
+  visualStyle?: CourseVisualStyleContract;
+  visualSeed?: number;
+  visualPalette?: CourseVisualPaletteContract;
+  visualVariant?: number;
 };
 
 export type CourseCatalogResponseContract = CourseCatalogItemContract[];

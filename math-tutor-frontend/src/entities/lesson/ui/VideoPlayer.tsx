@@ -1,5 +1,5 @@
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Alert, Button, CircularProgress } from "@mui/material";
 import { shouldShowVideoPlayerLoading } from "@/entities/lesson/model/videoPlayerUi";
 
@@ -89,46 +89,26 @@ function VideoPlayerContent({
   const [isBuffering, setIsBuffering] = useState(false);
   const [hasRenderedFirstFrame, setHasRenderedFirstFrame] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
-  const [isNearViewport, setIsNearViewport] = useState(
-    () => typeof IntersectionObserver === "undefined"
-  );
   const [isActivated, setIsActivated] = useState(false);
   const [resolvedSrc, setResolvedSrc] = useState<string>("");
   const watermark = useMemo(() => watermarkText?.trim() ?? "", [watermarkText]);
+  const customPoster = useMemo(() => poster?.trim() ?? "", [poster]);
   const previewPoster = useMemo(
-    () => poster?.trim() || TEMPLATE_VIDEO_POSTER,
-    [poster]
+    () => customPoster || TEMPLATE_VIDEO_POSTER,
+    [customPoster]
   );
+  const customPosterStyle = useMemo<CSSProperties | undefined>(() => {
+    if (!customPoster) return undefined;
+    return {
+      ["--video-poster-image" as string]: `url("${customPoster}")`,
+    };
+  }, [customPoster]);
   const showLoadingOverlay = shouldShowVideoPlayerLoading({
     isActivated,
     isBuffering,
     playbackError,
     hasRenderedFirstFrame,
   });
-
-  useEffect(() => {
-    const ratioNode = ratioRef.current;
-    if (!ratioNode) return;
-    if (typeof IntersectionObserver === "undefined") {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setIsNearViewport(true);
-          observer.disconnect();
-        }
-      },
-      {
-        rootMargin: "240px 0px",
-        threshold: 0.12,
-      }
-    );
-
-    observer.observe(ratioNode);
-    return () => observer.disconnect();
-  }, [src, streamSrc, poster]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -228,7 +208,6 @@ function VideoPlayerContent({
   };
 
   const handleActivate = () => {
-    setIsNearViewport(true);
     setIsActivated(true);
     setHasRenderedFirstFrame(false);
     const nextSource = resolvePlaybackSource({ streamSrc, src });
@@ -259,9 +238,70 @@ function VideoPlayerContent({
             type="button"
             className="video-player__poster-shell"
             onClick={handleActivate}
-            style={{ backgroundImage: `url(${previewPoster})` }}
             aria-label="Запустить видеоурок"
           >
+            {customPoster ? (
+              <div
+                className="video-player__poster-image"
+                style={customPosterStyle}
+                aria-hidden="true"
+              />
+            ) : null}
+            <div className="video-player__poster-grid" aria-hidden="true" />
+            <div className="video-player__polyhedron-scene" aria-hidden="true">
+              <span className="video-player__polyhedron-halo" />
+              <svg
+                className="video-player__polyhedron-svg"
+                viewBox="0 0 240 240"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <defs>
+                  <linearGradient id="polyhedronFacetA" x1="36" y1="42" x2="197" y2="182">
+                    <stop offset="0%" stopColor="rgba(222, 236, 255, 0.72)" />
+                    <stop offset="100%" stopColor="rgba(127, 190, 235, 0.24)" />
+                  </linearGradient>
+                  <linearGradient id="polyhedronFacetB" x1="76" y1="88" x2="196" y2="204">
+                    <stop offset="0%" stopColor="rgba(201, 219, 255, 0.56)" />
+                    <stop offset="100%" stopColor="rgba(131, 171, 234, 0.2)" />
+                  </linearGradient>
+                  <linearGradient id="polyhedronFacetC" x1="48" y1="92" x2="136" y2="212">
+                    <stop offset="0%" stopColor="rgba(185, 226, 234, 0.42)" />
+                    <stop offset="100%" stopColor="rgba(149, 163, 250, 0.14)" />
+                  </linearGradient>
+                </defs>
+                <polygon
+                  points="120,34 194,88 162,183 78,183 46,88"
+                  fill="url(#polyhedronFacetA)"
+                  stroke="rgba(205, 225, 255, 0.52)"
+                  strokeWidth="1.35"
+                />
+                <polygon
+                  points="120,62 168,96 148,162 92,162 72,96"
+                  fill="url(#polyhedronFacetB)"
+                  stroke="rgba(190, 212, 252, 0.48)"
+                  strokeWidth="1.1"
+                />
+                <path
+                  d="M120 34V183M46 88L194 88M78 183L120 62L162 183"
+                  stroke="rgba(208, 226, 255, 0.54)"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M46 88L92 162M194 88L148 162"
+                  stroke="rgba(164, 210, 237, 0.44)"
+                  strokeWidth="0.9"
+                  strokeLinecap="round"
+                />
+                <polygon
+                  points="120,62 148,162 92,162"
+                  fill="url(#polyhedronFacetC)"
+                  stroke="rgba(158, 189, 236, 0.42)"
+                  strokeWidth="0.9"
+                />
+              </svg>
+            </div>
             <div className="video-player__poster-backdrop" />
             <div className="video-player__poster-content">
               {playbackError ? (
@@ -271,7 +311,7 @@ function VideoPlayerContent({
               ) : null}
               <span className="video-player__poster-action">
                 <PlayArrowRoundedIcon fontSize="inherit" />
-                {isNearViewport ? "Смотреть урок" : "Подготовить видео"}
+                Смотреть урок
               </span>
             </div>
           </button>

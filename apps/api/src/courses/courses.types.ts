@@ -1,5 +1,20 @@
 export type CourseStatus = "draft" | "published";
 
+export type CourseVisualStyleDto =
+  | "polyhedra"
+  | "function-fields"
+  | "lattice"
+  | "topology"
+  | "analytic-sections"
+  | "signal-waves";
+
+export type CourseVisualPaletteDto =
+  | "indigo-mineral"
+  | "cobalt-cyan"
+  | "violet-mint"
+  | "graphite-aurora"
+  | "slate-gold";
+
 export type CourseCatalogItemDto = {
   id: string;
   title: string;
@@ -9,6 +24,10 @@ export type CourseCatalogItemDto = {
   priceSelf: number;
   teacherId: string;
   status: CourseStatus;
+  visualStyle?: CourseVisualStyleDto;
+  visualSeed?: number;
+  visualPalette?: CourseVisualPaletteDto;
+  visualVariant?: number;
 };
 
 export type CourseReleaseStatus = "active" | "superseded";

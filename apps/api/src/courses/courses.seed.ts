@@ -1,6 +1,7 @@
 import fs from "fs";
 import { mapUnknownCourseToDto } from "./courses.mapper";
 import type { CourseCatalogItemDto, CoursesDbPayload } from "./courses.types";
+import { resolveCourseVisualMetadata } from "./courses.visuals";
 
 export type CoursesSeedExecutor = {
   execute: (text: string, params?: unknown[]) => Promise<void>;
@@ -29,6 +30,12 @@ export const upsertCourses = async (
   if (courses.length === 0) return;
 
   for (const course of courses) {
+    const visual = resolveCourseVisualMetadata(course.id, {
+      visualStyle: course.visualStyle,
+      visualSeed: course.visualSeed,
+      visualPalette: course.visualPalette,
+      visualVariant: course.visualVariant,
+    });
     await executor.execute(
       `
         INSERT INTO courses_catalog (
@@ -40,9 +47,13 @@ export const upsertCourses = async (
           price_self,
           teacher_id,
           status,
+          visual_style,
+          visual_seed,
+          visual_palette,
+          visual_variant,
           updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
         ON CONFLICT (id)
         DO UPDATE SET
           title = EXCLUDED.title,
@@ -52,6 +63,10 @@ export const upsertCourses = async (
           price_self = EXCLUDED.price_self,
           teacher_id = EXCLUDED.teacher_id,
           status = EXCLUDED.status,
+          visual_style = EXCLUDED.visual_style,
+          visual_seed = EXCLUDED.visual_seed,
+          visual_palette = EXCLUDED.visual_palette,
+          visual_variant = EXCLUDED.visual_variant,
           updated_at = NOW()
       `,
       [
@@ -63,6 +78,10 @@ export const upsertCourses = async (
         Math.round(course.priceSelf),
         course.teacherId,
         course.status,
+        visual.visualStyle,
+        visual.visualSeed,
+        visual.visualPalette,
+        visual.visualVariant,
       ]
     );
   }

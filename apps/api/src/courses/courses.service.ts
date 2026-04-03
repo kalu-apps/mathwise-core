@@ -8,6 +8,7 @@ import { MediaService } from "../media/media.service";
 import { readReadSliceSeedData, upsertCourses } from "../seed/readSlice.seed";
 import { ensureId } from "../shared/id";
 import { CoursesRepository } from "./courses.repository";
+import { resolveCourseVisualMetadata, withCourseVisualMetadata } from "./courses.visuals";
 import type {
   CourseAssessmentReleaseItemDto,
   CourseCatalogItemDto,
@@ -22,10 +23,19 @@ const normalizeCourseStatus = (value: unknown): CourseCatalogItemDto["status"] =
 
 const normalizeDraftCourseInput = (
   input: CourseCatalogItemDto,
-  actorTeacherId: string
+  actorTeacherId: string,
+  fallbackVisualSource?: CourseCatalogItemDto | null
 ): CourseCatalogItemDto => {
+  const normalizedId = input.id.trim();
+  const visual = resolveCourseVisualMetadata(normalizedId, {
+    visualStyle: input.visualStyle ?? fallbackVisualSource?.visualStyle,
+    visualSeed: input.visualSeed ?? fallbackVisualSource?.visualSeed,
+    visualPalette: input.visualPalette ?? fallbackVisualSource?.visualPalette,
+    visualVariant: input.visualVariant ?? fallbackVisualSource?.visualVariant,
+  });
+
   return {
-    id: input.id.trim(),
+    id: normalizedId,
     title: input.title.trim(),
     description: input.description.trim(),
     level: input.level.trim(),
@@ -33,6 +43,7 @@ const normalizeDraftCourseInput = (
     priceSelf: Math.max(0, Math.round(Number(input.priceSelf) || 0)),
     teacherId: actorTeacherId,
     status: normalizeCourseStatus(input.status),
+    ...visual,
   };
 };
 
@@ -70,7 +81,8 @@ export class CoursesService implements OnModuleInit {
   }
 
   async getCatalog(): Promise<CourseCatalogItemDto[]> {
-    return this.coursesRepository.findAllPublishedCatalog();
+    const catalog = await this.coursesRepository.findAllPublishedCatalog();
+    return catalog.map((course) => withCourseVisualMetadata(course));
   }
 
   async getById(
@@ -82,10 +94,11 @@ export class CoursesService implements OnModuleInit {
 
     const draft = await this.coursesRepository.findDraftById(normalizedId);
     if (draft && actorUser?.role === "teacher" && draft.teacherId === actorUser.id) {
-      return draft;
+      return withCourseVisualMetadata(draft);
     }
 
-    return this.coursesRepository.findPublishedById(normalizedId);
+    const published = await this.coursesRepository.findPublishedById(normalizedId);
+    return published ? withCourseVisualMetadata(published) : null;
   }
 
   async getTeacherDrafts(actorUser: AuthUserDto | null): Promise<CourseCatalogItemDto[]> {
@@ -102,7 +115,7 @@ export class CoursesService implements OnModuleInit {
     if (!actorUser || actorUser.role !== "teacher") {
       throw new HttpException({ error: "Доступ только для преподавателя." }, 403);
     }
-    const normalized = normalizeDraftCourseInput(payload, actorUser.id);
+    const normalized = normalizeDraftCourseInput(payload, actorUser.id, null);
     if (!normalized.id || !normalized.title) {
       throw new HttpException({ error: "id и title обязательны." }, 400);
     }
@@ -131,7 +144,14 @@ export class CoursesService implements OnModuleInit {
     if (existing.teacherId !== actorUser.id) {
       throw new HttpException({ error: "Нет доступа к чужому курсу." }, 403);
     }
-    const normalized = normalizeDraftCourseInput(payload, actorUser.id);
+    const normalized = normalizeDraftCourseInput(
+      {
+        ...payload,
+        id: normalizedId,
+      },
+      actorUser.id,
+      existing
+    );
     if (!normalized.title) {
       throw new HttpException({ error: "title обязателен." }, 400);
     }
