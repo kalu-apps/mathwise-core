@@ -39,6 +39,8 @@ Optimization/budget work — отдельный пакет после релиз
 - [ ] Stage gate не подменяет user auth (прохождение gate не создает auth session).
 - [ ] `COURSES_SEED_ON_BOOT=true` в non-local не содержит `teacher` в seed source.
 - [ ] `WORKBOOK_LAUNCH_ENABLED=true` в stage/prod сопровождается валидными `WORKBOOK_BOARD_BASE_URL` и `WORKBOOK_LAUNCH_SECRET`.
+- [ ] `MEDIA_LESSON_VIDEO_MAX_UPLOAD_MB` задан осознанно (stage-safe default `2048`).
+- [ ] S3 bucket CORS разрешает preflight/upload от `https://stage.mathwise.ru` (`OPTIONS`/`PUT` + `Content-Type`).
 - [ ] `/api/capabilities/me` возвращает feature flags и не зависит от price-эвристик на клиенте.
 
 ## 2) Stage-to-release verification

@@ -37,8 +37,28 @@ const toByteSize = (value: unknown) => {
   return Math.max(0, Math.floor(parsed));
 };
 
+const formatSizeLimit = (bytes: number) => {
+  const gb = bytes / (1024 * 1024 * 1024);
+  if (gb >= 1) {
+    const rounded = Number.isInteger(gb) ? String(gb) : gb.toFixed(1);
+    return `${rounded} ГБ`;
+  }
+  const mb = Math.floor(bytes / (1024 * 1024));
+  return `${mb} МБ`;
+};
+
+const resolveLessonVideoMaxUploadBytes = () => {
+  const parsed = Number(process.env.MEDIA_LESSON_VIDEO_MAX_UPLOAD_MB);
+  const normalizedMb =
+    Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 2048;
+  const clampedMb = Math.min(4096, Math.max(1024, normalizedMb));
+  return clampedMb * 1024 * 1024;
+};
+
 @Injectable()
 export class MediaService implements OnModuleInit {
+  private readonly lessonVideoMaxUploadBytes = resolveLessonVideoMaxUploadBytes();
+
   constructor(
     private readonly mediaRepository: MediaRepository,
     private readonly mediaStorageService: MediaStorageService
@@ -80,6 +100,11 @@ export class MediaService implements OnModuleInit {
     const objectId = ensureId("media");
     const datePrefix = new Date().toISOString().slice(0, 10);
     const category = normalizeCategory(params.payload.category);
+    const requestedSizeBytes = toByteSize(params.payload.sizeBytes);
+    this.ensureCategoryUploadSize({
+      category,
+      sizeBytes: requestedSizeBytes,
+    });
     const objectKey = `${this.mediaStorageService.getAppEnv()}/${category}/${actorUser.id}/${datePrefix}/${objectId}_${fileName}`;
 
     const createdAt = nowIso();
@@ -90,7 +115,7 @@ export class MediaService implements OnModuleInit {
       ownerUserId: actorUser.id,
       category,
       contentType,
-      sizeBytes: toByteSize(params.payload.sizeBytes),
+      sizeBytes: requestedSizeBytes,
       state: "pending_upload",
       createdAt,
       updatedAt: createdAt,
@@ -132,9 +157,15 @@ export class MediaService implements OnModuleInit {
       throw new HttpException({ error: "Файл еще не загружен в storage." }, 409);
     }
 
+    const completedSizeBytes = toByteSize(params.payload?.sizeBytes) ?? head.contentLength;
+    this.ensureCategoryUploadSize({
+      category: media.category,
+      sizeBytes: completedSizeBytes,
+    });
+
     const updated = await this.mediaRepository.markUploaded({
       id: media.id,
-      sizeBytes: toByteSize(params.payload?.sizeBytes) ?? head.contentLength,
+      sizeBytes: completedSizeBytes,
       etag: params.payload?.etag?.trim() || head.etag,
     });
 
@@ -240,5 +271,33 @@ export class MediaService implements OnModuleInit {
       );
     }
     return media;
+  }
+
+  private ensureCategoryUploadSize(params: {
+    category: string;
+    sizeBytes?: number;
+  }) {
+    if (params.category !== "lesson-video") return;
+    if (!params.sizeBytes || params.sizeBytes <= 0) {
+      throw new HttpException(
+        {
+          error: "Для загрузки видео требуется размер файла.",
+          code: "lesson_video_size_required",
+        },
+        400
+      );
+    }
+    if (params.sizeBytes > this.lessonVideoMaxUploadBytes) {
+      throw new HttpException(
+        {
+          error: `Размер видео превышает лимит ${formatSizeLimit(
+            this.lessonVideoMaxUploadBytes
+          )}.`,
+          code: "lesson_video_too_large",
+          limitBytes: this.lessonVideoMaxUploadBytes,
+        },
+        413
+      );
+    }
   }
 }

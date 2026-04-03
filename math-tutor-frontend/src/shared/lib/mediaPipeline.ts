@@ -1,4 +1,4 @@
-import { api } from "@/shared/api/client";
+import { api, ApiError } from "@/shared/api/client";
 
 export type ResolveLessonVideoSourcesInput = {
   lessonTitle?: string;
@@ -49,13 +49,108 @@ export type VideoPreflightResult = {
   note?: string;
 };
 
-const MAX_BROWSER_UPLOAD_BYTES = 250 * 1024 * 1024;
+const DEFAULT_LESSON_VIDEO_UPLOAD_LIMIT_MB = 2048;
+const MIN_LESSON_VIDEO_UPLOAD_LIMIT_MB = 1024;
+const MAX_LESSON_VIDEO_UPLOAD_LIMIT_MB = 4096;
 const MAX_JOB_POLLS = 20;
 const JOB_POLL_DELAY_MS = 500;
+
+type UploadStage = "presign" | "upload" | "complete";
+
+const toMegabytes = (bytes: number) => bytes / (1024 * 1024);
+
+const formatUploadLimit = (bytes: number) => {
+  const gb = bytes / (1024 * 1024 * 1024);
+  if (gb >= 1) {
+    const rounded = Number.isInteger(gb) ? String(gb) : gb.toFixed(1);
+    return `${rounded} ГБ`;
+  }
+  return `${Math.floor(toMegabytes(bytes))} МБ`;
+};
+
+const resolveLessonVideoUploadLimitMb = () => {
+  const configured = Number(import.meta.env.VITE_LESSON_VIDEO_UPLOAD_MAX_MB);
+  if (!Number.isFinite(configured) || configured <= 0) {
+    return DEFAULT_LESSON_VIDEO_UPLOAD_LIMIT_MB;
+  }
+  return Math.min(
+    MAX_LESSON_VIDEO_UPLOAD_LIMIT_MB,
+    Math.max(MIN_LESSON_VIDEO_UPLOAD_LIMIT_MB, Math.floor(configured))
+  );
+};
+
+export const LESSON_VIDEO_UPLOAD_LIMIT_BYTES =
+  resolveLessonVideoUploadLimitMb() * 1024 * 1024;
+export const LESSON_VIDEO_UPLOAD_LIMIT_LABEL = formatUploadLimit(
+  LESSON_VIDEO_UPLOAD_LIMIT_BYTES
+);
 
 const normalizeSource = (value?: string) => value?.trim() || undefined;
 const wait = (ms: number) =>
   new Promise((resolve) => globalThis.setTimeout(resolve, ms));
+
+const buildUploadFailureMessage = (
+  stage: UploadStage,
+  category: string
+) => {
+  if (category === "lesson-video") {
+    if (stage === "presign") {
+      return "Не удалось начать загрузку видео. Попробуйте еще раз.";
+    }
+    if (stage === "upload") {
+      return "Не удалось загрузить видео. Попробуйте еще раз. Если ошибка повторяется, обратитесь к администратору.";
+    }
+    return "Видео загружено, но не удалось подтвердить загрузку. Попробуйте еще раз.";
+  }
+  if (stage === "presign") {
+    return "Не удалось начать загрузку файла. Попробуйте еще раз.";
+  }
+  if (stage === "upload") {
+    return "Не удалось загрузить файл. Попробуйте еще раз.";
+  }
+  return "Файл загружен, но не удалось подтвердить загрузку. Попробуйте еще раз.";
+};
+
+const extractApiDiagnostics = (error: unknown) => {
+  if (!(error instanceof ApiError)) return null;
+  return {
+    code: error.code,
+    status: error.status,
+    requestId: error.requestId,
+    details: error.details,
+  };
+};
+
+const logUploadFailure = (params: {
+  stage: UploadStage;
+  category: string;
+  fileName: string;
+  sizeBytes: number;
+  error: unknown;
+}) => {
+  const diagnostics = extractApiDiagnostics(params.error);
+  const probableCors =
+    params.stage === "upload" &&
+    params.error instanceof TypeError &&
+    /fetch/i.test(params.error.message);
+  if (typeof console !== "undefined") {
+    console.error("[media-upload] upload-failed", {
+      stage: params.stage,
+      category: params.category,
+      fileName: params.fileName,
+      sizeBytes: params.sizeBytes,
+      probableCors,
+      diagnostics,
+      error:
+        params.error instanceof Error
+          ? {
+              name: params.error.name,
+              message: params.error.message,
+            }
+          : params.error,
+    });
+  }
+};
 
 const buildFallbackResult = (
   input: ResolveLessonVideoSourcesInput,
@@ -86,25 +181,70 @@ const uploadObjectToStorage = async (params: {
   file: File;
   category: string;
 }): Promise<{ objectId: string }> => {
-  const upload = await api.post<CreateUploadUrlResponse>("/media/upload-url", {
-    fileName: params.file.name,
-    contentType: params.file.type || "application/octet-stream",
-    sizeBytes: params.file.size,
-    category: params.category,
-  });
-
-  const uploadResponse = await fetch(upload.uploadUrl, {
-    method: upload.method || "PUT",
-    headers: upload.headers,
-    body: params.file,
-  });
-  if (!uploadResponse.ok) {
-    throw new Error("Storage upload failed");
+  const contentType = params.file.type || "application/octet-stream";
+  let upload: CreateUploadUrlResponse;
+  try {
+    upload = await api.post<CreateUploadUrlResponse>("/media/upload-url", {
+      fileName: params.file.name,
+      contentType,
+      sizeBytes: params.file.size,
+      category: params.category,
+    });
+  } catch (error) {
+    logUploadFailure({
+      stage: "presign",
+      category: params.category,
+      fileName: params.file.name,
+      sizeBytes: params.file.size,
+      error,
+    });
+    throw new Error(buildUploadFailureMessage("presign", params.category));
   }
 
-  await api.post<CompleteUploadResponse>(`/media/${upload.objectId}/complete`, {
-    sizeBytes: params.file.size,
-  });
+  try {
+    const uploadResponse = await fetch(upload.uploadUrl, {
+      method: upload.method || "PUT",
+      headers: upload.headers,
+      body: params.file,
+    });
+    if (!uploadResponse.ok) {
+      logUploadFailure({
+        stage: "upload",
+        category: params.category,
+        fileName: params.file.name,
+        sizeBytes: params.file.size,
+        error: new Error(`storage-upload-http-${uploadResponse.status}`),
+      });
+      throw new Error(buildUploadFailureMessage("upload", params.category));
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === buildUploadFailureMessage("upload", params.category)) {
+      throw error;
+    }
+    logUploadFailure({
+      stage: "upload",
+      category: params.category,
+      fileName: params.file.name,
+      sizeBytes: params.file.size,
+      error,
+    });
+    throw new Error(buildUploadFailureMessage("upload", params.category));
+  }
+
+  try {
+    await api.post<CompleteUploadResponse>(`/media/${upload.objectId}/complete`, {
+      sizeBytes: params.file.size,
+    });
+  } catch (error) {
+    logUploadFailure({
+      stage: "complete",
+      category: params.category,
+      fileName: params.file.name,
+      sizeBytes: params.file.size,
+      error,
+    });
+    throw new Error(buildUploadFailureMessage("complete", params.category));
+  }
 
   return {
     objectId: upload.objectId,
@@ -120,21 +260,20 @@ export const preflightLessonVideo = (
   if (!input.videoFile.type.startsWith("video/")) {
     return {
       ok: false,
-      error: "Файл не распознан как видео. Загрузите видеофайл или используйте прямую ссылку.",
+      error: "Файл не распознан как видео. Выберите корректный видеофайл.",
     };
   }
-  if (input.videoFile.size > MAX_BROWSER_UPLOAD_BYTES) {
+  if (input.videoFile.size > LESSON_VIDEO_UPLOAD_LIMIT_BYTES) {
     return {
       ok: false,
-      error:
-        "Для текущего режима тестирования загрузите видео до 250 МБ. Для более тяжелых роликов используйте потоковую ссылку или внешний mp4 URL.",
+      error: `Размер видео превышает лимит ${LESSON_VIDEO_UPLOAD_LIMIT_LABEL}. Выберите файл меньше лимита или обратитесь к администратору.`,
     };
   }
-  if (input.videoFile.size > 120 * 1024 * 1024) {
+  if (input.videoFile.size > 512 * 1024 * 1024) {
     return {
       ok: true,
       note:
-        "Большие видео обрабатываются дольше. Лучше дождаться статуса «Готово» перед публикацией курса.",
+        "Большие видео загружаются и обрабатываются дольше. Дождитесь статуса «Готово» перед публикацией курса.",
     };
   }
   return { ok: true };
@@ -160,12 +299,16 @@ export async function startLessonVideoPipeline(
       "ready",
       uploaded.objectId
     );
-  } catch {
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message.trim().length > 0
+        ? error.message
+        : buildUploadFailureMessage("upload", "lesson-video");
     return toResolvedState(
       buildFallbackResult(input),
       "failed",
       undefined,
-      "Не удалось загрузить видео в storage. Проверьте media-runtime настройки."
+      message
     );
   }
 }

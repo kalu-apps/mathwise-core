@@ -14,6 +14,7 @@ Package 10 добавляет backend-owned media path через `apps/api` c s
 Опциональные:
 - `S3_FORCE_PATH_STYLE` (`true/false`, default `true`)
 - `MEDIA_SIGNED_URL_TTL_SEC` (default `900`)
+- `MEDIA_LESSON_VIDEO_MAX_UPLOAD_MB` (default `2048`, minimum `1024`, maximum `4096`)
 
 По умолчанию `MEDIA_STORAGE_ENABLED=false`, чтобы stage мог стартовать без storage path.
 
@@ -50,6 +51,18 @@ Package 10 добавляет backend-owned media path через `apps/api` c s
 2. Клиент загружает файл напрямую в S3 `PUT` по `uploadUrl`.
 3. Клиент подтверждает загрузку через `POST /api/media/:id/complete`.
 4. Для скачивания/просмотра клиент запрашивает signed download URL.
+
+## Lesson video upload limit
+
+- Lesson video upload limit теперь задается backend/env через `MEDIA_LESSON_VIDEO_MAX_UPLOAD_MB`.
+- Frontend использует согласованный stage-safe cap через `VITE_LESSON_VIDEO_UPLOAD_MAX_MB` (default `2048`).
+- При превышении лимита backend возвращает `413` с `code=lesson_video_too_large`.
+
+## Stage CORS requirement (S3 boundary)
+
+Для direct browser PUT на signed URL S3 bucket обязан разрешать CORS preflight от frontend origin (`https://stage.mathwise.ru`).
+Если CORS не настроен, upload блокируется браузером до `complete` шага.
+Teacher-facing UI при этом показывает нейтральную ошибку, а подробная диагностика остается в console/runtime logs.
 
 ## Readiness
 

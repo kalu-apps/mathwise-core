@@ -52,6 +52,7 @@ export type ApiRuntimeConfig = {
   s3SecretKey: string;
   s3ForcePathStyle: boolean;
   mediaSignedUrlTtlSec: number;
+  mediaLessonVideoMaxUploadBytes: number;
   workbookLaunchEnabled: boolean;
   workbookBoardBaseUrl: string;
   workbookLaunchSecret: string;
@@ -355,6 +356,13 @@ export const getApiRuntimeConfig = (
     process.env.MEDIA_SIGNED_URL_TTL_SEC,
     900
   );
+  const mediaLessonVideoMaxUploadMb = Math.min(
+    4096,
+    Math.max(
+      1024,
+      parsePositiveInteger(process.env.MEDIA_LESSON_VIDEO_MAX_UPLOAD_MB, 2048)
+    )
+  );
   const workbookLaunchEnabled = parseBoolean(
     process.env.WORKBOOK_LAUNCH_ENABLED,
     true
@@ -475,6 +483,7 @@ export const getApiRuntimeConfig = (
     s3SecretKey,
     s3ForcePathStyle,
     mediaSignedUrlTtlSec,
+    mediaLessonVideoMaxUploadBytes: mediaLessonVideoMaxUploadMb * 1024 * 1024,
     workbookLaunchEnabled,
     workbookBoardBaseUrl,
     workbookLaunchSecret:

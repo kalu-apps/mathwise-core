@@ -11,6 +11,9 @@ import {
   Checkbox,
   FormControlLabel,
   Alert,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
@@ -18,6 +21,7 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import DescriptionIcon from "@mui/icons-material/Description";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { generateId } from "@/shared/lib/id";
 import { formatLessonDuration, videoSecondsToStoredMinutes } from "@/shared/lib/duration";
@@ -30,6 +34,7 @@ import {
   preflightLessonVideo,
   type MediaJobStatus,
 } from "@/shared/lib/mediaPipeline";
+import { shouldOpenAdvancedMediaByDefault } from "@/features/course-editor/model/lessonMediaUi";
 
 export type LessonMaterial = {
   id: string;
@@ -191,6 +196,13 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
     initialLesson?.mediaJobError
   );
   const [videoPreflightNote, setVideoPreflightNote] = useState<string | null>(null);
+  const [advancedMediaOpen, setAdvancedMediaOpen] = useState(() =>
+    shouldOpenAdvancedMediaByDefault({
+      videoStreamUrl: initialLesson?.videoStreamUrl,
+      videoUrl: initialLesson?.videoUrl,
+      videoPosterUrl: initialLesson?.videoPosterUrl,
+    })
+  );
   const [duration, setDuration] = useState<number>(
     initialLesson?.duration ?? 0
   );
@@ -397,7 +409,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
         severity: "warning" as const,
         message:
           mediaJobError ||
-          "Не удалось завершить обработку видео. Для урока будет использован резервный источник.",
+          "Не удалось подготовить видео. Попробуйте загрузить файл еще раз.",
       };
     }
     return null;
@@ -497,53 +509,76 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                   color="primary"
                 />
               ) : null}
-              <TextField
-                label="Поток HLS / adaptive URL"
-                value={videoStreamUrl ?? ""}
-                onChange={(event) => {
-                  setVideoMediaObjectId(undefined);
-                  setVideoStreamUrl(event.target.value || undefined);
-                  setMediaJobId(undefined);
-                  setMediaJobStatus(undefined);
-                  setMediaJobError(undefined);
-                  setVideoPreflightNote(null);
-                  if (saveError) setSaveError(null);
-                }}
-                fullWidth
-                placeholder="https://cdn.example.com/course/lesson/master.m3u8"
-              />
-              <TextField
-                label="Резервный MP4 URL"
-                value={videoUrl ?? ""}
-                onChange={(event) => {
-                  setVideoMediaObjectId(undefined);
-                  setVideoUrl(event.target.value || undefined);
-                  setMediaJobId(undefined);
-                  setMediaJobStatus(undefined);
-                  setMediaJobError(undefined);
-                  setVideoPreflightNote(null);
-                  if (saveError) setSaveError(null);
-                }}
-                fullWidth
-                disabled={Boolean(videoFile)}
-                placeholder="https://cdn.example.com/course/lesson/fallback.mp4"
-                helperText={
-                  videoFile
-                    ? "Резервный mp4 будет взят из загруженного файла."
-                    : "Используется как fallback для браузеров без нативного HLS."
-                }
-              />
-              <TextField
-                label="Poster URL"
-                value={videoPosterUrl ?? ""}
-                onChange={(event) => {
-                  setVideoPosterUrl(event.target.value || undefined);
-                  setMediaJobError(undefined);
-                }}
-                fullWidth
-                placeholder="https://cdn.example.com/course/lesson/poster.jpg"
-                helperText="Постер показывается до запуска плеера и при ленивой инициализации."
-              />
+              <Accordion
+                expanded={advancedMediaOpen}
+                onChange={(_, expanded) => setAdvancedMediaOpen(expanded)}
+                disableGutters
+                sx={{ boxShadow: "none", background: "transparent" }}
+              >
+                <AccordionSummary
+                  expandIcon={<ExpandMoreRoundedIcon />}
+                  sx={{ px: 0, minHeight: "unset", "& .MuiAccordionSummary-content": { my: 0 } }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    Расширенные media-настройки
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails sx={{ px: 0, pt: 1 }}>
+                  <Stack spacing={1.25}>
+                    <TextField
+                      label="Поток HLS / adaptive URL"
+                      value={videoStreamUrl ?? ""}
+                      onChange={(event) => {
+                        setVideoMediaObjectId(undefined);
+                        setVideoStreamUrl(event.target.value || undefined);
+                        setMediaJobId(undefined);
+                        setMediaJobStatus(undefined);
+                        setMediaJobError(undefined);
+                        setVideoPreflightNote(null);
+                        if (saveError) setSaveError(null);
+                      }}
+                      fullWidth
+                      placeholder="https://cdn.example.com/course/lesson/master.m3u8"
+                    />
+                    <TextField
+                      label="Резервный MP4 URL"
+                      value={videoUrl ?? ""}
+                      onChange={(event) => {
+                        setVideoMediaObjectId(undefined);
+                        setVideoUrl(event.target.value || undefined);
+                        setMediaJobId(undefined);
+                        setMediaJobStatus(undefined);
+                        setMediaJobError(undefined);
+                        setVideoPreflightNote(null);
+                        if (saveError) setSaveError(null);
+                      }}
+                      fullWidth
+                      disabled={Boolean(videoFile)}
+                      placeholder="https://cdn.example.com/course/lesson/fallback.mp4"
+                      helperText={
+                        videoFile
+                          ? "Резервный mp4 будет взят из загруженного файла."
+                          : "Используется как fallback для браузеров без нативного HLS."
+                      }
+                    />
+                    <TextField
+                      label="Poster URL"
+                      value={videoPosterUrl ?? ""}
+                      onChange={(event) => {
+                        setVideoPosterUrl(event.target.value || undefined);
+                        setMediaJobError(undefined);
+                      }}
+                      fullWidth
+                      placeholder="https://cdn.example.com/course/lesson/poster.jpg"
+                      helperText="Постер показывается до запуска плеера и при ленивой инициализации."
+                    />
+                    <Typography variant="caption" color="text.secondary">
+                      HLS используется как основной поток. Если браузер не поддерживает его нативно,
+                      плеер переключится на mp4 fallback.
+                    </Typography>
+                  </Stack>
+                </AccordionDetails>
+              </Accordion>
               {duration > 0 && (
                 <Typography variant="caption" color="text.secondary">
                   {t("lessonEditor.durationMinutes", {
@@ -551,10 +586,6 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                   })}
                 </Typography>
               )}
-              <Typography variant="caption" color="text.secondary">
-                HLS используется как основной поток. Если браузер не поддерживает его нативно,
-                плеер переключится на mp4 fallback.
-              </Typography>
             </Stack>
 
             <Stack spacing={1}>
