@@ -260,7 +260,10 @@
 
 .news-feed__empty--plain {
   border-radius: 0;
-  background: transparent;
+  border: 0 !important;
+  outline: 0;
+  box-shadow: none !important;
+  background: transparent !important;
   padding: 0;
   gap: 2px;
   justify-items: start;

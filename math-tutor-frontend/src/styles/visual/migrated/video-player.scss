@@ -125,21 +125,26 @@
 }
 
 .video-player__poster-action {
-  min-height: 32px;
-  padding: 0 12px;
+  min-height: 24px;
+  padding: 0 9px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--accent-strong) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-strong) 34%, var(--border-subtle));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-strong) 8%, transparent);
+  gap: 5px;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--text-primary) 92%, var(--accent-soft));
+  background: color-mix(in srgb, var(--surface-translucent) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-strong) 20%, var(--border-subtle));
+  box-shadow:
+    0 4px 10px color-mix(in srgb, #000 16%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 12%, transparent);
+  backdrop-filter: blur(6px);
 
   .MuiSvgIcon-root {
-    font-size: 16px;
+    font-size: 13px;
   }
 }
 
@@ -237,8 +242,8 @@ body.video-player-restore {
   }
 
   .video-player__poster-action {
-    min-height: 30px;
-    padding: 0 10px;
-    font-size: 10px;
+    min-height: 22px;
+    padding: 0 8px;
+    font-size: 8px;
   }
 }

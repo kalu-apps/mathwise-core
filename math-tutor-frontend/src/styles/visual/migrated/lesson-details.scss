@@ -44,9 +44,14 @@
 .lesson-details__hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
   margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .lesson-details__duration-chip {
@@ -78,20 +83,18 @@
 .lesson-details__title {
   margin: 0;
   max-width: min(100%, 840px);
-  font-size: clamp(24px, 3.1vw, 38px);
-  line-height: 1.08;
-  font-weight: 760;
-  letter-spacing: -0.026em;
-  text-wrap: balance;
+  font-size: clamp(11px, 1.45vw, 15px);
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-wrap: nowrap;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--text-primary);
-  background: linear-gradient(
-    100deg,
-    var(--text-primary) 0%,
-    color-mix(in srgb, var(--text-primary) 80%, var(--accent-soft)) 46%,
-    color-mix(in srgb, var(--feedback-info) 88%, var(--brand-solid)) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  background: none;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: currentColor;
 }
 
 .lesson-details__video-card {
@@ -258,13 +261,14 @@
   .lesson-details__hero {
     max-width: 100%;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
+    gap: 8px;
+    align-items: center;
   }
 
   .lesson-details__title {
     max-width: 100%;
-    font-size: clamp(21px, 6.6vw, 30px);
-    line-height: 1.12;
+    font-size: clamp(10px, 2.9vw, 13px);
+    line-height: 1.2;
   }
 
   .lesson-details__duration-chip {

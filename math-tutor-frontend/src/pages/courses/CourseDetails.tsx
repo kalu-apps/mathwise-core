@@ -647,26 +647,17 @@ export default function CourseDetails() {
     background: "var(--surface-translucent)",
     p: 3,
   };
-  const attentionDialogContentSx = { fontSize: 16 };
-  const attentionDialogActionsSx = {
-    flexWrap: isMobile ? "wrap" : "nowrap",
-    gap: 1,
+  const attentionDialogContentSx = {
+    fontSize: 16,
+    display: "grid",
+    gap: 1.5,
+    pb: 1,
   } as const;
   const stackedDialogContentSx = {
     display: "flex",
     flexDirection: "column",
     gap: 2,
   } as const;
-  const closeDialogActionSx = isMobile
-    ? mobileDialogActionSx
-    : {
-        color: "var(--brand-violet)",
-        fontWeight: 600,
-        "&:hover": {
-          background:
-            "color-mix(in srgb, var(--brand-violet) 16%, transparent)",
-        },
-      };
 
   const openPurchase = (type: "guided" | "self") => {
     if (user?.role === "teacher") {
@@ -1919,11 +1910,6 @@ export default function CourseDetails() {
             После погашения просрочки доступ восстанавливается автоматически.
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setBnplInfoOpen(false)} sx={mobileDialogActionSx}>
-            {isMobile ? <CloseRounded fontSize="small" /> : "Понятно"}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* ===== MODAL ===== */}
@@ -1942,29 +1928,26 @@ export default function CourseDetails() {
           onClose={() => setModalOpen(false)}
           closeAriaLabel="Закрыть уведомление"
         />
-        <DialogContent sx={attentionDialogContentSx}>{modalMessage}</DialogContent>
-        <DialogActions sx={attentionDialogActionsSx}>
-          {showLoginAction && (
+        <DialogContent sx={attentionDialogContentSx}>
+          {modalMessage}
+          {showLoginAction ? (
             <Button
               onClick={() => {
                 setModalOpen(false);
                 openAuthModal();
               }}
               variant="contained"
-              sx={mobileDialogActionSx}
+              sx={{
+                ...mobileDialogActionSx,
+                justifySelf: isMobile ? "stretch" : "start",
+                mt: 1,
+              }}
               aria-label={isMobile ? "Войти" : undefined}
             >
               {isMobile ? <LoginRounded fontSize="small" /> : "Войти"}
             </Button>
-          )}
-          <Button
-            onClick={() => setModalOpen(false)}
-            sx={closeDialogActionSx}
-            aria-label={isMobile ? "Закрыть" : undefined}
-          >
-            {isMobile ? <CloseRounded fontSize="small" /> : "Закрыть"}
-          </Button>
-        </DialogActions>
+          ) : null}
+        </DialogContent>
       </Dialog>
 
       <Dialog
@@ -2221,14 +2204,6 @@ export default function CourseDetails() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={() => setCheckoutFlowOpen(false)}
-            color="inherit"
-            sx={mobileDialogActionSx}
-            aria-label={isMobile ? "Закрыть окно оплаты" : undefined}
-          >
-            {isMobile ? <CloseRounded fontSize="small" /> : "Закрыть"}
-          </Button>
           <Button
             onClick={() => void refreshCheckoutFlow(activeCheckoutId ?? "")}
             disabled={!activeCheckoutId || checkoutFlowLoading || user?.role !== "student"}

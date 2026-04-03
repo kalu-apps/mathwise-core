@@ -1,7 +1,7 @@
 /* ===== COURSE DETAILS ===== */
 .course-details {
   max-width: 1180px;
-  margin: 0 auto;
+  margin: clamp(12px, 2vw, 22px) auto 0;
   padding: 32px;
   background: var(--surface-elevated) !important;
   border-radius: 32px;
