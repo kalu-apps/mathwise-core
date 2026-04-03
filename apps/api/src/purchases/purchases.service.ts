@@ -4,6 +4,7 @@ import { AuthService } from "../auth/auth.service";
 import { getApiRuntimeConfig } from "../config/runtime.config";
 import { CoursesRepository } from "../courses/courses.repository";
 import { LessonsRepository } from "../lessons/lessons.repository";
+import { MediaService } from "../media/media.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { RedisService } from "../redis/redis.service";
 import { PurchasesRepository } from "./purchases.repository";
@@ -67,6 +68,7 @@ export class PurchasesService implements OnModuleInit {
     private readonly purchasesRepository: PurchasesRepository,
     private readonly coursesRepository: CoursesRepository,
     private readonly lessonsRepository: LessonsRepository,
+    private readonly mediaService: MediaService,
     private readonly authService: AuthService,
     private readonly notificationsService: NotificationsService,
     private readonly redisService: RedisService
@@ -126,6 +128,7 @@ export class PurchasesService implements OnModuleInit {
       throw new HttpException({ error: "courseId обязателен." }, 400);
     }
     await this.purchasesRepository.deletePurchasesByCourse(normalizedCourseId);
+    await this.mediaService.processOrphanCandidates(200);
   }
 
   async checkoutPurchase(params: {

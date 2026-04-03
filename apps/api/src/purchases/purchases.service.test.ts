@@ -55,6 +55,7 @@ test("purchases: cancel checkout returns cached idempotent response", async () =
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
       redisService as never
     );
 
@@ -81,6 +82,7 @@ test("purchases: webhook rejects stale timestamp", async () => {
 
     const service = new PurchasesService(
       purchasesRepository as never,
+      {} as never,
       {} as never,
       {} as never,
       {} as never,
@@ -130,6 +132,7 @@ test("purchases: stage runtime rejects mock checkout method", async () => {
     process.env.PAYMENT_MOCK_ENABLED = "false";
 
     const service = new PurchasesService(
+      {} as never,
       {} as never,
       {} as never,
       {} as never,
@@ -186,6 +189,7 @@ test("purchases: stage confirm endpoint is unavailable outside stage runtime", a
   await withRequiredRuntimeEnv(async () => {
     delete process.env.STAGE_PAYMENT_CONFIRM_ENABLED;
     const service = new PurchasesService(
+      {} as never,
       {} as never,
       {} as never,
       {} as never,
@@ -267,6 +271,7 @@ test("purchases: stage confirm reuses backend provider-confirm chain", async () 
 
     const service = new PurchasesService(
       purchasesRepository as never,
+      {} as never,
       {} as never,
       {} as never,
       {} as never,

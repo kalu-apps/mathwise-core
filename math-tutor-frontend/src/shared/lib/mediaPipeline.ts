@@ -33,6 +33,7 @@ type CompleteUploadResponse = {
 type DownloadUrlResponse = {
   objectId: string;
   downloadUrl: string;
+  expiresAt?: string;
 };
 
 export type MediaJobStatus = "queued" | "processing" | "ready" | "failed";
@@ -236,12 +237,39 @@ const uploadObjectToStorage = async (params: {
       sizeBytes: params.file.size,
     });
   } catch (error) {
+    let resolvedError: unknown = error;
+    try {
+      await api.post<CompleteUploadResponse>(`/media/${upload.objectId}/complete`, {
+        sizeBytes: params.file.size,
+      });
+      return {
+        objectId: upload.objectId,
+      };
+    } catch (finalizeError) {
+      resolvedError = finalizeError;
+      try {
+        await api.post(`/media/${upload.objectId}/finalize-failed`, {});
+      } catch (reconcileError) {
+        if (typeof console !== "undefined") {
+          console.warn("[media-upload] finalize-failed-reconcile", {
+            objectId: upload.objectId,
+            reconcileError:
+              reconcileError instanceof Error
+                ? {
+                    name: reconcileError.name,
+                    message: reconcileError.message,
+                  }
+                : reconcileError,
+          });
+        }
+      }
+    }
     logUploadFailure({
       stage: "complete",
       category: params.category,
       fileName: params.file.name,
       sizeBytes: params.file.size,
-      error,
+      error: resolvedError,
     });
     throw new Error(buildUploadFailureMessage("complete", params.category));
   }
@@ -388,4 +416,24 @@ export async function uploadLessonMaterialFile(file: File): Promise<string> {
     category: "lesson-material",
   });
   return uploaded.objectId;
+}
+
+export async function getOwnedMediaDownloadUrl(
+  objectId: string
+): Promise<DownloadUrlResponse> {
+  const normalized = objectId.trim();
+  if (!normalized) {
+    throw new Error("media_object_id_missing");
+  }
+  const response = await api.get<DownloadUrlResponse>(
+    `/media/${encodeURIComponent(normalized)}/download-url`,
+    {
+      dedupe: false,
+      cacheTtlMs: 0,
+    }
+  );
+  if (!response.downloadUrl?.trim()) {
+    throw new Error("media_download_url_missing");
+  }
+  return response;
 }

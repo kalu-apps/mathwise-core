@@ -1,4 +1,10 @@
-export type MediaObjectState = "pending_upload" | "uploaded" | "deleted";
+export type MediaObjectState =
+  | "pending_upload"
+  | "uploaded"
+  | "orphan_candidate"
+  | "cleanup_pending"
+  | "upload_failed"
+  | "deleted";
 
 export type MediaObjectRecord = {
   id: string;
@@ -36,6 +42,11 @@ export type CompleteUploadPayloadDto = {
 };
 
 export type CompleteUploadResponseDto = {
+  ok: true;
+  media: MediaObjectRecord;
+};
+
+export type MarkFinalizeFailedResponseDto = {
   ok: true;
   media: MediaObjectRecord;
 };

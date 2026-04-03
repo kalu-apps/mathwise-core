@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
@@ -117,6 +118,21 @@ export class MediaStorageService {
       };
     } catch {
       return null;
+    }
+  }
+
+  async deleteObject(objectKey: string): Promise<boolean> {
+    if (!this.client) return false;
+    try {
+      await this.client.send(
+        new DeleteObjectCommand({
+          Bucket: this.runtimeConfig.s3Bucket,
+          Key: objectKey,
+        })
+      );
+      return true;
+    } catch {
+      return false;
     }
   }
 }

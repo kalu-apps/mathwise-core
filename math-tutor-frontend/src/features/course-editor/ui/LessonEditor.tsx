@@ -11,6 +11,7 @@ import {
   Checkbox,
   FormControlLabel,
   Alert,
+  CircularProgress,
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
@@ -27,6 +28,7 @@ import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { ButtonPending } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import {
+  getOwnedMediaDownloadUrl,
   preflightLessonVideo,
   type MediaJobStatus,
 } from "@/shared/lib/mediaPipeline";
@@ -202,11 +204,19 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
   const [warningOpen, setWarningOpen] = useState(false);
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewSource, setPreviewSource] = useState<
+    "local" | "media" | "external" | null
+  >(null);
   const saveGuard = useActionGuard();
   const isSaving = saveGuard.pending;
   const lessonId = initialLesson?.id;
 
   const materialInputRef = useRef<HTMLInputElement | null>(null);
+  const localPreviewUrlRef = useRef<string | null>(null);
   const [initialSnapshot] = useState(() =>
     JSON.stringify(
       toComparableLessonSnapshot({
@@ -277,6 +287,56 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
 
   const handleRemoveMaterial = (id: string) => {
     setMaterials((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  const resetLocalPreview = () => {
+    if (localPreviewUrlRef.current) {
+      URL.revokeObjectURL(localPreviewUrlRef.current);
+      localPreviewUrlRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      resetLocalPreview();
+    };
+  }, []);
+
+  const handleOpenVideoPreview = async () => {
+    setPreviewOpen(true);
+    setPreviewLoading(true);
+    setPreviewError(null);
+    setPreviewUrl(null);
+    setPreviewSource(null);
+    resetLocalPreview();
+    try {
+      if (videoFile) {
+        const localUrl = URL.createObjectURL(videoFile);
+        localPreviewUrlRef.current = localUrl;
+        setPreviewUrl(localUrl);
+        setPreviewSource("local");
+        return;
+      }
+      if (videoMediaObjectId?.trim()) {
+        const access = await getOwnedMediaDownloadUrl(videoMediaObjectId);
+        setPreviewUrl(access.downloadUrl);
+        setPreviewSource("media");
+        return;
+      }
+      const externalSource = videoStreamUrl?.trim() || videoUrl?.trim();
+      if (externalSource) {
+        setPreviewUrl(externalSource);
+        setPreviewSource("external");
+        return;
+      }
+      setPreviewError("Видео еще не прикреплено. Загрузите файл, чтобы открыть предпросмотр.");
+    } catch {
+      setPreviewError(
+        "Не удалось открыть предпросмотр видео. Попробуйте еще раз."
+      );
+    } finally {
+      setPreviewLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -403,6 +463,17 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
     return null;
   }, [mediaJobError, mediaJobStatus]);
 
+  const materialStatusLabel = (material: EditableLessonMaterial) => {
+    if (material.file) return "Ожидает загрузки";
+    if (material.mediaObjectId) return "Готово";
+    if (material.url) return "Внешний источник";
+    return "Требуется загрузка";
+  };
+
+  const canPreviewVideo = Boolean(
+    videoFile || videoMediaObjectId || videoStreamUrl || videoUrl
+  );
+
   const handleCloseRequest = () => {
     if (!hasUnsavedChanges) {
       onCancel();
@@ -497,6 +568,22 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                   color="primary"
                 />
               ) : null}
+              <Button
+                variant="text"
+                onClick={() => void handleOpenVideoPreview()}
+                disabled={!canPreviewVideo}
+              >
+                Предпросмотр видео
+              </Button>
+              {previewSource ? (
+                <Typography variant="caption" color="text.secondary">
+                  {previewSource === "local"
+                    ? "Предпросмотр: локальный файл до сохранения."
+                    : previewSource === "media"
+                    ? "Предпросмотр: защищенный media runtime-доступ."
+                    : "Предпросмотр: внешний источник."}
+                </Typography>
+              ) : null}
               {duration > 0 && (
                 <Typography variant="caption" color="text.secondary">
                   {t("lessonEditor.durationMinutes", {
@@ -522,9 +609,10 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                           <DescriptionIcon />
                         )
                       }
-                      label={m.name}
+                      label={`${m.name} · ${materialStatusLabel(m)}`}
                       onDelete={() => handleRemoveMaterial(m.id)}
-                      variant="outlined"
+                      variant={m.file ? "filled" : "outlined"}
+                      color={m.file ? "primary" : "default"}
                     />
                   ))}
                 </Box>
@@ -579,6 +667,67 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
             <ButtonPending loading={isSaving} className="lesson-editor-dialog__action-text">
               {t("common.save")}
             </ButtonPending>
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={previewOpen}
+        onClose={() => {
+          setPreviewOpen(false);
+          setPreviewError(null);
+          setPreviewUrl(null);
+          setPreviewSource(null);
+          resetLocalPreview();
+        }}
+        maxWidth="md"
+        fullWidth
+        className="lesson-editor-dialog ui-dialog ui-dialog--wide"
+      >
+        <DialogTitleWithClose
+          title="Предпросмотр видео"
+          onClose={() => {
+            setPreviewOpen(false);
+            setPreviewError(null);
+            setPreviewUrl(null);
+            setPreviewSource(null);
+            resetLocalPreview();
+          }}
+          closeAriaLabel={t("common.close")}
+        />
+        <DialogContent>
+          <Stack spacing={2}>
+            {previewLoading ? (
+              <Stack direction="row" spacing={1} alignItems="center">
+                <CircularProgress size={20} />
+                <Typography>Подготавливаем предпросмотр...</Typography>
+              </Stack>
+            ) : null}
+            {previewError ? <Alert severity="warning">{previewError}</Alert> : null}
+            {!previewLoading && previewUrl ? (
+              <Box sx={{ bgcolor: "#000", borderRadius: 1, overflow: "hidden" }}>
+                <video
+                  key={previewUrl}
+                  controls
+                  preload="metadata"
+                  style={{ width: "100%", maxHeight: "60vh", display: "block" }}
+                  src={previewUrl}
+                />
+              </Box>
+            ) : null}
+          </Stack>
+        </DialogContent>
+        <DialogActions className="lesson-editor-dialog__actions">
+          <Button
+            onClick={() => {
+              setPreviewOpen(false);
+              setPreviewError(null);
+              setPreviewUrl(null);
+              setPreviewSource(null);
+              resetLocalPreview();
+            }}
+          >
+            <span className="lesson-editor-dialog__action-text">{t("common.close")}</span>
           </Button>
         </DialogActions>
       </Dialog>

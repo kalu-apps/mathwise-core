@@ -3,6 +3,8 @@ import type { AuthUserDto } from "../auth/auth.types";
 import { getApiRuntimeConfig } from "../config/runtime.config";
 import { DatabaseService } from "../db/database.service";
 import { LessonsRepository } from "../lessons/lessons.repository";
+import type { LessonDto } from "../lessons/lessons.types";
+import { MediaService } from "../media/media.service";
 import { readReadSliceSeedData, upsertCourses } from "../seed/readSlice.seed";
 import { ensureId } from "../shared/id";
 import { CoursesRepository } from "./courses.repository";
@@ -34,6 +36,19 @@ const normalizeDraftCourseInput = (
   };
 };
 
+const collectLessonsMediaObjectIds = (lessons: LessonDto[]): string[] => {
+  const ids = new Set<string>();
+  for (const lesson of lessons) {
+    const videoId = lesson.videoMediaObjectId?.trim();
+    if (videoId) ids.add(videoId);
+    for (const material of lesson.materials ?? []) {
+      const mediaObjectId = material.mediaObjectId?.trim();
+      if (mediaObjectId) ids.add(mediaObjectId);
+    }
+  }
+  return [...ids];
+};
+
 @Injectable()
 export class CoursesService implements OnModuleInit {
   private readonly runtimeConfig = getApiRuntimeConfig();
@@ -41,7 +56,8 @@ export class CoursesService implements OnModuleInit {
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly coursesRepository: CoursesRepository,
-    private readonly lessonsRepository: LessonsRepository
+    private readonly lessonsRepository: LessonsRepository,
+    private readonly mediaService: MediaService
   ) {}
 
   async onModuleInit() {
@@ -141,8 +157,18 @@ export class CoursesService implements OnModuleInit {
     if (existing.teacherId !== actorUser.id) {
       throw new HttpException({ error: "Нет доступа к чужому курсу." }, 403);
     }
+    const previousLessons = await this.lessonsRepository.findDraftByCourse(
+      normalizedId
+    );
     await this.lessonsRepository.deleteByCourse(normalizedId);
     await this.coursesRepository.deleteDraft(normalizedId);
+    const detachedMediaIds = collectLessonsMediaObjectIds(previousLessons);
+    if (detachedMediaIds.length > 0) {
+      await this.mediaService.releaseMediaObjects({
+        objectIds: detachedMediaIds,
+        reason: "course_delete_draft",
+      });
+    }
   }
 
   async publishCourse(params: {
@@ -338,7 +364,13 @@ export class CoursesService implements OnModuleInit {
     if (!normalizedMediaObjectId) return;
     const mediaRows = await this.databaseService.query<{
       ownerUserId: string;
-      state: "pending_upload" | "uploaded" | "deleted";
+      state:
+        | "pending_upload"
+        | "uploaded"
+        | "orphan_candidate"
+        | "cleanup_pending"
+        | "upload_failed"
+        | "deleted";
     }>(
       `
         SELECT owner_user_id AS "ownerUserId"

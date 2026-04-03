@@ -16,6 +16,14 @@ const ACTOR_STUDENT: AuthUserDto = {
   role: "student",
 };
 
+const ACTOR_TEACHER: AuthUserDto = {
+  id: "teacher_1",
+  email: "teacher@example.com",
+  firstName: "Teacher",
+  lastName: "One",
+  role: "teacher",
+};
+
 const LESSON: LessonDto = {
   id: "lesson_1",
   courseId: "course_1",
@@ -129,4 +137,80 @@ test("lessons runtime: material access is issued through backend-gated endpoint"
   assert.equal(access.source, "media");
   assert.equal(access.downloadable, true);
   assert.match(access.accessUrl, /^https:\/\/signed\.example\.com\//);
+});
+
+test("lessons draft replace: detached media ids are sent to media cleanup", async () => {
+  const previous: LessonDto[] = [
+    {
+      id: "lesson_1",
+      courseId: "course_1",
+      title: "Lesson 1",
+      order: 1,
+      duration: 30,
+      videoMediaObjectId: "media_old_video",
+      materials: [
+        {
+          id: "mat_old",
+          name: "Old PDF",
+          type: "pdf",
+          mediaObjectId: "media_old_pdf",
+        },
+      ],
+    },
+  ];
+  const next: LessonDto[] = [
+    {
+      id: "lesson_1",
+      courseId: "course_1",
+      title: "Lesson 1",
+      order: 1,
+      duration: 30,
+      videoMediaObjectId: "media_new_video",
+      materials: [
+        {
+          id: "mat_new",
+          name: "New PDF",
+          type: "pdf",
+          mediaObjectId: "media_new_pdf",
+        },
+      ],
+    },
+  ];
+
+  const released: string[][] = [];
+  const service = new LessonsService(
+    {
+      query: async (text: string) => {
+        if (text.includes("FROM courses_catalog")) {
+          return [{ teacherId: ACTOR_TEACHER.id }];
+        }
+        return [];
+      },
+    } as never,
+    {
+      ensureSchema: async () => undefined,
+      hasAnyLessons: async () => true,
+      findDraftByCourse: async () => previous,
+      replaceByCourse: async () => undefined,
+    } as never,
+    {
+      releaseMediaObjects: async (params: { objectIds: string[] }) => {
+        released.push(params.objectIds);
+      },
+    } as never
+  );
+
+  await service.replaceLessonsByCourse(
+    {
+      courseId: "course_1",
+      lessons: next,
+    },
+    ACTOR_TEACHER
+  );
+
+  assert.equal(released.length, 1);
+  assert.deepEqual(
+    [...released[0]].sort(),
+    ["media_old_pdf", "media_old_video"].sort()
+  );
 });

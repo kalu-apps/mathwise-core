@@ -20,6 +20,7 @@ import type {
   CreateUploadUrlPayloadDto,
   CreateUploadUrlResponseDto,
   GetDownloadUrlResponseDto,
+  MarkFinalizeFailedResponseDto,
 } from "./media.types";
 
 type RequestWithCookie = {
@@ -75,6 +76,19 @@ export class MediaController {
     return this.mediaService.completeUpload({
       objectId: id,
       payload,
+      actorUser,
+    });
+  }
+
+  @Post(":id/finalize-failed")
+  async markFinalizeFailed(
+    @Param("id") id: string,
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<MarkFinalizeFailedResponseDto> {
+    const actorUser = await this.resolveUserFromRequest(req, res);
+    return this.mediaService.markFinalizeFailed({
+      objectId: id,
       actorUser,
     });
   }

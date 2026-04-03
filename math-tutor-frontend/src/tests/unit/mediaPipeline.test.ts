@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const postMock = vi.fn();
+const getMock = vi.fn();
 
 vi.mock("@/shared/api/client", () => ({
   api: {
     post: postMock,
-    get: vi.fn(),
+    get: getMock,
   },
   ApiError: class ApiError extends Error {
     code: string | undefined;
@@ -44,6 +45,7 @@ const createVideoFile = (
 describe("mediaPipeline", () => {
   afterEach(() => {
     postMock.mockReset();
+    getMock.mockReset();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -129,5 +131,63 @@ describe("mediaPipeline", () => {
     expect(preflight.ok).toBe(false);
     expect(preflight.error).toContain(LESSON_VIDEO_UPLOAD_LIMIT_LABEL);
     expect(preflight.error).not.toContain("250");
+  });
+
+  it("calls finalize-failed reconcile when complete step fails repeatedly", async () => {
+    postMock.mockImplementation(async (path: string) => {
+      if (path === "/media/upload-url") {
+        return {
+          objectId: "media_lesson_failed",
+          uploadUrl: "https://s3.example.test/upload",
+          method: "PUT" as const,
+          headers: {
+            "Content-Type": "video/mp4",
+          },
+        };
+      }
+      if (path === "/media/media_lesson_failed/complete") {
+        throw new Error("complete failed");
+      }
+      if (path === "/media/media_lesson_failed/finalize-failed") {
+        return { ok: true };
+      }
+      throw new Error(`unexpected path ${path}`);
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+      })
+    );
+
+    const { startLessonVideoPipeline } = await import("@/shared/lib/mediaPipeline");
+    const result = await startLessonVideoPipeline({
+      lessonTitle: "Алгебра",
+      videoFile: createVideoFile(8 * 1024 * 1024),
+    });
+
+    expect(result.status).toBe("failed");
+    expect(postMock).toHaveBeenCalledWith(
+      "/media/media_lesson_failed/finalize-failed",
+      {}
+    );
+  });
+
+  it("resolves preview url via backend-owned media access endpoint", async () => {
+    getMock.mockResolvedValue({
+      objectId: "media_preview_1",
+      downloadUrl: "https://signed.example.test/download",
+    });
+
+    const { getOwnedMediaDownloadUrl } = await import("@/shared/lib/mediaPipeline");
+    const response = await getOwnedMediaDownloadUrl("media_preview_1");
+
+    expect(response.downloadUrl).toBe("https://signed.example.test/download");
+    expect(getMock).toHaveBeenCalledWith(
+      "/media/media_preview_1/download-url",
+      expect.objectContaining({
+        dedupe: false,
+      })
+    );
   });
 });

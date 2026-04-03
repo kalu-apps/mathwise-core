@@ -26,6 +26,9 @@ Package 10 добавляет backend-owned media path через `apps/api` c s
 - `POST /api/media/:id/complete`
   - body: `{ etag?, sizeBytes? }`
   - mark object uploaded (verifies object exists in storage)
+- `POST /api/media/:id/finalize-failed`
+  - marks broken finalize flow for reconciliation
+  - backend moves object into safe cleanup lifecycle if it is no longer referenced
 - `GET /api/media/:id/download-url`
   - response: signed download URL
 - `GET /api/lessons/:id/playback`
@@ -45,12 +48,29 @@ Package 10 добавляет backend-owned media path через `apps/api` c s
 
 Временные signed runtime URLs больше не являются persisted source of truth для уроков/релизов.
 
+## Lifecycle integrity (video + materials)
+
+- Media object lifecycle now supports safe cleanup states:
+  - `pending_upload`
+  - `uploaded`
+  - `orphan_candidate`
+  - `cleanup_pending`
+  - `upload_failed`
+  - `deleted`
+- Detach operations (`replace/remove video`, `replace/remove materials`, `delete lessons`, `delete course`) no longer do blind immediate storage delete.
+- Cleanup is reference-aware and checks distributed references before deletion:
+  - draft lesson refs (`course_lessons`)
+  - published release snapshots (`course_releases.lessons_snapshot_json`)
+  - purchase snapshots (`profile_purchases.lessons_snapshot_json`)
+- Only zero-reference objects are physically deleted from storage.
+
 ## Upload flow
 
 1. Клиент запрашивает signed upload URL.
 2. Клиент загружает файл напрямую в S3 `PUT` по `uploadUrl`.
 3. Клиент подтверждает загрузку через `POST /api/media/:id/complete`.
 4. Для скачивания/просмотра клиент запрашивает signed download URL.
+5. Если `PUT` прошел, но `complete` не дошел/упал, клиент может вызвать `POST /api/media/:id/finalize-failed` (front does this automatically as best-effort reconcile path).
 
 ## Lesson video upload limit
 

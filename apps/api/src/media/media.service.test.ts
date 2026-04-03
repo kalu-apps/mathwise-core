@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { AuthUserDto } from "../auth/auth.types";
+import type { MediaObjectRecord } from "./media.types";
 import { MediaService } from "./media.service";
 
 const getErrorStatus = (error: unknown) =>
@@ -19,6 +20,22 @@ const createActorUser = (): AuthUserDto => ({
   role: "student",
 });
 
+const createMediaRecord = (
+  overrides: Partial<MediaObjectRecord> = {}
+): MediaObjectRecord => ({
+  id: "media_1",
+  objectKey: "stage/lesson-video/student_1/2026-04-03/media_1_video.mp4",
+  bucket: "test-bucket",
+  ownerUserId: "student_1",
+  category: "lesson-video",
+  contentType: "video/mp4",
+  sizeBytes: 1024,
+  state: "uploaded",
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  ...overrides,
+});
+
 test("media: create upload url fails with 503 when storage is disabled", async () => {
   const actorUser = createActorUser();
 
@@ -26,6 +43,7 @@ test("media: create upload url fails with 503 when storage is disabled", async (
     {
       ensureSchema: async () => undefined,
       insertPending: async () => undefined,
+      markStalePendingAsFailed: async () => 0,
     } as never,
     {
       isEnabled: () => false,
@@ -56,6 +74,7 @@ test("media: lesson-video upload requires explicit sizeBytes", async () => {
     {
       ensureSchema: async () => undefined,
       insertPending: async () => undefined,
+      markStalePendingAsFailed: async () => 0,
     } as never,
     {
       isEnabled: () => true,
@@ -92,6 +111,7 @@ test("media: lesson-video upload rejects payload above configured cap", async ()
       {
         ensureSchema: async () => undefined,
         insertPending: async () => undefined,
+        markStalePendingAsFailed: async () => 0,
       } as never,
       {
         isEnabled: () => true,
@@ -137,6 +157,7 @@ test("media: lesson-video upload keeps backend-owned pending record when valid",
       insertPending: async (record: unknown) => {
         insertedRecord = record;
       },
+      markStalePendingAsFailed: async () => 0,
     } as never,
     {
       isEnabled: () => true,
@@ -170,4 +191,92 @@ test("media: lesson-video upload keeps backend-owned pending record when valid",
     (insertedRecord as { category?: string } | null)?.category,
     "lesson-video"
   );
+});
+
+test("media: releaseMediaObjects does not delete still-referenced media", async () => {
+  let deleteCalls = 0;
+  let markUploadedStateCalls = 0;
+  const mediaService = new MediaService(
+    {
+      ensureSchema: async () => undefined,
+      markStalePendingAsFailed: async () => 0,
+      markOrphanCandidate: async () =>
+        createMediaRecord({ state: "orphan_candidate" }),
+      findById: async () => createMediaRecord({ state: "orphan_candidate" }),
+      countReferencesByObjectId: async () => ({
+        draftRefs: 1,
+        releaseRefs: 0,
+        purchaseRefs: 0,
+        totalRefs: 1,
+      }),
+      markUploadedState: async () => {
+        markUploadedStateCalls += 1;
+        return createMediaRecord({ state: "uploaded" });
+      },
+      markCleanupPending: async () => createMediaRecord({ state: "cleanup_pending" }),
+      markDeleted: async () => createMediaRecord({ state: "deleted" }),
+    } as never,
+    {
+      isEnabled: () => true,
+      healthcheck: async () => true,
+      deleteObject: async () => {
+        deleteCalls += 1;
+        return true;
+      },
+      headObject: async () => ({
+        etag: "etag",
+      }),
+    } as never
+  );
+
+  await mediaService.releaseMediaObjects({
+    objectIds: ["media_1"],
+    reason: "test",
+  });
+
+  assert.equal(deleteCalls, 0);
+  assert.equal(markUploadedStateCalls, 1);
+});
+
+test("media: releaseMediaObjects deletes unreferenced media safely", async () => {
+  let deleteCalls = 0;
+  let markDeletedCalls = 0;
+  const mediaService = new MediaService(
+    {
+      ensureSchema: async () => undefined,
+      markStalePendingAsFailed: async () => 0,
+      markOrphanCandidate: async () =>
+        createMediaRecord({ state: "orphan_candidate" }),
+      findById: async () => createMediaRecord({ state: "orphan_candidate" }),
+      countReferencesByObjectId: async () => ({
+        draftRefs: 0,
+        releaseRefs: 0,
+        purchaseRefs: 0,
+        totalRefs: 0,
+      }),
+      markUploadedState: async () => createMediaRecord({ state: "uploaded" }),
+      markCleanupPending: async () => createMediaRecord({ state: "cleanup_pending" }),
+      markDeleted: async () => {
+        markDeletedCalls += 1;
+        return createMediaRecord({ state: "deleted" });
+      },
+    } as never,
+    {
+      isEnabled: () => true,
+      healthcheck: async () => true,
+      deleteObject: async () => {
+        deleteCalls += 1;
+        return true;
+      },
+      headObject: async () => null,
+    } as never
+  );
+
+  await mediaService.releaseMediaObjects({
+    objectIds: ["media_1"],
+    reason: "test",
+  });
+
+  assert.equal(deleteCalls, 1);
+  assert.equal(markDeletedCalls, 1);
 });

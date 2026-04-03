@@ -1,7 +1,10 @@
 import crypto from "node:crypto";
 import { HttpException, Injectable, OnModuleInit } from "@nestjs/common";
 import type { AuthUserDto } from "../auth/auth.types";
-import { MediaRepository } from "./media.repository";
+import {
+  MediaRepository,
+  type MediaReferenceUsage,
+} from "./media.repository";
 import { MediaStorageService } from "./media.storage";
 import type {
   CompleteUploadPayloadDto,
@@ -9,13 +12,16 @@ import type {
   CreateUploadUrlPayloadDto,
   CreateUploadUrlResponseDto,
   GetDownloadUrlResponseDto,
+  MarkFinalizeFailedResponseDto,
   MediaObjectRecord,
 } from "./media.types";
 
 const ensureId = (prefix: string) =>
   typeof crypto.randomUUID === "function"
     ? `${prefix}_${crypto.randomUUID()}`
-    : `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+    : `${prefix}_${Date.now().toString(36)}_${Math.random()
+        .toString(36)
+        .slice(2, 10)}`;
 
 const nowIso = () => new Date().toISOString();
 
@@ -66,6 +72,7 @@ export class MediaService implements OnModuleInit {
 
   async onModuleInit() {
     await this.mediaRepository.ensureSchema();
+    await this.mediaRepository.markStalePendingAsFailed(180);
   }
 
   isStorageEnabled() {
@@ -90,10 +97,7 @@ export class MediaService implements OnModuleInit {
     const fileNameRaw = params.payload.fileName?.trim();
     const contentType = params.payload.contentType?.trim().toLowerCase();
     if (!fileNameRaw || !contentType) {
-      throw new HttpException(
-        { error: "fileName и contentType обязательны." },
-        400
-      );
+      throw new HttpException({ error: "fileName и contentType обязательны." }, 400);
     }
 
     const fileName = sanitizeFileName(fileNameRaw);
@@ -106,6 +110,11 @@ export class MediaService implements OnModuleInit {
       sizeBytes: requestedSizeBytes,
     });
     const objectKey = `${this.mediaStorageService.getAppEnv()}/${category}/${actorUser.id}/${datePrefix}/${objectId}_${fileName}`;
+
+    const signed = await this.mediaStorageService.createSignedUploadUrl({
+      objectKey,
+      contentType,
+    });
 
     const createdAt = nowIso();
     const record: MediaObjectRecord = {
@@ -121,11 +130,6 @@ export class MediaService implements OnModuleInit {
       updatedAt: createdAt,
     };
     await this.mediaRepository.insertPending(record);
-
-    const signed = await this.mediaStorageService.createSignedUploadUrl({
-      objectKey,
-      contentType,
-    });
 
     return {
       objectId,
@@ -154,14 +158,29 @@ export class MediaService implements OnModuleInit {
     const media = await this.requireOwnedMedia(params.objectId, actorUser);
     const head = await this.mediaStorageService.headObject(media.objectKey);
     if (!head) {
+      await this.mediaRepository.markUploadFailed({
+        id: media.id,
+        reason: "head_object_missing",
+      });
       throw new HttpException({ error: "Файл еще не загружен в storage." }, 409);
     }
 
-    const completedSizeBytes = toByteSize(params.payload?.sizeBytes) ?? head.contentLength;
-    this.ensureCategoryUploadSize({
-      category: media.category,
-      sizeBytes: completedSizeBytes,
-    });
+    const completedSizeBytes =
+      toByteSize(params.payload?.sizeBytes) ?? head.contentLength;
+    try {
+      this.ensureCategoryUploadSize({
+        category: media.category,
+        sizeBytes: completedSizeBytes,
+      });
+    } catch (error) {
+      await this.mediaRepository.markUploadFailed({
+        id: media.id,
+        reason: "size_validation_failed",
+      });
+      await this.mediaRepository.markOrphanCandidate(media.id);
+      await this.cleanupCandidateIds([media.id]);
+      throw error;
+    }
 
     const updated = await this.mediaRepository.markUploaded({
       id: media.id,
@@ -179,6 +198,64 @@ export class MediaService implements OnModuleInit {
     };
   }
 
+  async markFinalizeFailed(params: {
+    objectId: string;
+    actorUser: AuthUserDto | null;
+  }): Promise<MarkFinalizeFailedResponseDto> {
+    this.ensureStorageEnabled();
+
+    const actorUser = params.actorUser;
+    if (!actorUser) {
+      throw new HttpException({ error: "Требуется авторизация." }, 401);
+    }
+
+    const media = await this.requireOwnedMedia(params.objectId, actorUser);
+    if (media.state === "uploaded" || media.state === "deleted") {
+      return { ok: true, media };
+    }
+
+    const head = await this.mediaStorageService.headObject(media.objectKey);
+    if (!head) {
+      const failed =
+        (await this.mediaRepository.markUploadFailed({
+          id: media.id,
+          reason: "finalize_failed_no_object",
+        })) ?? media;
+      return { ok: true, media: failed };
+    }
+
+    await this.mediaRepository.markOrphanCandidate(media.id);
+    await this.cleanupCandidateIds([media.id]);
+    const next = (await this.mediaRepository.findById(media.id)) ?? media;
+    return { ok: true, media: next };
+  }
+
+  async releaseMediaObjects(params: {
+    objectIds: string[];
+    reason?: string;
+  }): Promise<void> {
+    this.ensureStorageEnabled();
+
+    const ids = [...new Set(params.objectIds.map((id) => id.trim()).filter(Boolean))];
+    if (ids.length === 0) return;
+
+    for (const id of ids) {
+      await this.mediaRepository.markOrphanCandidate(id);
+    }
+    await this.cleanupCandidateIds(ids);
+  }
+
+  async processOrphanCandidates(limit = 100): Promise<void> {
+    this.ensureStorageEnabled();
+    const candidates = await this.mediaRepository.findCleanupCandidates(limit);
+    if (candidates.length === 0) return;
+    await this.cleanupCandidateIds(candidates.map((candidate) => candidate.id));
+  }
+
+  async getReferenceUsage(objectId: string): Promise<MediaReferenceUsage> {
+    return this.mediaRepository.countReferencesByObjectId(objectId.trim());
+  }
+
   async getDownloadUrl(params: {
     objectId: string;
     actorUser: AuthUserDto | null;
@@ -191,10 +268,7 @@ export class MediaService implements OnModuleInit {
     }
     const media = await this.requireOwnedMedia(params.objectId, actorUser);
     if (media.state !== "uploaded") {
-      throw new HttpException(
-        { error: "Файл еще не готов к скачиванию." },
-        409
-      );
+      throw new HttpException({ error: "Файл еще не готов к скачиванию." }, 409);
     }
 
     return this.buildDownloadUrlResponse(media);
@@ -206,6 +280,36 @@ export class MediaService implements OnModuleInit {
     this.ensureStorageEnabled();
     const media = await this.requireMediaReady(objectId);
     return this.buildDownloadUrlResponse(media);
+  }
+
+  private async cleanupCandidateIds(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      const media = await this.mediaRepository.findById(id);
+      if (!media || media.state === "deleted") continue;
+
+      const refs = await this.mediaRepository.countReferencesByObjectId(media.id);
+      if (refs.totalRefs > 0) {
+        if (media.state !== "uploaded") {
+          await this.mediaRepository.markUploadedState(media.id);
+        }
+        continue;
+      }
+
+      await this.mediaRepository.markCleanupPending(media.id);
+      const deleted = await this.mediaStorageService.deleteObject(media.objectKey);
+      if (deleted) {
+        await this.mediaRepository.markDeleted(media.id);
+        continue;
+      }
+
+      const stillExists = await this.mediaStorageService.headObject(media.objectKey);
+      if (!stillExists) {
+        await this.mediaRepository.markDeleted(media.id);
+        continue;
+      }
+
+      await this.mediaRepository.markOrphanCandidate(media.id);
+    }
   }
 
   private async buildDownloadUrlResponse(
@@ -250,7 +354,10 @@ export class MediaService implements OnModuleInit {
       throw new HttpException({ error: "Медиа-объект не найден." }, 404);
     }
     if (media.ownerUserId !== actorUser.id) {
-      throw new HttpException({ error: "Недостаточно прав для media объекта." }, 403);
+      throw new HttpException(
+        { error: "Недостаточно прав для media объекта." },
+        403
+      );
     }
     return media;
   }
@@ -265,18 +372,12 @@ export class MediaService implements OnModuleInit {
       throw new HttpException({ error: "Медиа-объект не найден." }, 404);
     }
     if (media.state !== "uploaded") {
-      throw new HttpException(
-        { error: "Файл еще не готов к скачиванию." },
-        409
-      );
+      throw new HttpException({ error: "Файл еще не готов к скачиванию." }, 409);
     }
     return media;
   }
 
-  private ensureCategoryUploadSize(params: {
-    category: string;
-    sizeBytes?: number;
-  }) {
+  private ensureCategoryUploadSize(params: { category: string; sizeBytes?: number }) {
     if (params.category !== "lesson-video") return;
     if (!params.sizeBytes || params.sizeBytes <= 0) {
       throw new HttpException(

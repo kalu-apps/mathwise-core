@@ -47,6 +47,36 @@ const normalizeLessonInput = (lesson: LessonDto, courseId: string, order: number
   settings: lesson.settings,
 });
 
+const collectLessonMediaObjectIds = (lesson: LessonDto): string[] => {
+  const ids = new Set<string>();
+  const videoId = lesson.videoMediaObjectId?.trim();
+  if (videoId) ids.add(videoId);
+  for (const material of lesson.materials ?? []) {
+    const mediaObjectId = material.mediaObjectId?.trim();
+    if (mediaObjectId) ids.add(mediaObjectId);
+  }
+  return [...ids];
+};
+
+const collectLessonsMediaObjectIds = (lessons: LessonDto[]): string[] => {
+  const ids = new Set<string>();
+  for (const lesson of lessons) {
+    for (const id of collectLessonMediaObjectIds(lesson)) {
+      ids.add(id);
+    }
+  }
+  return [...ids];
+};
+
+const diffDetachedMediaObjectIds = (params: {
+  previousLessons: LessonDto[];
+  nextLessons: LessonDto[];
+}): string[] => {
+  const previous = new Set(collectLessonsMediaObjectIds(params.previousLessons));
+  const next = new Set(collectLessonsMediaObjectIds(params.nextLessons));
+  return [...previous].filter((id) => !next.has(id));
+};
+
 @Injectable()
 export class LessonsService implements OnModuleInit {
   private readonly runtimeConfig = getApiRuntimeConfig();
@@ -126,7 +156,21 @@ export class LessonsService implements OnModuleInit {
     if (!normalized.id || !normalized.title) {
       throw new HttpException({ error: "id и title урока обязательны." }, 400);
     }
+    const previousDraftLesson = await this.lessonsRepository.findDraftById(normalized.id);
+    const detachedMediaIds =
+      previousDraftLesson && previousDraftLesson.courseId === courseId
+      ? diffDetachedMediaObjectIds({
+          previousLessons: [previousDraftLesson],
+          nextLessons: [normalized],
+        })
+      : [];
     await this.lessonsRepository.upsertOne(normalized);
+    if (detachedMediaIds.length > 0) {
+      await this.mediaService.releaseMediaObjects({
+        objectIds: detachedMediaIds,
+        reason: "lesson_save_detach",
+      });
+    }
     return normalized;
   }
 
@@ -147,6 +191,7 @@ export class LessonsService implements OnModuleInit {
     if (!(await this.isTeacherOwnerOfCourse(actorUser, courseId))) {
       throw new HttpException({ error: "Нельзя редактировать чужой курс." }, 403);
     }
+    const previousLessons = await this.lessonsRepository.findDraftByCourse(courseId);
     const normalizedLessons = params.lessons.map((lesson, index) =>
       normalizeLessonInput(lesson, courseId, index + 1)
     );
@@ -155,6 +200,16 @@ export class LessonsService implements OnModuleInit {
       throw new HttpException({ error: "Все уроки должны иметь id и title." }, 400);
     }
     await this.lessonsRepository.replaceByCourse(courseId, normalizedLessons);
+    const detachedMediaIds = diffDetachedMediaObjectIds({
+      previousLessons,
+      nextLessons: normalizedLessons,
+    });
+    if (detachedMediaIds.length > 0) {
+      await this.mediaService.releaseMediaObjects({
+        objectIds: detachedMediaIds,
+        reason: "lessons_replace_detach",
+      });
+    }
   }
 
   async deleteLessonsByCourse(
@@ -171,7 +226,17 @@ export class LessonsService implements OnModuleInit {
     if (!(await this.isTeacherOwnerOfCourse(actorUser, normalizedCourseId))) {
       throw new HttpException({ error: "Нельзя редактировать чужой курс." }, 403);
     }
+    const previousLessons = await this.lessonsRepository.findDraftByCourse(
+      normalizedCourseId
+    );
     await this.lessonsRepository.deleteByCourse(normalizedCourseId);
+    const detachedMediaIds = collectLessonsMediaObjectIds(previousLessons);
+    if (detachedMediaIds.length > 0) {
+      await this.mediaService.releaseMediaObjects({
+        objectIds: detachedMediaIds,
+        reason: "lessons_delete_by_course",
+      });
+    }
   }
 
   async getLessonPlaybackAccess(
