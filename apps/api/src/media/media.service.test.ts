@@ -280,3 +280,90 @@ test("media: releaseMediaObjects deletes unreferenced media safely", async () =>
   assert.equal(deleteCalls, 1);
   assert.equal(markDeletedCalls, 1);
 });
+
+test("media: createMultipartUpload returns signed part urls and keeps pending record", async () => {
+  const actorUser = createActorUser();
+  let inserted = 0;
+  const mediaService = new MediaService(
+    {
+      ensureSchema: async () => undefined,
+      insertPending: async () => {
+        inserted += 1;
+      },
+      markStalePendingAsFailed: async () => 0,
+    } as never,
+    {
+      isEnabled: () => true,
+      getBucket: () => "test-bucket",
+      getAppEnv: () => "stage",
+      healthcheck: async () => true,
+      createMultipartUpload: async () => ({ uploadId: "upload_1" }),
+      createSignedUploadPartUrl: async (params: { partNumber: number }) => ({
+        url: `https://s3.example.test/part-${params.partNumber}`,
+        expiresAt: new Date().toISOString(),
+      }),
+      abortMultipartUpload: async () => undefined,
+    } as never
+  );
+
+  const response = await mediaService.createMultipartUpload({
+    actorUser,
+    payload: {
+      fileName: "lesson-heavy.mp4",
+      contentType: "video/mp4",
+      sizeBytes: 64 * 1024 * 1024,
+      category: "lesson-video",
+    },
+  });
+
+  assert.equal(inserted, 1);
+  assert.equal(response.uploadId, "upload_1");
+  assert.equal(response.partCount > 0, true);
+  assert.equal(response.parts.length, response.partCount);
+});
+
+test("media: completeMultipartUpload rejects missing multipart parts", async () => {
+  const actorUser = createActorUser();
+  const mediaService = new MediaService(
+    {
+      ensureSchema: async () => undefined,
+      markStalePendingAsFailed: async () => 0,
+      findById: async () => createMediaRecord({ state: "pending_upload" }),
+      markUploadFailed: async () => createMediaRecord({ state: "upload_failed" }),
+      markOrphanCandidate: async () => createMediaRecord({ state: "orphan_candidate" }),
+      markCleanupPending: async () => createMediaRecord({ state: "cleanup_pending" }),
+      markDeleted: async () => createMediaRecord({ state: "deleted" }),
+      countReferencesByObjectId: async () => ({
+        draftRefs: 0,
+        releaseRefs: 0,
+        purchaseRefs: 0,
+        totalRefs: 0,
+      }),
+      markUploadedState: async () => createMediaRecord({ state: "uploaded" }),
+    } as never,
+    {
+      isEnabled: () => true,
+      healthcheck: async () => true,
+      listMultipartUploadedParts: async () => [
+        { partNumber: 1, etag: "\"etag-1\"" },
+      ],
+      completeMultipartUpload: async () => undefined,
+      headObject: async () => ({ etag: "etag", contentLength: 1024 }),
+      deleteObject: async () => true,
+    } as never
+  );
+
+  await assert.rejects(
+    () =>
+      mediaService.completeMultipartUpload({
+        objectId: "media_1",
+        actorUser,
+        payload: {
+          uploadId: "upload_1",
+          partCount: 2,
+          sizeBytes: 1024,
+        },
+      }),
+    (error: unknown) => getErrorStatus(error) === 409
+  );
+});

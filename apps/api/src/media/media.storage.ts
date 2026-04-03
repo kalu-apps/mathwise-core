@@ -1,11 +1,17 @@
 import { Injectable } from "@nestjs/common";
 import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  CreateMultipartUploadCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
+  ListPartsCommand,
+  type CompletedPart,
   PutObjectCommand,
   S3Client,
+  UploadPartCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getApiRuntimeConfig } from "../config/runtime.config";
@@ -95,6 +101,121 @@ export class MediaStorageService {
       url,
       expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
     };
+  }
+
+  async createMultipartUpload(params: {
+    objectKey: string;
+    contentType: string;
+  }): Promise<{ uploadId: string }> {
+    if (!this.client) {
+      throw new Error("Media storage is disabled");
+    }
+    const created = await this.client.send(
+      new CreateMultipartUploadCommand({
+        Bucket: this.runtimeConfig.s3Bucket,
+        Key: params.objectKey,
+        ContentType: params.contentType,
+      })
+    );
+    const uploadId = created.UploadId?.trim();
+    if (!uploadId) {
+      throw new Error("media_multipart_upload_id_missing");
+    }
+    return { uploadId };
+  }
+
+  async createSignedUploadPartUrl(params: {
+    objectKey: string;
+    uploadId: string;
+    partNumber: number;
+    expiresInSec?: number;
+  }): Promise<{ url: string; expiresAt: string }> {
+    if (!this.client) {
+      throw new Error("Media storage is disabled");
+    }
+    const expiresIn = Math.max(
+      60,
+      Math.floor(params.expiresInSec ?? this.runtimeConfig.mediaSignedUrlTtlSec)
+    );
+    const command = new UploadPartCommand({
+      Bucket: this.runtimeConfig.s3Bucket,
+      Key: params.objectKey,
+      UploadId: params.uploadId,
+      PartNumber: params.partNumber,
+    });
+    const url = await getSignedUrl(this.client, command, { expiresIn });
+    return {
+      url,
+      expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
+    };
+  }
+
+  async listMultipartUploadedParts(params: {
+    objectKey: string;
+    uploadId: string;
+  }): Promise<Array<{ partNumber: number; etag: string }>> {
+    if (!this.client) {
+      throw new Error("Media storage is disabled");
+    }
+    const listed = await this.client.send(
+      new ListPartsCommand({
+        Bucket: this.runtimeConfig.s3Bucket,
+        Key: params.objectKey,
+        UploadId: params.uploadId,
+      })
+    );
+    const parts = listed.Parts ?? [];
+    return parts
+      .map((part) => {
+        const partNumber = part.PartNumber ?? 0;
+        const etag = part.ETag?.trim();
+        if (!partNumber || !etag) return null;
+        return { partNumber, etag };
+      })
+      .filter((part): part is { partNumber: number; etag: string } =>
+        Boolean(part)
+      )
+      .sort((a, b) => a.partNumber - b.partNumber);
+  }
+
+  async completeMultipartUpload(params: {
+    objectKey: string;
+    uploadId: string;
+    parts: Array<{ partNumber: number; etag: string }>;
+  }): Promise<void> {
+    if (!this.client) {
+      throw new Error("Media storage is disabled");
+    }
+    const completedParts: CompletedPart[] = params.parts.map((part) => ({
+      ETag: part.etag,
+      PartNumber: part.partNumber,
+    }));
+    await this.client.send(
+      new CompleteMultipartUploadCommand({
+        Bucket: this.runtimeConfig.s3Bucket,
+        Key: params.objectKey,
+        UploadId: params.uploadId,
+        MultipartUpload: {
+          Parts: completedParts,
+        },
+      })
+    );
+  }
+
+  async abortMultipartUpload(params: {
+    objectKey: string;
+    uploadId: string;
+  }): Promise<void> {
+    if (!this.client) {
+      throw new Error("Media storage is disabled");
+    }
+    await this.client.send(
+      new AbortMultipartUploadCommand({
+        Bucket: this.runtimeConfig.s3Bucket,
+        Key: params.objectKey,
+        UploadId: params.uploadId,
+      })
+    );
   }
 
   async headObject(objectKey: string): Promise<{

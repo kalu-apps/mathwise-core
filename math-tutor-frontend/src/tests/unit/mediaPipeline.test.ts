@@ -40,6 +40,13 @@ const createVideoFile = (
     name: overrides?.name ?? "lesson.mp4",
     type: overrides?.type ?? "video/mp4",
     size: sizeBytes,
+    slice: (start?: number, end?: number) => {
+      const from = Math.max(0, start ?? 0);
+      const to = Math.max(from, end ?? sizeBytes);
+      return new Blob([new Uint8Array(Math.max(0, to - from))], {
+        type: overrides?.type ?? "video/mp4",
+      });
+    },
   }) as File;
 
 describe("mediaPipeline", () => {
@@ -187,6 +194,108 @@ describe("mediaPipeline", () => {
       "/media/media_preview_1/download-url",
       expect.objectContaining({
         dedupe: false,
+      })
+    );
+  });
+
+  it("uses multipart upload flow for heavy lesson videos", async () => {
+    postMock.mockImplementation(async (path: string) => {
+      if (path === "/media/multipart/initiate") {
+        return {
+          objectId: "media_multipart_1",
+          uploadId: "upload_1",
+          partSizeBytes: 8 * 1024 * 1024,
+          partCount: 2,
+          parts: [
+            {
+              partNumber: 1,
+              uploadUrl: "https://s3.example.test/part-1",
+              method: "PUT" as const,
+            },
+            {
+              partNumber: 2,
+              uploadUrl: "https://s3.example.test/part-2",
+              method: "PUT" as const,
+            },
+          ],
+        };
+      }
+      if (path === "/media/multipart/media_multipart_1/complete") {
+        return {
+          ok: true,
+          media: { id: "media_multipart_1" },
+        };
+      }
+      throw new Error(`unexpected path ${path}`);
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+      })
+    );
+
+    const { startLessonVideoPipeline } = await import("@/shared/lib/mediaPipeline");
+    const result = await startLessonVideoPipeline({
+      lessonTitle: "Большой урок",
+      videoFile: createVideoFile(300 * 1024 * 1024),
+    });
+
+    expect(result.status).toBe("ready");
+    expect(result.videoMediaObjectId).toBe("media_multipart_1");
+    expect(postMock).toHaveBeenCalledWith(
+      "/media/multipart/initiate",
+      expect.objectContaining({
+        category: "lesson-video",
+      })
+    );
+    expect(postMock).toHaveBeenCalledWith(
+      "/media/multipart/media_multipart_1/complete",
+      expect.objectContaining({
+        uploadId: "upload_1",
+        partCount: 2,
+      })
+    );
+  });
+
+  it("aborts multipart upload on failed part and returns teacher-friendly error", async () => {
+    postMock.mockImplementation(async (path: string) => {
+      if (path === "/media/multipart/initiate") {
+        return {
+          objectId: "media_multipart_fail",
+          uploadId: "upload_fail",
+          partSizeBytes: 8 * 1024 * 1024,
+          partCount: 1,
+          parts: [
+            {
+              partNumber: 1,
+              uploadUrl: "https://s3.example.test/part-1",
+              method: "PUT" as const,
+            },
+          ],
+        };
+      }
+      if (path === "/media/multipart/media_multipart_fail/abort") {
+        return { ok: true };
+      }
+      throw new Error(`unexpected path ${path}`);
+    });
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("network failed")));
+
+    const { startLessonVideoPipeline } = await import("@/shared/lib/mediaPipeline");
+    const result = await startLessonVideoPipeline({
+      lessonTitle: "Сбой загрузки",
+      videoFile: createVideoFile(300 * 1024 * 1024),
+    });
+
+    expect(result.status).toBe("failed");
+    expect(result.error).toBe(
+      "Не удалось загрузить видео. Попробуйте еще раз. Если ошибка повторяется, обратитесь к администратору."
+    );
+    expect(postMock).toHaveBeenCalledWith(
+      "/media/multipart/media_multipart_fail/abort",
+      expect.objectContaining({
+        uploadId: "upload_fail",
       })
     );
   });

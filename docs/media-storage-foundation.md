@@ -15,6 +15,8 @@ Package 10 добавляет backend-owned media path через `apps/api` c s
 - `S3_FORCE_PATH_STYLE` (`true/false`, default `true`)
 - `MEDIA_SIGNED_URL_TTL_SEC` (default `900`)
 - `MEDIA_LESSON_VIDEO_MAX_UPLOAD_MB` (default `2048`, minimum `1024`, maximum `4096`)
+- `MEDIA_GC_INTERVAL_SEC` (default `300`, minimum `60`)
+- `MEDIA_GC_BATCH_LIMIT` (default `200`, range `10..1000`)
 
 По умолчанию `MEDIA_STORAGE_ENABLED=false`, чтобы stage мог стартовать без storage path.
 
@@ -26,6 +28,15 @@ Package 10 добавляет backend-owned media path через `apps/api` c s
 - `POST /api/media/:id/complete`
   - body: `{ etag?, sizeBytes? }`
   - mark object uploaded (verifies object exists in storage)
+- `POST /api/media/multipart/initiate`
+  - body: `{ fileName, contentType, sizeBytes, category? }`
+  - response includes `uploadId`, `partSizeBytes`, `partCount`, and signed URLs for parts
+- `POST /api/media/multipart/:id/complete`
+  - body: `{ uploadId, partCount, sizeBytes? }`
+  - backend validates uploaded parts and finalizes multipart object
+- `POST /api/media/multipart/:id/abort`
+  - body: `{ uploadId }`
+  - aborts abandoned multipart session and moves media into cleanup lifecycle
 - `POST /api/media/:id/finalize-failed`
   - marks broken finalize flow for reconciliation
   - backend moves object into safe cleanup lifecycle if it is no longer referenced
@@ -63,14 +74,23 @@ Package 10 добавляет backend-owned media path через `apps/api` c s
   - published release snapshots (`course_releases.lessons_snapshot_json`)
   - purchase snapshots (`profile_purchases.lessons_snapshot_json`)
 - Only zero-reference objects are physically deleted from storage.
+- Background GC pass periodically reconciles stale `pending_upload` and cleanup candidates.
 
 ## Upload flow
 
+Стандартный путь (обычные файлы):
 1. Клиент запрашивает signed upload URL.
 2. Клиент загружает файл напрямую в S3 `PUT` по `uploadUrl`.
 3. Клиент подтверждает загрузку через `POST /api/media/:id/complete`.
-4. Для скачивания/просмотра клиент запрашивает signed download URL.
-5. Если `PUT` прошел, но `complete` не дошел/упал, клиент может вызвать `POST /api/media/:id/finalize-failed` (front does this automatically as best-effort reconcile path).
+
+Heavy lesson video путь:
+1. Клиент вызывает `POST /api/media/multipart/initiate`.
+2. Загружает части файла с retry через signed part URLs.
+3. Завершает сборку через `POST /api/media/multipart/:id/complete`.
+4. При аварии клиент вызывает `POST /api/media/multipart/:id/abort`.
+
+Recovery path:
+- Если upload прошел, но finalize не завершился, клиент вызывает `POST /api/media/:id/finalize-failed` (best-effort reconcile path).
 
 ## Lesson video upload limit
 

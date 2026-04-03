@@ -1,5 +1,10 @@
 import crypto from "node:crypto";
-import { HttpException, Injectable, OnModuleInit } from "@nestjs/common";
+import {
+  HttpException,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+} from "@nestjs/common";
 import type { AuthUserDto } from "../auth/auth.types";
 import {
   MediaRepository,
@@ -7,8 +12,14 @@ import {
 } from "./media.repository";
 import { MediaStorageService } from "./media.storage";
 import type {
+  AbortMultipartUploadPayloadDto,
+  AbortMultipartUploadResponseDto,
+  CompleteMultipartUploadPayloadDto,
+  CompleteMultipartUploadResponseDto,
   CompleteUploadPayloadDto,
   CompleteUploadResponseDto,
+  CreateMultipartUploadPayloadDto,
+  CreateMultipartUploadResponseDto,
   CreateUploadUrlPayloadDto,
   CreateUploadUrlResponseDto,
   GetDownloadUrlResponseDto,
@@ -61,9 +72,38 @@ const resolveLessonVideoMaxUploadBytes = () => {
   return clampedMb * 1024 * 1024;
 };
 
+const resolveGcIntervalMs = () => {
+  const parsed = Number(process.env.MEDIA_GC_INTERVAL_SEC);
+  const seconds = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 300;
+  return Math.max(60, seconds) * 1000;
+};
+
+const resolveGcBatchLimit = () => {
+  const parsed = Number(process.env.MEDIA_GC_BATCH_LIMIT);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 200;
+  return Math.max(10, Math.min(1000, Math.floor(parsed)));
+};
+
+const MIN_MULTIPART_PART_SIZE_BYTES = 8 * 1024 * 1024;
+const MAX_MULTIPART_PARTS = 1000;
+
+const resolveMultipartPartSizeBytes = (sizeBytes: number) => {
+  let partSize = MIN_MULTIPART_PART_SIZE_BYTES;
+  let partCount = Math.ceil(sizeBytes / partSize);
+  while (partCount > MAX_MULTIPART_PARTS) {
+    partSize += 4 * 1024 * 1024;
+    partCount = Math.ceil(sizeBytes / partSize);
+  }
+  return partSize;
+};
+
 @Injectable()
-export class MediaService implements OnModuleInit {
+export class MediaService implements OnModuleInit, OnModuleDestroy {
   private readonly lessonVideoMaxUploadBytes = resolveLessonVideoMaxUploadBytes();
+  private readonly gcIntervalMs = resolveGcIntervalMs();
+  private readonly gcBatchLimit = resolveGcBatchLimit();
+  private gcTimer: NodeJS.Timeout | null = null;
+  private gcRunning = false;
 
   constructor(
     private readonly mediaRepository: MediaRepository,
@@ -72,7 +112,17 @@ export class MediaService implements OnModuleInit {
 
   async onModuleInit() {
     await this.mediaRepository.ensureSchema();
+    if (!this.mediaStorageService.isEnabled()) return;
+
     await this.mediaRepository.markStalePendingAsFailed(180);
+    this.startGcWorker();
+  }
+
+  onModuleDestroy() {
+    if (this.gcTimer) {
+      clearInterval(this.gcTimer);
+      this.gcTimer = null;
+    }
   }
 
   isStorageEnabled() {
@@ -140,6 +190,218 @@ export class MediaService implements OnModuleInit {
         "Content-Type": contentType,
       },
       expiresAt: signed.expiresAt,
+    };
+  }
+
+  async createMultipartUpload(params: {
+    payload: CreateMultipartUploadPayloadDto;
+    actorUser: AuthUserDto | null;
+  }): Promise<CreateMultipartUploadResponseDto> {
+    this.ensureStorageEnabled();
+
+    const actorUser = params.actorUser;
+    if (!actorUser) {
+      throw new HttpException({ error: "Требуется авторизация." }, 401);
+    }
+
+    const fileNameRaw = params.payload.fileName?.trim();
+    const contentType = params.payload.contentType?.trim().toLowerCase();
+    if (!fileNameRaw || !contentType) {
+      throw new HttpException({ error: "fileName и contentType обязательны." }, 400);
+    }
+
+    const requestedSizeBytes = toByteSize(params.payload.sizeBytes);
+    if (!requestedSizeBytes || requestedSizeBytes <= 0) {
+      throw new HttpException(
+        { error: "sizeBytes обязателен для multipart-загрузки." },
+        400
+      );
+    }
+
+    const category = normalizeCategory(params.payload.category);
+    this.ensureCategoryUploadSize({
+      category,
+      sizeBytes: requestedSizeBytes,
+    });
+
+    const objectId = ensureId("media");
+    const datePrefix = new Date().toISOString().slice(0, 10);
+    const fileName = sanitizeFileName(fileNameRaw);
+    const objectKey = `${this.mediaStorageService.getAppEnv()}/${category}/${actorUser.id}/${datePrefix}/${objectId}_${fileName}`;
+
+    const partSizeBytes = resolveMultipartPartSizeBytes(requestedSizeBytes);
+    const partCount = Math.ceil(requestedSizeBytes / partSizeBytes);
+    if (partCount > MAX_MULTIPART_PARTS) {
+      throw new HttpException(
+        {
+          error: "Файл слишком большой для multipart-загрузки в текущей конфигурации.",
+          code: "multipart_part_count_too_large",
+        },
+        413
+      );
+    }
+
+    const createdAt = nowIso();
+    const record: MediaObjectRecord = {
+      id: objectId,
+      objectKey,
+      bucket: this.mediaStorageService.getBucket(),
+      ownerUserId: actorUser.id,
+      category,
+      contentType,
+      sizeBytes: requestedSizeBytes,
+      state: "pending_upload",
+      createdAt,
+      updatedAt: createdAt,
+    };
+
+    const { uploadId } = await this.mediaStorageService.createMultipartUpload({
+      objectKey,
+      contentType,
+    });
+
+    try {
+      await this.mediaRepository.insertPending(record);
+    } catch (error) {
+      await this.mediaStorageService.abortMultipartUpload({
+        objectKey,
+        uploadId,
+      });
+      throw error;
+    }
+
+    const urls = await Promise.all(
+      Array.from({ length: partCount }, (_, index) =>
+        this.mediaStorageService.createSignedUploadPartUrl({
+          objectKey,
+          uploadId,
+          partNumber: index + 1,
+        })
+      )
+    );
+
+    return {
+      objectId,
+      objectKey,
+      uploadId,
+      partSizeBytes,
+      partCount,
+      parts: urls.map((signed, index) => ({
+        partNumber: index + 1,
+        uploadUrl: signed.url,
+        expiresAt: signed.expiresAt,
+        method: "PUT" as const,
+      })),
+    };
+  }
+
+  async completeMultipartUpload(params: {
+    objectId: string;
+    payload: CompleteMultipartUploadPayloadDto;
+    actorUser: AuthUserDto | null;
+  }): Promise<CompleteMultipartUploadResponseDto> {
+    this.ensureStorageEnabled();
+
+    const actorUser = params.actorUser;
+    if (!actorUser) {
+      throw new HttpException({ error: "Требуется авторизация." }, 401);
+    }
+
+    const uploadId = params.payload.uploadId?.trim();
+    const partCount = Math.floor(Number(params.payload.partCount));
+    if (!uploadId || !Number.isFinite(partCount) || partCount <= 0) {
+      throw new HttpException(
+        { error: "uploadId и partCount обязательны для завершения multipart." },
+        400
+      );
+    }
+
+    const media = await this.requireOwnedMedia(params.objectId, actorUser);
+    const listedParts = await this.mediaStorageService.listMultipartUploadedParts({
+      objectKey: media.objectKey,
+      uploadId,
+    });
+
+    if (listedParts.length < partCount) {
+      throw new HttpException(
+        {
+          error: "Не все части загружены. Проверьте сеть и повторите загрузку.",
+          code: "multipart_parts_incomplete",
+        },
+        409
+      );
+    }
+
+    const normalizedParts = listedParts
+      .filter((part) => part.partNumber <= partCount)
+      .sort((a, b) => a.partNumber - b.partNumber);
+
+    for (let index = 0; index < partCount; index += 1) {
+      const expectedPart = index + 1;
+      if (normalizedParts[index]?.partNumber !== expectedPart) {
+        throw new HttpException(
+          {
+            error: "Multipart загрузка повреждена: отсутствуют части файла.",
+            code: "multipart_parts_missing",
+          },
+          409
+        );
+      }
+    }
+
+    await this.mediaStorageService.completeMultipartUpload({
+      objectKey: media.objectKey,
+      uploadId,
+      parts: normalizedParts.slice(0, partCount),
+    });
+
+    const completed = await this.completeUpload({
+      objectId: media.id,
+      payload: {
+        sizeBytes: toByteSize(params.payload.sizeBytes) ?? media.sizeBytes,
+      },
+      actorUser,
+    });
+
+    return {
+      ok: true,
+      media: completed.media,
+    };
+  }
+
+  async abortMultipartUpload(params: {
+    objectId: string;
+    payload: AbortMultipartUploadPayloadDto;
+    actorUser: AuthUserDto | null;
+  }): Promise<AbortMultipartUploadResponseDto> {
+    this.ensureStorageEnabled();
+
+    const actorUser = params.actorUser;
+    if (!actorUser) {
+      throw new HttpException({ error: "Требуется авторизация." }, 401);
+    }
+    const uploadId = params.payload.uploadId?.trim();
+    if (!uploadId) {
+      throw new HttpException({ error: "uploadId обязателен." }, 400);
+    }
+
+    const media = await this.requireOwnedMedia(params.objectId, actorUser);
+    await this.mediaStorageService.abortMultipartUpload({
+      objectKey: media.objectKey,
+      uploadId,
+    });
+
+    await this.mediaRepository.markUploadFailed({
+      id: media.id,
+      reason: "multipart_aborted",
+    });
+    await this.mediaRepository.markOrphanCandidate(media.id);
+    await this.cleanupCandidateIds([media.id]);
+
+    const current = (await this.mediaRepository.findById(media.id)) ?? media;
+    return {
+      ok: true,
+      media: current,
     };
   }
 
@@ -280,6 +542,37 @@ export class MediaService implements OnModuleInit {
     this.ensureStorageEnabled();
     const media = await this.requireMediaReady(objectId);
     return this.buildDownloadUrlResponse(media);
+  }
+
+  private startGcWorker() {
+    if (this.gcTimer) return;
+    this.gcTimer = setInterval(() => {
+      void this.runGcPass();
+    }, this.gcIntervalMs);
+    this.gcTimer.unref?.();
+  }
+
+  private async runGcPass() {
+    if (this.gcRunning) return;
+    this.gcRunning = true;
+    try {
+      await this.mediaRepository.markStalePendingAsFailed(180);
+      await this.processOrphanCandidates(this.gcBatchLimit);
+    } catch (error) {
+      if (typeof console !== "undefined") {
+        console.error("[media-gc] background-pass-failed", {
+          error:
+            error instanceof Error
+              ? {
+                  name: error.name,
+                  message: error.message,
+                }
+              : error,
+        });
+      }
+    } finally {
+      this.gcRunning = false;
+    }
   }
 
   private async cleanupCandidateIds(ids: string[]): Promise<void> {

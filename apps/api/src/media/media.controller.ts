@@ -15,8 +15,14 @@ import { AuthService } from "../auth/auth.service";
 import type { AuthUserDto } from "../auth/auth.types";
 import { MediaService } from "./media.service";
 import type {
+  AbortMultipartUploadPayloadDto,
+  AbortMultipartUploadResponseDto,
+  CompleteMultipartUploadPayloadDto,
+  CompleteMultipartUploadResponseDto,
   CompleteUploadPayloadDto,
   CompleteUploadResponseDto,
+  CreateMultipartUploadPayloadDto,
+  CreateMultipartUploadResponseDto,
   CreateUploadUrlPayloadDto,
   CreateUploadUrlResponseDto,
   GetDownloadUrlResponseDto,
@@ -65,6 +71,19 @@ export class MediaController {
     });
   }
 
+  @Post("multipart/initiate")
+  async createMultipartUpload(
+    @Body() payload: CreateMultipartUploadPayloadDto,
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<CreateMultipartUploadResponseDto> {
+    const actorUser = await this.resolveUserFromRequest(req, res);
+    return this.mediaService.createMultipartUpload({
+      payload,
+      actorUser,
+    });
+  }
+
   @Post(":id/complete")
   async completeUpload(
     @Param("id") id: string,
@@ -74,6 +93,36 @@ export class MediaController {
   ): Promise<CompleteUploadResponseDto> {
     const actorUser = await this.resolveUserFromRequest(req, res);
     return this.mediaService.completeUpload({
+      objectId: id,
+      payload,
+      actorUser,
+    });
+  }
+
+  @Post("multipart/:id/complete")
+  async completeMultipartUpload(
+    @Param("id") id: string,
+    @Body() payload: CompleteMultipartUploadPayloadDto,
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<CompleteMultipartUploadResponseDto> {
+    const actorUser = await this.resolveUserFromRequest(req, res);
+    return this.mediaService.completeMultipartUpload({
+      objectId: id,
+      payload,
+      actorUser,
+    });
+  }
+
+  @Post("multipart/:id/abort")
+  async abortMultipartUpload(
+    @Param("id") id: string,
+    @Body() payload: AbortMultipartUploadPayloadDto,
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<AbortMultipartUploadResponseDto> {
+    const actorUser = await this.resolveUserFromRequest(req, res);
+    return this.mediaService.abortMultipartUpload({
       objectId: id,
       payload,
       actorUser,

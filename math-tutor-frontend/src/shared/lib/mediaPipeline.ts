@@ -30,6 +30,25 @@ type CompleteUploadResponse = {
   };
 };
 
+type CreateMultipartUploadResponse = {
+  objectId: string;
+  uploadId: string;
+  partSizeBytes: number;
+  partCount: number;
+  parts: Array<{
+    partNumber: number;
+    uploadUrl: string;
+    method: "PUT";
+  }>;
+};
+
+type CompleteMultipartUploadResponse = {
+  ok: boolean;
+  media: {
+    id: string;
+  };
+};
+
 type DownloadUrlResponse = {
   objectId: string;
   downloadUrl: string;
@@ -53,6 +72,10 @@ export type VideoPreflightResult = {
 const DEFAULT_LESSON_VIDEO_UPLOAD_LIMIT_MB = 2048;
 const MIN_LESSON_VIDEO_UPLOAD_LIMIT_MB = 1024;
 const MAX_LESSON_VIDEO_UPLOAD_LIMIT_MB = 4096;
+const MULTIPART_VIDEO_THRESHOLD_BYTES = 256 * 1024 * 1024;
+const MULTIPART_UPLOAD_CONCURRENCY = 3;
+const MULTIPART_PART_UPLOAD_MAX_RETRIES = 3;
+const MULTIPART_PART_RETRY_BASE_MS = 750;
 const MAX_JOB_POLLS = 20;
 const JOB_POLL_DELAY_MS = 500;
 
@@ -128,6 +151,7 @@ const logUploadFailure = (params: {
   fileName: string;
   sizeBytes: number;
   error: unknown;
+  context?: Record<string, unknown>;
 }) => {
   const diagnostics = extractApiDiagnostics(params.error);
   const probableCors =
@@ -149,6 +173,7 @@ const logUploadFailure = (params: {
               message: params.error.message,
             }
           : params.error,
+      context: params.context,
     });
   }
 };
@@ -279,6 +304,150 @@ const uploadObjectToStorage = async (params: {
   };
 };
 
+const uploadMultipartPartWithRetry = async (params: {
+  uploadUrl: string;
+  method: "PUT";
+  body: Blob;
+  fileName: string;
+  sizeBytes: number;
+  category: string;
+  partNumber: number;
+}) => {
+  for (let attempt = 1; attempt <= MULTIPART_PART_UPLOAD_MAX_RETRIES; attempt += 1) {
+    try {
+      const response = await fetch(params.uploadUrl, {
+        method: params.method,
+        body: params.body,
+      });
+      if (!response.ok) {
+        throw new Error(`multipart_part_http_${response.status}`);
+      }
+      return;
+    } catch (error) {
+      if (attempt >= MULTIPART_PART_UPLOAD_MAX_RETRIES) {
+        logUploadFailure({
+          stage: "upload",
+          category: params.category,
+          fileName: params.fileName,
+          sizeBytes: params.sizeBytes,
+          error,
+          context: {
+            partNumber: params.partNumber,
+            attempt,
+            mode: "multipart",
+          },
+        });
+        throw error;
+      }
+      await wait(MULTIPART_PART_RETRY_BASE_MS * attempt);
+    }
+  }
+};
+
+const uploadMultipartObjectToStorage = async (params: {
+  file: File;
+  category: string;
+}): Promise<{ objectId: string }> => {
+  let initiated: CreateMultipartUploadResponse;
+  try {
+    initiated = await api.post<CreateMultipartUploadResponse>(
+      "/media/multipart/initiate",
+      {
+        fileName: params.file.name,
+        contentType: params.file.type || "application/octet-stream",
+        sizeBytes: params.file.size,
+        category: params.category,
+      }
+    );
+  } catch (error) {
+    logUploadFailure({
+      stage: "presign",
+      category: params.category,
+      fileName: params.file.name,
+      sizeBytes: params.file.size,
+      error,
+      context: { mode: "multipart" },
+    });
+    throw new Error(buildUploadFailureMessage("presign", params.category));
+  }
+
+  const sortedParts = [...initiated.parts].sort((a, b) => a.partNumber - b.partNumber);
+  let index = 0;
+  let uploadError: unknown = null;
+
+  const worker = async () => {
+    while (index < sortedParts.length && !uploadError) {
+      const currentIndex = index;
+      index += 1;
+      const part = sortedParts[currentIndex];
+      const start = (part.partNumber - 1) * initiated.partSizeBytes;
+      const end = Math.min(start + initiated.partSizeBytes, params.file.size);
+      const chunk = params.file.slice(start, end);
+      try {
+        await uploadMultipartPartWithRetry({
+          uploadUrl: part.uploadUrl,
+          method: part.method,
+          body: chunk,
+          fileName: params.file.name,
+          sizeBytes: params.file.size,
+          category: params.category,
+          partNumber: part.partNumber,
+        });
+      } catch (error) {
+        uploadError = error;
+      }
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: MULTIPART_UPLOAD_CONCURRENCY }, () => worker())
+  );
+
+  if (uploadError) {
+    try {
+      await api.post(`/media/multipart/${initiated.objectId}/abort`, {
+        uploadId: initiated.uploadId,
+      });
+    } catch {
+      // Best effort abort for abandoned multipart sessions.
+    }
+    throw new Error(buildUploadFailureMessage("upload", params.category));
+  }
+
+  try {
+    await api.post<CompleteMultipartUploadResponse>(
+      `/media/multipart/${initiated.objectId}/complete`,
+      {
+        uploadId: initiated.uploadId,
+        partCount: initiated.partCount,
+        sizeBytes: params.file.size,
+      }
+    );
+  } catch (error) {
+    try {
+      await api.post<CompleteUploadResponse>(
+        `/media/${initiated.objectId}/finalize-failed`,
+        {}
+      );
+    } catch {
+      // finalize-failed reconciliation is best effort
+    }
+    logUploadFailure({
+      stage: "complete",
+      category: params.category,
+      fileName: params.file.name,
+      sizeBytes: params.file.size,
+      error,
+      context: { mode: "multipart" },
+    });
+    throw new Error(buildUploadFailureMessage("complete", params.category));
+  }
+
+  return {
+    objectId: initiated.objectId,
+  };
+};
+
 export const preflightLessonVideo = (
   input: ResolveLessonVideoSourcesInput
 ): VideoPreflightResult => {
@@ -315,10 +484,16 @@ export async function startLessonVideoPipeline(
   }
 
   try {
-    const uploaded = await uploadObjectToStorage({
-      file: input.videoFile,
-      category: "lesson-video",
-    });
+    const uploaded =
+      input.videoFile.size >= MULTIPART_VIDEO_THRESHOLD_BYTES
+        ? await uploadMultipartObjectToStorage({
+            file: input.videoFile,
+            category: "lesson-video",
+          })
+        : await uploadObjectToStorage({
+            file: input.videoFile,
+            category: "lesson-video",
+          });
     return toResolvedState(
       {
         videoMediaObjectId: uploaded.objectId,

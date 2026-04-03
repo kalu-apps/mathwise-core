@@ -36,12 +36,53 @@ export type CreateUploadUrlResponseDto = {
   expiresAt: string;
 };
 
+export type CreateMultipartUploadPayloadDto = {
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  category?: string;
+};
+
+export type CreateMultipartUploadResponseDto = {
+  objectId: string;
+  objectKey: string;
+  uploadId: string;
+  partSizeBytes: number;
+  partCount: number;
+  parts: Array<{
+    partNumber: number;
+    uploadUrl: string;
+    expiresAt: string;
+    method: "PUT";
+  }>;
+};
+
 export type CompleteUploadPayloadDto = {
   etag?: string;
   sizeBytes?: number;
 };
 
 export type CompleteUploadResponseDto = {
+  ok: true;
+  media: MediaObjectRecord;
+};
+
+export type CompleteMultipartUploadPayloadDto = {
+  uploadId: string;
+  partCount: number;
+  sizeBytes?: number;
+};
+
+export type CompleteMultipartUploadResponseDto = {
+  ok: true;
+  media: MediaObjectRecord;
+};
+
+export type AbortMultipartUploadPayloadDto = {
+  uploadId: string;
+};
+
+export type AbortMultipartUploadResponseDto = {
   ok: true;
   media: MediaObjectRecord;
 };
