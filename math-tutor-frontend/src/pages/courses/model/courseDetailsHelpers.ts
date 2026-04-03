@@ -123,6 +123,39 @@ export const formatApproxMonthlyBnplLine = (params: {
   return `Оплата частями: от ${approxMonthly.toLocaleString("ru-RU")} ₽ в месяц`;
 };
 
+export const isPreviewLessonUnlocked = (params: {
+  canAccessPreviewLesson: boolean;
+  lessonOrder: number;
+}) => params.canAccessPreviewLesson && params.lessonOrder === 1;
+
+export const isCourseLessonLocked = (params: {
+  hasDomainAccess: boolean;
+  canAccessPreviewLesson: boolean;
+  lessonOrder: number;
+  isBnplSuspended: boolean;
+  isBnplRestricted: boolean;
+  wasOpened: boolean;
+}) => {
+  if (!params.hasDomainAccess) {
+    return !isPreviewLessonUnlocked({
+      canAccessPreviewLesson: params.canAccessPreviewLesson,
+      lessonOrder: params.lessonOrder,
+    });
+  }
+  if (params.isBnplSuspended) return true;
+  if (params.isBnplRestricted) return !params.wasOpened;
+  return false;
+};
+
+export const isCourseTestLockedByAccess = (params: {
+  hasDomainAccess: boolean;
+  isBnplSuspended: boolean;
+}) => {
+  if (!params.hasDomainAccess) return true;
+  if (params.isBnplSuspended) return true;
+  return false;
+};
+
 const buildLessonMaterialsSignature = (materials: Lesson["materials"] | undefined) =>
   (materials ?? [])
     .map((item) => ({

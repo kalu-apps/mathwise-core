@@ -94,6 +94,20 @@ type Props = {
 
 type PreviewKind = "video" | "pdf" | "unsupported";
 
+const PREVIEW_VIDEO_FALLBACK_POSTER = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1b2740"/>
+      <stop offset="100%" stop-color="#06080f"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="800" cy="450" r="90" fill="rgba(255,255,255,0.2)"/>
+  <path d="M775 392 L875 450 L775 508 Z" fill="#ffffff"/>
+</svg>
+`)}`;
+
 const getVideoDuration = (src: string) =>
   new Promise<number>((resolve, reject) => {
     const video = document.createElement("video");
@@ -215,9 +229,6 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewExternalHref, setPreviewExternalHref] = useState<string | null>(null);
-  const [previewSource, setPreviewSource] = useState<
-    "local" | "media" | "external" | null
-  >(null);
   const saveGuard = useActionGuard();
   const isSaving = saveGuard.pending;
   const lessonId = initialLesson?.id;
@@ -316,19 +327,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
     setPreviewError(null);
     setPreviewUrl(null);
     setPreviewExternalHref(null);
-    setPreviewSource(null);
     resetLocalPreview();
-  };
-
-  const resolvePreviewSourceLabel = () => {
-    if (!previewSource) return null;
-    if (previewSource === "local") {
-      return "Источник: локальный файл до сохранения.";
-    }
-    if (previewSource === "media") {
-      return "Источник: backend-safe media runtime доступ.";
-    }
-    return "Источник: внешний URL.";
   };
 
   const resolveMaterialStatus = (material: EditableLessonMaterial) => {
@@ -349,7 +348,6 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
     setPreviewError(null);
     setPreviewUrl(null);
     setPreviewExternalHref(null);
-    setPreviewSource(null);
     resetLocalPreview();
     try {
       if (videoFile) {
@@ -357,21 +355,18 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
         localPreviewUrlRef.current = localUrl;
         setPreviewUrl(localUrl);
         setPreviewExternalHref(localUrl);
-        setPreviewSource("local");
         return;
       }
       if (videoMediaObjectId?.trim()) {
         const access = await getOwnedMediaDownloadUrl(videoMediaObjectId);
         setPreviewUrl(access.downloadUrl);
         setPreviewExternalHref(access.downloadUrl);
-        setPreviewSource("media");
         return;
       }
       const externalSource = videoStreamUrl?.trim() || videoUrl?.trim();
       if (externalSource) {
         setPreviewUrl(externalSource);
         setPreviewExternalHref(externalSource);
-        setPreviewSource("external");
         return;
       }
       setPreviewError("Видео еще не прикреплено. Загрузите файл, чтобы открыть предпросмотр.");
@@ -393,7 +388,6 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
     setPreviewError(null);
     setPreviewUrl(null);
     setPreviewExternalHref(null);
-    setPreviewSource(null);
     resetLocalPreview();
 
     try {
@@ -402,7 +396,6 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
         localPreviewUrlRef.current = localUrl;
         setPreviewUrl(localUrl);
         setPreviewExternalHref(localUrl);
-        setPreviewSource("local");
         return;
       }
 
@@ -410,14 +403,12 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
         const access = await getOwnedMediaDownloadUrl(material.mediaObjectId);
         setPreviewUrl(access.downloadUrl);
         setPreviewExternalHref(access.downloadUrl);
-        setPreviewSource("media");
         return;
       }
 
       if (material.url?.trim()) {
         setPreviewUrl(material.url);
         setPreviewExternalHref(material.url);
-        setPreviewSource("external");
         return;
       }
 
@@ -558,6 +549,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
   const hasVideoAttached = Boolean(
     videoFile || videoMediaObjectId || videoStreamUrl || videoUrl
   );
+  const editorPreviewPoster = videoPosterUrl?.trim() || PREVIEW_VIDEO_FALLBACK_POSTER;
 
   const handleCloseRequest = () => {
     if (!hasUnsavedChanges) {
@@ -639,27 +631,17 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                   >
                     <Box
                       className="lesson-editor__video-card-stage"
-                      sx={
-                        videoPosterUrl
-                          ? {
-                              backgroundImage: `url(${videoPosterUrl})`,
-                              backgroundSize: "cover",
-                              backgroundPosition: "center",
-                            }
-                          : undefined
-                      }
+                      sx={{
+                        backgroundImage: `url(${editorPreviewPoster})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
                     >
                       <PlayCircleFilledWhiteRoundedIcon className="lesson-editor__video-card-play" />
                     </Box>
                     <Stack spacing={0.25} className="lesson-editor__video-card-meta">
                       <Typography variant="subtitle2" noWrap>
-                        {videoFile?.name ??
-                          (videoMediaObjectId
-                            ? "Видео прикреплено"
-                            : "Видео из внешнего источника")}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Нажмите, чтобы проверить предпросмотр.
+                        Видео прикреплено
                       </Typography>
                     </Stack>
                   </button>
@@ -833,6 +815,7 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                   controls
                   preload="metadata"
                   className="lesson-editor__preview-video"
+                  poster={editorPreviewPoster}
                   src={previewUrl}
                 />
               ) : null}
@@ -864,11 +847,6 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                 </Stack>
               ) : null}
             </Box>
-            {resolvePreviewSourceLabel() ? (
-              <Typography variant="caption" color="text.secondary">
-                {resolvePreviewSourceLabel()}
-              </Typography>
-            ) : null}
           </Stack>
         </DialogContent>
       </Dialog>

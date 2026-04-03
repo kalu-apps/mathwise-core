@@ -41,6 +41,11 @@ import {
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { getMyCapabilities } from "@/features/capabilities/model/api";
 import { shouldEnterCourseDetailsHardLoading } from "@/pages/courses/model/loadingLifecycle";
+import {
+  buildPublicPreviewCourseBlocks,
+  buildPublicPreviewCourseContentItems,
+  getCourseDetailsContentMode,
+} from "@/pages/courses/model/previewBoundary";
 
 type UseCourseDetailsDataParams = {
   courseId: string;
@@ -341,18 +346,19 @@ export const useCourseDetailsData = ({
         }
         setLoadError(null);
         setCheckoutNoticeState(null);
+        const studentUserId = user?.role === "student" ? user.id : null;
         const [courseData, lessonsData, purchases, accessDecision, checkouts, capabilities] =
           await Promise.all([
             getCourseById(courseId, { forceFresh: true }),
             getLessonsByCourse(courseId, { forceFresh: true }),
-            user?.role === "student"
-              ? getPurchases({ userId: user.id }, { forceFresh: true })
+            studentUserId
+              ? getPurchases({ userId: studentUserId }, { forceFresh: true })
               : Promise.resolve([]),
             getCourseAccessDecision({
               courseId,
             }),
-            user?.role === "student"
-              ? getCheckouts({ userId: user.id, courseId })
+            studentUserId
+              ? getCheckouts({ userId: studentUserId, courseId })
               : Promise.resolve([]),
             user?.role === "student"
               ? getMyCapabilities({ forceFresh: true })
@@ -360,9 +366,13 @@ export const useCourseDetailsData = ({
           ]);
         if (!active) return;
         setCourseAccess(accessDecision);
-        if (user?.role === "student") {
+        const contentMode = getCourseDetailsContentMode(user?.role);
+        if (contentMode === "student_assessment") {
+          if (!studentUserId) {
+            throw new Error("student_user_missing");
+          }
           const purchase = purchases.find(
-            (entry) => entry.userId === user.id && entry.courseId === courseId
+            (entry) => entry.userId === studentUserId && entry.courseId === courseId
           );
           const purchased = Boolean(purchase);
           const usePublishedCourse = courseData?.status === "published";
@@ -416,8 +426,8 @@ export const useCourseDetailsData = ({
             )
           );
           const [viewed, opened] = await Promise.all([
-            getViewedLessonIds(user.id, courseId, { forceFresh: true }),
-            Promise.resolve(getOpenedLessonIds(user.id, courseId)),
+            getViewedLessonIds(studentUserId, courseId, { forceFresh: true }),
+            Promise.resolve(getOpenedLessonIds(studentUserId, courseId)),
           ]);
           if (!active) return;
           setViewedLessonIds(viewed);
@@ -438,7 +448,7 @@ export const useCourseDetailsData = ({
 
           if (purchased) {
             const attemptsMap = await getLatestAssessmentAttemptsMap({
-              studentId: user.id,
+              studentId: studentUserId,
               courseId,
             });
             if (!active) return;
@@ -452,12 +462,12 @@ export const useCourseDetailsData = ({
             setLatestTestAttemptByItemId(mapped);
             const [testsMetrics, testsKnowledgeMetrics] = await Promise.all([
               getAssessmentCourseProgress({
-                studentId: user.id,
+                studentId: studentUserId,
                 courseId,
                 testItemIds: testItems.map((item) => item.id),
               }),
               getAssessmentKnowledgeProgress({
-                studentId: user.id,
+                studentId: studentUserId,
                 courseId,
                 testItemIds: testItems.map((item) => item.id),
               }),
@@ -478,7 +488,7 @@ export const useCourseDetailsData = ({
               averageBestPercent: 0,
             });
           }
-        } else {
+        } else if (contentMode === "teacher_assessment") {
           setCourse(courseData);
           setLessons(lessonsData);
           const [queue, blocks] = await Promise.all([
@@ -513,6 +523,36 @@ export const useCourseDetailsData = ({
           });
           setTestsKnowledgeProgress({
             totalTests: testItems.length,
+            completedTests: 0,
+            averageBestPercent: 0,
+          });
+          setViewedLessonIds([]);
+          setOpenedLessonIds([]);
+          setHasPurchase(false);
+          setCoursePurchase(null);
+          setIsPremiumPurchased(false);
+          setResumeCheckout(null);
+        } else {
+          const previewBlocks = buildPublicPreviewCourseBlocks(courseId);
+          const previewQueue = buildPublicPreviewCourseContentItems(
+            courseId,
+            lessonsData
+          );
+          setCourse(courseData);
+          setLessons(lessonsData);
+          setCourseContentItems(previewQueue);
+          setCourseBlocks(previewBlocks);
+          setSelectedBlockId(null);
+          setRoadmapFocusBlockId(previewBlocks[0]?.id ?? null);
+          setTestTitleByItemId({});
+          setLatestTestAttemptByItemId({});
+          setTestsProgress({
+            totalTests: 0,
+            completedTests: 0,
+            averageLatestPercent: 0,
+          });
+          setTestsKnowledgeProgress({
+            totalTests: 0,
             completedTests: 0,
             averageBestPercent: 0,
           });

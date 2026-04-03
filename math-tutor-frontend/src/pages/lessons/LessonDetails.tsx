@@ -398,12 +398,6 @@ export default function LessonDetails() {
           severity: "warning" as const,
           message: playbackError,
         }
-      : playbackLoading
-      ? {
-          severity: "info" as const,
-          message:
-            "Получаем защищенный доступ к видео. Это может занять несколько секунд.",
-        }
       : lesson.mediaJobStatus === "queued" || lesson.mediaJobStatus === "processing"
       ? {
           severity: "info" as const,
@@ -427,7 +421,7 @@ export default function LessonDetails() {
         {mediaStatusBanner ? (
           <Alert severity={mediaStatusBanner.severity}>{mediaStatusBanner.message}</Alert>
         ) : null}
-        {hasVideoBinding && (playbackError || playbackLoading) ? (
+        {hasVideoBinding && playbackError ? (
           <div className="lesson-details__playback-actions">
             <Button
               variant="outlined"
@@ -475,11 +469,6 @@ export default function LessonDetails() {
                 streamSrc={playbackStreamSrc ?? undefined}
                 poster={lesson.videoPosterUrl}
                 onEnded={handleEnded}
-                watermarkText={
-                  user
-                    ? `${user.email} • ${new Date().toLocaleString("ru-RU")}`
-                    : undefined
-                }
                 onRequestSourceRefresh={requestPlaybackAccess}
               />
             </div>
@@ -487,8 +476,6 @@ export default function LessonDetails() {
             <div className="lesson-details__video-empty">
               {isRedactedLesson
                 ? "Видео и материалы доступны после покупки курса."
-                : hasVideoBinding && playbackLoading
-                ? "Обновляем защищенный доступ к видео..."
                 : lesson.mediaJobStatus === "queued" || lesson.mediaJobStatus === "processing"
                 ? "Видео для этого урока подготавливается"
                 : hasVideoBinding

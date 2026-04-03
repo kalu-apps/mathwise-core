@@ -1,6 +1,7 @@
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, CircularProgress } from "@mui/material";
+import { shouldShowVideoPlayerLoading } from "@/entities/lesson/model/videoPlayerUi";
 
 interface Props {
   src?: string;
@@ -56,9 +57,23 @@ const resolvePlaybackSource = (params: { streamSrc?: string; src?: string }) => 
   return {
     src: "",
     error:
-      "Этот браузер не поддерживает HLS без mp4 fallback. Добавьте резервный mp4-источник.",
+      "Этот формат видео не поддерживается в текущем браузере. Обновите доступ или откройте урок в другом браузере.",
   };
 };
+
+const TEMPLATE_VIDEO_POSTER = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#182338"/>
+      <stop offset="100%" stop-color="#05070d"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="800" cy="450" r="96" fill="rgba(255,255,255,0.16)"/>
+  <path d="M770 390 L880 450 L770 510 Z" fill="#ffffff"/>
+</svg>
+`)}`;
 
 function VideoPlayerContent({
   src,
@@ -72,20 +87,24 @@ function VideoPlayerContent({
   const ratioRef = useRef<HTMLDivElement | null>(null);
   const [showSecurityHint, setShowSecurityHint] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [hasRenderedFirstFrame, setHasRenderedFirstFrame] = useState(false);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [isNearViewport, setIsNearViewport] = useState(
     () => typeof IntersectionObserver === "undefined"
   );
   const [isActivated, setIsActivated] = useState(false);
   const [resolvedSrc, setResolvedSrc] = useState<string>("");
-  const watermark = useMemo(
-    () => watermarkText ?? `Protected stream • ${new Date().toLocaleTimeString("ru-RU")}`,
-    [watermarkText]
+  const watermark = useMemo(() => watermarkText?.trim() ?? "", [watermarkText]);
+  const previewPoster = useMemo(
+    () => poster?.trim() || TEMPLATE_VIDEO_POSTER,
+    [poster]
   );
-  const previewTitle = isNearViewport
-    ? "Поток подготовлен к запуску"
-    : "Видео будет инициализировано при открытии урока";
-  const previewActionLabel = isNearViewport ? "Запустить видео" : "Подготовить видео";
+  const showLoadingOverlay = shouldShowVideoPlayerLoading({
+    isActivated,
+    isBuffering,
+    playbackError,
+    hasRenderedFirstFrame,
+  });
 
   useEffect(() => {
     const ratioNode = ratioRef.current;
@@ -184,6 +203,7 @@ function VideoPlayerContent({
       if (!video) return;
       setResolvedSrc(nextSource.src);
       setPlaybackError(nextSource.error);
+      setHasRenderedFirstFrame(false);
       setIsBuffering(true);
       video.load();
     };
@@ -210,6 +230,7 @@ function VideoPlayerContent({
   const handleActivate = () => {
     setIsNearViewport(true);
     setIsActivated(true);
+    setHasRenderedFirstFrame(false);
     const nextSource = resolvePlaybackSource({ streamSrc, src });
     setResolvedSrc(nextSource.src);
     if (nextSource.error) {
@@ -238,18 +259,11 @@ function VideoPlayerContent({
             type="button"
             className="video-player__poster-shell"
             onClick={handleActivate}
-            style={poster ? { backgroundImage: `url(${poster})` } : undefined}
+            style={{ backgroundImage: `url(${previewPoster})` }}
             aria-label="Запустить видеоурок"
           >
             <div className="video-player__poster-backdrop" />
             <div className="video-player__poster-content">
-              <span className="video-player__poster-kicker">{previewTitle}</span>
-              <strong>Видеоурок</strong>
-              <span className="video-player__poster-hint">
-                {poster
-                  ? "Poster удерживает макет стабильным до старта плеера."
-                  : "Добавьте poster, чтобы сократить визуальные скачки до запуска."}
-              </span>
               {playbackError ? (
                 <span className="video-player__poster-hint video-player__poster-hint--error">
                   {playbackError}
@@ -257,13 +271,13 @@ function VideoPlayerContent({
               ) : null}
               <span className="video-player__poster-action">
                 <PlayArrowRoundedIcon fontSize="inherit" />
-                {previewActionLabel}
+                {isNearViewport ? "Смотреть урок" : "Подготовить видео"}
               </span>
             </div>
           </button>
         ) : null}
-        <div className="video-player__watermark">{watermark}</div>
-        {isActivated && isBuffering && !playbackError ? (
+        {watermark ? <div className="video-player__watermark">{watermark}</div> : null}
+        {showLoadingOverlay ? (
           <div className="video-player__loading" aria-live="polite">
             <CircularProgress size={22} thickness={4.2} />
             <span>Подготавливаем поток</span>
@@ -281,7 +295,7 @@ function VideoPlayerContent({
           <video
             ref={videoRef}
             src={resolvedSrc}
-            poster={poster}
+            poster={previewPoster}
             controls
             preload="metadata"
             playsInline
@@ -293,11 +307,18 @@ function VideoPlayerContent({
               setPlaybackError(null);
             }}
             onLoadedData={() => {
+              setHasRenderedFirstFrame(true);
               setIsBuffering(false);
               setPlaybackError(null);
             }}
-            onCanPlay={() => setIsBuffering(false)}
-            onPlaying={() => setIsBuffering(false)}
+            onCanPlay={() => {
+              setHasRenderedFirstFrame(true);
+              setIsBuffering(false);
+            }}
+            onPlaying={() => {
+              setHasRenderedFirstFrame(true);
+              setIsBuffering(false);
+            }}
             onWaiting={() => setIsBuffering(true)}
             onStalled={() => setIsBuffering(true)}
             onSuspend={() => setIsBuffering(false)}

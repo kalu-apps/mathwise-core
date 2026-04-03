@@ -98,9 +98,12 @@ import {
   getCheckoutStatusLabel,
   getPaymentProviderLabel,
   hasLessonChangedFromPurchaseSnapshot,
+  isCourseLessonLocked,
+  isCourseTestLockedByAccess,
   type PaymentMethod,
 } from "@/pages/courses/model/courseDetailsHelpers";
 import { isStagePaymentConfirmEnabled } from "@/app/runtime/stageRuntime";
+import { resolveCourseDetailsEmptyState } from "@/pages/courses/model/errorMapping";
 
 type CourseDetailsLocationState = {
   from?: string;
@@ -505,9 +508,10 @@ export default function CourseDetails() {
   }
 
   if (!course) {
+    const emptyState = resolveCourseDetailsEmptyState(loadError);
     return (
       <section className="course-details">
-        {loadError ? (
+        {loadError && emptyState === "load_error" ? (
           <RecoverableErrorAlert
             error={loadError}
             onRetry={() => setReloadSeq((prev) => prev + 1)}
@@ -515,7 +519,11 @@ export default function CourseDetails() {
             forceRetry
           />
         ) : null}
-        <p>Курс не найден</p>
+        {emptyState === "not_found" ? (
+          <p>Курс не найден</p>
+        ) : (
+          <p>Не удалось загрузить курс. Повторите попытку.</p>
+        )}
       </section>
     );
   }
@@ -1069,10 +1077,6 @@ export default function CourseDetails() {
         <>
           {visibleCourseItems.length === 0 && <p>Материалов пока нет</p>}
           {pagedContentItems.map((contentItem) => {
-            const absoluteIndex = courseContentItems.findIndex(
-              (item) => item.id === contentItem.id
-            );
-
             if (contentItem.type === "test") {
               const latestAttempt = latestTestAttemptByItemId[contentItem.id];
               const hasAttempt = Boolean(latestAttempt);
@@ -1091,11 +1095,10 @@ export default function CourseDetails() {
                     if (item.type !== "lesson") return false;
                     return !viewedLessonIdSet.has(item.lessonId);
                   }).length;
-              const testLockedByAccess = !hasDomainAccess
-                ? absoluteIndex > 0
-                : isBnplSuspended
-                ? true
-                : false;
+              const testLockedByAccess = isCourseTestLockedByAccess({
+                hasDomainAccess,
+                isBnplSuspended,
+              });
               const testLocked = isTeacher
                 ? false
                 : testLockedByAccess || prerequisiteMissing > 0;
@@ -1177,13 +1180,14 @@ export default function CourseDetails() {
             if (!lesson) return null;
 
             const wasOpened = openedOrViewedLessonIdSet.has(lesson.id);
-            const locked = !hasDomainAccess
-              ? absoluteIndex > 0
-              : isBnplSuspended
-              ? true
-              : isBnplRestricted
-              ? !wasOpened
-              : false;
+            const locked = isCourseLessonLocked({
+              hasDomainAccess,
+              canAccessPreviewLesson: courseAccess?.canAccessPreviewLesson === true,
+              lessonOrder: lesson.order,
+              isBnplSuspended,
+              isBnplRestricted,
+              wasOpened,
+            });
 
             return (
               <LessonItem
@@ -1452,17 +1456,16 @@ export default function CourseDetails() {
   const getLessonLockedState = (
     contentItem: Extract<CourseContentItem, { type: "lesson" }>
   ) => {
-    const absoluteIndex = courseContentItems.findIndex(
-      (entry) => entry.id === contentItem.id
-    );
     const wasOpened = openedOrViewedLessonIdSet.has(contentItem.lessonId);
-    const locked = !hasDomainAccess
-      ? absoluteIndex > 0
-      : isBnplSuspended
-      ? true
-      : isBnplRestricted
-      ? !wasOpened
-      : false;
+    const lessonOrder = lessonsById[contentItem.lessonId]?.order ?? Number.MAX_SAFE_INTEGER;
+    const locked = isCourseLessonLocked({
+      hasDomainAccess,
+      canAccessPreviewLesson: courseAccess?.canAccessPreviewLesson === true,
+      lessonOrder,
+      isBnplSuspended,
+      isBnplRestricted,
+      wasOpened,
+    });
     return {
       locked,
       wasOpened,
@@ -1470,9 +1473,6 @@ export default function CourseDetails() {
   };
 
   const getTestLockedState = (contentItem: CourseContentTestItem) => {
-    const absoluteIndex = courseContentItems.findIndex(
-      (entry) => entry.id === contentItem.id
-    );
     const blockQueue = courseContentItems
       .filter((entry) => entry.blockId === contentItem.blockId)
       .sort((a, b) => a.order - b.order);
@@ -1484,11 +1484,10 @@ export default function CourseDetails() {
           if (entry.type !== "lesson") return false;
           return !viewedLessonIdSet.has(entry.lessonId);
         }).length;
-    const testLockedByAccess = !hasDomainAccess
-      ? absoluteIndex > 0
-      : isBnplSuspended
-      ? true
-      : false;
+    const testLockedByAccess = isCourseTestLockedByAccess({
+      hasDomainAccess,
+      isBnplSuspended,
+    });
     const locked = isTeacher ? false : testLockedByAccess || prerequisiteMissing > 0;
     return {
       locked,
