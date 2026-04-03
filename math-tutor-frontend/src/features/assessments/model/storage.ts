@@ -82,7 +82,8 @@ const migrateLegacyAssessmentsStateIfNeeded = async (
   );
   if (isStateEmpty(currentState) && !isStateEmpty(legacyState)) {
     await api.put(ASSESSMENTS_STATE_ENDPOINT, legacyState, {
-      notifyDataUpdate: true,
+      // Read-path migration should not trigger broad app invalidation loops.
+      notifyDataUpdate: false,
     });
     removeStorage(ASSESSMENTS_STORAGE_KEY);
     return legacyState;
@@ -123,11 +124,12 @@ const readState = async () => {
 
 const writeState = async (
   state: ReturnType<typeof createEmptyAssessmentsState>,
-  reason: string
+  reason: string,
+  options?: { notifyDataUpdate?: boolean }
 ) => {
   void reason;
   await api.put(ASSESSMENTS_STATE_ENDPOINT, normalizeState(state), {
-    notifyDataUpdate: true,
+    notifyDataUpdate: options?.notifyDataUpdate ?? true,
   });
 };
 
@@ -547,7 +549,10 @@ export const getCourseContentItems = async (
         ...state.courseBlocks,
         [courseId]: normalized.blocks,
       },
-    }, "assessment-course-content-sync");
+    }, "assessment-course-content-sync", {
+      // Autosync during read/open must stay silent for global update bus.
+      notifyDataUpdate: false,
+    });
   }
 
   return queueWithSnapshots;
@@ -609,7 +614,10 @@ export const getCourseMaterialBlocks = async (courseId: string) => {
         ...state.courseBlocks,
         [courseId]: blocks,
       },
-    }, "assessment-course-blocks-sync");
+    }, "assessment-course-blocks-sync", {
+      // Block normalization in read-path should not self-trigger page reload loops.
+      notifyDataUpdate: false,
+    });
   }
   return blocks;
 };

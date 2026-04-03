@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { getCourseById } from "@/entities/course/model/storage";
 import { getLessonsByCourse } from "@/entities/lesson/model/storage";
@@ -40,6 +40,7 @@ import {
 } from "@/domain/auth-payments/model/ui";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { getMyCapabilities } from "@/features/capabilities/model/api";
+import { shouldEnterCourseDetailsHardLoading } from "@/pages/courses/model/loadingLifecycle";
 
 type UseCourseDetailsDataParams = {
   courseId: string;
@@ -152,6 +153,21 @@ export const useCourseDetailsData = ({
   setPendingAttachCheckoutId,
   setModalOpen,
 }: UseCourseDetailsDataParams) => {
+  const latestLoadIdRef = useRef(0);
+  const hasResolvedInitialLoadRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    latestLoadIdRef.current = 0;
+    hasResolvedInitialLoadRef.current = false;
+  }, [courseId]);
+
   const syncStudentCourseState = useCallback(
     async (userId: string) => {
       if (!course) return;
@@ -312,9 +328,17 @@ export const useCourseDetailsData = ({
   useEffect(() => {
     if (!courseId) return;
     let active = true;
+    const loadId = latestLoadIdRef.current + 1;
+    latestLoadIdRef.current = loadId;
     const load = async () => {
       try {
-        setLoading(true);
+        if (
+          shouldEnterCourseDetailsHardLoading({
+            hasResolvedInitialLoad: hasResolvedInitialLoadRef.current,
+          })
+        ) {
+          setLoading(true);
+        }
         setLoadError(null);
         setCheckoutNoticeState(null);
         const [courseData, lessonsData, purchases, accessDecision, checkouts, capabilities] =
@@ -499,6 +523,7 @@ export const useCourseDetailsData = ({
           setIsPremiumPurchased(false);
           setResumeCheckout(null);
         }
+        hasResolvedInitialLoadRef.current = true;
       } catch (error) {
         if (!active) return;
         setLoadError(
@@ -531,8 +556,13 @@ export const useCourseDetailsData = ({
         setIsPremiumPurchased(false);
         setCourseAccess(null);
         setResumeCheckout(null);
+        hasResolvedInitialLoadRef.current = true;
       } finally {
-        if (active) setLoading(false);
+        const shouldStopLoading =
+          isMountedRef.current && loadId === latestLoadIdRef.current;
+        if (shouldStopLoading) {
+          setLoading(false);
+        }
       }
     };
     void load();
