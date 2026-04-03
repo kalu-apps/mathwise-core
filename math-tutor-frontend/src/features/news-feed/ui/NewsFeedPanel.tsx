@@ -478,7 +478,7 @@ export function NewsFeedPanel({ user }: Props) {
             </Button>
           </div>
         ) : items.length === 0 ? (
-          <div className="news-feed__empty">
+          <div className="news-feed__empty news-feed__empty--plain">
             <div className="news-feed__empty-title">Пока нет объявлений.</div>
             <div className="news-feed__empty-caption">
               Здесь будут появляться новости и сообщения преподавателя.
