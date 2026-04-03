@@ -243,7 +243,7 @@ export class LessonsService implements OnModuleInit {
     lessonId: string,
     actorUser?: AuthUserDto | null
   ): Promise<LessonPlaybackAccessDto> {
-    const lesson = await this.requireFullLessonAccess(lessonId, actorUser);
+    const lesson = await this.requireLessonPlaybackAccess(lessonId, actorUser);
 
     const mediaObjectId = lesson.videoMediaObjectId?.trim();
     if (mediaObjectId) {
@@ -462,5 +462,44 @@ export class LessonsService implements OnModuleInit {
       );
     }
     return markFullLessonContent(lesson);
+  }
+
+  private async requireLessonPlaybackAccess(
+    lessonId: string,
+    actorUser?: AuthUserDto | null
+  ): Promise<LessonDto> {
+    const normalizedLessonId = lessonId.trim();
+    if (!normalizedLessonId) {
+      throw new HttpException({ error: "lessonId обязателен." }, 400);
+    }
+
+    const draftLesson = await this.lessonsRepository.findDraftById(normalizedLessonId);
+    if (
+      draftLesson &&
+      (await this.isTeacherOwnerOfCourse(actorUser ?? null, draftLesson.courseId))
+    ) {
+      return markFullLessonContent(draftLesson);
+    }
+
+    const lesson = await this.lessonsRepository.findPublishedById(normalizedLessonId);
+    if (!lesson) {
+      throw new HttpException({ error: "Урок не найден." }, 404);
+    }
+
+    const accessModes = await this.resolveCourseAccessModes(
+      [lesson.courseId],
+      actorUser
+    );
+    const mode = accessModes.get(lesson.courseId);
+    if (mode === "full") {
+      return markFullLessonContent(lesson);
+    }
+
+    const previewAllowed = mode === "preview" && lesson.order === 1;
+    if (previewAllowed) {
+      return markFullLessonContent(lesson);
+    }
+
+    throw new HttpException({ error: "Нет доступа к видео урока." }, 403);
   }
 }

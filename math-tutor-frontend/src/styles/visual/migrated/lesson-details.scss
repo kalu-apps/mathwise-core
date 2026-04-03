@@ -43,79 +43,60 @@
 
 .lesson-details__hero {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: 18px;
-  border: 1px solid color-mix(in srgb, var(--brand-soft) 40%, var(--border-subtle));
-  background:
-    linear-gradient(140deg, var(--surface-elevated), var(--surface-soft)),
-    linear-gradient(
-      125deg,
-      color-mix(in srgb, var(--brand-solid) 16%, transparent),
-      color-mix(in srgb, var(--feedback-info) 14%, transparent)
-    );
-  box-shadow: var(--shadow-sm);
-  max-width: min(100%, 50%);
+  align-items: flex-start;
+  justify-content: flex-start;
+  margin: 0 0 10px;
 }
 
-.lesson-details__kicker,
+.lesson-details__video-meta {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 10px;
+}
+
 .lesson-details__duration-chip {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 170px;
-  min-height: 24px;
-  padding: 4px 10px;
+  min-height: 30px;
+  padding: 7px 14px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.lesson-details__kicker {
-  background: color-mix(in srgb, var(--brand-solid) 16%, transparent);
-  color: var(--accent-soft);
-  border: 1px solid color-mix(in srgb, var(--brand-solid) 34%, transparent);
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--brand-solid) 18%, transparent);
-}
-
-.lesson-details__duration-chip {
   color: color-mix(in srgb, var(--feedback-info) 86%, var(--text-primary));
   background:
     linear-gradient(
       145deg,
-      color-mix(in srgb, var(--feedback-info) 24%, transparent),
-      color-mix(in srgb, var(--brand-solid) 12%, transparent)
+      color-mix(in srgb, var(--feedback-info) 28%, transparent),
+      color-mix(in srgb, var(--brand-solid) 20%, transparent)
     );
-  border: 1px solid color-mix(in srgb, var(--feedback-info) 44%, transparent);
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--feedback-info) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--feedback-info) 46%, transparent);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--feedback-info) 20%, transparent);
 }
 
 .lesson-details__title {
   margin: 0;
-  font-size: clamp(14px, 1.4vw, 18px);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  max-width: min(100%, 760px);
+  font-size: clamp(28px, 4.2vw, 52px);
+  line-height: 1.02;
+  font-weight: 780;
+  letter-spacing: -0.032em;
+  text-wrap: balance;
   color: var(--text-primary);
   background: linear-gradient(
-    95deg,
+    100deg,
     var(--text-primary) 0%,
-    var(--accent-soft) 52%,
-    color-mix(in srgb, var(--feedback-info) 82%, var(--brand-solid)) 100%
+    color-mix(in srgb, var(--text-primary) 80%, var(--accent-soft)) 46%,
+    color-mix(in srgb, var(--feedback-info) 88%, var(--brand-solid)) 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1 1 100%;
 }
 
 .lesson-details__video-card {
@@ -145,6 +126,11 @@
 }
 
 .lesson-details__video-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   border-radius: 16px;
   background: var(--surface-soft);
   border: 1px dashed color-mix(in srgb, var(--border-subtle) 92%, var(--brand-soft));
@@ -276,12 +262,23 @@
 
   .lesson-details__hero {
     max-width: 100%;
-    padding: 8px 9px;
-    border-radius: 14px;
   }
 
   .lesson-details__title {
-    font-size: 14px;
+    max-width: 100%;
+    font-size: clamp(24px, 8vw, 36px);
+    line-height: 1.05;
+  }
+
+  .lesson-details__video-meta {
+    justify-content: flex-start;
+    margin: 0 0 8px;
+  }
+
+  .lesson-details__duration-chip {
+    font-size: 10px;
+    min-height: 28px;
+    padding: 6px 12px;
   }
 
   .lesson-details__video-card,

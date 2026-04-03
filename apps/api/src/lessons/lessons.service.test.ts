@@ -112,11 +112,38 @@ test("lessons runtime: entitled actor receives short-lived playback access", asy
   assert.match(access.playbackUrl, /^https:\/\/signed\.example\.com\//);
 });
 
-test("lessons runtime: non-entitled actor is rejected for playback access", async () => {
+test("lessons runtime: anonymous actor receives first-lesson preview playback access", async () => {
   const service = createService({ entitledCourseIds: [] });
 
+  const access = await service.getLessonPlaybackAccess("lesson_1", null);
+
+  assert.equal(access.lessonId, "lesson_1");
+  assert.equal(access.source, "media");
+  assert.match(access.playbackUrl, /^https:\/\/signed\.example\.com\//);
+});
+
+test("lessons runtime: non-entitled actor receives first-lesson preview playback access", async () => {
+  const service = createService({ entitledCourseIds: [] });
+
+  const access = await service.getLessonPlaybackAccess("lesson_1", ACTOR_STUDENT);
+
+  assert.equal(access.lessonId, "lesson_1");
+  assert.equal(access.source, "media");
+  assert.match(access.playbackUrl, /^https:\/\/signed\.example\.com\//);
+});
+
+test("lessons runtime: non-entitled actor is rejected for non-preview lesson playback", async () => {
+  const service = createService({
+    entitledCourseIds: [],
+    lesson: {
+      ...LESSON,
+      id: "lesson_2",
+      order: 2,
+    },
+  });
+
   await assert.rejects(
-    () => service.getLessonPlaybackAccess("lesson_1", ACTOR_STUDENT),
+    () => service.getLessonPlaybackAccess("lesson_2", ACTOR_STUDENT),
     (error: unknown) => isHttpStatus(error, 403)
   );
 });

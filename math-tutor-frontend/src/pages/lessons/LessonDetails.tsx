@@ -191,11 +191,12 @@ export default function LessonDetails() {
 
   useEffect(() => {
     if (!canAccess || !lesson) return;
-    if (lesson.contentVisibility === "public_preview") return;
     const hasVideoBinding = Boolean(
       lesson.videoMediaObjectId || lesson.videoUrl || lesson.videoStreamUrl
     );
-    if (!hasVideoBinding) return;
+    const shouldAttemptPlayback =
+      lesson.contentVisibility === "public_preview" || hasVideoBinding;
+    if (!shouldAttemptPlayback) return;
 
     let active = true;
     setPlaybackLoading(true);
@@ -387,7 +388,7 @@ export default function LessonDetails() {
   const durationText = formatLessonDuration(lesson.duration);
   const isRedactedLesson = lesson.contentVisibility === "public_preview";
   const hasVideoBinding =
-    !isRedactedLesson &&
+    isRedactedLesson ||
     Boolean(lesson.videoMediaObjectId || lesson.videoUrl || lesson.videoStreamUrl);
   const hasPlayableVideo = hasVideoBinding && Boolean(playbackSrc || playbackStreamSrc);
   const mediaStatusBanner =
@@ -454,12 +455,13 @@ export default function LessonDetails() {
           <BackNavButton onClick={handleBackToCourse} />
         </div>
         <header className="lesson-details__hero">
-          <span className="lesson-details__kicker">Содержание урока</span>
+          <h1 className="lesson-details__title">{lesson.title}</h1>
+        </header>
+        <div className="lesson-details__video-meta">
           <span className="lesson-details__duration-chip">
             Длительность: {durationText}
           </span>
-          <h1 className="lesson-details__title">{lesson.title}</h1>
-        </header>
+        </div>
 
         <div className="lesson-details__video-card">
           {hasPlayableVideo ? (
@@ -474,8 +476,15 @@ export default function LessonDetails() {
             </div>
           ) : (
             <div className="lesson-details__video-empty">
-              {isRedactedLesson
-                ? "Видео и материалы доступны после покупки курса."
+              {playbackLoading ? (
+                <>
+                  <CircularProgress size={22} />
+                  <span>Подготавливаем предпросмотр видео...</span>
+                </>
+              ) : isRedactedLesson
+                ? playbackError
+                  ? "Не удалось подготовить предпросмотр урока. Попробуйте обновить доступ."
+                  : "Предпросмотр видео временно недоступен."
                 : lesson.mediaJobStatus === "queued" || lesson.mediaJobStatus === "processing"
                 ? "Видео для этого урока подготавливается"
                 : hasVideoBinding
