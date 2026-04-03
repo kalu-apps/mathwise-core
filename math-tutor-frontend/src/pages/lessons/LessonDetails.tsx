@@ -456,12 +456,10 @@ export default function LessonDetails() {
         </div>
         <header className="lesson-details__hero">
           <h1 className="lesson-details__title">{lesson.title}</h1>
-        </header>
-        <div className="lesson-details__video-meta">
           <span className="lesson-details__duration-chip">
             Длительность: {durationText}
           </span>
-        </div>
+        </header>
 
         <div className="lesson-details__video-card">
           {hasPlayableVideo ? (

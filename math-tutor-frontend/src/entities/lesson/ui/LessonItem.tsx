@@ -26,6 +26,13 @@ export function LessonItem({
 }: Props) {
   const navigate = useNavigate();
   const durationText = formatLessonDuration(lesson.duration);
+  const subtitle = locked
+    ? "Доступно после покупки"
+    : viewed
+      ? "Урок просмотрен"
+      : isNew
+        ? "Обновлен после покупки"
+        : null;
 
   const handleClick = () => {
     if (locked) {
@@ -60,15 +67,7 @@ export function LessonItem({
             <span className="lesson-item__title">{lesson.title}</span>
             {isNew ? <span className="lesson-item__new-badge">Новое</span> : null}
           </div>
-          <span className="lesson-item__subtitle">
-            {locked
-              ? "Доступно после покупки"
-              : viewed
-                ? "Урок просмотрен"
-                : isNew
-                  ? "Обновлен после покупки"
-                  : "Готов к просмотру"}
-          </span>
+          {subtitle ? <span className="lesson-item__subtitle">{subtitle}</span> : null}
         </div>
       </div>
 

@@ -37,6 +37,14 @@ const THRESHOLDS = {
   LONG_TASK: { poor: 500, needsImprovement: 200 },
 } as const;
 
+export const shouldTrackInpInteraction = (entry: {
+  duration: number;
+  interactionId?: number;
+}) => {
+  if (!Number.isFinite(entry.duration) || entry.duration <= 0) return false;
+  return typeof entry.interactionId === "number" && entry.interactionId > 0;
+};
+
 const IS_DEV = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
 const LOG_THROTTLE_WINDOW_MS = 30_000;
 const metricLogAtByKey = new Map<string, number>();
@@ -197,12 +205,11 @@ const createMonitoringSession = () => {
     "event",
     (list) => {
       for (const rawEntry of list.getEntries() as EventTimingEntry[]) {
+        if (!shouldTrackInpInteraction(rawEntry)) continue;
         const duration = rawEntry.duration;
-        if (!Number.isFinite(duration) || duration <= 0) continue;
 
         maxInp = Math.max(maxInp, duration);
-        const interactionId =
-          typeof rawEntry.interactionId === "number" ? rawEntry.interactionId : null;
+        const interactionId = rawEntry.interactionId ?? null;
 
         // Report each slow interaction once, plus keep max INP snapshot.
         if (interactionId && seenInteractionIds.has(interactionId)) continue;

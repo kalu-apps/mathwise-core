@@ -8,14 +8,14 @@ const lessonDetailsPath = path.resolve(
 );
 
 describe("lesson runtime layout", () => {
-  it("keeps lesson title in hero and renders duration badge above video section", () => {
+  it("keeps lesson title and duration badge on a shared header row", () => {
     const source = fs.readFileSync(lessonDetailsPath, "utf-8");
 
     expect(source.includes('className="lesson-details__hero"')).toBe(true);
     expect(
       source.includes('<h1 className="lesson-details__title">{lesson.title}</h1>')
     ).toBe(true);
-    expect(source.includes('className="lesson-details__video-meta"')).toBe(true);
+    expect(source.includes('className="lesson-details__video-meta"')).toBe(false);
     expect(source.includes('className="lesson-details__duration-chip"')).toBe(true);
   });
 

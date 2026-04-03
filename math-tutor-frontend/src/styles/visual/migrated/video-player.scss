@@ -125,18 +125,22 @@
 }
 
 .video-player__poster-action {
-  min-height: 36px;
-  padding: 0 14px;
+  min-height: 32px;
+  padding: 0 12px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: 6px;
+  font-size: 11px;
   font-weight: 800;
   color: var(--text-primary);
   background: color-mix(in srgb, var(--accent-strong) 16%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent-strong) 34%, var(--border-subtle));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-strong) 8%, transparent);
+
+  .MuiSvgIcon-root {
+    font-size: 16px;
+  }
 }
 
 .video-player__ratio video {
@@ -230,5 +234,11 @@ body.video-player-restore {
 
   .video-player__poster-hint {
     font-size: 11px;
+  }
+
+  .video-player__poster-action {
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 10px;
   }
 }
