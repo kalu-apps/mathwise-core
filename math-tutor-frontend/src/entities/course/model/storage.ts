@@ -3,6 +3,7 @@ import { api } from "@/shared/api/client";
 import { buildIdempotencyHeaders } from "@/shared/lib/idempotency";
 import { coursesGateway } from "@/shared/gateway";
 import type {
+  CourseAssessmentReleaseSnapshotContract,
   CourseAssessmentReleaseItemContract,
   PublishCourseResponseContract,
 } from "@/shared/contracts/course.contract";
@@ -16,6 +17,13 @@ export async function getCourseById(
   options?: { forceFresh?: boolean }
 ): Promise<Course | null> {
   return coursesGateway.getCourseById(id, options);
+}
+
+export async function getCourseReleaseContent(
+  id: string,
+  options?: { forceFresh?: boolean }
+): Promise<CourseAssessmentReleaseSnapshotContract> {
+  return coursesGateway.getCourseReleaseContent(id, options);
 }
 
 export async function createCourse(
@@ -43,7 +51,9 @@ export async function deleteCourse(courseId: string): Promise<void> {
 export async function publishCourse(
   courseId: string,
   options?: {
-    assessmentsSnapshot?: CourseAssessmentReleaseItemContract[];
+    assessmentsSnapshot?:
+      | CourseAssessmentReleaseItemContract[]
+      | CourseAssessmentReleaseSnapshotContract;
     idempotencyKey?: string;
   }
 ): Promise<PublishCourseResponseContract> {

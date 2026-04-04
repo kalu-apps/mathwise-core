@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { getCourseById } from "@/entities/course/model/storage";
+import {
+  getCourseById,
+  getCourseReleaseContent,
+} from "@/entities/course/model/storage";
 import { getLessonsByCourse } from "@/entities/lesson/model/storage";
 import {
   attachCheckoutPurchase,
@@ -13,6 +16,7 @@ import {
   getCourseMaterialBlocks,
   getLatestAssessmentAttemptsMap,
 } from "@/features/assessments/model/storage";
+import { buildPublishedCourseContentProjection } from "@/features/assessments/model/releaseContent";
 import { getViewedLessonIds } from "@/entities/progress/model/storage";
 import {
   getOpenedLessonIds,
@@ -386,10 +390,21 @@ export const useCourseDetailsData = ({
             : lessonsData;
           setCourse(resolvedCourse);
           setLessons(resolvedLessons);
-          const [queue, blocks] = await Promise.all([
-            getCourseContentItems(courseId, resolvedLessons),
-            getCourseMaterialBlocks(courseId),
-          ]);
+          const publishedProjection = usePublishedCourse
+            ? buildPublishedCourseContentProjection({
+                courseId,
+                lessons: resolvedLessons,
+                snapshot: await getCourseReleaseContent(courseId, {
+                  forceFresh: true,
+                }),
+              })
+            : null;
+          const [queue, blocks] = publishedProjection
+            ? [publishedProjection.queue, publishedProjection.blocks]
+            : await Promise.all([
+                getCourseContentItems(courseId, resolvedLessons),
+                getCourseMaterialBlocks(courseId),
+              ]);
           const purchasedTestItemIdSet = new Set(
             Array.isArray(purchase?.purchasedTestItemIds)
               ? purchase.purchasedTestItemIds

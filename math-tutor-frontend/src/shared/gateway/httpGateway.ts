@@ -5,6 +5,7 @@ import type {
   AuthSessionResponseContract,
 } from "@/shared/contracts/auth.contract";
 import type {
+  CourseReleaseContentResponseContract,
   CourseByIdResponseContract,
   CourseCatalogResponseContract,
 } from "@/shared/contracts/course.contract";
@@ -193,6 +194,24 @@ export const httpCoursesGateway: CoursesGateway = {
     }
     const encodedId = encodeURIComponent(id);
     return requestHttpJson<CourseByIdResponseContract>(`/courses/${encodedId}`);
+  },
+  async getCourseReleaseContent(
+    id,
+    options
+  ): Promise<CourseReleaseContentResponseContract> {
+    const encodedId = encodeURIComponent(id);
+    if (isDefaultApiBase()) {
+      return api.get<CourseReleaseContentResponseContract>(
+        `/courses/${encodedId}/release-content`,
+        {
+          dedupe: options?.forceFresh ? false : undefined,
+          cacheTtlMs: options?.forceFresh ? 0 : undefined,
+        }
+      );
+    }
+    return requestHttpJson<CourseReleaseContentResponseContract>(
+      `/courses/${encodedId}/release-content`
+    );
   },
 };
 

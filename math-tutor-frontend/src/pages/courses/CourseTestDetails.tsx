@@ -17,7 +17,10 @@ import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
 import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import { useAuth } from "@/features/auth/model/AuthContext";
-import { getCourseById } from "@/entities/course/model/storage";
+import {
+  getCourseById,
+  getCourseReleaseContent,
+} from "@/entities/course/model/storage";
 import { getLessonsByCourse } from "@/entities/lesson/model/storage";
 import { getViewedLessonIds } from "@/entities/progress/model/storage";
 import { getPurchases } from "@/entities/purchase/model/storage";
@@ -31,6 +34,7 @@ import {
   saveAssessmentSession,
   submitAssessmentAttempt,
 } from "@/features/assessments/model/storage";
+import { buildPublishedCourseContentProjection } from "@/features/assessments/model/releaseContent";
 import {
   formatSpentTime,
   getAssessmentGradeLabel,
@@ -136,7 +140,15 @@ export default function CourseTestDetails() {
           throw new Error("Недостаточно прав для просмотра теста.");
         }
 
-        const queue = await getCourseContentItems(courseId, lessons);
+        const queue = isTeacherPreview
+          ? await getCourseContentItems(courseId, lessons)
+          : buildPublishedCourseContentProjection({
+              courseId,
+              lessons,
+              snapshot: await getCourseReleaseContent(courseId, {
+                forceFresh: true,
+              }),
+            }).queue;
         const item = queue.find(
           (candidate): candidate is CourseContentTestItem =>
             candidate.type === "test" && candidate.id === testItemId
@@ -144,25 +156,26 @@ export default function CourseTestDetails() {
         if (!item) {
           throw new Error("Тест не найден в содержании курса.");
         }
-        const loadedTemplate =
-          item.templateSnapshot
-            ? {
-                id: item.templateId,
-                title: item.templateSnapshot.title,
-                description: item.templateSnapshot.description ?? "",
-                durationMinutes: item.templateSnapshot.durationMinutes,
-                assessmentKind:
-                  item.templateSnapshot.assessmentKind === "exam"
-                    ? ("exam" as const)
-                    : ("credit" as const),
-                createdByTeacherId: "",
-                createdAt: item.createdAt,
-                updatedAt: item.createdAt,
-                questions: item.templateSnapshot.questions,
-                recommendationMap: item.templateSnapshot.recommendationMap,
-                status: "published" as const,
-              }
-            : await getAssessmentTemplateById(item.templateId);
+        const loadedTemplate = item.templateSnapshot
+          ? {
+              id: item.templateId,
+              title: item.templateSnapshot.title,
+              description: item.templateSnapshot.description ?? "",
+              durationMinutes: item.templateSnapshot.durationMinutes,
+              assessmentKind:
+                item.templateSnapshot.assessmentKind === "exam"
+                  ? ("exam" as const)
+                  : ("credit" as const),
+              createdByTeacherId: "",
+              createdAt: item.createdAt,
+              updatedAt: item.createdAt,
+              questions: item.templateSnapshot.questions,
+              recommendationMap: item.templateSnapshot.recommendationMap,
+              status: "published" as const,
+            }
+          : isTeacherPreview
+          ? await getAssessmentTemplateById(item.templateId)
+          : null;
         if (!loadedTemplate) {
           throw new Error("Шаблон теста недоступен в карточке курса.");
         }

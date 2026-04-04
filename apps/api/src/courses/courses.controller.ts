@@ -17,6 +17,7 @@ import { AuthService } from "../auth/auth.service";
 import type { AuthUserDto } from "../auth/auth.types";
 import { CoursesService } from "./courses.service";
 import type {
+  CourseAssessmentReleaseSnapshotDto,
   CourseAssessmentReleaseItemDto,
   CourseCatalogItemDto,
   PublishCourseResponseDto,
@@ -66,6 +67,13 @@ export class CoursesController {
     return this.coursesService.getById(courseId, actorUser);
   }
 
+  @Get("courses/:id/release-content")
+  async getPublishedAssessmentContent(
+    @Param("id") courseId: string
+  ): Promise<CourseAssessmentReleaseSnapshotDto> {
+    return this.coursesService.getPublishedAssessmentContent(courseId);
+  }
+
   @Get("teacher/courses/drafts")
   async getTeacherDrafts(
     @Req() req: RequestWithCookie,
@@ -110,7 +118,14 @@ export class CoursesController {
   @Post("courses/:id/publish")
   async publishCourse(
     @Param("id") courseId: string,
-    @Body() body: { assessmentsSnapshot?: CourseAssessmentReleaseItemDto[] } | undefined,
+    @Body()
+    body:
+      | {
+          assessmentsSnapshot?:
+            | CourseAssessmentReleaseItemDto[]
+            | CourseAssessmentReleaseSnapshotDto;
+        }
+      | undefined,
     @Req() req: RequestWithCookie,
     @Res({ passthrough: true }) res: HttpResponseWithHeaders
   ): Promise<PublishCourseResponseDto> {

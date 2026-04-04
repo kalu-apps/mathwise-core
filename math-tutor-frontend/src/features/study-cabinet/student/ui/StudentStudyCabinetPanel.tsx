@@ -24,6 +24,7 @@ import SnoozeRoundedIcon from "@mui/icons-material/SnoozeRounded";
 import TipsAndUpdatesRoundedIcon from "@mui/icons-material/TipsAndUpdatesRounded";
 import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
 import { jsPDF } from "jspdf";
+import { getCourseReleaseContent } from "@/entities/course/model/storage";
 import { getLessonsByCourse } from "@/entities/lesson/model/storage";
 import type { Lesson } from "@/entities/lesson/model/types";
 import { getViewedLessonIds } from "@/entities/progress/model/storage";
@@ -34,9 +35,8 @@ import type {
 } from "@/features/assessments/model/types";
 import {
   getBestAssessmentAttemptsMap,
-  getCourseContentItems,
-  getCourseMaterialBlocks,
 } from "@/features/assessments/model/storage";
+import { buildPublishedCourseContentProjection } from "@/features/assessments/model/releaseContent";
 import {
   defaultCabinetTaskState,
   dismissCabinetTask,
@@ -358,15 +358,19 @@ export function StudentStudyCabinetPanel({
       setCourseDetailsLoading(true);
       setCourseDetailsError(null);
       try {
-        const [lessons, queue, blocks, viewedLessonIds, bestAttempts] = await Promise.all([
+        const [lessons, releaseContent, viewedLessonIds, bestAttempts] = await Promise.all([
           getLessonsByCourse(selectedCourseId, { forceFresh: true }),
-          getLessonsByCourse(selectedCourseId, { forceFresh: true }).then((courseLessons) =>
-            getCourseContentItems(selectedCourseId, courseLessons)
-          ),
-          getCourseMaterialBlocks(selectedCourseId),
+          getCourseReleaseContent(selectedCourseId, { forceFresh: true }),
           getViewedLessonIds(userId, selectedCourseId, { forceFresh: true }),
           getBestAssessmentAttemptsMap({ studentId: userId, courseId: selectedCourseId }),
         ]);
+        const projection = buildPublishedCourseContentProjection({
+          courseId: selectedCourseId,
+          lessons,
+          snapshot: releaseContent,
+        });
+        const queue = projection.queue;
+        const blocks = projection.blocks;
         if (cancelled) return;
         setActiveCourseData({
           courseId: selectedCourseId,

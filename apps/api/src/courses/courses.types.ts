@@ -46,6 +46,19 @@ export type CourseAssessmentReleaseItemDto = {
   createdAt: string;
 };
 
+export type CourseAssessmentReleaseBlockDto = {
+  id: string;
+  courseId: string;
+  title: string;
+  description: string;
+  order: number;
+};
+
+export type CourseAssessmentReleaseSnapshotDto = {
+  items: CourseAssessmentReleaseItemDto[];
+  blocks: CourseAssessmentReleaseBlockDto[];
+};
+
 export type CourseReleaseSnapshotDto = {
   id: string;
   courseId: string;
@@ -55,7 +68,7 @@ export type CourseReleaseSnapshotDto = {
   createdByTeacherId: string;
   course: CourseCatalogItemDto;
   lessons: unknown[];
-  assessments: CourseAssessmentReleaseItemDto[];
+  assessments: CourseAssessmentReleaseSnapshotDto;
 };
 
 export type PublishCourseResponseDto = {

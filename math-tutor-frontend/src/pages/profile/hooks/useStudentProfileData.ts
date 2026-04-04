@@ -11,6 +11,8 @@ import {
   getBestAssessmentAttemptsMap,
   getCourseContentItems,
 } from "@/features/assessments/model/storage";
+import { getCourseReleaseContent } from "@/entities/course/model/storage";
+import { buildPublishedCourseContentProjection } from "@/features/assessments/model/releaseContent";
 import {
   getTeacherChatEligibility,
   getTeacherChatThreads,
@@ -196,7 +198,15 @@ export const useStudentProfileData = ({
             : Array.isArray(purchase.lessonsSnapshot)
             ? purchase.lessonsSnapshot
             : context.lessons.filter((lesson) => lesson.courseId === course.id);
-          const queue = await getCourseContentItems(course.id, lessons);
+          const queue = usePublishedCourse
+            ? buildPublishedCourseContentProjection({
+                courseId: course.id,
+                lessons,
+                snapshot: await getCourseReleaseContent(course.id, {
+                  forceFresh: true,
+                }),
+              }).queue
+            : await getCourseContentItems(course.id, lessons);
           const purchasedTestItemIdSet = new Set(
             Array.isArray(purchase.purchasedTestItemIds)
               ? purchase.purchasedTestItemIds

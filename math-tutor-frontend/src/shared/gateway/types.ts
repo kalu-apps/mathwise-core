@@ -5,6 +5,7 @@ import type {
   AuthSessionResponseContract,
 } from "@/shared/contracts/auth.contract";
 import type {
+  CourseReleaseContentResponseContract,
   CourseByIdResponseContract,
   CourseCatalogResponseContract,
 } from "@/shared/contracts/course.contract";
@@ -81,6 +82,10 @@ export type CoursesGateway = {
     id: string,
     options?: { forceFresh?: boolean }
   ) => Promise<CourseByIdResponseContract>;
+  getCourseReleaseContent: (
+    id: string,
+    options?: { forceFresh?: boolean }
+  ) => Promise<CourseReleaseContentResponseContract>;
 };
 
 export type LessonsGateway = {

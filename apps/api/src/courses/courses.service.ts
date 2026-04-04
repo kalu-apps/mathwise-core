@@ -10,12 +10,15 @@ import { ensureId } from "../shared/id";
 import { CoursesRepository } from "./courses.repository";
 import { resolveCourseVisualMetadata, withCourseVisualMetadata } from "./courses.visuals";
 import type {
+  CourseAssessmentReleaseBlockDto,
   CourseAssessmentReleaseItemDto,
+  CourseAssessmentReleaseSnapshotDto,
   CourseCatalogItemDto,
   PublishCourseResponseDto,
 } from "./courses.types";
 
 const nowIso = () => new Date().toISOString();
+const DEFAULT_COURSE_BLOCK_TITLE = "Материалы курса";
 
 const normalizeCourseStatus = (value: unknown): CourseCatalogItemDto["status"] => {
   return value === "published" ? "published" : "draft";
@@ -60,6 +63,110 @@ const collectLessonsMediaObjectIds = (lessons: LessonDto[]): string[] => {
   return [...ids];
 };
 
+const defaultAssessmentBlocks = (courseId: string): CourseAssessmentReleaseBlockDto[] => [
+  {
+    id: `course-block-default-${courseId}`,
+    courseId,
+    title: DEFAULT_COURSE_BLOCK_TITLE,
+    description: "",
+    order: 1,
+  },
+];
+
+const normalizeAssessmentReleaseItems = (
+  raw: unknown,
+  courseId: string
+): CourseAssessmentReleaseItemDto[] => {
+  if (!Array.isArray(raw)) return [];
+  const normalized = raw
+    .map((item): CourseAssessmentReleaseItemDto | null => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+      const record = item as Record<string, unknown>;
+      const id = typeof record.id === "string" ? record.id.trim() : "";
+      const blockId = typeof record.blockId === "string" ? record.blockId.trim() : "";
+      const type = record.type === "lesson" || record.type === "test" ? record.type : null;
+      if (!id || !blockId || !type) return null;
+      const orderRaw = Number(record.order);
+      const order = Number.isFinite(orderRaw) ? Math.max(1, Math.floor(orderRaw)) : 1;
+      const createdAt =
+        typeof record.createdAt === "string" && record.createdAt.trim().length > 0
+          ? record.createdAt
+          : nowIso();
+      return {
+        id,
+        courseId,
+        blockId,
+        type,
+        order,
+        createdAt,
+        lessonId: typeof record.lessonId === "string" ? record.lessonId : undefined,
+        templateId:
+          typeof record.templateId === "string" ? record.templateId : undefined,
+        titleSnapshot:
+          typeof record.titleSnapshot === "string" ? record.titleSnapshot : undefined,
+        templateSnapshot:
+          record.templateSnapshot && typeof record.templateSnapshot === "object"
+            ? record.templateSnapshot
+            : undefined,
+      };
+    })
+    .filter((item): item is CourseAssessmentReleaseItemDto => Boolean(item))
+    .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+
+  return normalized.map((item, index) => ({
+    ...item,
+    order: index + 1,
+  }));
+};
+
+const normalizeAssessmentReleaseBlocks = (
+  raw: unknown,
+  courseId: string
+): CourseAssessmentReleaseBlockDto[] => {
+  if (!Array.isArray(raw)) return [];
+  const normalized = raw
+    .map((item): CourseAssessmentReleaseBlockDto | null => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+      const record = item as Record<string, unknown>;
+      const id = typeof record.id === "string" ? record.id.trim() : "";
+      const title = typeof record.title === "string" ? record.title.trim() : "";
+      if (!id || !title) return null;
+      const description =
+        typeof record.description === "string" ? record.description : "";
+      const orderRaw = Number(record.order);
+      const order = Number.isFinite(orderRaw) ? Math.max(1, Math.floor(orderRaw)) : 1;
+      return {
+        id,
+        courseId,
+        title,
+        description,
+        order,
+      };
+    })
+    .filter((item): item is CourseAssessmentReleaseBlockDto => Boolean(item))
+    .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+
+  return normalized.map((item, index) => ({
+    ...item,
+    order: index + 1,
+  }));
+};
+
+const deriveBlocksFromItems = (
+  items: CourseAssessmentReleaseItemDto[],
+  courseId: string
+): CourseAssessmentReleaseBlockDto[] => {
+  const uniqueIds = [...new Set(items.map((item) => item.blockId.trim()).filter(Boolean))];
+  if (uniqueIds.length === 0) return defaultAssessmentBlocks(courseId);
+  return uniqueIds.map((id, index) => ({
+    id,
+    courseId,
+    title: index === 0 ? DEFAULT_COURSE_BLOCK_TITLE : `Блок ${index + 1}`,
+    description: "",
+    order: index + 1,
+  }));
+};
+
 @Injectable()
 export class CoursesService implements OnModuleInit {
   private readonly runtimeConfig = getApiRuntimeConfig();
@@ -99,6 +206,33 @@ export class CoursesService implements OnModuleInit {
 
     const published = await this.coursesRepository.findPublishedById(normalizedId);
     return published ? withCourseVisualMetadata(published) : null;
+  }
+
+  async getPublishedAssessmentContent(
+    courseId: string
+  ): Promise<CourseAssessmentReleaseSnapshotDto> {
+    const normalizedId = courseId.trim();
+    if (!normalizedId) {
+      throw new HttpException({ error: "courseId обязателен." }, 400);
+    }
+    const published = await this.coursesRepository.findPublishedById(normalizedId);
+    if (!published) {
+      throw new HttpException({ error: "Курс не найден." }, 404);
+    }
+    const release = await this.coursesRepository.findActiveReleaseByCourseId(normalizedId);
+    if (!release) {
+      return {
+        items: [],
+        blocks: defaultAssessmentBlocks(normalizedId),
+      };
+    }
+    const blocks = release.assessments.blocks.length
+      ? release.assessments.blocks
+      : deriveBlocksFromItems(release.assessments.items, normalizedId);
+    return {
+      items: release.assessments.items,
+      blocks,
+    };
   }
 
   async getTeacherDrafts(actorUser: AuthUserDto | null): Promise<CourseCatalogItemDto[]> {
@@ -194,7 +328,9 @@ export class CoursesService implements OnModuleInit {
   async publishCourse(params: {
     courseId: string;
     actorUser: AuthUserDto | null;
-    assessmentsSnapshot?: CourseAssessmentReleaseItemDto[];
+    assessmentsSnapshot?:
+      | CourseAssessmentReleaseItemDto[]
+      | CourseAssessmentReleaseSnapshotDto;
   }): Promise<PublishCourseResponseDto> {
     const { actorUser } = params;
     if (!actorUser || actorUser.role !== "teacher") {
@@ -271,9 +407,12 @@ export class CoursesService implements OnModuleInit {
     }
 
     const publishedAt = nowIso();
-    const assessmentsSnapshot = Array.isArray(params.assessmentsSnapshot)
-      ? params.assessmentsSnapshot
-      : await this.resolveAssessmentsSnapshotFromState(courseId);
+    const stateDerivedSnapshot = await this.resolveAssessmentsSnapshotFromState(courseId);
+    const assessmentsSnapshot = this.resolvePublishAssessmentsSnapshot({
+      courseId,
+      provided: params.assessmentsSnapshot,
+      fallback: stateDerivedSnapshot,
+    });
     const releaseId = ensureId("course_release");
     const release = await this.coursesRepository.publishDraft({
       releaseId,
@@ -297,13 +436,13 @@ export class CoursesService implements OnModuleInit {
       version: release.version,
       publishedAt,
       lessonsCount: lessons.length,
-      assessmentsCount: assessmentsSnapshot.length,
+      assessmentsCount: assessmentsSnapshot.items.length,
     };
   }
 
   private async resolveAssessmentsSnapshotFromState(
     courseId: string
-  ): Promise<CourseAssessmentReleaseItemDto[]> {
+  ): Promise<CourseAssessmentReleaseSnapshotDto> {
     try {
       const rows = await this.databaseService.query<{ payload: unknown }>(
         `
@@ -314,65 +453,75 @@ export class CoursesService implements OnModuleInit {
         `
       );
       const payload = rows[0]?.payload;
-      if (!payload || typeof payload !== "object") return [];
-      const source = payload as Record<string, unknown>;
-      if (
-        !source.courseContent ||
-        typeof source.courseContent !== "object" ||
-        Array.isArray(source.courseContent)
-      ) {
-        return [];
+      if (!payload || typeof payload !== "object") {
+        return {
+          items: [],
+          blocks: defaultAssessmentBlocks(courseId),
+        };
       }
-      const contentByCourse = source.courseContent as Record<string, unknown>;
-      const contentItems = contentByCourse[courseId];
-      if (!Array.isArray(contentItems)) return [];
+      const source = payload as Record<string, unknown>;
+      const contentByCourse =
+        source.courseContent &&
+        typeof source.courseContent === "object" &&
+        !Array.isArray(source.courseContent)
+          ? (source.courseContent as Record<string, unknown>)
+          : {};
+      const blocksByCourse =
+        source.courseBlocks &&
+        typeof source.courseBlocks === "object" &&
+        !Array.isArray(source.courseBlocks)
+          ? (source.courseBlocks as Record<string, unknown>)
+          : {};
 
-      return contentItems
-        .map((item): CourseAssessmentReleaseItemDto | null => {
-          if (!item || typeof item !== "object" || Array.isArray(item)) return null;
-          const record = item as Record<string, unknown>;
-          const id = typeof record.id === "string" ? record.id.trim() : "";
-          const blockId =
-            typeof record.blockId === "string" ? record.blockId.trim() : "";
-          const type = record.type === "lesson" || record.type === "test" ? record.type : null;
-          if (!id || !blockId || !type) return null;
-
-          const orderRaw = Number(record.order);
-          const order = Number.isFinite(orderRaw) ? Math.max(1, Math.floor(orderRaw)) : 1;
-          const createdAt =
-            typeof record.createdAt === "string" && record.createdAt.trim().length > 0
-              ? record.createdAt
-              : nowIso();
-
-          return {
-            id,
-            courseId,
-            blockId,
-            type,
-            order,
-            createdAt,
-            lessonId:
-              typeof record.lessonId === "string" ? record.lessonId : undefined,
-            templateId:
-              typeof record.templateId === "string" ? record.templateId : undefined,
-            titleSnapshot:
-              typeof record.titleSnapshot === "string"
-                ? record.titleSnapshot
-                : undefined,
-            templateSnapshot:
-              record.templateSnapshot && typeof record.templateSnapshot === "object"
-                ? record.templateSnapshot
-                : undefined,
-          };
-        })
-        .filter(
-          (item): item is CourseAssessmentReleaseItemDto =>
-            Boolean(item)
-        )
-        .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+      const items = normalizeAssessmentReleaseItems(contentByCourse[courseId], courseId);
+      const blocks = normalizeAssessmentReleaseBlocks(blocksByCourse[courseId], courseId);
+      return {
+        items,
+        blocks: blocks.length > 0 ? blocks : deriveBlocksFromItems(items, courseId),
+      };
     } catch {
-      return [];
+      return {
+        items: [],
+        blocks: defaultAssessmentBlocks(courseId),
+      };
     }
+  }
+
+  private resolvePublishAssessmentsSnapshot(params: {
+    courseId: string;
+    provided:
+      | CourseAssessmentReleaseItemDto[]
+      | CourseAssessmentReleaseSnapshotDto
+      | undefined;
+    fallback: CourseAssessmentReleaseSnapshotDto;
+  }): CourseAssessmentReleaseSnapshotDto {
+    if (!params.provided) {
+      return params.fallback;
+    }
+
+    if (Array.isArray(params.provided)) {
+      const items = normalizeAssessmentReleaseItems(params.provided, params.courseId);
+      return {
+        items,
+        blocks:
+          params.fallback.blocks.length > 0
+            ? params.fallback.blocks
+            : deriveBlocksFromItems(items, params.courseId),
+      };
+    }
+
+    const provided = params.provided as CourseAssessmentReleaseSnapshotDto;
+    const items = normalizeAssessmentReleaseItems(provided.items, params.courseId);
+    const blocks = normalizeAssessmentReleaseBlocks(provided.blocks, params.courseId);
+    return {
+      items,
+      blocks:
+        blocks.length > 0
+          ? blocks
+          : params.fallback.blocks.length > 0
+          ? params.fallback.blocks
+          : deriveBlocksFromItems(items, params.courseId),
+    };
   }
 
   private async ensureOwnedMediaReady(

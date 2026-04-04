@@ -26,7 +26,10 @@ import DiamondRoundedIcon from "@mui/icons-material/DiamondRounded";
 
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { getUsers } from "@/features/auth/model/api";
-import { getCourses } from "@/entities/course/model/storage";
+import {
+  getCourseReleaseContent,
+  getCourses,
+} from "@/entities/course/model/storage";
 import { getLessonsByCourse } from "@/entities/lesson/model/storage";
 import { getPurchases } from "@/entities/purchase/model/storage";
 import { getViewedLessonIds } from "@/entities/progress/model/storage";
@@ -48,6 +51,7 @@ import {
   getAssessmentKnowledgeProgress,
   getCourseContentItems,
 } from "@/features/assessments/model/storage";
+import { buildPublishedCourseContentProjection } from "@/features/assessments/model/releaseContent";
 
 type CourseInfo = {
   id: string;
@@ -152,7 +156,15 @@ export default function TeacherStudentProfile() {
             : Array.isArray(purchase.lessonsSnapshot)
               ? purchase.lessonsSnapshot
               : await getLessonsByCourse(course.id, { forceFresh: true });
-          const queue = await getCourseContentItems(course.id, lessons);
+          const queue = usePublishedCourse
+            ? buildPublishedCourseContentProjection({
+                courseId: course.id,
+                lessons,
+                snapshot: await getCourseReleaseContent(course.id, {
+                  forceFresh: true,
+                }),
+              }).queue
+            : await getCourseContentItems(course.id, lessons);
           const purchasedTestItemIdSet = new Set(
             Array.isArray(purchase.purchasedTestItemIds)
               ? purchase.purchasedTestItemIds

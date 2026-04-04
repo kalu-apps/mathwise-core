@@ -3,7 +3,9 @@ import { DatabaseService } from "../db/database.service";
 import { mapUnknownCourseToDto } from "./courses.mapper";
 import { resolveCourseVisualMetadata, withCourseVisualMetadata } from "./courses.visuals";
 import type {
+  CourseAssessmentReleaseBlockDto,
   CourseAssessmentReleaseItemDto,
+  CourseAssessmentReleaseSnapshotDto,
   CourseCatalogItemDto,
   CourseReleaseSnapshotDto,
 } from "./courses.types";
@@ -46,7 +48,7 @@ type PublishReleaseInput = {
   publishedAt: string;
   courseSnapshot: CourseCatalogItemDto;
   lessonsSnapshot: unknown[];
-  assessmentsSnapshot: CourseAssessmentReleaseItemDto[];
+  assessmentsSnapshot: CourseAssessmentReleaseSnapshotDto;
 };
 
 const MAX_VISUAL_SEED = 2_147_483_647;
@@ -304,9 +306,7 @@ export class CoursesRepository {
       createdByTeacherId: row.createdByTeacherId,
       course,
       lessons: Array.isArray(row.lessonsSnapshot) ? row.lessonsSnapshot : [],
-      assessments: Array.isArray(row.assessmentsSnapshot)
-        ? (row.assessmentsSnapshot as CourseAssessmentReleaseItemDto[])
-        : [],
+      assessments: this.normalizeAssessmentsSnapshot(row.assessmentsSnapshot, row.courseId),
     };
   }
 
@@ -468,6 +468,144 @@ export class CoursesRepository {
       ...mapped,
       status: "published",
     });
+  }
+
+  private normalizeAssessmentsSnapshot(
+    snapshot: unknown,
+    courseId: string
+  ): CourseAssessmentReleaseSnapshotDto {
+    if (Array.isArray(snapshot)) {
+      const items = this.normalizeAssessmentItems(snapshot, courseId);
+      return {
+        items,
+        blocks: this.deriveBlocksFromItems(items, courseId),
+      };
+    }
+
+    if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
+      return {
+        items: [],
+        blocks: this.defaultBlocks(courseId),
+      };
+    }
+
+    const source = snapshot as Record<string, unknown>;
+    const items = this.normalizeAssessmentItems(source.items, courseId);
+    const blocks = this.normalizeAssessmentBlocks(source.blocks, courseId);
+    return {
+      items,
+      blocks: blocks.length > 0 ? blocks : this.deriveBlocksFromItems(items, courseId),
+    };
+  }
+
+  private normalizeAssessmentItems(
+    value: unknown,
+    courseId: string
+  ): CourseAssessmentReleaseItemDto[] {
+    if (!Array.isArray(value)) return [];
+    const normalized = value
+      .map((item): CourseAssessmentReleaseItemDto | null => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+        const record = item as Record<string, unknown>;
+        const id = typeof record.id === "string" ? record.id.trim() : "";
+        const blockId = typeof record.blockId === "string" ? record.blockId.trim() : "";
+        const type = record.type === "lesson" || record.type === "test" ? record.type : null;
+        if (!id || !blockId || !type) return null;
+
+        const orderRaw = Number(record.order);
+        const order = Number.isFinite(orderRaw) ? Math.max(1, Math.floor(orderRaw)) : 1;
+        const createdAt =
+          typeof record.createdAt === "string" && record.createdAt.trim().length > 0
+            ? record.createdAt
+            : new Date().toISOString();
+
+        return {
+          id,
+          courseId,
+          blockId,
+          type,
+          order,
+          createdAt,
+          lessonId: typeof record.lessonId === "string" ? record.lessonId : undefined,
+          templateId:
+            typeof record.templateId === "string" ? record.templateId : undefined,
+          titleSnapshot:
+            typeof record.titleSnapshot === "string" ? record.titleSnapshot : undefined,
+          templateSnapshot:
+            record.templateSnapshot && typeof record.templateSnapshot === "object"
+              ? record.templateSnapshot
+              : undefined,
+        };
+      })
+      .filter((item): item is CourseAssessmentReleaseItemDto => Boolean(item))
+      .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+
+    return normalized.map((item, index) => ({
+      ...item,
+      order: index + 1,
+    }));
+  }
+
+  private normalizeAssessmentBlocks(
+    value: unknown,
+    courseId: string
+  ): CourseAssessmentReleaseBlockDto[] {
+    if (!Array.isArray(value)) return [];
+    const normalized = value
+      .map((item): CourseAssessmentReleaseBlockDto | null => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+        const record = item as Record<string, unknown>;
+        const id = typeof record.id === "string" ? record.id.trim() : "";
+        const title = typeof record.title === "string" ? record.title.trim() : "";
+        if (!id || !title) return null;
+        const description =
+          typeof record.description === "string" ? record.description : "";
+        const orderRaw = Number(record.order);
+        const order = Number.isFinite(orderRaw) ? Math.max(1, Math.floor(orderRaw)) : 1;
+        return {
+          id,
+          courseId,
+          title,
+          description,
+          order,
+        };
+      })
+      .filter((item): item is CourseAssessmentReleaseBlockDto => Boolean(item))
+      .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+
+    return normalized.map((item, index) => ({
+      ...item,
+      order: index + 1,
+    }));
+  }
+
+  private defaultBlocks(courseId: string): CourseAssessmentReleaseBlockDto[] {
+    return [
+      {
+        id: `course-block-default-${courseId}`,
+        courseId,
+        title: "Материалы курса",
+        description: "",
+        order: 1,
+      },
+    ];
+  }
+
+  private deriveBlocksFromItems(
+    items: CourseAssessmentReleaseItemDto[],
+    courseId: string
+  ): CourseAssessmentReleaseBlockDto[] {
+    const blockIds = [...new Set(items.map((item) => item.blockId.trim()).filter(Boolean))];
+    if (blockIds.length === 0) {
+      return this.defaultBlocks(courseId);
+    }
+    return blockIds.map((blockId, index) => ({
+      id: blockId,
+      courseId,
+      title: index === 0 ? "Материалы курса" : `Блок ${index + 1}`,
+      description: "",
+      order: index + 1,
+    }));
   }
 
   private mapRow(row: CourseRow): CourseCatalogItemDto {

@@ -47,6 +47,22 @@ export type CourseAssessmentReleaseItemContract = {
   createdAt: string;
 };
 
+export type CourseAssessmentReleaseBlockContract = {
+  id: string;
+  courseId: string;
+  title: string;
+  description: string;
+  order: number;
+};
+
+export type CourseAssessmentReleaseSnapshotContract = {
+  items: CourseAssessmentReleaseItemContract[];
+  blocks: CourseAssessmentReleaseBlockContract[];
+};
+
+export type CourseReleaseContentResponseContract =
+  CourseAssessmentReleaseSnapshotContract;
+
 export type PublishCourseResponseContract = {
   courseId: string;
   releaseId: string;

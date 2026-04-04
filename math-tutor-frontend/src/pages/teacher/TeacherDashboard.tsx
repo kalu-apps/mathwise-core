@@ -89,6 +89,7 @@ import {
 import {
   deleteCourseContentItems,
   getCourseContentItems,
+  getCourseMaterialBlocks,
 } from "@/features/assessments/model/storage";
 import { deleteProgressByCourse } from "@/entities/progress/model/storage";
 import {
@@ -508,21 +509,35 @@ export default function TeacherDashboard() {
   const publishCourse = async (course: Course) => {
     const wasDraft = course.status === "draft";
     const lessons = await getLessonsByCourse(course.id, { forceFresh: true });
-    const contentItems = await getCourseContentItems(course.id, lessons);
-    const assessmentsSnapshot = contentItems.map((item) => ({
-      id: item.id,
-      courseId: item.courseId,
-      blockId: item.blockId,
-      type: item.type,
-      order: item.order,
-      lessonId: item.type === "lesson" ? item.lessonId : undefined,
-      templateId: item.type === "test" ? item.templateId : undefined,
-      titleSnapshot: item.type === "test" ? item.titleSnapshot : undefined,
-      templateSnapshot: item.type === "test" ? item.templateSnapshot : undefined,
-      createdAt: item.createdAt,
-    }));
+    const [contentItems, blocks] = await Promise.all([
+      getCourseContentItems(course.id, lessons),
+      getCourseMaterialBlocks(course.id),
+    ]);
+    const assessmentsSnapshot = {
+      items: contentItems.map((item) => ({
+        id: item.id,
+        courseId: item.courseId,
+        blockId: item.blockId,
+        type: item.type,
+        order: item.order,
+        lessonId: item.type === "lesson" ? item.lessonId : undefined,
+        templateId: item.type === "test" ? item.templateId : undefined,
+        titleSnapshot: item.type === "test" ? item.titleSnapshot : undefined,
+        templateSnapshot: item.type === "test" ? item.templateSnapshot : undefined,
+        createdAt: item.createdAt,
+      })),
+      blocks: blocks.map((block) => ({
+        id: block.id,
+        courseId: block.courseId,
+        title: block.title,
+        description: block.description,
+        order: block.order,
+      })),
+    };
 
-    await publishCourseCommand(course.id, { assessmentsSnapshot });
+    await publishCourseCommand(course.id, {
+      assessmentsSnapshot,
+    });
     if (wasDraft && userId) {
       try {
         const purchases = await getPurchases(undefined, { forceFresh: true });

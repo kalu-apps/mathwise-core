@@ -10,7 +10,10 @@ import {
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import LocalLibraryRoundedIcon from "@mui/icons-material/LocalLibraryRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
-import { getCourses } from "@/entities/course/model/storage";
+import {
+  getCourseReleaseContent,
+  getCourses,
+} from "@/entities/course/model/storage";
 import { CourseCard } from "@/entities/course/ui/CourseCard";
 import { PageTitle } from "@/shared/ui/PageTitle";
 import { ListPagination } from "@/shared/ui/ListPagination";
@@ -32,6 +35,7 @@ import {
   getAssessmentKnowledgeProgress,
   getCourseContentItems,
 } from "@/features/assessments/model/storage";
+import { buildPublishedCourseContentProjection } from "@/features/assessments/model/releaseContent";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { getMyCapabilities } from "@/features/capabilities/model/api";
 
@@ -205,7 +209,15 @@ export default function Courses() {
               : Array.isArray(purchase.lessonsSnapshot)
               ? purchase.lessonsSnapshot
               : lessons.filter((lesson) => lesson.courseId === courseId);
-            const queue = await getCourseContentItems(courseId, lessonsForProgress);
+            const queue = usePublishedCourse
+              ? buildPublishedCourseContentProjection({
+                  courseId,
+                  lessons: lessonsForProgress,
+                  snapshot: await getCourseReleaseContent(courseId, {
+                    forceFresh: true,
+                  }),
+                }).queue
+              : await getCourseContentItems(courseId, lessonsForProgress);
             const purchasedTestItemIdSet = new Set(
               Array.isArray(purchase.purchasedTestItemIds)
                 ? purchase.purchasedTestItemIds
