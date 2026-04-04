@@ -1,36 +1,33 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="polyB-hero" x1="26" y1="34" x2="178" y2="194" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ECF8FF" stop-opacity="0.9"/>
-      <stop offset="0.58" stop-color="#96D8FF" stop-opacity="0.62"/>
-      <stop offset="1" stop-color="#8E95FF" stop-opacity="0.44"/>
+    <linearGradient id="polyB-prism" x1="24" y1="34" x2="186" y2="214" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E9F8FF" stop-opacity="0.9"/>
+      <stop offset="0.56" stop-color="#96D9FF" stop-opacity="0.64"/>
+      <stop offset="1" stop-color="#9196FF" stop-opacity="0.46"/>
     </linearGradient>
   </defs>
 
-  <g stroke-linecap="round" stroke-width="1" stroke-opacity="0.25" stroke="#8CB8EE" stroke-dasharray="4 9">
-    <path d="M18 72L174 42"/>
-    <path d="M24 114L190 82"/>
-    <path d="M226 214L398 186"/>
-    <path d="M248 42L398 86"/>
+  <g stroke="#8CB8EB" stroke-opacity="0.24" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 9">
+    <path d="M18 72L172 42"/>
+    <path d="M24 114L188 82"/>
+    <path d="M236 214L398 186"/>
+    <path d="M256 44L398 88"/>
   </g>
 
-  <g transform="translate(32 30)" fill="none" stroke-linejoin="round" stroke-linecap="round">
-    <polygon points="84,10 150,48 134,136 68,172 2,132 18,44" stroke="url(#polyB-hero)" stroke-width="1.5"/>
-    <polygon points="84,34 126,58 114,114 72,138 30,114 42,58" stroke="#91D8FF" stroke-opacity="0.76" stroke-width="1.26"/>
-    <path d="M84 10V172M150 48L68 172M134 136L18 44M2 132L84 34M126 58L30 114" stroke="#64D8FF" stroke-opacity="0.7" stroke-width="1.1"/>
-    <path d="M42 82L126 96M36 104L120 118" stroke="#F1BA78" stroke-opacity="0.54" stroke-width="1.02" stroke-dasharray="3 7"/>
+  <g transform="translate(30 28)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M70 18L132 42L142 106L92 152L32 130L20 68Z" stroke="url(#polyB-prism)" stroke-width="1.46"/>
+    <path d="M102 34L164 58L174 122L124 168L64 146L52 84Z" stroke="#8FD8FF" stroke-opacity="0.78" stroke-width="1.28"/>
+    <path d="M70 18L102 34M132 42L164 58M142 106L174 122M92 152L124 168M32 130L64 146M20 68L52 84" stroke="#D4EEFF" stroke-opacity="0.76" stroke-width="1.14"/>
+    <path d="M82 74L146 98M70 102L134 126" stroke="#66D8FF" stroke-opacity="0.66" stroke-width="1.04"/>
+    <path d="M20 68L132 42L174 122L64 146Z" stroke="#F0BB76" stroke-opacity="0.52" stroke-width="1.02" stroke-dasharray="3 7"/>
   </g>
 
-  <g fill="none" stroke-linecap="round">
-    <path d="M42 206L174 56L336 72" stroke="#63D8FF" stroke-opacity="0.56" stroke-width="1.08"/>
-    <path d="M58 170L366 136" stroke="#7AC8FF" stroke-opacity="0.44" stroke-width="1.02"/>
-    <path d="M112 228L210 52L354 68" stroke="#B19CFF" stroke-opacity="0.4" stroke-width="1.02"/>
-  </g>
-
-  <g fill="#E0F6FF" fill-opacity="0.85">
-    <circle cx="116" cy="40" r="2.8"/>
-    <circle cx="182" cy="78" r="2.8"/>
-    <circle cx="166" cy="166" r="2.8"/>
-    <circle cx="100" cy="202" r="2.8"/>
+  <g fill="#E0F6FF" fill-opacity="0.86">
+    <circle cx="100" cy="46" r="2.7"/>
+    <circle cx="162" cy="70" r="2.7"/>
+    <circle cx="172" cy="134" r="2.7"/>
+    <circle cx="122" cy="180" r="2.7"/>
+    <circle cx="62" cy="158" r="2.7"/>
+    <circle cx="50" cy="96" r="2.7"/>
   </g>
 </svg>

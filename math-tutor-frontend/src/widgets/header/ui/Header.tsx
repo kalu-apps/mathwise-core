@@ -42,10 +42,11 @@ export function Header() {
     navigate("/", { replace: true });
   };
 
-  const userDisplayName = user
-    ? (user.lastName?.trim() || formatUserPrimaryName(user))
+  const userDisplayName = user ? formatUserPrimaryName(user) : "";
+  const userAvatarInitial = user
+    ? (userDisplayName.trim()[0]?.toLocaleUpperCase("ru-RU") ||
+      getUserAvatarInitial(user))
     : "";
-  const userAvatarInitial = user ? getUserAvatarInitial(user) : "";
 
   return (
     <header className="header">

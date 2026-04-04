@@ -1,6 +1,6 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="sigB-hero" x1="146" y1="178" x2="408" y2="116" gradientUnits="userSpaceOnUse">
+    <linearGradient id="sigB-main" x1="146" y1="178" x2="408" y2="116" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#36DCFF" stop-opacity="0.84"/>
       <stop offset="0.52" stop-color="#68C7FF" stop-opacity="0.95"/>
       <stop offset="0.82" stop-color="#A691FF" stop-opacity="0.86"/>
@@ -9,30 +9,31 @@
   </defs>
 
   <g stroke="#90B9EE" stroke-opacity="0.24" stroke-width="1" stroke-linecap="round">
-    <path d="M140 68H404"/>
-    <path d="M140 102H404"/>
-    <path d="M140 136H404"/>
-    <path d="M140 170H404"/>
-    <path d="M140 204H404"/>
+    <path d="M142 68H404"/>
+    <path d="M142 102H404"/>
+    <path d="M142 136H404"/>
+    <path d="M142 170H404"/>
+    <path d="M142 204H404"/>
   </g>
 
-  <path d="M144 170C174 150 202 192 232 168C262 144 290 184 320 160C348 138 372 156 408 126" stroke="url(#sigB-hero)" stroke-width="2.98" stroke-linecap="round" fill="none"/>
-  <path d="M144 136C174 120 202 150 232 138C262 126 292 144 322 134C350 124 374 136 408 108" stroke="#94D9FF" stroke-opacity="0.48" stroke-width="1.92" stroke-linecap="round" fill="none"/>
-  <path d="M144 198C174 178 204 218 234 196C264 174 294 210 324 188C352 166 376 188 408 150" stroke="#A89CFF" stroke-opacity="0.46" stroke-width="1.7" stroke-linecap="round" fill="none"/>
+  <path d="M146 170C176 150 204 192 234 168C264 144 292 184 322 160C350 138 374 156 408 126" stroke="url(#sigB-main)" stroke-width="2.98" stroke-linecap="round" fill="none"/>
+  <path d="M146 136C176 120 204 150 234 138C264 126 292 144 322 134C350 124 374 136 408 108" stroke="#94D9FF" stroke-opacity="0.48" stroke-width="1.92" stroke-linecap="round" fill="none"/>
+  <path d="M146 198C176 178 206 218 236 196C266 174 296 210 326 188C354 166 376 188 408 150" stroke="#A89CFF" stroke-opacity="0.46" stroke-width="1.7" stroke-linecap="round" fill="none"/>
 
-  <path d="M154 202C208 160 258 160 312 186C346 202 376 200 404 178" stroke="#7ED8FF" stroke-opacity="0.3" stroke-width="1.03" stroke-dasharray="4 8" stroke-linecap="round" fill="none"/>
+  <path d="M146 118C206 126 270 128 408 104" stroke="#92D9FF" stroke-opacity="0.26" stroke-width="1" stroke-dasharray="4 8" fill="none"/>
+  <path d="M146 212C206 196 270 194 408 172" stroke="#A79CFF" stroke-opacity="0.24" stroke-width="1" stroke-dasharray="4 8" fill="none"/>
 
-  <g fill="#8FD9FF" fill-opacity="0.22">
-    <rect x="166" y="198" width="7" height="28" rx="3"/>
-    <rect x="198" y="180" width="7" height="46" rx="3"/>
-    <rect x="230" y="188" width="7" height="38" rx="3"/>
-    <rect x="262" y="174" width="7" height="52" rx="3"/>
-    <rect x="294" y="184" width="7" height="42" rx="3"/>
-    <rect x="326" y="176" width="7" height="50" rx="3"/>
-    <rect x="358" y="190" width="7" height="36" rx="3"/>
+  <g stroke="#66D8FF" stroke-opacity="0.36" stroke-width="1.02" stroke-dasharray="4 8" stroke-linecap="round">
+    <path d="M234 168V206"/>
+    <path d="M322 160V204"/>
+    <path d="M204 192V224"/>
+    <path d="M296 210V230"/>
   </g>
 
-  <circle cx="232" cy="168" r="2.8" fill="#E0F6FF" fill-opacity="0.84"/>
-  <circle cx="320" cy="160" r="2.8" fill="#A6E3FF" fill-opacity="0.82"/>
-  <circle cx="348" cy="138" r="2.8" fill="#B5C1FF" fill-opacity="0.82"/>
+  <g fill="#E0F6FF" fill-opacity="0.84">
+    <circle cx="204" cy="192" r="2.7"/>
+    <circle cx="234" cy="168" r="2.7"/>
+    <circle cx="296" cy="210" r="2.7"/>
+    <circle cx="322" cy="160" r="2.7"/>
+  </g>
 </svg>

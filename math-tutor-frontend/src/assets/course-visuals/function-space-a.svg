@@ -1,39 +1,42 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="funcA-hero" x1="150" y1="182" x2="404" y2="78" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#30DBFF" stop-opacity="0.82"/>
-      <stop offset="0.5" stop-color="#68C7FF" stop-opacity="0.96"/>
-      <stop offset="0.82" stop-color="#A28FFF" stop-opacity="0.88"/>
-      <stop offset="1" stop-color="#F0B06E" stop-opacity="0.72"/>
+    <linearGradient id="funcA-main" x1="138" y1="192" x2="404" y2="98" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#31DBFF" stop-opacity="0.84"/>
+      <stop offset="0.52" stop-color="#67C7FF" stop-opacity="0.96"/>
+      <stop offset="0.82" stop-color="#A38FFF" stop-opacity="0.88"/>
+      <stop offset="1" stop-color="#F0B16F" stop-opacity="0.72"/>
     </linearGradient>
   </defs>
 
-  <g stroke="#8FB8ED" stroke-opacity="0.22" stroke-width="1" stroke-linecap="round">
-    <path d="M136 56H398"/>
-    <path d="M136 88H398"/>
-    <path d="M136 120H398"/>
-    <path d="M136 152H398"/>
-    <path d="M136 184H398"/>
-    <path d="M168 34V230"/>
-    <path d="M212 34V230"/>
-    <path d="M256 34V230"/>
-    <path d="M300 34V230"/>
-    <path d="M344 34V230"/>
+  <g stroke="#90B9ED" stroke-opacity="0.2" stroke-width="1" stroke-linecap="round">
+    <path d="M140 58H398"/>
+    <path d="M140 90H398"/>
+    <path d="M140 122H398"/>
+    <path d="M140 154H398"/>
+    <path d="M140 186H398"/>
+    <path d="M172 34V230"/>
+    <path d="M216 34V230"/>
+    <path d="M260 34V230"/>
+    <path d="M304 34V230"/>
+    <path d="M348 34V230"/>
   </g>
 
-  <g fill="none" stroke-linecap="round">
-    <path d="M142 204L176 182L208 194L244 168L280 176L320 144L356 154L394 126" stroke="#68D8FF" stroke-opacity="0.42" stroke-width="1.08" stroke-dasharray="4 8"/>
-    <path d="M142 168L176 144L208 156L244 132L280 142L320 112L356 122L394 96" stroke="#A79BFF" stroke-opacity="0.4" stroke-width="1.04" stroke-dasharray="4 8"/>
-    <path d="M136 180C168 152 198 206 232 174C266 142 294 186 328 156C352 134 372 146 402 112" stroke="url(#funcA-hero)" stroke-width="3"/>
-    <path d="M136 134C168 114 198 150 232 136C266 122 296 148 330 136C356 126 376 134 404 104" stroke="#92DAFF" stroke-opacity="0.56" stroke-width="1.96"/>
+  <path d="M136 170C168 132 196 208 228 170C260 132 288 208 320 170C348 138 372 152 404 120" stroke="url(#funcA-main)" stroke-width="3.06" stroke-linecap="round" fill="none"/>
+  <path d="M136 136C168 112 196 152 228 136C260 120 288 148 320 136C348 126 374 132 404 106" stroke="#91D9FF" stroke-opacity="0.58" stroke-width="1.9" stroke-linecap="round" fill="none"/>
+
+  <g stroke="#67D8FF" stroke-opacity="0.42" stroke-width="1.02" stroke-dasharray="4 8" stroke-linecap="round">
+    <path d="M228 170V206"/>
+    <path d="M320 170V206"/>
+    <path d="M196 208V222"/>
+    <path d="M288 208V222"/>
   </g>
 
-  <g fill="#DFF6FF" fill-opacity="0.84">
-    <circle cx="232" cy="174" r="2.8"/>
-    <circle cx="328" cy="156" r="2.8"/>
-    <circle cx="352" cy="134" r="2.8"/>
+  <g fill="#E0F6FF" fill-opacity="0.84">
+    <circle cx="196" cy="208" r="2.7"/>
+    <circle cx="228" cy="170" r="2.7"/>
+    <circle cx="288" cy="208" r="2.7"/>
+    <circle cx="320" cy="170" r="2.7"/>
   </g>
 
-  <path d="M122 128H410" stroke="#90BAEE" stroke-opacity="0.22" stroke-width="1.05"/>
-  <path d="M176 24V236" stroke="#90BAEE" stroke-opacity="0.2" stroke-width="1.05"/>
+  <path d="M128 186H410" stroke="#90BAEE" stroke-opacity="0.24" stroke-width="1.06"/>
 </svg>

@@ -682,15 +682,22 @@
   }
 
   &__tabs {
+    --teacher-tabs-segment-height: 41px;
+    --teacher-tabs-shell-padding-top: 2px;
+
     .MuiTabs-root {
       border-radius: 14px;
-      padding: 2px 5px 0;
+      min-height: calc(
+        var(--teacher-tabs-segment-height) + var(--teacher-tabs-shell-padding-top)
+      );
+      padding: var(--teacher-tabs-shell-padding-top) 5px 0;
       background: var(--surface-soft);
       box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.15);
     }
 
     .MuiTabs-scroller {
       width: 100%;
+      min-height: var(--teacher-tabs-segment-height);
       overflow-x: auto !important;
       scrollbar-width: none;
     }
@@ -704,6 +711,7 @@
       justify-content: flex-start;
       width: max-content;
       min-width: 100%;
+      min-height: var(--teacher-tabs-segment-height);
       gap: 6px;
       align-items: stretch;
     }
@@ -716,7 +724,8 @@
       white-space: nowrap;
       text-transform: none;
       font-weight: 700;
-      min-height: 41px;
+      min-height: var(--teacher-tabs-segment-height);
+      height: var(--teacher-tabs-segment-height);
       border-radius: 11px;
       padding: 7px 14px;
       font-size: 14px;
@@ -731,6 +740,10 @@
     .MuiTab-root.Mui-selected {
       align-self: stretch;
       margin-bottom: 0;
+    }
+
+    .MuiTabs-indicator {
+      display: none;
     }
   }
 
@@ -948,14 +961,23 @@
   }
 
   .teacher-dashboard__tabs {
+    --teacher-tabs-segment-height: 34px;
+
     .MuiTabs-root {
       padding: 2px 4px 0;
+      min-height: calc(var(--teacher-tabs-segment-height) + 2px);
+    }
+
+    .MuiTabs-scroller,
+    .MuiTabs-flexContainer {
+      min-height: var(--teacher-tabs-segment-height);
     }
 
     .MuiTab-root {
       min-width: 0;
       flex: 1;
-      min-height: 34px;
+      min-height: var(--teacher-tabs-segment-height);
+      height: var(--teacher-tabs-segment-height);
       padding: 5px 8px;
       font-size: 13px;
     }

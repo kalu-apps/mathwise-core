@@ -189,13 +189,6 @@
   filter: drop-shadow(0 18px 30px rgba(3, 9, 20, 0.56));
 }
 
-.video-player__draft-nodes circle {
-  fill: color-mix(in srgb, #a6dfff 88%, transparent);
-  stroke: color-mix(in srgb, #40d3ff 38%, transparent);
-  stroke-width: 1.1;
-  opacity: 0.92;
-}
-
 .video-player__draft-axis {
   stroke: color-mix(in srgb, #f4b374 70%, transparent);
   stroke-width: 1.4;

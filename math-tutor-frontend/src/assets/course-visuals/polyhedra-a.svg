@@ -1,47 +1,42 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="polyA-hero" x1="188" y1="34" x2="356" y2="190" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#E5F7FF" stop-opacity="0.9"/>
-      <stop offset="0.55" stop-color="#8ED6FF" stop-opacity="0.62"/>
-      <stop offset="1" stop-color="#8F95FF" stop-opacity="0.44"/>
+    <linearGradient id="polyA-octa" x1="186" y1="34" x2="352" y2="206" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E8F7FF" stop-opacity="0.92"/>
+      <stop offset="0.56" stop-color="#8DD6FF" stop-opacity="0.68"/>
+      <stop offset="1" stop-color="#9896FF" stop-opacity="0.48"/>
     </linearGradient>
-    <linearGradient id="polyA-plane" x1="172" y1="154" x2="350" y2="236" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#9A8CFF" stop-opacity="0.18"/>
-      <stop offset="1" stop-color="#4FDEFF" stop-opacity="0.12"/>
+    <linearGradient id="polyA-section" x1="182" y1="118" x2="356" y2="198" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A18BFF" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#5AD9FF" stop-opacity="0.12"/>
     </linearGradient>
   </defs>
 
-  <g stroke-linecap="round" stroke-width="1" stroke-opacity="0.26" stroke="#89B8EE" stroke-dasharray="4 9">
-    <path d="M22 66L174 38"/>
-    <path d="M28 108L188 78"/>
-    <path d="M196 40L398 92"/>
-    <path d="M186 220L398 188"/>
+  <g stroke="#8AB8EB" stroke-opacity="0.25" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 9">
+    <path d="M20 64L178 38"/>
+    <path d="M26 106L190 78"/>
+    <path d="M206 40L398 88"/>
+    <path d="M188 220L398 188"/>
   </g>
 
-  <polygon points="170,152 326,138 362,210 208,228" fill="url(#polyA-plane)" stroke="#A5BCF8" stroke-opacity="0.5" stroke-width="1.2"/>
+  <polygon points="184,120 352,120 320,186 216,186" fill="url(#polyA-section)" stroke="#A7BFF8" stroke-opacity="0.48" stroke-width="1.1"/>
 
-  <g fill="none" stroke-linejoin="round" stroke-linecap="round">
-    <polygon points="188,34 282,50 264,150 172,134" stroke="url(#polyA-hero)" stroke-width="1.5"/>
-    <polygon points="248,66 342,82 324,182 232,166" stroke="#8FD8FF" stroke-opacity="0.8" stroke-width="1.38"/>
-    <path d="M188 34L248 66M282 50L342 82M264 150L324 182M172 134L232 166" stroke="#CFEFFF" stroke-opacity="0.86" stroke-width="1.22"/>
-    <path d="M188 34L264 150M282 50L172 134M248 66L324 182M342 82L232 166" stroke="#5CD9FF" stroke-opacity="0.72" stroke-width="1.14"/>
-    <path d="M214 96L306 112M202 122L294 138M190 146L282 162" stroke="#F0B873" stroke-opacity="0.56" stroke-width="1.04" stroke-dasharray="3 7"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M268 36L186 120L268 204L352 120Z" stroke="url(#polyA-octa)" stroke-width="1.56"/>
+    <path d="M268 72L220 120L268 168L316 120Z" stroke="#8FD9FF" stroke-opacity="0.84" stroke-width="1.3"/>
+    <path d="M268 36V204M186 120H352" stroke="#D4EEFF" stroke-opacity="0.78" stroke-width="1.18"/>
+    <path d="M220 120L316 120M268 72V168" stroke="#63D8FF" stroke-opacity="0.72" stroke-width="1.08"/>
+    <path d="M186 120L268 72L352 120" stroke="#F0BA75" stroke-opacity="0.56" stroke-width="1.04" stroke-dasharray="3 7"/>
+    <path d="M186 120L268 168L352 120" stroke="#F0BA75" stroke-opacity="0.46" stroke-width="1.02" stroke-dasharray="3 7"/>
   </g>
 
   <g fill="#DDF6FF" fill-opacity="0.88">
-    <circle cx="188" cy="34" r="2.8"/>
-    <circle cx="282" cy="50" r="2.8"/>
-    <circle cx="264" cy="150" r="2.8"/>
-    <circle cx="172" cy="134" r="2.8"/>
-    <circle cx="248" cy="66" r="2.8"/>
-    <circle cx="342" cy="82" r="2.8"/>
-    <circle cx="324" cy="182" r="2.8"/>
-    <circle cx="232" cy="166" r="2.8"/>
-  </g>
-
-  <g fill="none" stroke-linecap="round">
-    <path d="M40 204L186 58L344 72" stroke="#63D9FF" stroke-opacity="0.52" stroke-width="1.06"/>
-    <path d="M54 170L362 136" stroke="#7BC9FF" stroke-opacity="0.42" stroke-width="1"/>
-    <path d="M108 226L216 54L356 70" stroke="#B39CFF" stroke-opacity="0.38" stroke-width="1"/>
+    <circle cx="268" cy="36" r="2.8"/>
+    <circle cx="186" cy="120" r="2.8"/>
+    <circle cx="352" cy="120" r="2.8"/>
+    <circle cx="268" cy="204" r="2.8"/>
+    <circle cx="220" cy="120" r="2.5"/>
+    <circle cx="316" cy="120" r="2.5"/>
+    <circle cx="268" cy="72" r="2.5"/>
+    <circle cx="268" cy="168" r="2.5"/>
   </g>
 </svg>

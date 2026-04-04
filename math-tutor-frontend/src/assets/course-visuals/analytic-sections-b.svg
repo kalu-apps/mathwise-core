@@ -1,17 +1,21 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M164 72L350 114L322 224L136 182L164 72Z" fill="#AD94FF" fill-opacity="0.11" stroke="#C6AEFF" stroke-opacity="0.42" stroke-width="1.18"/>
+  <path d="M286 56L218 160L286 226L354 160L286 56Z" fill="#A894FF" fill-opacity="0.1" stroke="#C5AEFF" stroke-opacity="0.42" stroke-width="1.16"/>
+  <path d="M286 56L286 226" stroke="#CFEAFF" stroke-opacity="0.58" stroke-width="1.2"/>
+  <path d="M218 160H354" stroke="#9CCEF8" stroke-opacity="0.5" stroke-width="1.12"/>
+
+  <polygon points="184,102 392,140 350,218 142,182" fill="#9E8FFF" fill-opacity="0.1" stroke="#C2AAFF" stroke-opacity="0.4" stroke-width="1.12"/>
 
   <g fill="none" stroke-linecap="round">
-    <path d="M122 200C182 140 226 126 278 148C324 168 358 160 404 116" stroke="#66D5FF" stroke-opacity="0.58" stroke-width="1.64"/>
-    <path d="M122 172C178 116 224 98 278 122C324 144 360 138 406 94" stroke="#A498FF" stroke-opacity="0.58" stroke-width="1.74"/>
-    <path d="M198 214C232 160 260 130 298 112C334 96 364 96 396 122" stroke="#D6F1FF" stroke-opacity="0.56" stroke-width="1.46"/>
-    <path d="M194 72C228 126 260 152 298 166C334 180 366 174 398 146" stroke="#8CD9FF" stroke-opacity="0.48" stroke-width="1.28"/>
-    <path d="M110 132H408" stroke="#90BAEE" stroke-opacity="0.34" stroke-width="1.1"/>
-    <path d="M266 34V230" stroke="#90BAEE" stroke-opacity="0.34" stroke-width="1.1"/>
-    <path d="M146 60L390 214" stroke="#6ED6FF" stroke-opacity="0.31" stroke-width="1.04" stroke-dasharray="4 8"/>
+    <path d="M176 188C224 138 252 124 286 118" stroke="#65D6FF" stroke-opacity="0.62" stroke-width="1.78"/>
+    <path d="M286 118C320 112 348 124 396 168" stroke="#65D6FF" stroke-opacity="0.62" stroke-width="1.78"/>
+    <path d="M176 212C226 160 254 148 286 142" stroke="#A498FF" stroke-opacity="0.56" stroke-width="1.56"/>
+    <path d="M286 142C318 136 346 148 396 192" stroke="#A498FF" stroke-opacity="0.56" stroke-width="1.56"/>
+    <path d="M122 132H408" stroke="#90BAEE" stroke-opacity="0.32" stroke-width="1.08"/>
+    <path d="M286 36V232" stroke="#90BAEE" stroke-opacity="0.32" stroke-width="1.08"/>
   </g>
 
-  <circle cx="278" cy="122" r="2.9" fill="#E0F6FF" fill-opacity="0.84"/>
-  <circle cx="324" cy="168" r="2.8" fill="#9FE2FF" fill-opacity="0.82"/>
-  <circle cx="224" cy="122" r="2.8" fill="#B4BFFF" fill-opacity="0.82"/>
+  <g fill="#E0F6FF" fill-opacity="0.84">
+    <circle cx="286" cy="118" r="2.7"/>
+    <circle cx="286" cy="142" r="2.7"/>
+  </g>
 </svg>

@@ -363,17 +363,6 @@ function VideoPlayerContent({
                   />
                 </g>
 
-                <g className="video-player__draft-nodes">
-                  <circle cx="104" cy="92" r="4.5" />
-                  <circle cx="252" cy="86" r="4.5" />
-                  <circle cx="846" cy="352" r="4.5" />
-                  <circle cx="1096" cy="246" r="4.5" />
-                  <circle cx="1184" cy="444" r="4.5" />
-                  <circle cx="744" cy="478" r="4.5" />
-                  <circle cx="468" cy="438" r="4.5" />
-                  <circle cx="264" cy="172" r="4.5" />
-                </g>
-
                 <path
                   className="video-player__draft-axis"
                   d="M734 86L1188 320"
