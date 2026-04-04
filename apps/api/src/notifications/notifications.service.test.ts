@@ -126,14 +126,12 @@ test("notifications: smtp mode sends email and marks outbox item as sent", async
       },
     };
 
-    const service = new NotificationsService(
-      repository as never,
-      () => ({
-        sendMail: async (message) => {
-          sent.push(message as Record<string, unknown>);
-        },
-      })
-    );
+    const service = new NotificationsService(repository as never);
+    service.setSmtpTransportFactoryForTests(() => ({
+      sendMail: async (message) => {
+        sent.push(message as Record<string, unknown>);
+      },
+    }));
     const result = await service.dispatchById("outbox_smtp");
 
     assert.deepEqual(result, { ok: true, delivered: 1 });

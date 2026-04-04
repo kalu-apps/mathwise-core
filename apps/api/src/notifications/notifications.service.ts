@@ -29,12 +29,10 @@ const defaultSmtpTransportFactory: SmtpTransportFactory = (options) =>
 export class NotificationsService implements OnModuleInit {
   private readonly runtimeConfig = getApiRuntimeConfig();
   private readonly logger = new Logger(NotificationsService.name);
+  private smtpTransportFactory: SmtpTransportFactory = defaultSmtpTransportFactory;
   private smtpTransporter: SmtpTransport | null = null;
 
-  constructor(
-    private readonly notificationsRepository: NotificationsRepository,
-    private readonly smtpTransportFactory: SmtpTransportFactory = defaultSmtpTransportFactory
-  ) {}
+  constructor(private readonly notificationsRepository: NotificationsRepository) {}
 
   async onModuleInit() {
     await this.notificationsRepository.ensureSchema();
@@ -84,6 +82,11 @@ export class NotificationsService implements OnModuleInit {
       socketTimeout: this.runtimeConfig.mailSocketTimeoutMs,
     });
     return this.smtpTransporter;
+  }
+
+  setSmtpTransportFactoryForTests(factory: SmtpTransportFactory) {
+    this.smtpTransportFactory = factory;
+    this.smtpTransporter = null;
   }
 
   private async dispatchSmtp(item: NotificationOutboxRecordDto) {
