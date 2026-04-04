@@ -173,7 +173,7 @@ export class AuthService implements OnModuleInit {
       payload: {
         purpose: "magic_link",
         expiresAt: issued.expiresAt,
-        code: this.runtimeConfig.authDebugTokens ? issued.rawCode : undefined,
+        code: issued.rawCode,
       },
     });
     return {
@@ -452,7 +452,7 @@ export class AuthService implements OnModuleInit {
       userId: user.id,
       payload: {
         expiresAt,
-        recoveryCode: this.runtimeConfig.authDebugTokens ? code : undefined,
+        recoveryCode: code,
       },
     });
 

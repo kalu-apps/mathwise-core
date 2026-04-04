@@ -63,6 +63,65 @@ test("runtime config: provider email mode requires EMAIL_PROVIDER_API_KEY", () =
   }
 });
 
+test("runtime config: smtp mode does not require EMAIL_PROVIDER_API_KEY", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.EMAIL_DELIVERY_MODE = "smtp";
+    process.env.EMAIL_SMTP_HOST = "smtp.timeweb.ru";
+    process.env.EMAIL_SMTP_PORT = "465";
+    process.env.EMAIL_SMTP_SECURE = "true";
+    process.env.EMAIL_SMTP_USER = "auth@mathwise.ru";
+    process.env.EMAIL_SMTP_PASS = "secret";
+    process.env.MAIL_FROM = "auth@mathwise.ru";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    delete process.env.EMAIL_PROVIDER_API_KEY;
+
+    const config = getApiRuntimeConfig();
+    assert.equal(config.emailDeliveryMode, "smtp");
+    assert.equal(config.emailProviderApiKey, "");
+    assert.equal(config.emailSmtpHost, "smtp.timeweb.ru");
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("runtime config: smtp mode requires EMAIL_SMTP_HOST", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.EMAIL_DELIVERY_MODE = "smtp";
+    process.env.EMAIL_SMTP_PORT = "465";
+    process.env.EMAIL_SMTP_SECURE = "true";
+    process.env.EMAIL_SMTP_USER = "auth@mathwise.ru";
+    process.env.EMAIL_SMTP_PASS = "secret";
+    process.env.MAIL_FROM = "auth@mathwise.ru";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    delete process.env.EMAIL_SMTP_HOST;
+
+    assert.throws(
+      () => getApiRuntimeConfig(),
+      /Missing required env: EMAIL_SMTP_HOST/
+    );
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
 test("runtime config: stage mode requires WORKBOOK_BOARD_BASE_URL when launch enabled", () => {
   const snapshot = { ...process.env };
   try {

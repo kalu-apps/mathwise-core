@@ -2,7 +2,7 @@ import path from "path";
 
 export type ApiAppEnv = "local" | "preview" | "stage" | "prod";
 export type ApiCookieSameSite = "Lax" | "Strict" | "None";
-export type ApiEmailDeliveryMode = "disabled" | "provider";
+export type ApiEmailDeliveryMode = "disabled" | "provider" | "smtp";
 
 export type ApiRuntimeConfig = {
   port: number;
@@ -44,6 +44,20 @@ export type ApiRuntimeConfig = {
   authRecoveryRateLimitPerHour: number;
   emailDeliveryMode: ApiEmailDeliveryMode;
   emailProviderApiKey: string;
+  emailSmtpHost: string;
+  emailSmtpPort: number;
+  emailSmtpSecure: boolean;
+  emailSmtpUser: string;
+  emailSmtpPass: string;
+  mailFromName: string;
+  mailFrom: string;
+  mailReplyTo: string;
+  mailSubjectPrefix: string;
+  mailAppendStageFooter: boolean;
+  mailConnectTimeoutMs: number;
+  mailSocketTimeoutMs: number;
+  mailBcc: string[];
+  mailDryRun: boolean;
   mediaStorageEnabled: boolean;
   s3Endpoint: string;
   s3Region: string;
@@ -103,8 +117,9 @@ const parseEmailDeliveryMode = (
   const normalized = (raw ?? fallback).trim().toLowerCase();
   if (normalized === "disabled") return "disabled";
   if (normalized === "provider") return "provider";
+  if (normalized === "smtp") return "smtp";
   throw new Error(
-    `[api-runtime] Invalid EMAIL_DELIVERY_MODE value: ${raw}. Allowed: disabled|provider`
+    `[api-runtime] Invalid EMAIL_DELIVERY_MODE value: ${raw}. Allowed: disabled|provider|smtp`
   );
 };
 
@@ -128,6 +143,12 @@ const normalizeOptional = (raw: string | undefined) => {
   const normalized = raw?.trim();
   return normalized && normalized.length > 0 ? normalized : undefined;
 };
+
+const parseCsv = (raw: string | undefined) =>
+  (raw ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
 
 const resolveCoursesSeedSourceFile = (raw: string | undefined) => {
   const explicit = raw?.trim();
@@ -327,6 +348,41 @@ export const getApiRuntimeConfig = (
   if (emailDeliveryMode === "provider" && !emailProviderApiKey) {
     throw new Error("[api-runtime] Missing required env: EMAIL_PROVIDER_API_KEY");
   }
+  const emailSmtpHost =
+    emailDeliveryMode === "smtp"
+      ? ensureRequiredEnv("EMAIL_SMTP_HOST", process.env.EMAIL_SMTP_HOST)
+      : process.env.EMAIL_SMTP_HOST?.trim() || "";
+  const emailSmtpPort = parsePositiveInteger(process.env.EMAIL_SMTP_PORT, 465);
+  const emailSmtpSecure = parseBoolean(process.env.EMAIL_SMTP_SECURE, true);
+  const emailSmtpUser =
+    emailDeliveryMode === "smtp"
+      ? ensureRequiredEnv("EMAIL_SMTP_USER", process.env.EMAIL_SMTP_USER)
+      : process.env.EMAIL_SMTP_USER?.trim() || "";
+  const emailSmtpPass =
+    emailDeliveryMode === "smtp"
+      ? ensureRequiredEnv("EMAIL_SMTP_PASS", process.env.EMAIL_SMTP_PASS)
+      : process.env.EMAIL_SMTP_PASS?.trim() || "";
+  const mailFromName = process.env.MAIL_FROM_NAME?.trim() || "Mathwise";
+  const mailFromRaw = process.env.MAIL_FROM?.trim() || emailSmtpUser;
+  if (emailDeliveryMode === "smtp" && !mailFromRaw) {
+    throw new Error("[api-runtime] Missing required env: MAIL_FROM");
+  }
+  const mailReplyTo = process.env.MAIL_REPLY_TO?.trim() || mailFromRaw;
+  const mailSubjectPrefix = process.env.MAIL_SUBJECT_PREFIX?.trim() || "";
+  const mailAppendStageFooter = parseBoolean(
+    process.env.MAIL_APPEND_STAGE_FOOTER,
+    isStage
+  );
+  const mailConnectTimeoutMs = parsePositiveInteger(
+    process.env.MAIL_CONNECT_TIMEOUT_MS,
+    10_000
+  );
+  const mailSocketTimeoutMs = parsePositiveInteger(
+    process.env.MAIL_SOCKET_TIMEOUT_MS,
+    20_000
+  );
+  const mailBcc = parseCsv(process.env.MAIL_BCC);
+  const mailDryRun = parseBoolean(process.env.MAIL_DRY_RUN, false);
 
   const mediaStorageEnabled = parseBoolean(
     process.env.MEDIA_STORAGE_ENABLED,
@@ -475,6 +531,20 @@ export const getApiRuntimeConfig = (
     ),
     emailDeliveryMode,
     emailProviderApiKey,
+    emailSmtpHost,
+    emailSmtpPort,
+    emailSmtpSecure,
+    emailSmtpUser,
+    emailSmtpPass,
+    mailFromName,
+    mailFrom: mailFromRaw,
+    mailReplyTo,
+    mailSubjectPrefix,
+    mailAppendStageFooter,
+    mailConnectTimeoutMs,
+    mailSocketTimeoutMs,
+    mailBcc,
+    mailDryRun,
     mediaStorageEnabled,
     s3Endpoint,
     s3Region,
