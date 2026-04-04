@@ -42,7 +42,9 @@ export function Header() {
     navigate("/", { replace: true });
   };
 
-  const userDisplayName = user ? formatUserPrimaryName(user) : "";
+  const userDisplayName = user
+    ? (user.lastName?.trim() || formatUserPrimaryName(user))
+    : "";
   const userAvatarInitial = user ? getUserAvatarInitial(user) : "";
 
   return (
