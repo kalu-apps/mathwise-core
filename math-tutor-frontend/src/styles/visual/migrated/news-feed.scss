@@ -152,8 +152,9 @@
 
 .news-feed__create-dialog {
   .MuiDialog-paper {
-    width: min(92vw, 390px);
-    max-width: 390px;
+    width: min(90vw, 360px);
+    max-width: 360px;
+    max-height: min(82vh, 560px);
     border-radius: 18px;
     border: 1px solid color-mix(in srgb, var(--brand-solid) 22%, var(--border-subtle));
     background: linear-gradient(
@@ -168,13 +169,16 @@
 
 .news-feed__create-content {
   display: grid;
-  gap: 12px;
-  padding-top: 6px !important;
+  gap: 10px;
+  padding-top: 4px !important;
+  padding-bottom: 10px !important;
+  max-height: min(56vh, 420px);
+  overflow-y: auto;
 }
 
 .news-feed__compose-fields {
   display: grid;
-  gap: 10px;
+  gap: 9px;
 
   .MuiTextField-root {
     background: transparent;
@@ -234,10 +238,10 @@
   }
 
   .MuiInputBase-inputMultiline {
-    line-height: 1.52;
-    min-height: 124px;
-    padding-top: 12px !important;
-    padding-bottom: 12px !important;
+    line-height: 1.48;
+    min-height: 88px;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
     outline: 0 !important;
     box-shadow: none !important;
   }
@@ -329,7 +333,7 @@
 
 .news-feed__composer-actions--create {
   gap: 6px;
-  margin-top: -2px;
+  margin-top: 0;
 
   .MuiButton-root {
     border-radius: 12px;
@@ -355,13 +359,13 @@
 }
 
 .news-feed__create-actions {
-  padding: 10px 24px 20px !important;
+  padding: 8px 20px 14px !important;
   border-top: 1px solid color-mix(in srgb, var(--border-subtle) 86%, transparent);
 
   .MuiButton-root {
     text-transform: none;
     border-radius: 13px;
-    min-width: 112px;
+    min-width: 104px;
     font-weight: 700;
   }
 }

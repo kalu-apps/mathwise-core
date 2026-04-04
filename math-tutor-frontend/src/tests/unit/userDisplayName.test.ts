@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatUserPrimaryName,
   formatUserShortName,
   getUserAvatarInitial,
 } from "@/shared/lib/userDisplayName";
@@ -50,5 +51,15 @@ describe("user display name formatting", () => {
         email: "teacher.demo@axiom.test",
       })
     ).toBe("T");
+  });
+
+  it("formats header name as full firstName without last-name abbreviation", () => {
+    expect(
+      formatUserPrimaryName({
+        firstName: "Анна Викторовна",
+        lastName: "Калугина",
+        email: "anna@example.com",
+      })
+    ).toBe("Анна Викторовна");
   });
 });

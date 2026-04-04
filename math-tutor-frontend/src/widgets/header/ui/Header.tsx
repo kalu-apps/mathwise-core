@@ -10,7 +10,7 @@ import { useThemeMode } from "@/app/theme/themeModeContext";
 import { t } from "@/shared/i18n";
 import { useAppShellStore } from "@/app/store/appShellStore";
 import {
-  formatUserShortName,
+  formatUserPrimaryName,
   getUserAvatarInitial,
 } from "@/shared/lib/userDisplayName";
 
@@ -42,7 +42,7 @@ export function Header() {
     navigate("/", { replace: true });
   };
 
-  const userDisplayName = user ? formatUserShortName(user) : "";
+  const userDisplayName = user ? formatUserPrimaryName(user) : "";
   const userAvatarInitial = user ? getUserAvatarInitial(user) : "";
 
   return (

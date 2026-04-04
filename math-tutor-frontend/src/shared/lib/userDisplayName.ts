@@ -42,6 +42,14 @@ export const formatUserShortName = (source: UserDisplaySource) => {
   return "Профиль";
 };
 
+export const formatUserPrimaryName = (source: UserDisplaySource) => {
+  const firstName = normalizeWhitespace(source.firstName ?? "");
+  if (firstName) {
+    return firstName;
+  }
+  return formatUserShortName(source);
+};
+
 export const getUserAvatarInitial = (source: UserDisplaySource) => {
   const displayName = formatUserShortName(source).replace(".", "");
   return toUpperInitial(displayName) || "П";

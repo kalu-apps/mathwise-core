@@ -661,7 +661,8 @@ export function NewsFeedPanel({ user }: Props) {
                   setDraft((prev) => ({ ...prev, content: e.target.value }))
                 }
                 multiline
-                minRows={4}
+                minRows={3}
+                maxRows={6}
                 fullWidth
               />
 
