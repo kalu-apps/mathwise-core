@@ -1,6 +1,6 @@
 import { Skeleton } from "@mui/material";
 import { useDelayedLoading } from "@/shared/lib/useDelayedLoading";
-import { BrandLoader } from "./BrandLoader";
+import { AnalyticalSurfaceLoader } from "./AnalyticalSurfaceLoader";
 
 type SectionLoaderProps = {
   className?: string;
@@ -47,7 +47,7 @@ export function SectionLoader({
         ))}
       </div>
       {showRing && showLongWaitRing ? (
-        <BrandLoader size="sm" className="ui-loader__inline-brand" />
+        <AnalyticalSurfaceLoader size="sm" className="ui-loader__inline-analytical" />
       ) : null}
     </div>
   );

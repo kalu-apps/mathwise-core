@@ -1,8 +1,9 @@
 import { useDelayedLoading } from "@/shared/lib/useDelayedLoading";
 import { t } from "@/shared/i18n";
-import { BrandLoader } from "./BrandLoader";
-
-type BrandLoaderSize = "sm" | "md" | "lg";
+import {
+  AnalyticalSurfaceLoader,
+  type AnalyticalSurfaceLoaderSize,
+} from "./AnalyticalSurfaceLoader";
 
 type PageLoaderProps = {
   title?: string;
@@ -11,7 +12,7 @@ type PageLoaderProps = {
   minHeight?: number | string;
   showRingDelayMs?: number;
   showRingMinVisibleMs?: number;
-  loaderSize?: BrandLoaderSize;
+  loaderSize?: AnalyticalSurfaceLoaderSize;
 };
 
 export function PageLoader({
@@ -43,7 +44,7 @@ export function PageLoader({
       aria-label={title}
     >
       <div className="ui-loader__content">
-        <BrandLoader size={loaderSize} visible={showRing} />
+        <AnalyticalSurfaceLoader size={loaderSize} visible={showRing} />
       </div>
     </section>
   );

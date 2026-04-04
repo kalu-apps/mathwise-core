@@ -250,56 +250,94 @@ function VideoPlayerContent({
             <div className="video-player__poster-grid" aria-hidden="true" />
             <div className="video-player__polyhedron-scene" aria-hidden="true">
               <span className="video-player__polyhedron-halo" />
+              <span className="video-player__polyhedron-plane video-player__polyhedron-plane--primary" />
+              <span className="video-player__polyhedron-plane video-player__polyhedron-plane--secondary" />
               <svg
                 className="video-player__polyhedron-svg"
-                viewBox="0 0 240 240"
+                viewBox="0 0 280 220"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <defs>
-                  <linearGradient id="polyhedronFacetA" x1="36" y1="42" x2="197" y2="182">
-                    <stop offset="0%" stopColor="rgba(222, 236, 255, 0.72)" />
-                    <stop offset="100%" stopColor="rgba(127, 190, 235, 0.24)" />
+                  <linearGradient id="polyhedronFacetA" x1="48" y1="24" x2="232" y2="188">
+                    <stop offset="0%" stopColor="rgba(214, 239, 255, 0.84)" />
+                    <stop offset="100%" stopColor="rgba(112, 198, 247, 0.3)" />
                   </linearGradient>
-                  <linearGradient id="polyhedronFacetB" x1="76" y1="88" x2="196" y2="204">
-                    <stop offset="0%" stopColor="rgba(201, 219, 255, 0.56)" />
-                    <stop offset="100%" stopColor="rgba(131, 171, 234, 0.2)" />
+                  <linearGradient id="polyhedronFacetB" x1="88" y1="68" x2="216" y2="188">
+                    <stop offset="0%" stopColor="rgba(188, 222, 255, 0.66)" />
+                    <stop offset="100%" stopColor="rgba(123, 174, 255, 0.22)" />
                   </linearGradient>
-                  <linearGradient id="polyhedronFacetC" x1="48" y1="92" x2="136" y2="212">
-                    <stop offset="0%" stopColor="rgba(185, 226, 234, 0.42)" />
-                    <stop offset="100%" stopColor="rgba(149, 163, 250, 0.14)" />
+                  <linearGradient id="polyhedronFacetC" x1="74" y1="76" x2="176" y2="194">
+                    <stop offset="0%" stopColor="rgba(165, 232, 255, 0.52)" />
+                    <stop offset="100%" stopColor="rgba(139, 147, 247, 0.2)" />
+                  </linearGradient>
+                  <linearGradient id="draftingCurveLine" x1="32" y1="132" x2="248" y2="132">
+                    <stop offset="0%" stopColor="rgba(129, 235, 255, 0.3)" />
+                    <stop offset="52%" stopColor="rgba(180, 224, 255, 0.84)" />
+                    <stop offset="100%" stopColor="rgba(162, 151, 252, 0.34)" />
                   </linearGradient>
                 </defs>
-                <polygon
-                  points="120,34 194,88 162,183 78,183 46,88"
-                  fill="url(#polyhedronFacetA)"
-                  stroke="rgba(205, 225, 255, 0.52)"
-                  strokeWidth="1.35"
+                <path
+                  d="M26 170 H256 M44 190 H236 M40 52 V196 M140 34 V198 M240 58 V196"
+                  stroke="rgba(178, 215, 255, 0.24)"
+                  strokeWidth="1"
+                  strokeDasharray="5 6"
+                  strokeLinecap="round"
+                />
+                <path
+                  className="video-player__polyhedron-curve"
+                  d="M28 146 C72 116, 112 110, 148 122 C184 134, 218 144, 252 126"
+                  stroke="url(#draftingCurveLine)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
                 />
                 <polygon
-                  points="120,62 168,96 148,162 92,162 72,96"
+                  points="70,104 214,86 240,138 100,158"
+                  fill="rgba(122, 203, 255, 0.16)"
+                  stroke="rgba(184, 223, 255, 0.32)"
+                  strokeWidth="1"
+                />
+                <polygon
+                  points="88,84 194,64 218,108 112,128"
+                  fill="rgba(165, 180, 255, 0.13)"
+                  stroke="rgba(193, 207, 255, 0.28)"
+                  strokeWidth="0.9"
+                />
+                <polygon
+                  points="140,24 222,82 186,176 94,176 58,82"
+                  fill="url(#polyhedronFacetA)"
+                  stroke="rgba(209, 231, 255, 0.58)"
+                  strokeWidth="1.4"
+                />
+                <polygon
+                  points="140,56 192,92 170,154 110,154 88,92"
                   fill="url(#polyhedronFacetB)"
-                  stroke="rgba(190, 212, 252, 0.48)"
+                  stroke="rgba(190, 217, 255, 0.52)"
                   strokeWidth="1.1"
                 />
                 <path
-                  d="M120 34V183M46 88L194 88M78 183L120 62L162 183"
-                  stroke="rgba(208, 226, 255, 0.54)"
+                  d="M140 24V176M58 82L222 82M94 176L140 56L186 176"
+                  stroke="rgba(212, 231, 255, 0.58)"
                   strokeWidth="1"
                   strokeLinecap="round"
                 />
                 <path
-                  d="M46 88L92 162M194 88L148 162"
-                  stroke="rgba(164, 210, 237, 0.44)"
+                  d="M58 82L110 154M222 82L170 154"
+                  stroke="rgba(161, 220, 246, 0.5)"
                   strokeWidth="0.9"
                   strokeLinecap="round"
                 />
                 <polygon
-                  points="120,62 148,162 92,162"
+                  points="140,56 170,154 110,154"
                   fill="url(#polyhedronFacetC)"
-                  stroke="rgba(158, 189, 236, 0.42)"
+                  stroke="rgba(159, 191, 241, 0.46)"
                   strokeWidth="0.9"
                 />
+                <circle cx="58" cy="82" r="2.6" fill="rgba(206, 233, 255, 0.72)" />
+                <circle cx="140" cy="24" r="2.6" fill="rgba(200, 228, 255, 0.74)" />
+                <circle cx="222" cy="82" r="2.6" fill="rgba(195, 223, 255, 0.74)" />
+                <circle cx="186" cy="176" r="2.6" fill="rgba(193, 220, 255, 0.72)" />
+                <circle cx="94" cy="176" r="2.6" fill="rgba(193, 220, 255, 0.72)" />
               </svg>
             </div>
             <div className="video-player__poster-backdrop" />

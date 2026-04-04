@@ -31,19 +31,19 @@
   outline: none;
   background:
     radial-gradient(
-      100% 90% at 18% 18%,
-      color-mix(in srgb, var(--accent-strong) 20%, transparent),
-      transparent 48%
+      120% 95% at 14% 14%,
+      color-mix(in srgb, #74b8ff 30%, transparent),
+      transparent 52%
     ),
     radial-gradient(
-      84% 66% at 80% 82%,
-      color-mix(in srgb, var(--brand-violet) 16%, transparent),
-      transparent 62%
+      92% 72% at 84% 84%,
+      color-mix(in srgb, #8f7dff 20%, transparent),
+      transparent 64%
     ),
     linear-gradient(
-      150deg,
-      color-mix(in srgb, #0e1a30 90%, var(--surface-elevated)),
-      color-mix(in srgb, #081019 92%, var(--surface-soft))
+      154deg,
+      color-mix(in srgb, #091428 92%, var(--surface-elevated)),
+      color-mix(in srgb, #071123 94%, var(--surface-soft))
     );
   overflow: hidden;
 }
@@ -59,8 +59,8 @@
   background-image: var(--video-poster-image);
   background-size: cover;
   background-position: center;
-  opacity: 0.22;
-  filter: saturate(0.68) blur(2px);
+  opacity: 0.18;
+  filter: saturate(0.74) blur(2.4px);
   transform: scale(1.04);
 }
 
@@ -89,7 +89,7 @@
       color-mix(in srgb, #88c6dd 8%, transparent) 0 1px,
       transparent 1px 36px
     );
-  opacity: 0.46;
+  opacity: 0.6;
   animation: videoPosterGridDrift 24s linear infinite;
 }
 
@@ -97,35 +97,74 @@
   position: absolute;
   inset: 0;
   z-index: 2;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: none;
+  padding: clamp(14px, 3vw, 24px);
 }
 
 .video-player__polyhedron-halo {
   position: absolute;
-  width: clamp(180px, 38%, 330px);
+  width: clamp(216px, 44%, 378px);
   aspect-ratio: 1 / 1;
   border-radius: 999px;
   background:
     radial-gradient(
       circle,
-      color-mix(in srgb, #cae1ff 28%, transparent) 0%,
-      color-mix(in srgb, #87b2ff 10%, transparent) 52%,
-      transparent 78%
+      color-mix(in srgb, #a7d3ff 36%, transparent) 0%,
+      color-mix(in srgb, #78bcff 14%, transparent) 48%,
+      transparent 76%
     );
-  filter: blur(10px);
-  opacity: 0.84;
-  transform: translateY(8px);
+  filter: blur(12px);
+  opacity: 0.86;
+  transform: translateY(10px);
+}
+
+.video-player__polyhedron-plane {
+  position: absolute;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, #9ec9ff 34%, transparent);
+  background: linear-gradient(
+    148deg,
+    color-mix(in srgb, #9cc5ff 14%, transparent),
+    color-mix(in srgb, #67d2ff 10%, transparent)
+  );
+  backdrop-filter: blur(1px);
+  opacity: 0.62;
+}
+
+.video-player__polyhedron-plane--primary {
+  width: clamp(190px, 36%, 296px);
+  height: clamp(76px, 16%, 120px);
+  transform: translateY(36px) rotate(-10deg);
+}
+
+.video-player__polyhedron-plane--secondary {
+  width: clamp(150px, 30%, 248px);
+  height: clamp(56px, 11%, 88px);
+  border-style: dashed;
+  border-color: color-mix(in srgb, #b5d6ff 30%, transparent);
+  background: linear-gradient(
+    152deg,
+    color-mix(in srgb, #9ca6ff 11%, transparent),
+    color-mix(in srgb, #84c8f7 8%, transparent)
+  );
+  transform: translateY(-12px) rotate(12deg);
 }
 
 .video-player__polyhedron-svg {
-  width: clamp(150px, 28%, 240px);
+  width: clamp(208px, 40%, 342px);
   height: auto;
-  opacity: 0.9;
-  transform-origin: 50% 56%;
-  filter: drop-shadow(0 14px 28px rgba(5, 13, 27, 0.45));
+  opacity: 0.96;
+  transform-origin: 50% 54%;
+  filter: drop-shadow(0 16px 30px rgba(5, 13, 27, 0.48));
   animation: videoPolyhedronFloat 6s ease-in-out infinite;
+}
+
+.video-player__polyhedron-curve {
+  stroke-dasharray: 8 10;
+  animation: videoDraftCurvePulse 4.2s ease-in-out infinite;
 }
 
 .video-player__poster-backdrop {
@@ -135,40 +174,45 @@
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, #04080f 22%, transparent),
-      color-mix(in srgb, #04080f 78%, transparent)
+      color-mix(in srgb, #030912 8%, transparent),
+      color-mix(in srgb, #030912 54%, transparent)
     ),
     radial-gradient(
-      circle at 50% 58%,
-      color-mix(in srgb, #9cc4ff 7%, transparent),
-      transparent 62%
+      circle at 50% 56%,
+      color-mix(in srgb, #94d4ff 10%, transparent),
+      transparent 64%
     );
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(1.5px);
 }
 
 .video-player__poster-content {
   position: relative;
   z-index: 4;
-  width: min(100%, 360px);
+  width: min(100%, 420px);
   position: absolute;
   left: 50%;
   bottom: clamp(14px, 4.2%, 28px);
   transform: translateX(-50%);
   display: grid;
   justify-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface-translucent) 70%, transparent);
-  box-shadow: 0 10px 22px color-mix(in srgb, #03070d 32%, transparent);
-  backdrop-filter: blur(9px);
+  gap: 9px;
+  padding: 0 10px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
   text-align: center;
 }
 
 .video-player__poster-hint {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--card-border) 74%, transparent);
+  background: color-mix(in srgb, var(--surface-translucent) 78%, transparent);
   font-size: 12px;
   line-height: 1.4;
   color: var(--text-secondary);
+  backdrop-filter: blur(8px);
 }
 
 .video-player__poster-hint--error {
@@ -179,43 +223,43 @@
 :root[data-theme="light"] .video-player__poster-shell {
   background:
     radial-gradient(
-      100% 90% at 18% 18%,
-      color-mix(in srgb, var(--accent-strong) 18%, transparent),
-      transparent 50%
+      120% 94% at 15% 14%,
+      color-mix(in srgb, #77bbff 24%, transparent),
+      transparent 54%
     ),
     radial-gradient(
-      84% 66% at 80% 82%,
-      color-mix(in srgb, var(--brand-violet) 12%, transparent),
-      transparent 64%
+      92% 72% at 84% 84%,
+      color-mix(in srgb, #8f7eff 14%, transparent),
+      transparent 66%
     ),
     linear-gradient(
-      150deg,
-      color-mix(in srgb, var(--surface-elevated) 92%, #f6f9ff),
-      color-mix(in srgb, var(--surface-soft) 90%, #dfeaff)
+      154deg,
+      color-mix(in srgb, var(--surface-elevated) 90%, #eef4ff),
+      color-mix(in srgb, var(--surface-soft) 86%, #d6e5ff)
     );
 }
 
 :root[data-theme="light"] .video-player__poster-grid {
-  opacity: 0.4;
+  opacity: 0.54;
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, #f3f7ff 24%, transparent) 0%,
-      color-mix(in srgb, #ceddf7 32%, transparent) 100%
+      color-mix(in srgb, #f5f8ff 14%, transparent) 0%,
+      color-mix(in srgb, #c8daf6 26%, transparent) 100%
     ),
     repeating-linear-gradient(
       0deg,
-      color-mix(in srgb, #8ca7cf 12%, transparent) 0 1px,
+      color-mix(in srgb, #6e95cb 18%, transparent) 0 1px,
       transparent 1px 34px
     ),
     repeating-linear-gradient(
       60deg,
-      color-mix(in srgb, #7ea3cc 10%, transparent) 0 1px,
+      color-mix(in srgb, #6c9ec9 16%, transparent) 0 1px,
       transparent 1px 36px
     ),
     repeating-linear-gradient(
       -60deg,
-      color-mix(in srgb, #83b1c3 9%, transparent) 0 1px,
+      color-mix(in srgb, #6eaec4 14%, transparent) 0 1px,
       transparent 1px 36px
     );
 }
@@ -224,57 +268,56 @@
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, #ffffff 20%, transparent),
-      color-mix(in srgb, #d9e4fb 46%, transparent)
+      color-mix(in srgb, #ffffff 8%, transparent),
+      color-mix(in srgb, #d7e3fa 28%, transparent)
     ),
     radial-gradient(
       circle at 50% 58%,
-      color-mix(in srgb, #b2d2ff 10%, transparent),
+      color-mix(in srgb, #9ec8ff 12%, transparent),
       transparent 64%
     );
 }
 
-:root[data-theme="light"] .video-player__poster-content {
-  background: color-mix(in srgb, var(--surface-elevated) 88%, #ffffff);
-  box-shadow:
-    0 12px 24px color-mix(in srgb, var(--accent-strong) 8%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 70%, transparent);
-}
-
 :root[data-theme="light"] .video-player__poster-hint {
-  color: color-mix(in srgb, var(--text-primary) 74%, transparent);
+  color: color-mix(in srgb, var(--text-primary) 76%, transparent);
+  background: color-mix(in srgb, var(--surface-elevated) 90%, #ffffff);
+  box-shadow: 0 8px 16px color-mix(in srgb, var(--accent-strong) 10%, transparent);
 }
 
 .video-player__poster-action {
-  min-height: 34px;
-  padding: 0 14px;
-  border-radius: 12px;
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1;
-  font-weight: 680;
+  font-weight: 700;
   letter-spacing: 0.015em;
-  color: color-mix(in srgb, var(--text-primary) 92%, #f5f9ff);
+  color: color-mix(in srgb, #f6fbff 92%, var(--text-primary));
   background: linear-gradient(
-    138deg,
-    color-mix(in srgb, var(--accent-strong) 34%, transparent),
-    color-mix(in srgb, var(--brand-violet) 26%, transparent)
+    132deg,
+    color-mix(in srgb, #5d8df0 72%, transparent),
+    color-mix(in srgb, #64b7f0 64%, transparent)
   );
-  border: 0;
-  box-shadow: 0 8px 18px color-mix(in srgb, #09101d 36%, transparent);
-  backdrop-filter: blur(6px);
+  border: 1px solid color-mix(in srgb, #b9d6ff 52%, transparent);
+  box-shadow:
+    0 10px 24px color-mix(in srgb, #050d1a 32%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #dff0ff 52%, transparent);
+  backdrop-filter: blur(4px);
 
   .MuiSvgIcon-root {
-    font-size: 15px;
+    font-size: 16px;
   }
 }
 
 .video-player__poster-shell:hover .video-player__poster-action,
 .video-player__poster-shell:focus-visible .video-player__poster-action {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px color-mix(in srgb, #09101d 42%, transparent);
+  transform: translateY(-1px) scale(1.01);
+  box-shadow:
+    0 12px 26px color-mix(in srgb, #09101d 38%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #e4f4ff 62%, transparent);
 }
 
 .video-player__ratio video {
@@ -354,10 +397,10 @@
 @keyframes videoPolyhedronFloat {
   0%,
   100% {
-    transform: translateY(0) rotate(-2deg);
+    transform: translateY(0) rotate(-2.1deg);
   }
   50% {
-    transform: translateY(-6px) rotate(2deg);
+    transform: translateY(-7px) rotate(2deg);
   }
 }
 
@@ -367,6 +410,18 @@
   }
   100% {
     transform: translate3d(0, -14px, 0);
+  }
+}
+
+@keyframes videoDraftCurvePulse {
+  0%,
+  100% {
+    opacity: 0.56;
+    stroke-dashoffset: 12;
+  }
+  50% {
+    opacity: 0.92;
+    stroke-dashoffset: 2;
   }
 }
 
@@ -382,7 +437,7 @@ body.video-player-restore {
 @media (max-width: 900px) {
   .video-player__poster-content {
     width: calc(100% - 28px);
-    padding: 9px 11px;
+    padding: 0 8px;
   }
 
   .video-player__poster-hint {
@@ -390,19 +445,30 @@ body.video-player-restore {
   }
 
   .video-player__poster-action {
-    min-height: 32px;
-    padding: 0 12px;
-    font-size: 10px;
+    min-height: 34px;
+    padding: 0 14px;
+    font-size: 11px;
   }
 
   .video-player__polyhedron-svg {
-    width: clamp(130px, 38%, 188px);
+    width: clamp(182px, 54%, 264px);
+  }
+
+  .video-player__polyhedron-plane--primary {
+    width: clamp(162px, 56%, 240px);
+    height: clamp(62px, 18%, 94px);
+  }
+
+  .video-player__polyhedron-plane--secondary {
+    width: clamp(136px, 48%, 212px);
+    height: clamp(50px, 13%, 76px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .video-player__poster-grid,
-  .video-player__polyhedron-svg {
+  .video-player__polyhedron-svg,
+  .video-player__polyhedron-curve {
     animation: none !important;
   }
 }

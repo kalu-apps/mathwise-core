@@ -473,9 +473,21 @@
 }
 
 .lesson-editor-dialog__save-overlay-inner {
-  min-width: min(100%, 220px);
-  max-width: min(100%, 340px);
+  width: min(100%, 340px);
+  min-height: clamp(188px, 28vw, 236px);
+  justify-items: center;
   text-align: center;
+}
+
+.lesson-editor-dialog__save-visual {
+  width: 100%;
+  min-height: clamp(110px, 16vw, 150px);
+  display: grid;
+  place-items: center;
+}
+
+.lesson-editor-dialog__signature-loader {
+  --signature-size: clamp(210px, 36vw, 320px);
 }
 
 .lesson-editor-dialog__save-status {
@@ -490,7 +502,7 @@
 .lesson-editor-dialog__save-progress {
   width: min(100%, 300px);
   display: grid;
-  gap: 8px;
+  gap: 7px;
 }
 
 .lesson-editor-dialog__save-progress-bar {
@@ -529,12 +541,12 @@
   letter-spacing: 0.01em;
 }
 
-.lesson-editor-dialog__save-overlay .ui-loader-brand--md {
-  --loader-size: clamp(122px, 22vw, 170px);
+.lesson-editor-dialog__save-overlay .ui-loader-analytical--md {
+  --loader-size: clamp(168px, 26vw, 238px);
 }
 
-.lesson-editor-dialog__save-overlay .ui-loader-brand--sm {
-  --loader-size: clamp(86px, 30vw, 112px);
+.lesson-editor-dialog__save-overlay .ui-loader-analytical--sm {
+  --loader-size: clamp(132px, 48vw, 178px);
 }
 
 @media (max-width: 600px) {

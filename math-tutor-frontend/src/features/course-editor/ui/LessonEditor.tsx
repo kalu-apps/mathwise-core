@@ -35,9 +35,14 @@ import { generateId } from "@/shared/lib/id";
 import { formatLessonDuration, videoSecondsToStoredMinutes } from "@/shared/lib/duration";
 import { t } from "@/shared/i18n";
 import { useActionGuard } from "@/shared/lib/useActionGuard";
+import { useDelayedLoading } from "@/shared/lib/useDelayedLoading";
 import { ApiError } from "@/shared/api/client";
 import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
-import { BrandLoader, ButtonPending } from "@/shared/ui/loading";
+import {
+  AnalyticalSurfaceLoader,
+  ButtonPending,
+  SignatureMathLoader,
+} from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import {
   getOwnedMediaDownloadUrl,
@@ -123,6 +128,8 @@ const PREVIEW_VIDEO_FALLBACK_POSTER = `data:image/svg+xml;utf8,${encodeURICompon
   <path d="M775 392 L875 450 L775 508 Z" fill="#ffffff"/>
 </svg>
 `)}`;
+
+const SIGNATURE_VIDEO_SAVE_DELAY_MS = 1600;
 
 const getVideoDuration = (src: string) =>
   new Promise<number>((resolve, reject) => {
@@ -609,6 +616,13 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
       ? 0
       : Math.max(0, Math.min(100, Math.round(saveVideoProgressPercent)));
   const showSaveProgressLine = saveVideoProgressPercent !== null;
+  const showSignatureMathLoader = useDelayedLoading(
+    isSaving && showSaveProgressLine,
+    {
+      delayMs: SIGNATURE_VIDEO_SAVE_DELAY_MS,
+      minVisibleMs: 420,
+    }
+  );
   const modalLoaderSize = isNarrowModal ? "sm" : "md";
 
   const abortSaveAndClose = () => {
@@ -662,7 +676,16 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
             aria-live="polite"
           >
             <Stack spacing={1.25} alignItems="center" className="lesson-editor-dialog__save-overlay-inner">
-              <BrandLoader size={modalLoaderSize} />
+              <Box className="lesson-editor-dialog__save-visual">
+                {showSignatureMathLoader ? (
+                  <SignatureMathLoader
+                    className="lesson-editor-dialog__signature-loader"
+                    percent={saveProgressPercent}
+                  />
+                ) : (
+                  <AnalyticalSurfaceLoader size={modalLoaderSize} />
+                )}
+              </Box>
               {showSaveProgressLine ? (
                 <Box
                   className="lesson-editor-dialog__save-progress"
@@ -686,6 +709,11 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                   {saveStatusText}
                 </Typography>
               )}
+              {showSignatureMathLoader ? (
+                <Typography className="lesson-editor-dialog__save-status">
+                  Сохраняем видеоурок
+                </Typography>
+              ) : null}
             </Stack>
           </Box>
         ) : null}
