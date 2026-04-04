@@ -1,47 +1,32 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="wire-b-bg" x1="18" y1="12" x2="402" y2="248" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0F2142"/>
-      <stop offset="0.52" stop-color="#1D3B74"/>
-      <stop offset="1" stop-color="#255A8F"/>
-    </linearGradient>
-    <radialGradient id="wire-b-focus" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(210 128) rotate(-10) scale(206 134)">
-      <stop stop-color="#EAF6FF" stop-opacity="0.54"/>
-      <stop offset="0.6" stop-color="#B7D4FF" stop-opacity="0.22"/>
-      <stop offset="1" stop-color="#8FB3E9" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-
-  <rect width="420" height="260" rx="24" fill="url(#wire-b-bg)"/>
-  <rect width="420" height="260" rx="24" fill="url(#wire-b-focus)"/>
-
-  <g stroke="#8EB6EC" stroke-opacity="0.34" stroke-width="1.05" stroke-linecap="round" stroke-dasharray="4 8">
-    <path d="M30 66L186 42"/>
-    <path d="M30 106L204 78"/>
-    <path d="M230 214L390 188"/>
-    <path d="M262 44L390 84"/>
-    <path d="M76 228L132 60"/>
+  <g stroke-linecap="round" stroke-width="1" stroke-opacity="0.24" stroke="#8EB7EC" stroke-dasharray="4 9">
+    <path d="M24 68L184 40"/>
+    <path d="M24 108L202 78"/>
+    <path d="M236 214L398 188"/>
+    <path d="M262 42L398 86"/>
+    <path d="M78 228L134 58"/>
   </g>
 
-  <g transform="translate(56 48)" fill="none" stroke-linejoin="round">
-    <path d="M0 118L84 54L174 60L90 126L0 118Z" stroke="#CAE8FF" stroke-opacity="0.8" stroke-width="1.3"/>
-    <path d="M84 54V2L174 10V60" stroke="#CAE8FF" stroke-opacity="0.8" stroke-width="1.3"/>
-    <path d="M0 118V66L84 2V54" stroke="#CAE8FF" stroke-opacity="0.8" stroke-width="1.3"/>
+  <g transform="translate(52 44)" fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M0 120L90 52L188 60L98 130L0 120Z" stroke="#D1EDFF" stroke-opacity="0.86" stroke-width="1.4"/>
+    <path d="M90 52V0L188 10V60" stroke="#D1EDFF" stroke-opacity="0.82" stroke-width="1.32"/>
+    <path d="M0 120V68L90 0V52" stroke="#D1EDFF" stroke-opacity="0.82" stroke-width="1.32"/>
 
-    <path d="M92 132L176 68L258 74L176 138L92 132Z" stroke="#8ED8FF" stroke-opacity="0.56" stroke-width="1.15"/>
-    <path d="M176 68V16L258 24V74" stroke="#8ED8FF" stroke-opacity="0.54" stroke-width="1.15"/>
-    <path d="M92 132V80L176 16V68" stroke="#8ED8FF" stroke-opacity="0.54" stroke-width="1.15"/>
-
-    <path d="M90 126L92 132M174 60L176 68M174 10L176 16" stroke="#F2C083" stroke-opacity="0.56" stroke-width="1.1" stroke-dasharray="3 7" stroke-linecap="round"/>
+    <path d="M108 138L198 70L286 78L198 146L108 138Z" stroke="#8FD8FF" stroke-opacity="0.66" stroke-width="1.2"/>
+    <path d="M198 70V18L286 26V78" stroke="#8FD8FF" stroke-opacity="0.6" stroke-width="1.16"/>
+    <path d="M108 138V86L198 18V70" stroke="#8FD8FF" stroke-opacity="0.6" stroke-width="1.16"/>
+    <path d="M98 130L108 138M188 60L198 70M188 10L198 18" stroke="#F0B976" stroke-opacity="0.56" stroke-width="1.04" stroke-dasharray="3 7"/>
   </g>
 
-  <g stroke="#67D6FF" stroke-opacity="0.5" stroke-width="1.1" fill="none" stroke-linecap="round">
-    <path d="M44 206L170 52L330 68"/>
-    <path d="M56 170L368 134"/>
-    <path d="M102 226L210 52L350 66"/>
+  <g fill="none" stroke-linecap="round">
+    <path d="M40 206L170 52L332 68" stroke="#64D8FF" stroke-opacity="0.54" stroke-width="1.06"/>
+    <path d="M56 170L368 134" stroke="#79C8FF" stroke-opacity="0.42" stroke-width="1.01"/>
+    <path d="M102 226L212 52L350 66" stroke="#B19CFF" stroke-opacity="0.38" stroke-width="1"/>
   </g>
 
-  <circle cx="252" cy="96" r="3" fill="#D2F1FF" fill-opacity="0.8"/>
-  <circle cx="314" cy="104" r="3" fill="#9ADDFF" fill-opacity="0.78"/>
-  <circle cx="286" cy="152" r="3" fill="#A9C2FF" fill-opacity="0.78"/>
+  <g fill="#DDF6FF" fill-opacity="0.82">
+    <circle cx="252" cy="96" r="2.8"/>
+    <circle cx="314" cy="104" r="2.8"/>
+    <circle cx="286" cy="152" r="2.8"/>
+  </g>
 </svg>

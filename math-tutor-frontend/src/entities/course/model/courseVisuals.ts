@@ -234,20 +234,20 @@ export const buildCourseVisualLayers = (
   const isFeatured = mode === "featured";
 
   const baseGradient = isFeatured
-    ? `linear-gradient(146deg, color-mix(in srgb, ${palette.baseA} 86%, #0e1930) 0%, color-mix(in srgb, ${palette.baseB} 82%, #111f3a) 50%, color-mix(in srgb, ${palette.baseC} 76%, #15274a) 100%)`
-    : `linear-gradient(150deg, color-mix(in srgb, ${palette.baseA} 78%, #132245) 0%, color-mix(in srgb, ${palette.baseB} 74%, #162a4d) 52%, color-mix(in srgb, ${palette.baseC} 68%, #1b3056) 100%)`;
+    ? `linear-gradient(148deg, color-mix(in srgb, ${palette.baseA} 90%, #0b152d) 0%, color-mix(in srgb, ${palette.baseB} 86%, #0f1d39) 50%, color-mix(in srgb, ${palette.baseC} 80%, #132546) 100%)`
+    : `linear-gradient(150deg, color-mix(in srgb, ${palette.baseA} 86%, #0c1730) 0%, color-mix(in srgb, ${palette.baseB} 82%, #11203d) 52%, color-mix(in srgb, ${palette.baseC} 76%, #162949) 100%)`;
 
   const glowGradient = isFeatured
-    ? `radial-gradient(circle at 82% 18%, color-mix(in srgb, ${palette.glowA} 42%, transparent), transparent 56%), radial-gradient(circle at 16% 84%, color-mix(in srgb, ${palette.glowB} 34%, transparent), transparent 60%), radial-gradient(circle at 34% 42%, color-mix(in srgb, ${palette.glowA} 22%, transparent), transparent 72%)`
-    : `radial-gradient(circle at 82% 18%, color-mix(in srgb, ${palette.glowA} 34%, transparent), transparent 56%), radial-gradient(circle at 16% 84%, color-mix(in srgb, ${palette.glowB} 26%, transparent), transparent 60%), radial-gradient(circle at 34% 42%, color-mix(in srgb, ${palette.glowA} 16%, transparent), transparent 72%)`;
+    ? `radial-gradient(circle at 82% 18%, color-mix(in srgb, ${palette.glowA} 40%, transparent), transparent 54%), radial-gradient(circle at 18% 86%, color-mix(in srgb, ${palette.glowB} 34%, transparent), transparent 58%), radial-gradient(circle at 34% 42%, color-mix(in srgb, ${palette.glowA} 24%, transparent), transparent 70%)`
+    : `radial-gradient(circle at 82% 18%, color-mix(in srgb, ${palette.glowA} 36%, transparent), transparent 56%), radial-gradient(circle at 18% 86%, color-mix(in srgb, ${palette.glowB} 28%, transparent), transparent 60%), radial-gradient(circle at 34% 42%, color-mix(in srgb, ${palette.glowA} 18%, transparent), transparent 72%)`;
 
   const shimmerGradient = isFeatured
-    ? `linear-gradient(116deg, transparent 6%, color-mix(in srgb, ${palette.tintA} 26%, transparent) 38%, color-mix(in srgb, ${palette.tintB} 18%, transparent) 56%, transparent 80%)`
-    : `linear-gradient(116deg, transparent 8%, color-mix(in srgb, ${palette.tintA} 20%, transparent) 40%, color-mix(in srgb, ${palette.tintB} 14%, transparent) 58%, transparent 82%)`;
+    ? `linear-gradient(116deg, transparent 8%, color-mix(in srgb, ${palette.tintA} 24%, transparent) 38%, color-mix(in srgb, ${palette.tintB} 18%, transparent) 56%, transparent 80%)`
+    : `linear-gradient(116deg, transparent 10%, color-mix(in srgb, ${palette.tintA} 20%, transparent) 40%, color-mix(in srgb, ${palette.tintB} 14%, transparent) 58%, transparent 82%)`;
 
   const veilGradient = isFeatured
-    ? `radial-gradient(130% 114% at 30% 38%, color-mix(in srgb, ${palette.veilA} 58%, transparent) 0%, color-mix(in srgb, ${palette.veilB} 34%, transparent) 48%, transparent 100%), linear-gradient(170deg, color-mix(in srgb, ${palette.veilB} 18%, transparent) 0%, transparent 74%)`
-    : `radial-gradient(128% 112% at 30% 38%, color-mix(in srgb, ${palette.veilA} 66%, transparent) 0%, color-mix(in srgb, ${palette.veilB} 42%, transparent) 50%, transparent 100%), linear-gradient(170deg, color-mix(in srgb, ${palette.veilB} 24%, transparent) 0%, transparent 74%)`;
+    ? `radial-gradient(128% 112% at 32% 38%, color-mix(in srgb, ${palette.veilA} 38%, transparent) 0%, color-mix(in srgb, ${palette.veilB} 18%, transparent) 46%, transparent 100%), linear-gradient(168deg, color-mix(in srgb, ${palette.veilB} 12%, transparent) 0%, transparent 72%)`
+    : `radial-gradient(128% 112% at 32% 38%, color-mix(in srgb, ${palette.veilA} 42%, transparent) 0%, color-mix(in srgb, ${palette.veilB} 22%, transparent) 48%, transparent 100%), linear-gradient(168deg, color-mix(in srgb, ${palette.veilB} 14%, transparent) 0%, transparent 72%)`;
 
   const sceneAsset = pickSceneBySeed(metadata, mode);
 

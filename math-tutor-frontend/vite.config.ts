@@ -63,13 +63,6 @@ export default defineConfig(() => {
             ) {
               return "vendor-ui";
             }
-            if (
-              id.includes("/jspdf/") ||
-              id.includes("/jszip/") ||
-              id.includes("/html2canvas/")
-            ) {
-              return "vendor-export";
-            }
             if (id.includes("/mathjs/")) {
               return "vendor-math";
             }

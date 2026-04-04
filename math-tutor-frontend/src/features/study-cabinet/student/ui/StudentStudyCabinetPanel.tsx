@@ -23,7 +23,6 @@ import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import SnoozeRoundedIcon from "@mui/icons-material/SnoozeRounded";
 import TipsAndUpdatesRoundedIcon from "@mui/icons-material/TipsAndUpdatesRounded";
 import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
-import { jsPDF } from "jspdf";
 import { getCourseReleaseContent } from "@/entities/course/model/storage";
 import { getLessonsByCourse } from "@/entities/lesson/model/storage";
 import type { Lesson } from "@/entities/lesson/model/types";
@@ -53,6 +52,14 @@ const SELECTED_COURSE_STORAGE_PREFIX = "student-cabinet:selected-course:";
 const TASK_STATE_STORAGE_PREFIX = "student-cabinet:task-state:";
 const RECOMMENDATION_HISTORY_STORAGE_PREFIX = "student-cabinet:last-rec-types:";
 const TASK_SNOOZE_MS = 1000 * 60 * 60 * 18;
+let jsPdfModulePromise: Promise<typeof import("jspdf")> | null = null;
+
+const loadJsPdfModule = () => {
+  if (!jsPdfModulePromise) {
+    jsPdfModulePromise = import("jspdf");
+  }
+  return jsPdfModulePromise;
+};
 
 type ActiveCourseData = {
   courseId: string;
@@ -321,6 +328,8 @@ export function StudentStudyCabinetPanel({
   const [activeCourseData, setActiveCourseData] = useState<ActiveCourseData | null>(null);
   const [courseDetailsLoading, setCourseDetailsLoading] = useState(false);
   const [courseDetailsError, setCourseDetailsError] = useState<string | null>(null);
+  const [reportExporting, setReportExporting] = useState(false);
+  const [reportExportError, setReportExportError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!courses.length) {
@@ -970,52 +979,62 @@ export function StudentStudyCabinetPanel({
     setTaskState((prev) => normalizeCabinetTaskState(unsnoozeCabinetTask(prev, taskId)));
   };
 
-  const downloadReport = () => {
-    const pdf = new jsPDF({ unit: "pt", format: "a4" });
-    let y = 56;
-    pdf.setFontSize(18);
-    pdf.text("Отчёт по обучению", 48, y);
-    y += 26;
-    pdf.setFontSize(11);
-    pdf.text(`Сформировано: ${new Date().toLocaleDateString("ru-RU")}`, 48, y);
-    y += 30;
+  const downloadReport = async () => {
+    if (reportExporting) return;
+    setReportExporting(true);
+    setReportExportError(null);
+    try {
+      const { jsPDF } = await loadJsPdfModule();
+      const pdf = new jsPDF({ unit: "pt", format: "a4" });
+      let y = 56;
+      pdf.setFontSize(18);
+      pdf.text("Отчёт по обучению", 48, y);
+      y += 26;
+      pdf.setFontSize(11);
+      pdf.text(`Сформировано: ${new Date().toLocaleDateString("ru-RU")}`, 48, y);
+      y += 30;
 
-    const reportLines = [
-      `Официальный прогресс: ${courseProgress.percent}%`,
-      `Завершено видео: ${courseProgress.completedVideos}/${courseProgress.totalVideos}`,
-      `Завершено тестов: ${courseProgress.completedTests}/${courseProgress.totalTests}`,
-      `Учебных дней за неделю: ${momentum.learningDays}`,
-      `Учебных сессий за неделю: ${momentum.sessions}`,
-      `Лучший недавний результат: ${qualitySummary.bestRecent}%`,
-    ];
+      const reportLines = [
+        `Официальный прогресс: ${courseProgress.percent}%`,
+        `Завершено видео: ${courseProgress.completedVideos}/${courseProgress.totalVideos}`,
+        `Завершено тестов: ${courseProgress.completedTests}/${courseProgress.totalTests}`,
+        `Учебных дней за неделю: ${momentum.learningDays}`,
+        `Учебных сессий за неделю: ${momentum.sessions}`,
+        `Лучший недавний результат: ${qualitySummary.bestRecent}%`,
+      ];
 
-    reportLines.forEach((line) => {
-      pdf.text(line, 48, y);
-      y += 18;
-    });
+      reportLines.forEach((line) => {
+        pdf.text(line, 48, y);
+        y += 18;
+      });
 
-    y += 10;
-    pdf.setFontSize(13);
-    pdf.text("Следующие шаги", 48, y);
-    y += 20;
-    pdf.setFontSize(11);
-    const focusLines = [
-      nextStep
-        ? `Продолжить: ${nextStep.title}`
-        : "Можно открыть любой урок или тест из активного курса.",
-      qualitySummary.itemsToReview[0]
-        ? `Повторить: ${qualitySummary.itemsToReview[0].title}`
-        : "Сохраните текущий ритм и начните с одного короткого шага.",
-      bookingCta
-        ? bookingCta.title
-        : "Если нужна поддержка, можно записаться на индивидуальное занятие.",
-    ];
-    focusLines.forEach((line) => {
-      pdf.text(line, 48, y);
-      y += 18;
-    });
+      y += 10;
+      pdf.setFontSize(13);
+      pdf.text("Следующие шаги", 48, y);
+      y += 20;
+      pdf.setFontSize(11);
+      const focusLines = [
+        nextStep
+          ? `Продолжить: ${nextStep.title}`
+          : "Можно открыть любой урок или тест из активного курса.",
+        qualitySummary.itemsToReview[0]
+          ? `Повторить: ${qualitySummary.itemsToReview[0].title}`
+          : "Сохраните текущий ритм и начните с одного короткого шага.",
+        bookingCta
+          ? bookingCta.title
+          : "Если нужна поддержка, можно записаться на индивидуальное занятие.",
+      ];
+      focusLines.forEach((line) => {
+        pdf.text(line, 48, y);
+        y += 18;
+      });
 
-    pdf.save("otchet-obucheniya.pdf");
+      pdf.save("otchet-obucheniya.pdf");
+    } catch {
+      setReportExportError("Не удалось сформировать PDF-отчёт. Повторите попытку.");
+    } finally {
+      setReportExporting(false);
+    }
   };
 
   const renderTaskIcon = (kind: TaskKind) => {
@@ -1133,14 +1152,24 @@ export function StudentStudyCabinetPanel({
                 <Tooltip title="Скачать краткий PDF-отчёт">
                   <IconButton
                     className="study-cabinet-panel__student-icon-action"
-                    onClick={downloadReport}
+                    onClick={() => {
+                      void downloadReport();
+                    }}
                     aria-label="Скачать PDF-отчёт"
+                    disabled={reportExporting}
                   >
-                    <DownloadRoundedIcon fontSize="small" />
+                    {reportExporting ? (
+                      <CircularProgress size={16} thickness={5} />
+                    ) : (
+                      <DownloadRoundedIcon fontSize="small" />
+                    )}
                   </IconButton>
                 </Tooltip>
               </div>
             </div>
+            {reportExportError ? (
+              <div className="study-cabinet-panel__student-inline-error">{reportExportError}</div>
+            ) : null}
             <div className="study-cabinet-panel__hero-nav study-cabinet-panel__student-hero-nav">
               <Button
                 className="study-cabinet-panel__hero-btn study-cabinet-panel__hero-btn--chat"

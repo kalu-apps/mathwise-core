@@ -1,48 +1,31 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="wire-a-bg" x1="20" y1="12" x2="400" y2="250" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#102244"/>
-      <stop offset="0.5" stop-color="#1C3A72"/>
-      <stop offset="1" stop-color="#21558A"/>
-    </linearGradient>
-    <radialGradient id="wire-a-focus" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(146 134) rotate(-8) scale(196 128)">
-      <stop stop-color="#E6F4FF" stop-opacity="0.52"/>
-      <stop offset="0.62" stop-color="#B2D0FF" stop-opacity="0.2"/>
-      <stop offset="1" stop-color="#93B7EC" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-
-  <rect width="420" height="260" rx="24" fill="url(#wire-a-bg)"/>
-  <rect width="420" height="260" rx="24" fill="url(#wire-a-focus)"/>
-
-  <g stroke="#92B9EE" stroke-opacity="0.34" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 8">
-    <path d="M28 74H214"/>
-    <path d="M28 112H228"/>
-    <path d="M250 48L388 90"/>
-    <path d="M234 214L392 188"/>
-    <path d="M86 226L146 58"/>
+  <g stroke-linecap="round" stroke-width="1" stroke-opacity="0.24" stroke="#8EB8EC" stroke-dasharray="4 9">
+    <path d="M20 76H198"/>
+    <path d="M20 114H214"/>
+    <path d="M242 46L398 92"/>
+    <path d="M222 214L398 188"/>
+    <path d="M84 228L146 56"/>
   </g>
 
-  <g stroke="#CBE8FF" stroke-opacity="0.84" stroke-width="1.35" fill="none" stroke-linejoin="round" transform="translate(170 46)">
-    <path d="M0 112L96 36L188 46L92 122L0 112Z"/>
-    <path d="M96 36V-4L188 8V46"/>
-    <path d="M0 112V72L96 -4V36"/>
-    <path d="M92 122V84L188 8V46"/>
-
-    <path d="M20 126L112 52L202 64L110 136L20 126Z" stroke="#8ED8FF" stroke-opacity="0.56"/>
-    <path d="M112 52V14L202 24V64" stroke="#8ED8FF" stroke-opacity="0.52"/>
-    <path d="M20 126V88L112 14V52" stroke="#8ED8FF" stroke-opacity="0.52"/>
-
-    <path d="M92 122L110 136M96 36L112 52M188 46L202 64M188 8L202 24" stroke="#F2BE7E" stroke-opacity="0.54" stroke-dasharray="3 7" stroke-linecap="round"/>
+  <g transform="translate(168 42)" fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M0 118L98 40L194 50L96 128L0 118Z" stroke="#D3EEFF" stroke-opacity="0.88" stroke-width="1.42"/>
+    <path d="M98 40V-4L194 8V50" stroke="#D3EEFF" stroke-opacity="0.84" stroke-width="1.34"/>
+    <path d="M0 118V74L98 -4V40" stroke="#D3EEFF" stroke-opacity="0.84" stroke-width="1.34"/>
+    <path d="M94 132L192 56L286 64L190 140L94 132Z" stroke="#8DD8FF" stroke-opacity="0.68" stroke-width="1.2"/>
+    <path d="M192 56V12L286 22V64" stroke="#8DD8FF" stroke-opacity="0.62" stroke-width="1.16"/>
+    <path d="M94 132V90L192 12V56" stroke="#8DD8FF" stroke-opacity="0.62" stroke-width="1.16"/>
+    <path d="M96 128L98 132M194 50L192 56M194 8L192 12" stroke="#F0B976" stroke-opacity="0.56" stroke-width="1.04" stroke-dasharray="3 7"/>
   </g>
 
-  <g stroke="#69D4FF" stroke-opacity="0.54" stroke-width="1.1" fill="none" stroke-linecap="round">
-    <path d="M40 206L174 58L338 76"/>
-    <path d="M54 170L366 138"/>
-    <path d="M102 228L212 54L352 68"/>
+  <g fill="none" stroke-linecap="round">
+    <path d="M38 206L176 58L344 74" stroke="#64D8FF" stroke-opacity="0.56" stroke-width="1.08"/>
+    <path d="M52 170L370 136" stroke="#7BC9FF" stroke-opacity="0.44" stroke-width="1.02"/>
+    <path d="M104 228L214 54L356 68" stroke="#AE9BFF" stroke-opacity="0.4" stroke-width="1"/>
   </g>
 
-  <circle cx="266" cy="94" r="3" fill="#CEF0FF" fill-opacity="0.8"/>
-  <circle cx="314" cy="108" r="3" fill="#99DDFF" fill-opacity="0.78"/>
-  <circle cx="286" cy="156" r="3" fill="#AABFFF" fill-opacity="0.8"/>
+  <g fill="#DCF6FF" fill-opacity="0.84">
+    <circle cx="266" cy="94" r="2.8"/>
+    <circle cx="316" cy="108" r="2.8"/>
+    <circle cx="286" cy="156" r="2.8"/>
+  </g>
 </svg>

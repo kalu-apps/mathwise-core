@@ -20,6 +20,8 @@ export function CourseVisualBackground({
 }: Props) {
   const metadata = resolveCourseVisualMetadata(course);
   const layers = buildCourseVisualLayers(metadata, mode);
+  const styleClass = `course-visual-bg--style-${metadata.visualStyle}`;
+  const variantClass = `course-visual-bg--variant-${metadata.visualVariant % 2}`;
   const style = {
     "--course-visual-base": layers.baseGradient,
     "--course-visual-pattern": layers.patternImage,
@@ -30,7 +32,13 @@ export function CourseVisualBackground({
 
   return (
     <div
-      className={cn("course-visual-bg", `course-visual-bg--${mode}`, className)}
+      className={cn(
+        "course-visual-bg",
+        `course-visual-bg--${mode}`,
+        styleClass,
+        variantClass,
+        className
+      )}
       style={style}
       aria-hidden="true"
     >
@@ -39,6 +47,7 @@ export function CourseVisualBackground({
       <span className="course-visual-bg__layer course-visual-bg__layer--glow" />
       <span className="course-visual-bg__layer course-visual-bg__layer--shimmer" />
       <span className="course-visual-bg__layer course-visual-bg__layer--veil" />
+      <span className="course-visual-bg__layer course-visual-bg__layer--readability" />
     </div>
   );
 }

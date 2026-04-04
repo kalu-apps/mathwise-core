@@ -1,39 +1,26 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="analytic-a-bg" x1="18" y1="12" x2="402" y2="248" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#102143"/>
-      <stop offset="0.5" stop-color="#203B74"/>
-      <stop offset="1" stop-color="#245C8F"/>
-    </linearGradient>
-    <radialGradient id="analytic-a-focus" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(164 128) rotate(-8) scale(198 130)">
-      <stop stop-color="#E9F5FF" stop-opacity="0.52"/>
-      <stop offset="0.6" stop-color="#B6D2FF" stop-opacity="0.2"/>
-      <stop offset="1" stop-color="#93B8EA" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="analytic-a-section" x1="104" y1="64" x2="340" y2="190" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#D6F1FF" stop-opacity="0.74"/>
-      <stop offset="0.58" stop-color="#8DD3FF" stop-opacity="0.42"/>
-      <stop offset="1" stop-color="#A58FFF" stop-opacity="0.34"/>
+    <linearGradient id="anaA-section" x1="184" y1="70" x2="396" y2="204" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#DFF5FF" stop-opacity="0.76"/>
+      <stop offset="0.58" stop-color="#8ED7FF" stop-opacity="0.54"/>
+      <stop offset="1" stop-color="#A08FFF" stop-opacity="0.42"/>
     </linearGradient>
   </defs>
 
-  <rect width="420" height="260" rx="24" fill="url(#analytic-a-bg)"/>
-  <rect width="420" height="260" rx="24" fill="url(#analytic-a-focus)"/>
+  <path d="M176 66L348 112L306 222L134 176L176 66Z" fill="#A18FFF" fill-opacity="0.12" stroke="#C2ABFF" stroke-opacity="0.44" stroke-width="1.2"/>
+  <ellipse cx="274" cy="146" rx="116" ry="46" stroke="url(#anaA-section)" stroke-width="2.2"/>
+  <ellipse cx="274" cy="146" rx="74" ry="26" stroke="#89D8FF" stroke-opacity="0.62" stroke-width="1.48"/>
 
-  <path d="M92 58L330 126L284 214L48 146L92 58Z" fill="#A98DFF" fill-opacity="0.12" stroke="#C5A9FF" stroke-opacity="0.42" stroke-width="1.2"/>
-  <ellipse cx="220" cy="138" rx="128" ry="52" stroke="url(#analytic-a-section)" stroke-width="2.3"/>
-  <ellipse cx="220" cy="138" rx="82" ry="30" stroke="#8CD7FF" stroke-opacity="0.56" stroke-width="1.5"/>
-
-  <g stroke-linecap="round" fill="none">
-    <path d="M38 138H386" stroke="#90B8ED" stroke-opacity="0.36" stroke-width="1.15"/>
-    <path d="M220 34V228" stroke="#90B8ED" stroke-opacity="0.34" stroke-width="1.15"/>
-    <path d="M78 70L350 206" stroke="#6CD5FF" stroke-opacity="0.32" stroke-width="1.05" stroke-dasharray="4 8"/>
-    <path d="M76 206L346 70" stroke="#F1BF82" stroke-opacity="0.34" stroke-width="1.05" stroke-dasharray="4 8"/>
-    <path d="M120 82C170 120 268 118 320 82" stroke="#86D8FF" stroke-opacity="0.52" stroke-width="1.4"/>
-    <path d="M120 194C170 158 268 156 320 194" stroke="#A69AFF" stroke-opacity="0.5" stroke-width="1.4"/>
+  <g fill="none" stroke-linecap="round">
+    <path d="M122 146H406" stroke="#90BAEE" stroke-opacity="0.34" stroke-width="1.12"/>
+    <path d="M274 40V230" stroke="#90BAEE" stroke-opacity="0.34" stroke-width="1.12"/>
+    <path d="M148 82L390 212" stroke="#68D7FF" stroke-opacity="0.32" stroke-width="1.04" stroke-dasharray="4 8"/>
+    <path d="M144 214L384 86" stroke="#F0BF82" stroke-opacity="0.34" stroke-width="1.04" stroke-dasharray="4 8"/>
+    <path d="M186 96C226 126 324 126 366 96" stroke="#84D9FF" stroke-opacity="0.56" stroke-width="1.36"/>
+    <path d="M186 194C226 164 324 164 366 194" stroke="#A599FF" stroke-opacity="0.52" stroke-width="1.32"/>
   </g>
 
-  <circle cx="220" cy="138" r="3.4" fill="#DCF5FF" fill-opacity="0.84"/>
-  <circle cx="160" cy="108" r="3" fill="#9FE3FF" fill-opacity="0.8"/>
-  <circle cx="282" cy="168" r="3" fill="#B2BFFF" fill-opacity="0.82"/>
+  <circle cx="274" cy="146" r="3" fill="#DEF5FF" fill-opacity="0.84"/>
+  <circle cx="220" cy="120" r="2.8" fill="#A0E2FF" fill-opacity="0.8"/>
+  <circle cx="328" cy="172" r="2.8" fill="#B3BEFF" fill-opacity="0.82"/>
 </svg>
