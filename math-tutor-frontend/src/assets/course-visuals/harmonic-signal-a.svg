@@ -1,35 +1,42 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="harm-a-bg" x1="18" y1="10" x2="402" y2="248" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#EFF5FF"/>
-      <stop offset="0.52" stop-color="#E2EBFF"/>
-      <stop offset="1" stop-color="#D7E3F8"/>
+    <linearGradient id="harm-a-bg" x1="18" y1="12" x2="402" y2="248" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#102143"/>
+      <stop offset="0.5" stop-color="#203B74"/>
+      <stop offset="1" stop-color="#255D90"/>
+    </linearGradient>
+    <radialGradient id="harm-a-focus" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(170 130) rotate(-8) scale(206 132)">
+      <stop stop-color="#EAF6FF" stop-opacity="0.5"/>
+      <stop offset="0.6" stop-color="#B9D4FF" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#94B8EA" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="harm-a-hero" x1="16" y1="172" x2="404" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#37DCFF" stop-opacity="0.8"/>
+      <stop offset="0.48" stop-color="#67C4FF" stop-opacity="0.94"/>
+      <stop offset="0.8" stop-color="#A58FFF" stop-opacity="0.84"/>
+      <stop offset="1" stop-color="#F1B172" stop-opacity="0.72"/>
     </linearGradient>
   </defs>
+
   <rect width="420" height="260" rx="24" fill="url(#harm-a-bg)"/>
+  <rect width="420" height="260" rx="24" fill="url(#harm-a-focus)"/>
 
-  <g fill="none" stroke-linecap="round">
-    <path d="M16 154C46 132 74 170 104 148C132 128 160 176 190 152C218 132 248 168 278 146C306 126 338 156 404 116" stroke="#647BCF" stroke-opacity="0.56" stroke-width="1.95"/>
-    <path d="M16 130C44 114 72 144 102 128C132 112 160 144 190 126C220 108 248 140 278 124C308 108 338 128 404 98" stroke="#67B9D8" stroke-opacity="0.52" stroke-width="1.7"/>
-    <path d="M16 178C46 156 74 198 104 174C132 154 162 206 192 180C222 156 252 194 282 168C312 144 340 170 404 134" stroke="#8BA3E8" stroke-opacity="0.4" stroke-width="1.5"/>
+  <g stroke="#8FB8ED" stroke-opacity="0.28" stroke-width="1" stroke-linecap="round">
+    <path d="M30 74H390"/>
+    <path d="M30 108H390"/>
+    <path d="M30 142H390"/>
+    <path d="M30 176H390"/>
+    <path d="M30 210H390"/>
   </g>
 
-  <g fill="#64B8D8" fill-opacity="0.3">
-    <rect x="54" y="186" width="10" height="42" rx="3"/>
-    <rect x="98" y="168" width="10" height="60" rx="3"/>
-    <rect x="142" y="194" width="10" height="34" rx="3"/>
-    <rect x="186" y="154" width="10" height="74" rx="3"/>
-    <rect x="230" y="176" width="10" height="52" rx="3"/>
-    <rect x="274" y="160" width="10" height="68" rx="3"/>
-    <rect x="318" y="184" width="10" height="44" rx="3"/>
-  </g>
+  <path d="M14 164C46 142 74 188 106 164C136 142 164 186 196 162C226 140 254 182 286 158C318 136 346 168 406 124" stroke="url(#harm-a-hero)" stroke-width="2.9" stroke-linecap="round"/>
+  <path d="M14 132C44 114 74 148 106 134C138 120 166 148 198 136C230 124 258 146 290 136C322 124 350 136 406 104" stroke="#92D8FF" stroke-opacity="0.44" stroke-width="1.9" stroke-linecap="round"/>
+  <path d="M14 190C46 168 76 212 108 188C140 166 170 212 202 188C234 166 264 206 296 182C328 160 354 182 406 146" stroke="#A69AFF" stroke-opacity="0.44" stroke-width="1.65" stroke-linecap="round"/>
 
-  <g stroke="#637ACF" stroke-opacity="0.28" stroke-width="1">
-    <path d="M34 72H388"/>
-    <path d="M34 104H388"/>
-    <path d="M34 136H388"/>
-    <path d="M34 168H388"/>
-    <path d="M34 200H388"/>
-  </g>
+  <path d="M36 196C100 146 156 146 220 178C282 210 334 198 388 162" stroke="#7CD7FF" stroke-opacity="0.3" stroke-width="1" stroke-dasharray="4 8" stroke-linecap="round"/>
+
+  <circle cx="106" cy="164" r="3" fill="#DDF5FF" fill-opacity="0.82"/>
+  <circle cx="196" cy="162" r="3" fill="#A5E2FF" fill-opacity="0.8"/>
+  <circle cx="286" cy="158" r="3" fill="#B3C0FF" fill-opacity="0.82"/>
+  <circle cx="346" cy="168" r="3" fill="#F0BC79" fill-opacity="0.82"/>
 </svg>
-

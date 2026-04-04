@@ -20,39 +20,40 @@
     background-repeat: no-repeat;
     background-size: cover;
     background-position: center;
-    opacity: 0.94;
-    mix-blend-mode: multiply;
+    opacity: 1;
+    mix-blend-mode: normal;
+    filter: saturate(1.08) contrast(1.08);
     transform: scale(1.01);
     transform-origin: center;
   }
 
   &__layer--glow {
     background: var(--course-visual-glow);
-    opacity: 0.78;
+    opacity: 0.88;
   }
 
   &__layer--shimmer {
     background: var(--course-visual-shimmer);
-    opacity: 0.36;
+    opacity: 0.46;
     mix-blend-mode: soft-light;
   }
 
   &__layer--veil {
     background: var(--course-visual-veil);
-    opacity: 0.9;
+    opacity: 0.56;
   }
 
   &--featured {
     .course-visual-bg__layer--pattern {
-      opacity: 0.98;
+      opacity: 1;
     }
 
     .course-visual-bg__layer--shimmer {
-      opacity: 0.44;
+      opacity: 0.54;
     }
 
     .course-visual-bg__layer--veil {
-      opacity: 0.82;
+      opacity: 0.44;
     }
   }
 }

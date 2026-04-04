@@ -1,29 +1,37 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="topo-a-bg" x1="24" y1="8" x2="398" y2="250" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#EFF5FF"/>
-      <stop offset="0.54" stop-color="#E1EBFF"/>
-      <stop offset="1" stop-color="#D8E4F8"/>
+    <linearGradient id="topo-a-bg" x1="18" y1="12" x2="402" y2="248" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#102144"/>
+      <stop offset="0.52" stop-color="#223D75"/>
+      <stop offset="1" stop-color="#295F90"/>
     </linearGradient>
-    <linearGradient id="topo-a-ribbon" x1="86" y1="72" x2="350" y2="196" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F8FCFF" stop-opacity="0.76"/>
-      <stop offset="0.52" stop-color="#B7D3F5" stop-opacity="0.44"/>
-      <stop offset="1" stop-color="#77B8DC" stop-opacity="0.38"/>
+    <radialGradient id="topo-a-focus" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(170 132) rotate(-10) scale(204 132)">
+      <stop stop-color="#EAF6FF" stop-opacity="0.5"/>
+      <stop offset="0.6" stop-color="#B8D3FF" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#93B8EA" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="topo-a-ribbon" x1="48" y1="154" x2="386" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E7F7FF" stop-opacity="0.68"/>
+      <stop offset="0.56" stop-color="#8FD4FF" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#A58FFF" stop-opacity="0.3"/>
     </linearGradient>
   </defs>
-  <rect width="420" height="260" rx="24" fill="url(#topo-a-bg)"/>
 
-  <path d="M48 142C94 72 174 56 242 94C290 120 332 120 382 90L374 138C334 160 292 168 246 150C176 122 108 130 56 188L48 142Z" fill="url(#topo-a-ribbon)"/>
-  <path d="M58 194C116 124 182 116 246 142C292 160 334 152 382 122L374 176C334 196 292 204 246 190C178 166 118 170 66 220L58 194Z" fill="#FFFFFF" fill-opacity="0.24"/>
+  <rect width="420" height="260" rx="24" fill="url(#topo-a-bg)"/>
+  <rect width="420" height="260" rx="24" fill="url(#topo-a-focus)"/>
+
+  <path d="M36 174C88 94 168 78 240 112C292 136 332 136 388 94L382 130C334 164 292 174 242 156C170 130 106 142 52 206L36 174Z" fill="url(#topo-a-ribbon)"/>
+  <path d="M52 208C106 144 170 138 242 164C292 182 336 182 390 144L384 182C336 210 292 220 240 202C168 178 110 184 66 234L52 208Z" fill="#FFFFFF" fill-opacity="0.15"/>
 
   <g fill="none" stroke-linecap="round">
-    <path d="M44 138C90 70 172 54 242 92C290 118 332 118 386 84" stroke="#647CD0" stroke-opacity="0.48" stroke-width="1.7"/>
-    <path d="M52 188C108 120 180 112 246 140C292 158 332 150 386 116" stroke="#66B8D8" stroke-opacity="0.46" stroke-width="1.6"/>
-    <path d="M52 214C114 150 178 148 248 172C292 188 332 184 388 154" stroke="#6278CB" stroke-opacity="0.36" stroke-width="1.25"/>
-    <path d="M72 94C114 114 160 122 214 120C262 118 314 106 352 86" stroke="#66B9D8" stroke-opacity="0.26" stroke-width="1.1"/>
+    <path d="M34 170C88 92 168 74 242 110C294 134 334 134 392 88" stroke="#D2EEFF" stroke-opacity="0.62" stroke-width="1.65"/>
+    <path d="M52 206C108 142 170 136 242 162C292 180 336 180 392 138" stroke="#6CD6FF" stroke-opacity="0.56" stroke-width="1.52"/>
+    <path d="M68 232C122 176 176 176 244 198C290 212 336 214 394 182" stroke="#A69AFF" stroke-opacity="0.42" stroke-width="1.2"/>
+    <path d="M92 152C126 164 164 168 206 166C252 164 296 154 332 136" stroke="#7CD8FF" stroke-opacity="0.32" stroke-width="1" stroke-dasharray="3 7"/>
+    <path d="M94 112C128 122 166 124 208 122C252 120 298 110 334 92" stroke="#F0BE80" stroke-opacity="0.28" stroke-width="1" stroke-dasharray="3 7"/>
   </g>
 
-  <circle cx="166" cy="130" r="3.1" fill="#637AD0" fill-opacity="0.56"/>
-  <circle cx="292" cy="154" r="2.8" fill="#66B8D8" fill-opacity="0.62"/>
+  <circle cx="166" cy="150" r="3" fill="#DDF5FF" fill-opacity="0.8"/>
+  <circle cx="292" cy="182" r="3" fill="#9EE2FF" fill-opacity="0.8"/>
+  <circle cx="246" cy="162" r="2.8" fill="#B1BEFF" fill-opacity="0.8"/>
 </svg>
-

@@ -15,9 +15,9 @@ import harmonicSignalB from "@/assets/course-visuals/harmonic-signal-b.svg";
 const CANONICAL_VISUAL_STYLES = [
   "polyhedra",
   "function-fields",
-  "analytic-sections",
   "projection-wireframe",
   "topology",
+  "analytic-sections",
   "signal-waves",
 ] as const;
 
@@ -72,59 +72,59 @@ const MAX_VISUAL_VARIANT = 255;
 
 const PALETTE_MAP: Record<CourseVisualPalette, PaletteSpec> = {
   "indigo-mineral": {
-    baseA: "#4E64C9",
-    baseB: "#7A72D6",
-    baseC: "#4AB4D2",
-    glowA: "#88A4FF",
-    glowB: "#6AD3E8",
-    tintA: "#4D63C8",
-    tintB: "#51B0D2",
-    veilA: "#F6F9FF",
-    veilB: "#E8EEFC",
+    baseA: "#1D2A5A",
+    baseB: "#2B4782",
+    baseC: "#2C6EA0",
+    glowA: "#6AA7FF",
+    glowB: "#58D6FF",
+    tintA: "#4D79D8",
+    tintB: "#4BC7F0",
+    veilA: "#E8F3FF",
+    veilB: "#C7DBFF",
   },
   "cobalt-cyan": {
-    baseA: "#3466B8",
-    baseB: "#4E83CD",
-    baseC: "#42C1DB",
-    glowA: "#72A6F2",
-    glowB: "#6ED8E9",
-    tintA: "#3D75C1",
-    tintB: "#53C4DA",
-    veilA: "#F6FAFF",
-    veilB: "#E8F2FE",
+    baseA: "#162A53",
+    baseB: "#214A84",
+    baseC: "#2575A6",
+    glowA: "#5E9EFF",
+    glowB: "#49D8F5",
+    tintA: "#3D77D4",
+    tintB: "#45CBEA",
+    veilA: "#E9F4FF",
+    veilB: "#C5DDFE",
   },
   "violet-mint": {
-    baseA: "#6556C8",
-    baseB: "#8A6FD4",
-    baseC: "#42C9A9",
-    glowA: "#9B90F5",
-    glowB: "#75DEBE",
-    tintA: "#6B5FC9",
-    tintB: "#4CC9AE",
-    veilA: "#F8F9FF",
-    veilB: "#EAF2FF",
+    baseA: "#2A245C",
+    baseB: "#3E3B88",
+    baseC: "#2A7B85",
+    glowA: "#9C8DFF",
+    glowB: "#58E1C3",
+    tintA: "#6B66D7",
+    tintB: "#43D3B0",
+    veilA: "#EFF0FF",
+    veilB: "#D1DAFF",
   },
   "graphite-aurora": {
-    baseA: "#41567D",
-    baseB: "#5A6F92",
-    baseC: "#58A7D8",
-    glowA: "#84AEE7",
-    glowB: "#7AC4ED",
-    tintA: "#4A638E",
-    tintB: "#65B0DA",
-    veilA: "#F5F8FF",
-    veilB: "#E6EEF9",
+    baseA: "#1D2A45",
+    baseB: "#314867",
+    baseC: "#2B6F97",
+    glowA: "#78AEEB",
+    glowB: "#5BC8F4",
+    tintA: "#4D78B5",
+    tintB: "#49B9E5",
+    veilA: "#E7F0FF",
+    veilB: "#C6D8F2",
   },
   "slate-gold": {
-    baseA: "#506188",
-    baseB: "#7581A8",
-    baseC: "#C1A064",
-    glowA: "#A6B5E8",
-    glowB: "#DDC18D",
-    tintA: "#5D6F98",
-    tintB: "#C9A96A",
-    veilA: "#F8F7FF",
-    veilB: "#ECEFF9",
+    baseA: "#2A314B",
+    baseB: "#3A4E70",
+    baseC: "#6A6A76",
+    glowA: "#9DB3F2",
+    glowB: "#E8C57A",
+    tintA: "#6F83B4",
+    tintB: "#D8B26A",
+    veilA: "#F0EEFF",
+    veilB: "#D6D8EC",
   },
 };
 
@@ -234,20 +234,20 @@ export const buildCourseVisualLayers = (
   const isFeatured = mode === "featured";
 
   const baseGradient = isFeatured
-    ? `linear-gradient(146deg, color-mix(in srgb, ${palette.baseA} 54%, white) 0%, color-mix(in srgb, ${palette.baseB} 49%, white) 48%, color-mix(in srgb, ${palette.baseC} 34%, white) 100%)`
-    : `linear-gradient(150deg, color-mix(in srgb, ${palette.baseA} 44%, white) 0%, color-mix(in srgb, ${palette.baseB} 40%, white) 52%, color-mix(in srgb, ${palette.baseC} 28%, white) 100%)`;
+    ? `linear-gradient(146deg, color-mix(in srgb, ${palette.baseA} 86%, #0e1930) 0%, color-mix(in srgb, ${palette.baseB} 82%, #111f3a) 50%, color-mix(in srgb, ${palette.baseC} 76%, #15274a) 100%)`
+    : `linear-gradient(150deg, color-mix(in srgb, ${palette.baseA} 78%, #132245) 0%, color-mix(in srgb, ${palette.baseB} 74%, #162a4d) 52%, color-mix(in srgb, ${palette.baseC} 68%, #1b3056) 100%)`;
 
   const glowGradient = isFeatured
-    ? `radial-gradient(circle at 84% 14%, color-mix(in srgb, ${palette.glowA} 45%, transparent), transparent 56%), radial-gradient(circle at 12% 90%, color-mix(in srgb, ${palette.glowB} 34%, transparent), transparent 58%)`
-    : `radial-gradient(circle at 84% 14%, color-mix(in srgb, ${palette.glowA} 32%, transparent), transparent 54%), radial-gradient(circle at 12% 90%, color-mix(in srgb, ${palette.glowB} 24%, transparent), transparent 56%)`;
+    ? `radial-gradient(circle at 82% 18%, color-mix(in srgb, ${palette.glowA} 42%, transparent), transparent 56%), radial-gradient(circle at 16% 84%, color-mix(in srgb, ${palette.glowB} 34%, transparent), transparent 60%), radial-gradient(circle at 34% 42%, color-mix(in srgb, ${palette.glowA} 22%, transparent), transparent 72%)`
+    : `radial-gradient(circle at 82% 18%, color-mix(in srgb, ${palette.glowA} 34%, transparent), transparent 56%), radial-gradient(circle at 16% 84%, color-mix(in srgb, ${palette.glowB} 26%, transparent), transparent 60%), radial-gradient(circle at 34% 42%, color-mix(in srgb, ${palette.glowA} 16%, transparent), transparent 72%)`;
 
   const shimmerGradient = isFeatured
-    ? `linear-gradient(116deg, transparent 8%, color-mix(in srgb, ${palette.tintA} 14%, transparent) 42%, transparent 76%)`
-    : `linear-gradient(116deg, transparent 10%, color-mix(in srgb, ${palette.tintA} 10%, transparent) 44%, transparent 78%)`;
+    ? `linear-gradient(116deg, transparent 6%, color-mix(in srgb, ${palette.tintA} 26%, transparent) 38%, color-mix(in srgb, ${palette.tintB} 18%, transparent) 56%, transparent 80%)`
+    : `linear-gradient(116deg, transparent 8%, color-mix(in srgb, ${palette.tintA} 20%, transparent) 40%, color-mix(in srgb, ${palette.tintB} 14%, transparent) 58%, transparent 82%)`;
 
   const veilGradient = isFeatured
-    ? `linear-gradient(168deg, color-mix(in srgb, ${palette.veilA} 82%, transparent) 0%, color-mix(in srgb, ${palette.veilB} 72%, transparent) 56%, color-mix(in srgb, ${palette.veilB} 52%, transparent) 100%)`
-    : `linear-gradient(168deg, color-mix(in srgb, ${palette.veilA} 88%, transparent) 0%, color-mix(in srgb, ${palette.veilB} 78%, transparent) 56%, color-mix(in srgb, ${palette.veilB} 64%, transparent) 100%)`;
+    ? `radial-gradient(130% 114% at 30% 38%, color-mix(in srgb, ${palette.veilA} 58%, transparent) 0%, color-mix(in srgb, ${palette.veilB} 34%, transparent) 48%, transparent 100%), linear-gradient(170deg, color-mix(in srgb, ${palette.veilB} 18%, transparent) 0%, transparent 74%)`
+    : `radial-gradient(128% 112% at 30% 38%, color-mix(in srgb, ${palette.veilA} 66%, transparent) 0%, color-mix(in srgb, ${palette.veilB} 42%, transparent) 50%, transparent 100%), linear-gradient(170deg, color-mix(in srgb, ${palette.veilB} 24%, transparent) 0%, transparent 74%)`;
 
   const sceneAsset = pickSceneBySeed(metadata, mode);
 

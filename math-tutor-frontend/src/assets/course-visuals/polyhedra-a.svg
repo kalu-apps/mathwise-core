@@ -1,41 +1,53 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="poly-a-bg" x1="26" y1="16" x2="386" y2="248" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#EEF3FF"/>
-      <stop offset="0.48" stop-color="#DDE5FF"/>
-      <stop offset="1" stop-color="#D5DEF8"/>
+    <linearGradient id="poly-a-bg" x1="20" y1="10" x2="398" y2="252" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#102040"/>
+      <stop offset="0.52" stop-color="#1D3670"/>
+      <stop offset="1" stop-color="#24508A"/>
     </linearGradient>
-    <linearGradient id="poly-a-crystal" x1="115" y1="44" x2="256" y2="196" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F8FBFF" stop-opacity="0.95"/>
-      <stop offset="0.5" stop-color="#CFE0FF" stop-opacity="0.78"/>
-      <stop offset="1" stop-color="#9BB6F7" stop-opacity="0.52"/>
+    <radialGradient id="poly-a-focus" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(128 128) rotate(18) scale(190 132)">
+      <stop stop-color="#E8F3FF" stop-opacity="0.62"/>
+      <stop offset="0.56" stop-color="#B9D5FF" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#8BB0E8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="poly-a-hero" x1="0" y1="0" x2="180" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E5F5FF" stop-opacity="0.66"/>
+      <stop offset="0.58" stop-color="#98C6FF" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#4BA4E2" stop-opacity="0.2"/>
     </linearGradient>
-    <linearGradient id="poly-a-crystal-2" x1="219" y1="84" x2="346" y2="214" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F2FBFF" stop-opacity="0.82"/>
-      <stop offset="1" stop-color="#86CBE8" stop-opacity="0.46"/>
+    <linearGradient id="poly-a-cut" x1="42" y1="170" x2="194" y2="232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#AFA0FF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#67D3FF" stop-opacity="0.14"/>
     </linearGradient>
   </defs>
 
   <rect width="420" height="260" rx="24" fill="url(#poly-a-bg)"/>
-  <circle cx="354" cy="54" r="66" fill="#8AA8F6" opacity="0.18"/>
-  <circle cx="66" cy="218" r="78" fill="#72C9E6" opacity="0.15"/>
+  <rect width="420" height="260" rx="24" fill="url(#poly-a-focus)"/>
 
-  <g stroke="#5E73C8" stroke-opacity="0.45" stroke-width="1.4" stroke-linejoin="round">
-    <path d="M74 168L136 86L232 80L286 162L202 222L102 220Z" fill="url(#poly-a-crystal)"/>
-    <path d="M136 86L156 64L254 56L308 138L286 162"/>
-    <path d="M232 80L254 56L348 74L370 162L286 162"/>
-    <path d="M202 222L286 162L370 162L282 236L176 242Z"/>
-    <line x1="136" y1="86" x2="232" y2="80"/>
-    <line x1="136" y1="86" x2="202" y2="222"/>
-    <line x1="232" y1="80" x2="286" y2="162"/>
-    <line x1="102" y1="220" x2="202" y2="222"/>
-    <line x1="74" y1="168" x2="136" y2="86"/>
+  <g stroke="#8EB4E8" stroke-opacity="0.36" stroke-width="1.1" stroke-linecap="round" stroke-dasharray="5 8">
+    <path d="M38 64L170 44"/>
+    <path d="M48 108L190 86"/>
+    <path d="M252 50L384 92"/>
+    <path d="M236 206L388 182"/>
+    <path d="M72 222L154 90"/>
   </g>
 
-  <g stroke="#5DB4D7" stroke-opacity="0.4" stroke-width="1.2">
-    <path d="M226 108L284 88L338 130L320 196L250 202L210 158Z" fill="url(#poly-a-crystal-2)"/>
-    <line x1="226" y1="108" x2="338" y2="130"/>
-    <line x1="284" y1="88" x2="250" y2="202"/>
-    <line x1="210" y1="158" x2="320" y2="196"/>
+  <polygon points="42,182 164,166 196,218 74,236" fill="url(#poly-a-cut)" stroke="#97B8F1" stroke-opacity="0.44" stroke-width="1.2"/>
+
+  <g transform="translate(246 62)">
+    <polygon points="88,4 164,54 142,150 66,188 -8,138 12,40" fill="url(#poly-a-hero)" stroke="#CBE8FF" stroke-opacity="0.86" stroke-width="1.45"/>
+    <polygon points="88,30 132,60 118,118 74,146 30,116 42,56" fill="#9FC5FF" fill-opacity="0.16" stroke="#96C8FF" stroke-opacity="0.62" stroke-width="1.15"/>
+    <path d="M88 4V188M12 40L164 54M-8 138L142 150M66 188L88 30L118 118" stroke="#D7EEFF" stroke-opacity="0.74" stroke-width="1.15" stroke-linecap="round"/>
+    <path d="M30 116L88 30L132 60M42 56L74 146" stroke="#69D3FF" stroke-opacity="0.6" stroke-width="1.05" stroke-linecap="round"/>
+
+    <circle cx="88" cy="4" r="3.2" fill="#E8F6FF" fill-opacity="0.86"/>
+    <circle cx="164" cy="54" r="3.2" fill="#BEE4FF" fill-opacity="0.82"/>
+    <circle cx="142" cy="150" r="3.2" fill="#8ED8FF" fill-opacity="0.84"/>
+    <circle cx="66" cy="188" r="3.2" fill="#A3B7FF" fill-opacity="0.84"/>
+    <circle cx="-8" cy="138" r="3.2" fill="#87C7FF" fill-opacity="0.82"/>
+    <circle cx="12" cy="40" r="3.2" fill="#BBD6FF" fill-opacity="0.84"/>
   </g>
+
+  <path d="M206 88L334 64" stroke="#F1B978" stroke-opacity="0.54" stroke-width="1.2" stroke-dasharray="3 7" stroke-linecap="round"/>
+  <path d="M178 194L314 214" stroke="#7DD6FF" stroke-opacity="0.52" stroke-width="1.15" stroke-dasharray="4 8" stroke-linecap="round"/>
 </svg>

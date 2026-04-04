@@ -1,25 +1,33 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="analytic-b-bg" x1="18" y1="14" x2="400" y2="244" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F2F6FF"/>
-      <stop offset="0.58" stop-color="#E4ECFF"/>
-      <stop offset="1" stop-color="#DAE3F6"/>
+    <linearGradient id="analytic-b-bg" x1="20" y1="12" x2="400" y2="248" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#102144"/>
+      <stop offset="0.5" stop-color="#233E77"/>
+      <stop offset="1" stop-color="#286092"/>
     </linearGradient>
+    <radialGradient id="analytic-b-focus" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(176 130) rotate(-10) scale(202 132)">
+      <stop stop-color="#ECF7FF" stop-opacity="0.5"/>
+      <stop offset="0.6" stop-color="#B8D5FF" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#93B8EA" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <rect width="420" height="260" rx="24" fill="url(#analytic-b-bg)"/>
 
-  <g stroke-linecap="round" fill="none">
-    <path d="M52 170C98 90 170 62 232 94C290 124 330 102 368 54" stroke="#667CD1" stroke-opacity="0.44" stroke-width="1.8"/>
-    <path d="M52 196C114 136 182 126 230 154C280 182 332 166 374 120" stroke="#63B7D8" stroke-opacity="0.46" stroke-width="1.6"/>
-    <ellipse cx="224" cy="136" rx="142" ry="52" stroke="#6C83CD" stroke-opacity="0.34" stroke-width="1.2"/>
-    <ellipse cx="224" cy="136" rx="108" ry="36" stroke="#66B9D9" stroke-opacity="0.34" stroke-width="1.2"/>
-    <path d="M34 136H388" stroke="#6D84CE" stroke-opacity="0.24" stroke-width="1.1"/>
-    <path d="M224 40V226" stroke="#6D84CE" stroke-opacity="0.24" stroke-width="1.1"/>
-    <path d="M84 54L350 208" stroke="#637AD0" stroke-opacity="0.18" stroke-width="1"/>
+  <rect width="420" height="260" rx="24" fill="url(#analytic-b-bg)"/>
+  <rect width="420" height="260" rx="24" fill="url(#analytic-b-focus)"/>
+
+  <path d="M98 68L332 116L296 216L62 168L98 68Z" fill="#B095FF" fill-opacity="0.11" stroke="#C7AEFF" stroke-opacity="0.38" stroke-width="1.2"/>
+
+  <g fill="none" stroke-linecap="round">
+    <path d="M52 196C116 136 174 126 230 150C284 174 330 166 372 116" stroke="#65D4FF" stroke-opacity="0.54" stroke-width="1.7"/>
+    <path d="M52 168C110 110 170 96 230 124C286 150 332 144 374 94" stroke="#A396FF" stroke-opacity="0.56" stroke-width="1.8"/>
+    <path d="M132 206C170 150 206 122 244 108C284 94 320 96 356 126" stroke="#D6F1FF" stroke-opacity="0.56" stroke-width="1.5"/>
+    <path d="M130 70C168 122 206 150 244 162C284 174 320 168 356 136" stroke="#88D8FF" stroke-opacity="0.46" stroke-width="1.3"/>
+    <path d="M36 130H388" stroke="#91BAEE" stroke-opacity="0.34" stroke-width="1.1"/>
+    <path d="M224 36V226" stroke="#91BAEE" stroke-opacity="0.34" stroke-width="1.1"/>
+    <path d="M78 58L348 208" stroke="#6ED4FF" stroke-opacity="0.3" stroke-width="1.05" stroke-dasharray="4 8"/>
   </g>
 
-  <path d="M124 88L292 58L322 166L154 198L124 88Z" fill="#FFFFFF" fill-opacity="0.22" stroke="#6C82CD" stroke-opacity="0.28" stroke-width="1.1"/>
-  <path d="M154 198L322 166L286 214L128 232L154 198Z" fill="#9FC2EA" fill-opacity="0.18"/>
-  <circle cx="224" cy="136" r="3.6" fill="#667CD1" fill-opacity="0.58"/>
+  <circle cx="230" cy="124" r="3.2" fill="#DFF6FF" fill-opacity="0.82"/>
+  <circle cx="284" cy="174" r="3" fill="#9FE1FF" fill-opacity="0.8"/>
+  <circle cx="168" cy="122" r="3" fill="#B3BFFF" fill-opacity="0.8"/>
 </svg>
-

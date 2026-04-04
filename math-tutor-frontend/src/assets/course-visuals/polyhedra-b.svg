@@ -1,36 +1,52 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="poly-b-bg" x1="10" y1="18" x2="408" y2="240" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#EFF4FF"/>
-      <stop offset="0.58" stop-color="#DFE8FF"/>
-      <stop offset="1" stop-color="#D6DEF5"/>
+    <linearGradient id="poly-b-bg" x1="16" y1="14" x2="402" y2="248" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F1F42"/>
+      <stop offset="0.5" stop-color="#213D7A"/>
+      <stop offset="1" stop-color="#295993"/>
     </linearGradient>
-    <linearGradient id="poly-b-main" x1="140" y1="58" x2="282" y2="226" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F8FBFF" stop-opacity="0.9"/>
-      <stop offset="0.54" stop-color="#CDE1FF" stop-opacity="0.74"/>
-      <stop offset="1" stop-color="#91B3F0" stop-opacity="0.48"/>
+    <radialGradient id="poly-b-focus" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(206 132) rotate(-12) scale(208 138)">
+      <stop stop-color="#E7F4FF" stop-opacity="0.56"/>
+      <stop offset="0.58" stop-color="#B1CEFF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#8FB7ED" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="poly-b-hero" x1="0" y1="0" x2="150" y2="186" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EBF8FF" stop-opacity="0.7"/>
+      <stop offset="0.62" stop-color="#AAC9FF" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#5EB2ED" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="poly-b-plane" x1="246" y1="150" x2="380" y2="244" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B797FF" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#66D7FF" stop-opacity="0.12"/>
     </linearGradient>
   </defs>
 
   <rect width="420" height="260" rx="24" fill="url(#poly-b-bg)"/>
-  <ellipse cx="312" cy="36" rx="88" ry="52" fill="#8EA7F2" opacity="0.18"/>
-  <ellipse cx="88" cy="214" rx="98" ry="56" fill="#66C0DA" opacity="0.14"/>
+  <rect width="420" height="260" rx="24" fill="url(#poly-b-focus)"/>
 
-  <g stroke="#5C70C2" stroke-opacity="0.44" stroke-width="1.3" stroke-linejoin="round">
-    <path d="M92 126L178 44L314 82L326 196L216 236L94 206Z" fill="url(#poly-b-main)"/>
-    <path d="M178 44L216 28L350 66L362 178L326 196"/>
-    <path d="M216 236L326 196L362 178L250 252L128 238Z"/>
-    <line x1="92" y1="126" x2="314" y2="82"/>
-    <line x1="94" y1="206" x2="216" y2="236"/>
-    <line x1="178" y1="44" x2="216" y2="236"/>
-    <line x1="314" y1="82" x2="326" y2="196"/>
-    <line x1="94" y1="206" x2="178" y2="44"/>
+  <g stroke="#8CB3E9" stroke-opacity="0.34" stroke-width="1.05" stroke-linecap="round" stroke-dasharray="4 8">
+    <path d="M30 70L196 38"/>
+    <path d="M34 112L210 80"/>
+    <path d="M214 40L374 78"/>
+    <path d="M230 220L386 190"/>
+    <path d="M98 228L144 54"/>
   </g>
 
-  <g stroke="#68B9D8" stroke-opacity="0.4" stroke-width="1.1">
-    <path d="M58 172L112 114L182 142L188 212L120 234L64 216Z"/>
-    <line x1="58" y1="172" x2="182" y2="142"/>
-    <line x1="112" y1="114" x2="120" y2="234"/>
+  <g transform="translate(52 34)">
+    <polygon points="74,8 142,50 136,142 62,188 -10,146 -4,48" fill="url(#poly-b-hero)" stroke="#CBE7FF" stroke-opacity="0.84" stroke-width="1.35"/>
+    <polygon points="74,34 118,62 114,122 66,152 20,126 24,60" fill="#99C0FF" fill-opacity="0.16" stroke="#8EC3FF" stroke-opacity="0.62" stroke-width="1.1"/>
+    <path d="M74 8V188M-4 48L142 50M-10 146L136 142M62 188L74 34L114 122" stroke="#D6ECFF" stroke-opacity="0.72" stroke-width="1.1" stroke-linecap="round"/>
+    <path d="M20 126L74 34L118 62M24 60L66 152" stroke="#66D5FF" stroke-opacity="0.58" stroke-width="1" stroke-linecap="round"/>
+
+    <circle cx="74" cy="8" r="3" fill="#ECF8FF" fill-opacity="0.84"/>
+    <circle cx="142" cy="50" r="3" fill="#C5E5FF" fill-opacity="0.82"/>
+    <circle cx="136" cy="142" r="3" fill="#94DCFF" fill-opacity="0.84"/>
+    <circle cx="62" cy="188" r="3" fill="#AABFFF" fill-opacity="0.82"/>
+    <circle cx="-10" cy="146" r="3" fill="#8BC9FF" fill-opacity="0.8"/>
+    <circle cx="-4" cy="48" r="3" fill="#BCD8FF" fill-opacity="0.82"/>
   </g>
+
+  <polygon points="246,156 364,150 390,208 270,232" fill="url(#poly-b-plane)" stroke="#9EB8F1" stroke-opacity="0.42" stroke-width="1.15"/>
+  <path d="M228 102L354 86" stroke="#F2BC7A" stroke-opacity="0.52" stroke-width="1.15" stroke-linecap="round" stroke-dasharray="3 7"/>
+  <path d="M206 190L344 214" stroke="#79D8FF" stroke-opacity="0.5" stroke-width="1.1" stroke-linecap="round" stroke-dasharray="4 9"/>
 </svg>
-

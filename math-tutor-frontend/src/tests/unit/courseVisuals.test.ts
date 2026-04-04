@@ -1,12 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCourseVisualLayers,
+  COURSE_VISUAL_STYLES,
   deriveCourseVisualMetadata,
   getCourseVisualFamilyLabel,
   resolveCourseVisualMetadata,
 } from "@/entities/course/model/courseVisuals";
 
 describe("course visual system", () => {
+  it("keeps canonical style order aligned with backend release metadata", () => {
+    expect(COURSE_VISUAL_STYLES).toEqual([
+      "polyhedra",
+      "function-fields",
+      "projection-wireframe",
+      "topology",
+      "analytic-sections",
+      "signal-waves",
+    ]);
+  });
+
   it("derives deterministic metadata for the same course id", () => {
     const first = deriveCourseVisualMetadata("course_linear_algebra");
     const second = deriveCourseVisualMetadata("course_linear_algebra");

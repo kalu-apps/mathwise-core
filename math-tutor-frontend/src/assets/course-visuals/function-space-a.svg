@@ -1,40 +1,54 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="func-a-bg" x1="18" y1="6" x2="406" y2="252" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#EFF4FF"/>
-      <stop offset="0.52" stop-color="#DEE8FF"/>
-      <stop offset="1" stop-color="#D2E0F5"/>
+    <linearGradient id="func-a-bg" x1="18" y1="10" x2="402" y2="250" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F2042"/>
+      <stop offset="0.52" stop-color="#1F3A74"/>
+      <stop offset="1" stop-color="#245E90"/>
     </linearGradient>
-    <linearGradient id="func-a-surface" x1="208" y1="52" x2="214" y2="214" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F5FBFF" stop-opacity="0.78"/>
-      <stop offset="1" stop-color="#81BBE6" stop-opacity="0.2"/>
+    <radialGradient id="func-a-focus" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(146 130) rotate(-8) scale(198 130)">
+      <stop stop-color="#E8F4FF" stop-opacity="0.54"/>
+      <stop offset="0.62" stop-color="#B5D2FF" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#93B8EA" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="func-a-hero" x1="24" y1="190" x2="396" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#34D9FF" stop-opacity="0.76"/>
+      <stop offset="0.48" stop-color="#6EBEFF" stop-opacity="0.94"/>
+      <stop offset="0.8" stop-color="#AB8DFF" stop-opacity="0.86"/>
+      <stop offset="1" stop-color="#F0B06A" stop-opacity="0.72"/>
+    </linearGradient>
+    <linearGradient id="func-a-secondary" x1="34" y1="86" x2="390" y2="178" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8ED9FF" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#9D99FF" stop-opacity="0.54"/>
     </linearGradient>
   </defs>
 
   <rect width="420" height="260" rx="24" fill="url(#func-a-bg)"/>
-  <path d="M30 198C84 136 130 234 188 170C236 118 280 182 340 140C360 126 380 114 394 98V248H30V198Z" fill="url(#func-a-surface)"/>
+  <rect width="420" height="260" rx="24" fill="url(#func-a-focus)"/>
 
-  <g stroke="#5E75C8" stroke-opacity="0.34" stroke-width="1">
-    <path d="M26 74H398"/>
-    <path d="M26 106H398"/>
-    <path d="M26 138H398"/>
-    <path d="M26 170H398"/>
-    <path d="M76 38V230"/>
-    <path d="M128 38V230"/>
-    <path d="M180 38V230"/>
-    <path d="M232 38V230"/>
-    <path d="M284 38V230"/>
-    <path d="M336 38V230"/>
+  <g stroke="#8FB8EC" stroke-opacity="0.3" stroke-width="1" stroke-linecap="round">
+    <path d="M32 58H390"/>
+    <path d="M32 92H390"/>
+    <path d="M32 126H390"/>
+    <path d="M32 160H390"/>
+    <path d="M32 194H390"/>
+    <path d="M72 34V230"/>
+    <path d="M126 34V230"/>
+    <path d="M180 34V230"/>
+    <path d="M234 34V230"/>
+    <path d="M288 34V230"/>
+    <path d="M342 34V230"/>
   </g>
 
-  <g fill="none" stroke-linecap="round">
-    <path d="M22 160C66 118 112 212 158 164C204 114 250 188 292 150C334 112 370 142 398 112" stroke="#5D78D8" stroke-opacity="0.58" stroke-width="2.1"/>
-    <path d="M18 138C62 108 104 174 154 144C204 114 246 154 298 124C342 98 372 114 402 92" stroke="#67BED8" stroke-opacity="0.54" stroke-width="1.8"/>
-    <path d="M18 186C72 146 114 246 166 198C212 156 252 230 308 182C348 148 374 170 404 146" stroke="#8AA3E8" stroke-opacity="0.44" stroke-width="1.5"/>
+  <g stroke="#67D6FF" stroke-opacity="0.34" stroke-width="1.05" stroke-linecap="round" stroke-dasharray="5 8">
+    <path d="M38 208L124 150L208 172L304 126L384 146"/>
+    <path d="M40 174L120 124L206 142L302 96L382 116"/>
   </g>
 
-  <circle cx="128" cy="154" r="3.2" fill="#5F77D4" fill-opacity="0.62"/>
-  <circle cx="230" cy="118" r="2.8" fill="#67BED8" fill-opacity="0.7"/>
-  <circle cx="320" cy="147" r="3" fill="#5F77D4" fill-opacity="0.56"/>
+  <path d="M22 178C66 146 108 208 156 172C200 138 244 190 292 154C334 122 366 138 398 104" stroke="url(#func-a-hero)" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M24 108C68 86 104 146 154 124C202 102 242 142 292 120C336 100 368 118 400 92" stroke="url(#func-a-secondary)" stroke-width="2" stroke-linecap="round"/>
+
+  <circle cx="156" cy="172" r="3.2" fill="#D7F4FF" fill-opacity="0.84"/>
+  <circle cx="244" cy="190" r="3" fill="#A4E3FF" fill-opacity="0.82"/>
+  <circle cx="292" cy="154" r="3.2" fill="#AFC0FF" fill-opacity="0.84"/>
+  <circle cx="334" cy="122" r="3" fill="#F0BC77" fill-opacity="0.84"/>
 </svg>
-
