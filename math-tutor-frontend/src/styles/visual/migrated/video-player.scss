@@ -71,100 +71,99 @@
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--surface-elevated) 6%, transparent) 0%,
-      color-mix(in srgb, #02060b 36%, transparent) 100%
+      color-mix(in srgb, #e6f2ff 7%, transparent) 0%,
+      color-mix(in srgb, #02060b 42%, transparent) 100%
+    ),
+    linear-gradient(
+      124deg,
+      transparent 0%,
+      color-mix(in srgb, #5eb3ff 8%, transparent) 34%,
+      transparent 56%,
+      color-mix(in srgb, #8f7eff 10%, transparent) 78%,
+      transparent 100%
     ),
     repeating-linear-gradient(
       0deg,
-      color-mix(in srgb, #d3e2ff 10%, transparent) 0 1px,
-      transparent 1px 34px
+      color-mix(in srgb, #8caed9 11%, transparent) 0 1px,
+      transparent 1px 48px
     ),
     repeating-linear-gradient(
-      60deg,
-      color-mix(in srgb, #9fc0ff 9%, transparent) 0 1px,
-      transparent 1px 36px
-    ),
-    repeating-linear-gradient(
-      -60deg,
-      color-mix(in srgb, #88c6dd 8%, transparent) 0 1px,
-      transparent 1px 36px
+      36deg,
+      color-mix(in srgb, #7bb8f0 9%, transparent) 0 1px,
+      transparent 1px 56px
     );
-  opacity: 0.6;
-  animation: videoPosterGridDrift 24s linear infinite;
+  opacity: 0.56;
+  animation: videoPosterGridDrift 30s linear infinite;
 }
 
 .video-player__polyhedron-scene {
   position: absolute;
   inset: 0;
   z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   pointer-events: none;
   padding: clamp(14px, 3vw, 24px);
 }
 
-.video-player__polyhedron-halo {
-  position: absolute;
-  width: clamp(216px, 44%, 378px);
-  aspect-ratio: 1 / 1;
-  border-radius: 999px;
-  background:
-    radial-gradient(
-      circle,
-      color-mix(in srgb, #a7d3ff 36%, transparent) 0%,
-      color-mix(in srgb, #78bcff 14%, transparent) 48%,
-      transparent 76%
-    );
-  filter: blur(12px);
-  opacity: 0.86;
-  transform: translateY(10px);
+.video-player__drafting-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
 }
 
-.video-player__polyhedron-plane {
-  position: absolute;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, #9ec9ff 34%, transparent);
-  background: linear-gradient(
-    148deg,
-    color-mix(in srgb, #9cc5ff 14%, transparent),
-    color-mix(in srgb, #67d2ff 10%, transparent)
-  );
-  backdrop-filter: blur(1px);
+.video-player__draft-guides path {
+  stroke: color-mix(in srgb, #8ebbe6 34%, transparent);
+  stroke-width: 1.2;
+  stroke-dasharray: 6 9;
+  stroke-linecap: round;
+  opacity: 0.76;
+}
+
+.video-player__draft-plane {
+  stroke-width: 1.2;
+  opacity: 0.82;
+}
+
+.video-player__draft-plane--a {
+  fill: color-mix(in srgb, #59c8ff 18%, transparent);
+  stroke: color-mix(in srgb, #8fd2ff 46%, transparent);
+}
+
+.video-player__draft-plane--b {
+  fill: color-mix(in srgb, #8a74ff 18%, transparent);
+  stroke: color-mix(in srgb, #c093ff 38%, transparent);
+}
+
+.video-player__draft-hero-graph {
+  filter: drop-shadow(0 0 18px color-mix(in srgb, #4fd4ff 58%, transparent))
+    drop-shadow(0 0 28px color-mix(in srgb, #8f77ff 46%, transparent));
+  stroke-dasharray: 18 14;
+  animation: videoHeroGraphPulse 4.2s ease-in-out infinite;
+}
+
+.video-player__draft-secondary-graph {
+  opacity: 0.82;
+  stroke-dasharray: 10 12;
+  animation: videoSecondaryGraphPulse 5.6s ease-in-out infinite;
+}
+
+.video-player__draft-anchor {
+  filter: drop-shadow(0 18px 30px rgba(3, 9, 20, 0.56));
+}
+
+.video-player__draft-nodes circle {
+  fill: color-mix(in srgb, #a6dfff 88%, transparent);
+  stroke: color-mix(in srgb, #40d3ff 38%, transparent);
+  stroke-width: 1.1;
+  opacity: 0.92;
+}
+
+.video-player__draft-axis {
+  stroke: color-mix(in srgb, #f4b374 70%, transparent);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-dasharray: 2 8;
   opacity: 0.62;
-}
-
-.video-player__polyhedron-plane--primary {
-  width: clamp(190px, 36%, 296px);
-  height: clamp(76px, 16%, 120px);
-  transform: translateY(36px) rotate(-10deg);
-}
-
-.video-player__polyhedron-plane--secondary {
-  width: clamp(150px, 30%, 248px);
-  height: clamp(56px, 11%, 88px);
-  border-style: dashed;
-  border-color: color-mix(in srgb, #b5d6ff 30%, transparent);
-  background: linear-gradient(
-    152deg,
-    color-mix(in srgb, #9ca6ff 11%, transparent),
-    color-mix(in srgb, #84c8f7 8%, transparent)
-  );
-  transform: translateY(-12px) rotate(12deg);
-}
-
-.video-player__polyhedron-svg {
-  width: clamp(208px, 40%, 342px);
-  height: auto;
-  opacity: 0.96;
-  transform-origin: 50% 54%;
-  filter: drop-shadow(0 16px 30px rgba(5, 13, 27, 0.48));
-  animation: videoPolyhedronFloat 6s ease-in-out infinite;
-}
-
-.video-player__polyhedron-curve {
-  stroke-dasharray: 8 10;
-  animation: videoDraftCurvePulse 4.2s ease-in-out infinite;
 }
 
 .video-player__poster-backdrop {
@@ -174,45 +173,48 @@
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, #030912 8%, transparent),
-      color-mix(in srgb, #030912 54%, transparent)
+      color-mix(in srgb, #020913 0%, transparent),
+      color-mix(in srgb, #020913 36%, transparent)
     ),
     radial-gradient(
-      circle at 50% 56%,
-      color-mix(in srgb, #94d4ff 10%, transparent),
-      transparent 64%
+      circle at 16% 22%,
+      color-mix(in srgb, #45d9ff 14%, transparent),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 88% 82%,
+      color-mix(in srgb, #f09c45 11%, transparent),
+      transparent 34%
     );
-  backdrop-filter: blur(1.5px);
 }
 
 .video-player__poster-content {
-  position: relative;
-  z-index: 4;
-  width: min(100%, 420px);
   position: absolute;
-  left: 50%;
-  bottom: clamp(14px, 4.2%, 28px);
-  transform: translateX(-50%);
+  inset: 0;
+  z-index: 4;
   display: grid;
+  place-content: center;
   justify-items: center;
-  gap: 9px;
-  padding: 0 10px;
+  gap: 12px;
+  padding: 20px;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
   backdrop-filter: none;
   text-align: center;
+  pointer-events: none;
 }
 
 .video-player__poster-hint {
+  max-width: min(92%, 460px);
   padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--card-border) 74%, transparent);
-  background: color-mix(in srgb, var(--surface-translucent) 78%, transparent);
+  background: color-mix(in srgb, #0b1730 76%, transparent);
   font-size: 12px;
   line-height: 1.4;
-  color: var(--text-secondary);
-  backdrop-filter: blur(8px);
+  color: color-mix(in srgb, #d6e8ff 92%, var(--text-secondary));
+  backdrop-filter: blur(4px);
 }
 
 .video-player__poster-hint--error {
@@ -223,44 +225,47 @@
 :root[data-theme="light"] .video-player__poster-shell {
   background:
     radial-gradient(
-      120% 94% at 15% 14%,
-      color-mix(in srgb, #77bbff 24%, transparent),
+      124% 96% at 14% 14%,
+      color-mix(in srgb, #5eafff 34%, transparent),
       transparent 54%
     ),
     radial-gradient(
-      92% 72% at 84% 84%,
-      color-mix(in srgb, #8f7eff 14%, transparent),
+      96% 74% at 84% 84%,
+      color-mix(in srgb, #8f6fff 28%, transparent),
       transparent 66%
     ),
     linear-gradient(
       154deg,
-      color-mix(in srgb, var(--surface-elevated) 90%, #eef4ff),
-      color-mix(in srgb, var(--surface-soft) 86%, #d6e5ff)
+      color-mix(in srgb, #091428 88%, var(--surface-elevated)),
+      color-mix(in srgb, #071123 88%, var(--surface-soft))
     );
 }
 
 :root[data-theme="light"] .video-player__poster-grid {
-  opacity: 0.54;
+  opacity: 0.58;
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, #f5f8ff 14%, transparent) 0%,
-      color-mix(in srgb, #c8daf6 26%, transparent) 100%
+      color-mix(in srgb, #eff6ff 8%, transparent) 0%,
+      color-mix(in srgb, #223b62 22%, transparent) 100%
+    ),
+    linear-gradient(
+      124deg,
+      transparent 0%,
+      color-mix(in srgb, #4eb8ff 14%, transparent) 34%,
+      transparent 56%,
+      color-mix(in srgb, #9878ff 15%, transparent) 78%,
+      transparent 100%
     ),
     repeating-linear-gradient(
       0deg,
-      color-mix(in srgb, #6e95cb 18%, transparent) 0 1px,
-      transparent 1px 34px
+      color-mix(in srgb, #7ca4d9 16%, transparent) 0 1px,
+      transparent 1px 48px
     ),
     repeating-linear-gradient(
-      60deg,
-      color-mix(in srgb, #6c9ec9 16%, transparent) 0 1px,
-      transparent 1px 36px
-    ),
-    repeating-linear-gradient(
-      -60deg,
-      color-mix(in srgb, #6eaec4 14%, transparent) 0 1px,
-      transparent 1px 36px
+      36deg,
+      color-mix(in srgb, #7bb8f0 12%, transparent) 0 1px,
+      transparent 1px 56px
     );
 }
 
@@ -268,47 +273,54 @@
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, #ffffff 8%, transparent),
-      color-mix(in srgb, #d7e3fa 28%, transparent)
+      color-mix(in srgb, #ffffff 0%, transparent),
+      color-mix(in srgb, #020913 28%, transparent)
     ),
     radial-gradient(
-      circle at 50% 58%,
-      color-mix(in srgb, #9ec8ff 12%, transparent),
-      transparent 64%
+      circle at 16% 22%,
+      color-mix(in srgb, #45d9ff 14%, transparent),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 88% 82%,
+      color-mix(in srgb, #f09c45 11%, transparent),
+      transparent 34%
     );
 }
 
 :root[data-theme="light"] .video-player__poster-hint {
-  color: color-mix(in srgb, var(--text-primary) 76%, transparent);
-  background: color-mix(in srgb, var(--surface-elevated) 90%, #ffffff);
-  box-shadow: 0 8px 16px color-mix(in srgb, var(--accent-strong) 10%, transparent);
+  color: color-mix(in srgb, #d6e8ff 94%, var(--text-primary));
+  background: color-mix(in srgb, #0b1730 76%, transparent);
+  box-shadow: 0 8px 18px color-mix(in srgb, #44b9ff 18%, transparent);
 }
 
 .video-player__poster-action {
-  min-height: 36px;
-  padding: 0 16px;
+  min-height: 40px;
+  padding: 0 18px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 7px;
+  font-size: 13px;
   line-height: 1;
-  font-weight: 700;
+  font-weight: 760;
   letter-spacing: 0.015em;
   color: color-mix(in srgb, #f6fbff 92%, var(--text-primary));
   background: linear-gradient(
     132deg,
-    color-mix(in srgb, #5d8df0 72%, transparent),
-    color-mix(in srgb, #64b7f0 64%, transparent)
+    color-mix(in srgb, #3d8cff 82%, transparent),
+    color-mix(in srgb, #4dd4ff 78%, transparent) 52%,
+    color-mix(in srgb, #8b69ff 76%, transparent)
   );
-  border: 1px solid color-mix(in srgb, #b9d6ff 52%, transparent);
+  border: 1px solid color-mix(in srgb, #b9dcff 64%, transparent);
   box-shadow:
-    0 10px 24px color-mix(in srgb, #050d1a 32%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #dff0ff 52%, transparent);
+    0 10px 24px color-mix(in srgb, #050d1a 34%, transparent),
+    0 0 22px color-mix(in srgb, #35ceff 32%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #dff0ff 56%, transparent);
   backdrop-filter: blur(4px);
 
   .MuiSvgIcon-root {
-    font-size: 16px;
+    font-size: 17px;
   }
 }
 
@@ -394,13 +406,15 @@
   margin-bottom: 10px;
 }
 
-@keyframes videoPolyhedronFloat {
+@keyframes videoHeroGraphPulse {
   0%,
   100% {
-    transform: translateY(0) rotate(-2.1deg);
+    stroke-dashoffset: 0;
+    opacity: 0.82;
   }
   50% {
-    transform: translateY(-7px) rotate(2deg);
+    stroke-dashoffset: 22;
+    opacity: 1;
   }
 }
 
@@ -413,15 +427,15 @@
   }
 }
 
-@keyframes videoDraftCurvePulse {
+@keyframes videoSecondaryGraphPulse {
   0%,
   100% {
-    opacity: 0.56;
-    stroke-dashoffset: 12;
+    opacity: 0.42;
+    stroke-dashoffset: 0;
   }
   50% {
-    opacity: 0.92;
-    stroke-dashoffset: 2;
+    opacity: 0.8;
+    stroke-dashoffset: 18;
   }
 }
 
@@ -436,39 +450,37 @@ body.video-player-restore {
 
 @media (max-width: 900px) {
   .video-player__poster-content {
-    width: calc(100% - 28px);
-    padding: 0 8px;
+    padding: 14px;
   }
 
   .video-player__poster-hint {
     font-size: 11px;
+    max-width: min(95%, 380px);
   }
 
   .video-player__poster-action {
-    min-height: 34px;
-    padding: 0 14px;
-    font-size: 11px;
+    min-height: 38px;
+    padding: 0 16px;
+    font-size: 12px;
   }
 
-  .video-player__polyhedron-svg {
-    width: clamp(182px, 54%, 264px);
+  .video-player__polyhedron-scene {
+    padding: 10px;
   }
 
-  .video-player__polyhedron-plane--primary {
-    width: clamp(162px, 56%, 240px);
-    height: clamp(62px, 18%, 94px);
+  .video-player__draft-hero-graph {
+    stroke-width: 4.4;
   }
 
-  .video-player__polyhedron-plane--secondary {
-    width: clamp(136px, 48%, 212px);
-    height: clamp(50px, 13%, 76px);
+  .video-player__draft-secondary-graph {
+    stroke-width: 2.1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .video-player__poster-grid,
-  .video-player__polyhedron-svg,
-  .video-player__polyhedron-curve {
+  .video-player__draft-hero-graph,
+  .video-player__draft-secondary-graph {
     animation: none !important;
   }
 }

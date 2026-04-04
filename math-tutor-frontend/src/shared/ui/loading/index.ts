@@ -3,4 +3,3 @@ export { SectionLoader } from "./SectionLoader";
 export { ListSkeleton } from "./ListSkeleton";
 export { ButtonPending } from "./ButtonPending";
 export { AnalyticalSurfaceLoader } from "./AnalyticalSurfaceLoader";
-export { SignatureMathLoader } from "./SignatureMathLoader";

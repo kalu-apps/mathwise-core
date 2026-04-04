@@ -249,95 +249,120 @@ function VideoPlayerContent({
             ) : null}
             <div className="video-player__poster-grid" aria-hidden="true" />
             <div className="video-player__polyhedron-scene" aria-hidden="true">
-              <span className="video-player__polyhedron-halo" />
-              <span className="video-player__polyhedron-plane video-player__polyhedron-plane--primary" />
-              <span className="video-player__polyhedron-plane video-player__polyhedron-plane--secondary" />
               <svg
-                className="video-player__polyhedron-svg"
-                viewBox="0 0 280 220"
+                className="video-player__drafting-svg"
+                viewBox="0 0 1280 720"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <defs>
-                  <linearGradient id="polyhedronFacetA" x1="48" y1="24" x2="232" y2="188">
-                    <stop offset="0%" stopColor="rgba(214, 239, 255, 0.84)" />
-                    <stop offset="100%" stopColor="rgba(112, 198, 247, 0.3)" />
+                  <linearGradient id="draftHeroStroke" x1="40" y1="590" x2="1240" y2="200">
+                    <stop offset="0%" stopColor="rgba(38, 212, 255, 0.48)" />
+                    <stop offset="42%" stopColor="rgba(95, 186, 255, 0.96)" />
+                    <stop offset="72%" stopColor="rgba(169, 111, 255, 0.9)" />
+                    <stop offset="100%" stopColor="rgba(255, 169, 79, 0.78)" />
                   </linearGradient>
-                  <linearGradient id="polyhedronFacetB" x1="88" y1="68" x2="216" y2="188">
-                    <stop offset="0%" stopColor="rgba(188, 222, 255, 0.66)" />
-                    <stop offset="100%" stopColor="rgba(123, 174, 255, 0.22)" />
+                  <linearGradient id="draftSecondaryStroke" x1="120" y1="190" x2="1180" y2="470">
+                    <stop offset="0%" stopColor="rgba(139, 203, 255, 0.4)" />
+                    <stop offset="48%" stopColor="rgba(109, 208, 255, 0.72)" />
+                    <stop offset="100%" stopColor="rgba(156, 132, 255, 0.44)" />
                   </linearGradient>
-                  <linearGradient id="polyhedronFacetC" x1="74" y1="76" x2="176" y2="194">
-                    <stop offset="0%" stopColor="rgba(165, 232, 255, 0.52)" />
-                    <stop offset="100%" stopColor="rgba(139, 147, 247, 0.2)" />
+                  <linearGradient id="polyhedronFacetA" x1="20" y1="10" x2="274" y2="236">
+                    <stop offset="0%" stopColor="rgba(173, 224, 255, 0.82)" />
+                    <stop offset="100%" stopColor="rgba(77, 179, 255, 0.26)" />
                   </linearGradient>
-                  <linearGradient id="draftingCurveLine" x1="32" y1="132" x2="248" y2="132">
-                    <stop offset="0%" stopColor="rgba(129, 235, 255, 0.3)" />
-                    <stop offset="52%" stopColor="rgba(180, 224, 255, 0.84)" />
-                    <stop offset="100%" stopColor="rgba(162, 151, 252, 0.34)" />
+                  <linearGradient id="polyhedronFacetB" x1="78" y1="86" x2="238" y2="226">
+                    <stop offset="0%" stopColor="rgba(187, 214, 255, 0.58)" />
+                    <stop offset="100%" stopColor="rgba(152, 134, 255, 0.2)" />
+                  </linearGradient>
+                  <linearGradient id="polyhedronFacetC" x1="54" y1="90" x2="186" y2="240">
+                    <stop offset="0%" stopColor="rgba(128, 231, 255, 0.48)" />
+                    <stop offset="100%" stopColor="rgba(117, 155, 255, 0.16)" />
                   </linearGradient>
                 </defs>
+
+                <g className="video-player__draft-guides">
+                  <path d="M88 92H410M76 134H384M1120 598H1250M1070 562H1222" />
+                  <path d="M92 84V256M236 70V280M1134 450V646M1008 488V660" />
+                  <path d="M58 318L318 136M984 612L1230 420" />
+                </g>
+
+                <polygon
+                  className="video-player__draft-plane video-player__draft-plane--a"
+                  points="868,96 1138,170 1076,270 808,198"
+                />
+                <polygon
+                  className="video-player__draft-plane video-player__draft-plane--b"
+                  points="780,500 1012,584 944,660 708,576"
+                />
+
                 <path
-                  d="M26 170 H256 M44 190 H236 M40 52 V196 M140 34 V198 M240 58 V196"
-                  stroke="rgba(178, 215, 255, 0.24)"
-                  strokeWidth="1"
-                  strokeDasharray="5 6"
+                  className="video-player__draft-hero-graph"
+                  d="M40 594 C 154 502, 282 420, 430 444 C 528 462, 614 520, 742 476 C 910 418, 1068 252, 1240 194"
+                  stroke="url(#draftHeroStroke)"
+                  strokeWidth="5.6"
                   strokeLinecap="round"
                 />
                 <path
-                  className="video-player__polyhedron-curve"
-                  d="M28 146 C72 116, 112 110, 148 122 C184 134, 218 144, 252 126"
-                  stroke="url(#draftingCurveLine)"
-                  strokeWidth="2"
+                  className="video-player__draft-secondary-graph"
+                  d="M120 188 C 262 146, 410 184, 538 272 C 642 342, 748 370, 898 356 C 1030 342, 1126 368, 1210 450"
+                  stroke="url(#draftSecondaryStroke)"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                 />
-                <polygon
-                  points="70,104 214,86 240,138 100,158"
-                  fill="rgba(122, 203, 255, 0.16)"
-                  stroke="rgba(184, 223, 255, 0.32)"
-                  strokeWidth="1"
-                />
-                <polygon
-                  points="88,84 194,64 218,108 112,128"
-                  fill="rgba(165, 180, 255, 0.13)"
-                  stroke="rgba(193, 207, 255, 0.28)"
-                  strokeWidth="0.9"
-                />
-                <polygon
-                  points="140,24 222,82 186,176 94,176 58,82"
-                  fill="url(#polyhedronFacetA)"
-                  stroke="rgba(209, 231, 255, 0.58)"
-                  strokeWidth="1.4"
-                />
-                <polygon
-                  points="140,56 192,92 170,154 110,154 88,92"
-                  fill="url(#polyhedronFacetB)"
-                  stroke="rgba(190, 217, 255, 0.52)"
-                  strokeWidth="1.1"
+
+                <g className="video-player__draft-anchor" transform="translate(130 138)">
+                  <polygon
+                    points="148,18 258,96 210,222 86,222 38,96"
+                    fill="url(#polyhedronFacetA)"
+                    stroke="rgba(201, 231, 255, 0.72)"
+                    strokeWidth="1.6"
+                  />
+                  <polygon
+                    points="148,58 220,110 190,194 106,194 76,110"
+                    fill="url(#polyhedronFacetB)"
+                    stroke="rgba(183, 212, 255, 0.56)"
+                    strokeWidth="1.2"
+                  />
+                  <path
+                    d="M148 18V222M38 96L258 96M86 222L148 58L210 222"
+                    stroke="rgba(215, 235, 255, 0.68)"
+                    strokeWidth="1.1"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M38 96L106 194M258 96L190 194"
+                    stroke="rgba(118, 223, 255, 0.56)"
+                    strokeWidth="1"
+                    strokeLinecap="round"
+                  />
+                  <polygon
+                    points="148,58 190,194 106,194"
+                    fill="url(#polyhedronFacetC)"
+                    stroke="rgba(138, 188, 255, 0.44)"
+                    strokeWidth="1"
+                  />
+                </g>
+
+                <g className="video-player__draft-nodes">
+                  <circle cx="104" cy="92" r="4.5" />
+                  <circle cx="252" cy="86" r="4.5" />
+                  <circle cx="846" cy="352" r="4.5" />
+                  <circle cx="1096" cy="246" r="4.5" />
+                  <circle cx="1184" cy="444" r="4.5" />
+                  <circle cx="744" cy="478" r="4.5" />
+                  <circle cx="468" cy="438" r="4.5" />
+                  <circle cx="264" cy="172" r="4.5" />
+                </g>
+
+                <path
+                  className="video-player__draft-axis"
+                  d="M734 86L1188 320"
                 />
                 <path
-                  d="M140 24V176M58 82L222 82M94 176L140 56L186 176"
-                  stroke="rgba(212, 231, 255, 0.58)"
-                  strokeWidth="1"
-                  strokeLinecap="round"
+                  className="video-player__draft-axis"
+                  d="M698 542L1144 402"
                 />
-                <path
-                  d="M58 82L110 154M222 82L170 154"
-                  stroke="rgba(161, 220, 246, 0.5)"
-                  strokeWidth="0.9"
-                  strokeLinecap="round"
-                />
-                <polygon
-                  points="140,56 170,154 110,154"
-                  fill="url(#polyhedronFacetC)"
-                  stroke="rgba(159, 191, 241, 0.46)"
-                  strokeWidth="0.9"
-                />
-                <circle cx="58" cy="82" r="2.6" fill="rgba(206, 233, 255, 0.72)" />
-                <circle cx="140" cy="24" r="2.6" fill="rgba(200, 228, 255, 0.74)" />
-                <circle cx="222" cy="82" r="2.6" fill="rgba(195, 223, 255, 0.74)" />
-                <circle cx="186" cy="176" r="2.6" fill="rgba(193, 220, 255, 0.72)" />
-                <circle cx="94" cy="176" r="2.6" fill="rgba(193, 220, 255, 0.72)" />
               </svg>
             </div>
             <div className="video-player__poster-backdrop" />

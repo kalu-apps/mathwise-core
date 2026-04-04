@@ -486,10 +486,6 @@
   place-items: center;
 }
 
-.lesson-editor-dialog__signature-loader {
-  --signature-size: clamp(210px, 36vw, 320px);
-}
-
 .lesson-editor-dialog__save-status {
   margin: 0;
   font-size: clamp(0.76rem, 0.36vw + 0.7rem, 0.9rem);

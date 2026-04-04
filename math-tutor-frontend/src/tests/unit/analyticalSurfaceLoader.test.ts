@@ -6,12 +6,14 @@ import { describe, expect, it } from "vitest";
 import { AnalyticalSurfaceLoader } from "@/shared/ui/loading/AnalyticalSurfaceLoader";
 
 describe("analytical surface loader", () => {
-  it("renders analytical surface scene with default size variant", () => {
+  it("renders cosmic sine + hyperbola analytical scene with default size variant", () => {
     const markup = renderToStaticMarkup(createElement(AnalyticalSurfaceLoader));
 
     expect(markup).toContain("data-loader=\"analytical-surface\"");
     expect(markup).toContain("ui-loader-analytical--md");
-    expect(markup).toContain("ui-loader-analytical__contour");
+    expect(markup).toContain("ui-loader-analytical__sine-progress");
+    expect(markup).toContain("ui-loader-analytical__hyperbola-accent");
+    expect(markup).toContain("ui-loader-analytical__axis--x");
   });
 
   it("supports size variants and visibility state", () => {
@@ -21,6 +23,14 @@ describe("analytical surface loader", () => {
 
     expect(markup).toContain("ui-loader-analytical--sm");
     expect(markup).not.toContain("is-visible");
+  });
+
+  it("maps explicit progress to sine drawing length", () => {
+    const markup = renderToStaticMarkup(
+      createElement(AnalyticalSurfaceLoader, { progress: 63 })
+    );
+
+    expect(markup).toContain("stroke-dasharray=\"63 100\"");
   });
 
   it("is used by shared page and section loading components", () => {
