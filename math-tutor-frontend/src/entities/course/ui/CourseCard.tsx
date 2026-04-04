@@ -18,7 +18,6 @@ import LockIcon from "@mui/icons-material/Lock";
 import DiamondRoundedIcon from "@mui/icons-material/DiamondRounded";
 
 import type { Course } from "@/entities/course/model/types";
-import { SegmentedArcIcon } from "@/shared/ui/icons/SegmentedArcIcon";
 import { CourseVisualBackground } from "@/entities/course/ui/CourseVisualBackground";
 
 type PurchasedProgressDetails = {
@@ -392,7 +391,7 @@ export function CourseCard({
             {!isTeacherView && bnplAvailable && (
               <Stack
                 direction="row"
-                spacing={0.7}
+                spacing={0}
                 alignItems="center"
                 sx={{
                   alignSelf: "flex-start",
@@ -404,26 +403,29 @@ export function CourseCard({
                     "0 6px 18px color-mix(in srgb, var(--feedback-info) 14%, transparent)",
                 }}
               >
-                <SegmentedArcIcon
-                  title="Оплата частями"
-                  size={16}
-                  className="course-card__split-icon"
-                  style={{
-                    color: "color-mix(in srgb, var(--feedback-info) 76%, var(--brand-violet))",
-                    filter:
-                      "drop-shadow(0 3px 10px color-mix(in srgb, var(--feedback-info) 30%, transparent))",
-                    ["--split-icon-accent" as string]:
-                      "color-mix(in srgb, var(--accent-strong) 80%, var(--feedback-info))",
-                    flexShrink: 0,
-                  }}
-                />
                 <Typography
                   component="span"
                   sx={{
+                    position: "relative",
+                    display: "inline-flex",
                     fontSize: 13,
                     fontWeight: 680,
                     letterSpacing: "0.01em",
                     color: "color-mix(in srgb, var(--text-primary) 94%, var(--accent-soft))",
+                    pb: 0.55,
+                    "&::after": {
+                      content: "\"\"",
+                      position: "absolute",
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      height: "1.5px",
+                      borderRadius: "999px",
+                      background:
+                        "linear-gradient(92deg, color-mix(in srgb, var(--brand-violet) 70%, transparent), color-mix(in srgb, var(--feedback-info) 74%, transparent))",
+                      boxShadow:
+                        "0 0 8px color-mix(in srgb, var(--feedback-info) 22%, transparent)",
+                    },
                   }}
                 >
                   {bnplFromAmount

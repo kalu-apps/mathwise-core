@@ -29,9 +29,6 @@ const SCENE = {
   yAxis: 104,
   amplitude: 48,
   cycles: 2.35,
-  hyperbolaCenterX: 500,
-  hyperbolaScaleX: 84,
-  hyperbolaScaleY: 36,
 } as const;
 
 const GRID_VERTICAL = Array.from({ length: 12 }, (_, index) => 68 + index * 44);
@@ -69,24 +66,6 @@ const sampleSinePoints = (
   return Array.from({ length: total + 1 }, (_, index) => {
     const ratio = index / total;
     return getSinePoint(start + (end - start) * ratio, phase);
-  });
-};
-
-const sampleHyperbolaBranch = (
-  direction: -1 | 1,
-  lower: boolean,
-  drift: number
-) => {
-  const minU = 0.42;
-  const maxU = 1.72;
-  const steps = 58;
-  return Array.from({ length: steps + 1 }, (_, index) => {
-    const u = minU + (maxU - minU) * (index / steps);
-    const x =
-      SCENE.hyperbolaCenterX + drift + direction * u * SCENE.hyperbolaScaleX;
-    const yOffset = SCENE.hyperbolaScaleY / u;
-    const y = lower ? SCENE.xAxis + yOffset : SCENE.xAxis - yOffset;
-    return { x, y };
   });
 };
 
@@ -158,7 +137,6 @@ export function AnalyticalSurfaceLoader({
   const trailStart = Math.max(0, revealProgress - 0.18);
   const revealPercent = Math.max(4, Math.round(revealProgress * 100));
   const headPoint = getSinePoint(revealProgress, scenePhase);
-  const hyperbolaDrift = prefersReducedMotion ? 0 : Math.sin(scenePhase * 0.28) * 8;
 
   const sinePath = useMemo(
     () => toPath(sampleSinePoints(0, 1, scenePhase, 180)),
@@ -170,25 +148,7 @@ export function AnalyticalSurfaceLoader({
     [revealProgress, scenePhase, trailStart]
   );
 
-  const hyperbolaTopLeftPath = useMemo(
-    () => toPath(sampleHyperbolaBranch(-1, false, hyperbolaDrift)),
-    [hyperbolaDrift]
-  );
-  const hyperbolaTopRightPath = useMemo(
-    () => toPath(sampleHyperbolaBranch(1, false, hyperbolaDrift)),
-    [hyperbolaDrift]
-  );
-  const hyperbolaBottomLeftPath = useMemo(
-    () => toPath(sampleHyperbolaBranch(-1, true, hyperbolaDrift)),
-    [hyperbolaDrift]
-  );
-  const hyperbolaBottomRightPath = useMemo(
-    () => toPath(sampleHyperbolaBranch(1, true, hyperbolaDrift)),
-    [hyperbolaDrift]
-  );
-
   const heroGradientId = `analytical-hero-${uid}`;
-  const hyperbolaGradientId = `analytical-hyperbola-${uid}`;
   const headGlowGradientId = `analytical-head-glow-${uid}`;
 
   return (
@@ -217,11 +177,6 @@ export function AnalyticalSurfaceLoader({
             <stop offset="40%" stopColor="rgba(77, 188, 255, 0.98)" />
             <stop offset="70%" stopColor="rgba(171, 107, 255, 0.9)" />
             <stop offset="100%" stopColor="rgba(255, 178, 94, 0.78)" />
-          </linearGradient>
-          <linearGradient id={hyperbolaGradientId} x1="0" y1="0.5" x2="1" y2="0.5">
-            <stop offset="0%" stopColor="rgba(123, 178, 235, 0.28)" />
-            <stop offset="52%" stopColor="rgba(135, 205, 255, 0.52)" />
-            <stop offset="100%" stopColor="rgba(162, 154, 255, 0.32)" />
           </linearGradient>
           <radialGradient id={headGlowGradientId} cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="rgba(255, 198, 106, 0.96)" />
@@ -278,18 +233,6 @@ export function AnalyticalSurfaceLoader({
           x2={SCENE.yAxis}
           y2={244}
         />
-
-        <g className="ui-loader-analytical__hyperbola-layer">
-          <path className="ui-loader-analytical__hyperbola" d={hyperbolaTopLeftPath} />
-          <path className="ui-loader-analytical__hyperbola" d={hyperbolaTopRightPath} />
-          <path className="ui-loader-analytical__hyperbola" d={hyperbolaBottomLeftPath} />
-          <path className="ui-loader-analytical__hyperbola" d={hyperbolaBottomRightPath} />
-          <path
-            className="ui-loader-analytical__hyperbola-accent"
-            d={hyperbolaTopRightPath}
-            stroke={`url(#${hyperbolaGradientId})`}
-          />
-        </g>
 
         <path className="ui-loader-analytical__sine-base" d={sinePath} />
         <path

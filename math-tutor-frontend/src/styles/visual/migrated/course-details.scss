@@ -1346,22 +1346,38 @@
       .course-details__installment-meta {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 5px;
         min-width: 0;
       }
 
-      .course-details__split-brand-icon {
-        color: color-mix(in srgb, var(--feedback-info) 72%, var(--brand-violet));
-        --split-icon-accent: color-mix(in srgb, var(--accent-strong) 82%, var(--feedback-info));
-        filter: drop-shadow(
-          0 4px 10px color-mix(in srgb, var(--feedback-info) 24%, transparent)
-        );
-        flex-shrink: 0;
+      .course-details__installment-line {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
+        padding-bottom: 3px;
+        overflow-wrap: anywhere;
+        color: color-mix(in srgb, var(--text-secondary) 92%, var(--brand-soft));
+        font-weight: 570;
       }
 
-      .course-details__installment-line {
-        color: color-mix(in srgb, var(--text-secondary) 92%, var(--brand-soft));
-        font-weight: 560;
+      .course-details__installment-line::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 1.5px;
+        border-radius: 999px;
+        background: linear-gradient(
+          95deg,
+          color-mix(in srgb, var(--brand-violet) 74%, transparent),
+          color-mix(in srgb, var(--feedback-info) 78%, transparent)
+        );
+        box-shadow:
+          0 0 8px color-mix(in srgb, var(--feedback-info) 18%, transparent),
+          0 0 12px color-mix(in srgb, var(--brand-violet) 12%, transparent);
+        opacity: 0.82;
       }
 
       .course-details__split-help {

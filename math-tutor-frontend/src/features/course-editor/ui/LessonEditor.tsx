@@ -666,11 +666,19 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
           >
             <Stack spacing={1.25} alignItems="center" className="lesson-editor-dialog__save-overlay-inner">
               <Box className="lesson-editor-dialog__save-visual">
-                <AnalyticalSurfaceLoader size={modalLoaderSize} />
+                <AnalyticalSurfaceLoader
+                  size={modalLoaderSize}
+                  progress={saveVideoProgressPercent ?? undefined}
+                />
               </Box>
               {showSaveProgressLine ? (
                 <Box
-                  className="lesson-editor-dialog__save-progress"
+                  className={[
+                    "lesson-editor-dialog__save-progress",
+                    saveProgressPercent >= 92 ? "is-near-complete" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                   role="progressbar"
                   aria-label="Прогресс загрузки видео"
                   aria-valuemin={0}
@@ -682,9 +690,6 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                     value={saveProgressPercent}
                     className="lesson-editor-dialog__save-progress-bar"
                   />
-                  <Typography className="lesson-editor-dialog__save-progress-value">
-                    {saveProgressPercent}%
-                  </Typography>
                 </Box>
               ) : (
                 <Typography className="lesson-editor-dialog__save-status">

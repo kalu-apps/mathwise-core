@@ -89,24 +89,6 @@
   stroke-width: 1.94;
 }
 
-.ui-loader-analytical__hyperbola-layer {
-  fill: none;
-}
-
-.ui-loader-analytical__hyperbola {
-  stroke: color-mix(in srgb, #80a8d7 30%, transparent);
-  stroke-width: 1.14;
-  opacity: 0.58;
-}
-
-.ui-loader-analytical__hyperbola-accent {
-  fill: none;
-  stroke-width: 1.6;
-  opacity: 0.74;
-  filter: drop-shadow(0 0 8px color-mix(in srgb, #8dbbff 24%, transparent));
-  animation: ds-cosmic-hyperbola 5.8s ease-in-out infinite;
-}
-
 .ui-loader-analytical__sine-base {
   fill: none;
   stroke: color-mix(in srgb, #7ea4cc 22%, transparent);
@@ -164,16 +146,6 @@
   }
 }
 
-@keyframes ds-cosmic-hyperbola {
-  0%,
-  100% {
-    opacity: 0.56;
-  }
-  50% {
-    opacity: 0.82;
-  }
-}
-
 @keyframes ds-cosmic-head {
   0%,
   100% {
@@ -188,7 +160,6 @@
 
 :root[data-performance-mode="degraded"] .ui-loader-analytical__grid-line,
 :root[data-performance-mode="degraded"] .ui-loader-analytical__axis,
-:root[data-performance-mode="degraded"] .ui-loader-analytical__hyperbola-accent,
 :root[data-performance-mode="degraded"] .ui-loader-analytical__head-glow {
   animation: none !important;
 }
@@ -205,7 +176,6 @@
 
   .ui-loader-analytical__grid-line,
   .ui-loader-analytical__axis,
-  .ui-loader-analytical__hyperbola-accent,
   .ui-loader-analytical__head-glow {
     animation: none !important;
   }

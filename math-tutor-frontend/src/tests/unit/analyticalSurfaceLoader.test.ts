@@ -6,14 +6,14 @@ import { describe, expect, it } from "vitest";
 import { AnalyticalSurfaceLoader } from "@/shared/ui/loading/AnalyticalSurfaceLoader";
 
 describe("analytical surface loader", () => {
-  it("renders cosmic sine + hyperbola analytical scene with default size variant", () => {
+  it("renders cosmic sine analytical scene with default size variant", () => {
     const markup = renderToStaticMarkup(createElement(AnalyticalSurfaceLoader));
 
     expect(markup).toContain("data-loader=\"analytical-surface\"");
     expect(markup).toContain("ui-loader-analytical--md");
     expect(markup).toContain("ui-loader-analytical__sine-progress");
-    expect(markup).toContain("ui-loader-analytical__hyperbola-accent");
     expect(markup).toContain("ui-loader-analytical__axis--x");
+    expect(markup).not.toContain("ui-loader-analytical__hyperbola");
   });
 
   it("supports size variants and visibility state", () => {

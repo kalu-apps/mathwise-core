@@ -76,7 +76,6 @@ import { PageLoader } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { BackNavButton } from "@/shared/ui/BackNavButton";
 import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
-import { SegmentedArcIcon } from "@/shared/ui/icons/SegmentedArcIcon";
 import {
   selectBnplMarketingInfo,
   selectCourseAccessState,
@@ -1268,11 +1267,6 @@ export default function CourseDetails() {
           </ul>
           <div className="course-details__card-tooltip">
             <span className="course-details__installment-meta">
-              <SegmentedArcIcon
-                className="course-details__split-brand-icon"
-                size={17}
-                title="Оплата частями"
-              />
               <span className="course-details__installment-line">{guidedBnplLine}</span>
               <button
                 type="button"
@@ -1314,11 +1308,6 @@ export default function CourseDetails() {
           </ul>
           <div className="course-details__card-tooltip">
             <span className="course-details__installment-meta">
-              <SegmentedArcIcon
-                className="course-details__split-brand-icon"
-                size={17}
-                title="Оплата частями"
-              />
               <span className="course-details__installment-line">{selfBnplLine}</span>
               <button
                 type="button"

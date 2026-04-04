@@ -13,10 +13,15 @@ describe("lesson editor saving overlay", () => {
     expect(source.includes("useDelayedLoading(")).toBe(false);
     expect(source.includes("SIGNATURE_VIDEO_SAVE_DELAY_MS")).toBe(false);
     expect(source.includes("<SignatureMathLoader")).toBe(false);
-    expect(source.includes("<AnalyticalSurfaceLoader size={modalLoaderSize} />")).toBe(true);
+    expect(
+      source.includes(
+        "<AnalyticalSurfaceLoader\n                  size={modalLoaderSize}\n                  progress={saveVideoProgressPercent ?? undefined}\n                />"
+      )
+    ).toBe(true);
     expect(source.includes("lesson-editor-dialog__save-overlay")).toBe(true);
     expect(source.includes("lesson-editor-dialog__save-progress")).toBe(true);
     expect(source.includes("saveVideoProgressPercent")).toBe(true);
+    expect(source.includes("lesson-editor-dialog__save-progress-value")).toBe(false);
   });
 
   it("keeps CTA spinner path for save action", () => {

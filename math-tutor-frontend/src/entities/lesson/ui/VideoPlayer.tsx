@@ -287,10 +287,29 @@ function VideoPlayerContent({
                   <path d="M58 318L318 136M984 612L1230 420" />
                 </g>
 
-                <polygon
-                  className="video-player__draft-plane video-player__draft-plane--a"
-                  points="868,96 1138,170 1076,270 808,198"
-                />
+                <g className="video-player__draft-sphere" transform="translate(1038 184)">
+                  <circle className="video-player__draft-sphere-ring" r="82" />
+                  <ellipse className="video-player__draft-sphere-lat" rx="82" ry="52" />
+                  <ellipse className="video-player__draft-sphere-lat" rx="82" ry="32" />
+                  <ellipse className="video-player__draft-sphere-lat" rx="82" ry="14" />
+                  <ellipse className="video-player__draft-sphere-meridian" rx="26" ry="82" />
+                  <ellipse
+                    className="video-player__draft-sphere-meridian"
+                    rx="44"
+                    ry="82"
+                    transform="rotate(34)"
+                  />
+                  <ellipse
+                    className="video-player__draft-sphere-meridian"
+                    rx="44"
+                    ry="82"
+                    transform="rotate(-34)"
+                  />
+                  <circle className="video-player__draft-sphere-node" cx="0" cy="-82" r="3.4" />
+                  <circle className="video-player__draft-sphere-node" cx="0" cy="82" r="3.4" />
+                  <circle className="video-player__draft-sphere-node" cx="82" cy="0" r="3.4" />
+                  <circle className="video-player__draft-sphere-node" cx="-82" cy="0" r="3.4" />
+                </g>
                 <polygon
                   className="video-player__draft-plane video-player__draft-plane--b"
                   points="780,500 1012,584 944,660 708,576"

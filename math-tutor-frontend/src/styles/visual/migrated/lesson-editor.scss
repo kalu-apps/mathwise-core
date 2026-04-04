@@ -473,17 +473,21 @@
 }
 
 .lesson-editor-dialog__save-overlay-inner {
-  width: min(100%, 340px);
+  width: min(100%, 360px);
   min-height: clamp(188px, 28vw, 236px);
   justify-items: center;
   text-align: center;
 }
 
 .lesson-editor-dialog__save-visual {
-  width: 100%;
+  width: min(100%, 330px);
   min-height: clamp(110px, 16vw, 150px);
   display: grid;
   place-items: center;
+}
+
+.lesson-editor-dialog__save-visual .ui-loader-analytical {
+  margin-inline: auto;
 }
 
 .lesson-editor-dialog__save-status {
@@ -496,53 +500,69 @@
 }
 
 .lesson-editor-dialog__save-progress {
-  width: min(100%, 300px);
+  width: min(100%, 272px);
   display: grid;
-  gap: 7px;
+  gap: 0;
+  padding-top: 2px;
 }
 
 .lesson-editor-dialog__save-progress-bar {
-  height: 9px !important;
+  height: 6px !important;
   border-radius: 999px !important;
   overflow: hidden;
   background: linear-gradient(
-    120deg,
-    color-mix(in srgb, var(--surface-soft) 82%, transparent),
-    color-mix(in srgb, var(--card-border) 56%, transparent)
+    110deg,
+    color-mix(in srgb, #0d1930 62%, transparent),
+    color-mix(in srgb, #122747 66%, transparent)
   ) !important;
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--card-border) 72%, transparent),
-    inset 0 0 14px color-mix(in srgb, var(--brand-soft) 28%, transparent);
+    inset 0 0 0 1px color-mix(in srgb, #79a7d7 34%, transparent),
+    inset 0 0 10px color-mix(in srgb, #3f7bc5 28%, transparent);
 }
 
 .lesson-editor-dialog__save-progress-bar .MuiLinearProgress-bar {
   border-radius: 999px;
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--brand-solid) 80%, var(--accent-strong)),
-    color-mix(in srgb, var(--feedback-info) 58%, var(--brand-soft))
+    color-mix(in srgb, #2db9ff 88%, transparent),
+    color-mix(in srgb, #6a86ff 82%, transparent) 58%,
+    color-mix(in srgb, #8e67ff 80%, transparent)
   );
   box-shadow:
-    0 0 16px color-mix(in srgb, var(--feedback-info) 32%, transparent),
-    0 0 30px color-mix(in srgb, var(--brand-soft) 22%, transparent);
-  transition: transform 220ms ease, width 220ms ease;
+    0 0 10px color-mix(in srgb, #49c9ff 40%, transparent),
+    0 0 18px color-mix(in srgb, #8c67ff 26%, transparent);
+  transition: transform 200ms ease, width 200ms ease, filter 240ms ease;
 }
 
-.lesson-editor-dialog__save-progress-value {
-  margin: 0;
-  text-align: right;
-  font-size: clamp(0.78rem, 0.28vw + 0.72rem, 0.9rem);
-  font-weight: 700;
-  color: color-mix(in srgb, var(--text-primary) 94%, var(--accent-soft));
-  letter-spacing: 0.01em;
+.lesson-editor-dialog__save-progress.is-near-complete .lesson-editor-dialog__save-progress-bar .MuiLinearProgress-bar {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, #56dbff 92%, transparent),
+    color-mix(in srgb, #7b8fff 88%, transparent) 54%,
+    color-mix(in srgb, #b07bff 86%, transparent)
+  );
+  box-shadow:
+    0 0 14px color-mix(in srgb, #67ddff 54%, transparent),
+    0 0 26px color-mix(in srgb, #9d80ff 34%, transparent);
+  animation: lessonSaveProgressPulse 1.15s ease-in-out infinite;
 }
 
 .lesson-editor-dialog__save-overlay .ui-loader-analytical--md {
-  --loader-size: clamp(168px, 26vw, 238px);
+  --loader-width: clamp(258px, 62vw, 334px);
 }
 
 .lesson-editor-dialog__save-overlay .ui-loader-analytical--sm {
-  --loader-size: clamp(132px, 48vw, 178px);
+  --loader-width: clamp(230px, 72vw, 292px);
+}
+
+@keyframes lessonSaveProgressPulse {
+  0%,
+  100% {
+    filter: saturate(1);
+  }
+  50% {
+    filter: saturate(1.18) brightness(1.06);
+  }
 }
 
 @media (max-width: 600px) {

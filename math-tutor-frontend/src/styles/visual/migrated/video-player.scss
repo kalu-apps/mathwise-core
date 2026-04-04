@@ -124,14 +124,52 @@
   opacity: 0.82;
 }
 
-.video-player__draft-plane--a {
-  fill: color-mix(in srgb, #59c8ff 18%, transparent);
-  stroke: color-mix(in srgb, #8fd2ff 46%, transparent);
-}
-
 .video-player__draft-plane--b {
   fill: color-mix(in srgb, #8a74ff 18%, transparent);
   stroke: color-mix(in srgb, #c093ff 38%, transparent);
+}
+
+.video-player__draft-sphere {
+  fill: none;
+  opacity: 0.86;
+}
+
+.video-player__draft-sphere-ring,
+.video-player__draft-sphere-lat,
+.video-player__draft-sphere-meridian {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.video-player__draft-sphere-ring {
+  stroke: color-mix(in srgb, #c9ecff 72%, transparent);
+  stroke-width: 1.36;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, #58d6ff 30%, transparent));
+}
+
+.video-player__draft-sphere-lat {
+  stroke: color-mix(in srgb, #8acfff 56%, transparent);
+  stroke-width: 1.04;
+  stroke-dasharray: 4 6;
+  opacity: 0.86;
+}
+
+.video-player__draft-sphere-meridian {
+  stroke: color-mix(in srgb, #b2d8ff 64%, transparent);
+  stroke-width: 1.06;
+  opacity: 0.8;
+}
+
+.video-player__draft-sphere-node {
+  fill: color-mix(in srgb, #d7f0ff 84%, transparent);
+  stroke: color-mix(in srgb, #70cbff 46%, transparent);
+  stroke-width: 0.9;
+}
+
+.video-player__draft-sphere-ring,
+.video-player__draft-sphere-meridian {
+  animation: videoDraftSpherePulse 5.6s ease-in-out infinite;
 }
 
 .video-player__draft-hero-graph {
@@ -439,6 +477,16 @@
   }
 }
 
+@keyframes videoDraftSpherePulse {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 0.94;
+  }
+}
+
 body.video-player-restore {
   overflow-x: hidden;
   touch-action: manipulation;
@@ -480,7 +528,9 @@ body.video-player-restore {
 @media (prefers-reduced-motion: reduce) {
   .video-player__poster-grid,
   .video-player__draft-hero-graph,
-  .video-player__draft-secondary-graph {
+  .video-player__draft-secondary-graph,
+  .video-player__draft-sphere-ring,
+  .video-player__draft-sphere-meridian {
     animation: none !important;
   }
 }
