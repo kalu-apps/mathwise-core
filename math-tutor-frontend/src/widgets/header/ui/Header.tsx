@@ -10,7 +10,7 @@ import { useThemeMode } from "@/app/theme/themeModeContext";
 import { t } from "@/shared/i18n";
 import { useAppShellStore } from "@/app/store/appShellStore";
 import {
-  formatUserPrimaryName,
+  formatUserBadgeName,
   getUserAvatarInitial,
 } from "@/shared/lib/userDisplayName";
 
@@ -42,7 +42,7 @@ export function Header() {
     navigate("/", { replace: true });
   };
 
-  const userDisplayName = user ? formatUserPrimaryName(user) : "";
+  const userDisplayName = user ? formatUserBadgeName(user) : "";
   const userAvatarInitial = user
     ? (userDisplayName.trim()[0]?.toLocaleUpperCase("ru-RU") ||
       getUserAvatarInitial(user))

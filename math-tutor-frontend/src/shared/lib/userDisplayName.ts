@@ -25,6 +25,30 @@ const toUpperInitial = (value: string) => {
   return normalized[0]?.toLocaleUpperCase("ru-RU") ?? "";
 };
 
+const SURNAME_ENDINGS = [
+  "ов",
+  "ова",
+  "ев",
+  "ева",
+  "ин",
+  "ина",
+  "ын",
+  "ына",
+  "ский",
+  "ская",
+  "цкий",
+  "цкая",
+  "ко",
+  "юк",
+  "ич",
+];
+
+const isLikelySurnameToken = (value: string) => {
+  const token = toTitleToken(value).toLocaleLowerCase("ru-RU");
+  if (!token) return false;
+  return SURNAME_ENDINGS.some((ending) => token.endsWith(ending));
+};
+
 export const formatUserShortName = (source: UserDisplaySource) => {
   const firstName = toTitleToken(source.firstName ?? "");
   const lastName = toTitleToken(source.lastName ?? "");
@@ -48,6 +72,22 @@ export const formatUserPrimaryName = (source: UserDisplaySource) => {
     return firstName;
   }
   return formatUserShortName(source);
+};
+
+export const formatUserBadgeName = (source: UserDisplaySource) => {
+  const firstName = toTitleToken(source.firstName ?? "");
+  const lastName = toTitleToken(source.lastName ?? "");
+  if (firstName && lastName) {
+    // Some profiles still have swapped first/last names in persisted data.
+    // For the header badge we must always prefer the given name.
+    if (isLikelySurnameToken(firstName) && !isLikelySurnameToken(lastName)) {
+      return lastName;
+    }
+    return firstName;
+  }
+  if (firstName) return firstName;
+  if (lastName) return lastName;
+  return formatUserPrimaryName(source);
 };
 
 export const getUserAvatarInitial = (source: UserDisplaySource) => {

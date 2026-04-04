@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatUserBadgeName,
   formatUserPrimaryName,
   formatUserShortName,
   getUserAvatarInitial,
@@ -61,5 +62,25 @@ describe("user display name formatting", () => {
         email: "anna@example.com",
       })
     ).toBe("Анна Викторовна");
+  });
+
+  it("uses first name token for header badge", () => {
+    expect(
+      formatUserBadgeName({
+        firstName: "Иван",
+        lastName: "Калугин",
+        email: "ivan@example.com",
+      })
+    ).toBe("Иван");
+  });
+
+  it("recovers badge name when first/last names are swapped", () => {
+    expect(
+      formatUserBadgeName({
+        firstName: "Калугин",
+        lastName: "Иван",
+        email: "ivan@example.com",
+      })
+    ).toBe("Иван");
   });
 });
