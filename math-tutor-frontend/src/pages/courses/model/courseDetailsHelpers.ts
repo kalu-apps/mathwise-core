@@ -85,10 +85,16 @@ export const getCheckoutDialogHint = (
 export const getPaymentProviderLabel = (
   method?: string | null,
   fallback?: string
-) =>
-  PAYMENT_METHODS.find((item) => item.id === method)?.title ??
-  fallback ??
-  "Способ оплаты";
+) => {
+  if (method === "yookassa") return "YooKassa";
+  if (method === "cloudpayments") return "CloudPayments";
+  if (method === "tbank") return "Т-Банк";
+  return (
+    PAYMENT_METHODS.find((item) => item.id === method)?.title ??
+    fallback ??
+    "Способ оплаты"
+  );
+};
 
 export const formatDateRu = (value: string | null) => {
   if (!value) return null;

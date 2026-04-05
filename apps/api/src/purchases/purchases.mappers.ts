@@ -31,6 +31,7 @@ export type CheckoutRow = {
   state: CheckoutStateDto;
   providerPaymentId: string | null;
   providerEventId: string | null;
+  providerPayload: unknown;
   consentSnapshot: unknown;
   createdAt: string;
   updatedAt: string;
@@ -84,6 +85,10 @@ export const mapCheckoutRow = (row: CheckoutRow): CheckoutProcessDto => ({
   state: row.state,
   providerPaymentId: row.providerPaymentId ?? undefined,
   providerEventId: row.providerEventId ?? undefined,
+  providerPayload:
+    row.providerPayload && typeof row.providerPayload === "object"
+      ? (row.providerPayload as Record<string, unknown>)
+      : undefined,
   consentSnapshot: Array.isArray(row.consentSnapshot)
     ? row.consentSnapshot
         .map((value) => (typeof value === "string" ? value : ""))

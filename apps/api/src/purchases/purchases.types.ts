@@ -30,7 +30,7 @@ export type CheckoutAccessStateDto =
   | "paid_but_restricted";
 
 export type CheckoutPaymentDto = {
-  provider: CheckoutMethodDto;
+  provider: string;
   status: CheckoutPaymentStatusDto;
   outcome:
     | "applied"
@@ -82,6 +82,7 @@ export type CheckoutProcessDto = {
   state: CheckoutStateDto;
   providerPaymentId?: string;
   providerEventId?: string;
+  providerPayload?: Record<string, unknown>;
   consentSnapshot?: string[];
   createdAt: string;
   updatedAt: string;

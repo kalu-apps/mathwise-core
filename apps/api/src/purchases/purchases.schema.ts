@@ -51,6 +51,7 @@ export const PURCHASES_SCHEMA_STATEMENTS = [
       ),
       provider_payment_id TEXT,
       provider_event_id TEXT,
+      provider_payload_json JSONB,
       consent_snapshot_json JSONB,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -65,6 +66,7 @@ export const PURCHASES_SCHEMA_STATEMENTS = [
   `ALTER TABLE checkout_processes ADD COLUMN IF NOT EXISTS phone TEXT`,
   `ALTER TABLE checkout_processes ADD COLUMN IF NOT EXISTS provider_payment_id TEXT`,
   `ALTER TABLE checkout_processes ADD COLUMN IF NOT EXISTS provider_event_id TEXT`,
+  `ALTER TABLE checkout_processes ADD COLUMN IF NOT EXISTS provider_payload_json JSONB`,
   `ALTER TABLE checkout_processes ADD COLUMN IF NOT EXISTS consent_snapshot_json JSONB`,
   `
     CREATE INDEX IF NOT EXISTS idx_checkout_processes_user

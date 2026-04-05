@@ -186,10 +186,11 @@ export const writeCheckout = async (
         state = $13,
         provider_payment_id = $14,
         provider_event_id = $15,
-        consent_snapshot_json = $16::jsonb,
-        created_at = $17,
-        updated_at = $18,
-        expires_at = $19,
+        provider_payload_json = $16::jsonb,
+        consent_snapshot_json = $17::jsonb,
+        created_at = $18,
+        updated_at = $19,
+        expires_at = $20,
         updated_at_ts = NOW()
       WHERE id = $1
     `,
@@ -209,6 +210,7 @@ export const writeCheckout = async (
       checkout.state,
       checkout.providerPaymentId ?? null,
       checkout.providerEventId ?? null,
+      JSON.stringify(checkout.providerPayload ?? null),
       JSON.stringify(checkout.consentSnapshot ?? null),
       checkout.createdAt,
       checkout.updatedAt,

@@ -3,6 +3,7 @@ import path from "path";
 export type ApiAppEnv = "local" | "preview" | "stage" | "prod";
 export type ApiCookieSameSite = "Lax" | "Strict" | "None";
 export type ApiEmailDeliveryMode = "disabled" | "provider" | "smtp";
+export type ApiYooKassaMode = "disabled" | "test" | "prod";
 
 export type ApiRuntimeConfig = {
   port: number;
@@ -58,6 +59,14 @@ export type ApiRuntimeConfig = {
   mailSocketTimeoutMs: number;
   mailBcc: string[];
   mailDryRun: boolean;
+  yookassaMode: ApiYooKassaMode;
+  yookassaShopId: string;
+  yookassaSecretKey: string;
+  yookassaApiBase: string;
+  yookassaReturnUrl: string;
+  yookassaWebhookPath: string;
+  yookassaCaptureImmediately: boolean;
+  yookassaWebhookEnabled: boolean;
   mediaStorageEnabled: boolean;
   s3Endpoint: string;
   s3Region: string;
@@ -120,6 +129,26 @@ const parseEmailDeliveryMode = (
   if (normalized === "smtp") return "smtp";
   throw new Error(
     `[api-runtime] Invalid EMAIL_DELIVERY_MODE value: ${raw}. Allowed: disabled|provider|smtp`
+  );
+};
+
+const parseYooKassaMode = (
+  raw: string | undefined,
+  fallback: ApiYooKassaMode = "disabled"
+): ApiYooKassaMode => {
+  const normalized = (raw ?? fallback).trim().toLowerCase();
+  if (
+    normalized === "" ||
+    normalized === "disabled" ||
+    normalized === "off" ||
+    normalized === "none"
+  ) {
+    return "disabled";
+  }
+  if (normalized === "test") return "test";
+  if (normalized === "prod" || normalized === "production") return "prod";
+  throw new Error(
+    `[api-runtime] Invalid YOOKASSA_MODE value: ${raw}. Allowed: disabled|test|prod`
   );
 };
 
@@ -384,6 +413,65 @@ export const getApiRuntimeConfig = (
   const mailBcc = parseCsv(process.env.MAIL_BCC);
   const mailDryRun = parseBoolean(process.env.MAIL_DRY_RUN, false);
 
+  const yookassaMode = parseYooKassaMode(
+    process.env.YOOKASSA_MODE,
+    "disabled"
+  );
+  const yookassaEnabled = yookassaMode !== "disabled";
+  const yookassaShopId = yookassaEnabled
+    ? ensureRequiredEnv("YOOKASSA_SHOP_ID", process.env.YOOKASSA_SHOP_ID)
+    : process.env.YOOKASSA_SHOP_ID?.trim() || "";
+  const yookassaSecretKey = yookassaEnabled
+    ? ensureRequiredEnv("YOOKASSA_SECRET_KEY", process.env.YOOKASSA_SECRET_KEY)
+    : process.env.YOOKASSA_SECRET_KEY?.trim() || "";
+  const yookassaApiBaseRaw =
+    process.env.YOOKASSA_API_BASE?.trim() || "https://api.yookassa.ru/v3";
+  let yookassaApiBase = yookassaApiBaseRaw.replace(/\/+$/, "");
+  try {
+    const parsed = new URL(yookassaApiBase);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      throw new Error();
+    }
+  } catch {
+    throw new Error(
+      "[api-runtime] YOOKASSA_API_BASE must be a valid absolute URL"
+    );
+  }
+  if (!yookassaApiBase.endsWith("/v3")) {
+    yookassaApiBase = `${yookassaApiBase}/v3`;
+  }
+  const yookassaReturnUrl = yookassaEnabled
+    ? ensureRequiredEnv("YOOKASSA_RETURN_URL", process.env.YOOKASSA_RETURN_URL)
+    : process.env.YOOKASSA_RETURN_URL?.trim() || "";
+  if (yookassaReturnUrl) {
+    try {
+      const parsed = new URL(yookassaReturnUrl);
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        throw new Error();
+      }
+    } catch {
+      throw new Error(
+        "[api-runtime] YOOKASSA_RETURN_URL must be a valid absolute URL"
+      );
+    }
+  }
+  const yookassaWebhookPath =
+    process.env.YOOKASSA_WEBHOOK_PATH?.trim() ||
+    "/api/payments/providers/yookassa/webhook";
+  if (!yookassaWebhookPath.startsWith("/")) {
+    throw new Error(
+      "[api-runtime] YOOKASSA_WEBHOOK_PATH must start with '/'"
+    );
+  }
+  const yookassaCaptureImmediately = parseBoolean(
+    process.env.YOOKASSA_CAPTURE_IMMEDIATELY,
+    true
+  );
+  const yookassaWebhookEnabled = parseBoolean(
+    process.env.YOOKASSA_WEBHOOK_ENABLED,
+    true
+  );
+
   const mediaStorageEnabled = parseBoolean(
     process.env.MEDIA_STORAGE_ENABLED,
     false
@@ -545,6 +633,14 @@ export const getApiRuntimeConfig = (
     mailSocketTimeoutMs,
     mailBcc,
     mailDryRun,
+    yookassaMode,
+    yookassaShopId,
+    yookassaSecretKey,
+    yookassaApiBase,
+    yookassaReturnUrl,
+    yookassaWebhookPath,
+    yookassaCaptureImmediately,
+    yookassaWebhookEnabled,
     mediaStorageEnabled,
     s3Endpoint,
     s3Region,

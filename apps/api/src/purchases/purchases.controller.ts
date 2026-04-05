@@ -261,6 +261,11 @@ export class PurchasesController {
     });
   }
 
+  @Post("payments/providers/yookassa/webhook")
+  async processYooKassaWebhook(@Body() payload: unknown) {
+    return this.purchasesService.handleYooKassaWebhook({ payload });
+  }
+
   @Post("payments/providers/card/refund")
   async refundCardCheckout(
     @Body() body: { checkoutId?: string; reason?: string },

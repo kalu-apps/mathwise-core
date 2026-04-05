@@ -224,6 +224,73 @@ test("purchases: stage confirm endpoint is unavailable outside stage runtime", a
   });
 });
 
+test("purchases: stage confirm is blocked when YooKassa mode is enabled", async () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.STAGE_PAYMENT_CONFIRM_ENABLED = "true";
+    process.env.YOOKASSA_MODE = "test";
+    process.env.YOOKASSA_SHOP_ID = "shop_test";
+    process.env.YOOKASSA_SECRET_KEY = "secret_test";
+    process.env.YOOKASSA_RETURN_URL = "https://stage.mathwise.ru/courses";
+
+    const service = new PurchasesService(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never
+    );
+
+    await assert.rejects(
+      () =>
+        service.stageConfirmCheckout({
+          checkoutId: "checkout_1",
+          actorUser: {
+            id: "student_1",
+            email: "student@example.com",
+            firstName: "Student",
+            lastName: "One",
+            role: "student",
+          },
+        }),
+      (error: unknown) => {
+        const status =
+          error &&
+          typeof error === "object" &&
+          "getStatus" in error &&
+          typeof (error as { getStatus: () => number }).getStatus === "function"
+            ? (error as { getStatus: () => number }).getStatus()
+            : null;
+        return status === 409;
+      }
+    );
+  } finally {
+    for (const key of Object.keys(process.env)) {
+      if (!(key in snapshot)) {
+        delete process.env[key];
+      }
+    }
+    for (const [key, value] of Object.entries(snapshot)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+});
+
 test("purchases: stage confirm reuses backend provider-confirm chain", async () => {
   const snapshot = { ...process.env };
   try {

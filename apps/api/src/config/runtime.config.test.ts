@@ -262,3 +262,94 @@ test("runtime config: STAGE_PAYMENT_CONFIRM_ENABLED is rejected outside stage", 
     restoreEnv(snapshot);
   }
 });
+
+test("runtime config: yookassa disabled does not require credentials", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.YOOKASSA_MODE = "disabled";
+    delete process.env.YOOKASSA_SHOP_ID;
+    delete process.env.YOOKASSA_SECRET_KEY;
+    delete process.env.YOOKASSA_RETURN_URL;
+
+    const config = getApiRuntimeConfig();
+    assert.equal(config.yookassaMode, "disabled");
+    assert.equal(config.yookassaShopId, "");
+    assert.equal(config.yookassaSecretKey, "");
+    assert.equal(config.yookassaReturnUrl, "");
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("runtime config: yookassa test mode requires shop id, secret and return url", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.YOOKASSA_MODE = "test";
+    process.env.YOOKASSA_API_BASE = "https://api.yookassa.ru/v3";
+    delete process.env.YOOKASSA_SHOP_ID;
+    delete process.env.YOOKASSA_SECRET_KEY;
+    delete process.env.YOOKASSA_RETURN_URL;
+
+    assert.throws(
+      () => getApiRuntimeConfig(),
+      /Missing required env: YOOKASSA_SHOP_ID/
+    );
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("runtime config: yookassa test mode reads and normalizes config", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.YOOKASSA_MODE = "test";
+    process.env.YOOKASSA_SHOP_ID = "test_shop_id";
+    process.env.YOOKASSA_SECRET_KEY = "test_secret_key";
+    process.env.YOOKASSA_RETURN_URL = "https://stage.mathwise.ru/courses/course_1";
+    process.env.YOOKASSA_API_BASE = "https://api.yookassa.ru";
+    process.env.YOOKASSA_WEBHOOK_PATH = "/api/payments/providers/yookassa/webhook";
+    process.env.YOOKASSA_CAPTURE_IMMEDIATELY = "true";
+    process.env.YOOKASSA_WEBHOOK_ENABLED = "true";
+
+    const config = getApiRuntimeConfig();
+    assert.equal(config.yookassaMode, "test");
+    assert.equal(config.yookassaShopId, "test_shop_id");
+    assert.equal(config.yookassaSecretKey, "test_secret_key");
+    assert.equal(config.yookassaApiBase, "https://api.yookassa.ru/v3");
+    assert.equal(
+      config.yookassaWebhookPath,
+      "/api/payments/providers/yookassa/webhook"
+    );
+    assert.equal(config.yookassaCaptureImmediately, true);
+    assert.equal(config.yookassaWebhookEnabled, true);
+  } finally {
+    restoreEnv(snapshot);
+  }
+});

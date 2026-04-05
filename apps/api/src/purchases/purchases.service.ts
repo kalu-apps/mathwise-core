@@ -1,4 +1,4 @@
-import { HttpException, Injectable, OnModuleInit } from "@nestjs/common";
+import { HttpException, Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import type { AuthUserDto } from "../auth/auth.types";
 import { AuthService } from "../auth/auth.service";
 import { getApiRuntimeConfig } from "../config/runtime.config";
@@ -47,6 +47,12 @@ import {
   signWebhookPayload,
   verifyWebhookRequest,
 } from "./purchases.service.runtime";
+import {
+  buildYooKassaIdempotenceKey,
+  createYooKassaPayment,
+  isYooKassaEnabled,
+  parseYooKassaWebhookPayload,
+} from "./purchases.yookassa";
 
 type ProviderWebhookResult = {
   ok: boolean;
@@ -63,6 +69,7 @@ type ProviderWebhookResult = {
 @Injectable()
 export class PurchasesService implements OnModuleInit {
   private readonly runtimeConfig = getApiRuntimeConfig();
+  private readonly logger = new Logger(PurchasesService.name);
 
   constructor(
     private readonly purchasesRepository: PurchasesRepository,
@@ -242,7 +249,12 @@ export class PurchasesService implements OnModuleInit {
       });
 
       let effectiveCheckout = checkout;
-      if (
+      if (this.shouldUseYooKassaProvider(checkout.method)) {
+        effectiveCheckout = await this.createYooKassaPaymentForCheckout(
+          effectiveCheckout,
+          "create"
+        );
+      } else if (
         this.runtimeConfig.appEnv === "local" &&
         this.runtimeConfig.paymentProviderAutoConfirmLocal
       ) {
@@ -433,7 +445,11 @@ export class PurchasesService implements OnModuleInit {
         previousState: checkout.state,
       });
 
-      const effective = await this.resumeProvisionIfNeeded(retried);
+      let effective = retried;
+      if (this.shouldUseYooKassaProvider(retried.method)) {
+        effective = await this.createYooKassaPaymentForCheckout(effective, "retry");
+      }
+      effective = await this.resumeProvisionIfNeeded(effective);
       return {
         ok: true,
         checkoutId: effective.id,
@@ -546,6 +562,17 @@ export class PurchasesService implements OnModuleInit {
           marker: "STAGE_ONLY_REMOVE_BEFORE_PROD",
         },
         404
+      );
+    }
+
+    if (isYooKassaEnabled(this.runtimeConfig)) {
+      throw new HttpException(
+        {
+          error:
+            "Stage payment confirm отключен при активной YooKassa-интеграции. Используйте реальный provider flow.",
+          code: "stage_payment_confirm_disabled_for_provider",
+        },
+        409
       );
     }
 
@@ -722,16 +749,93 @@ export class PurchasesService implements OnModuleInit {
       runtimeConfig: this.runtimeConfig,
       redisService: this.redisService,
     });
+    return this.processProviderWebhookEvent({
+      provider: "card",
+      payload: params.payload,
+    });
+  }
 
+  async handleYooKassaWebhook(params: {
+    payload: unknown;
+  }): Promise<ProviderWebhookResult> {
+    if (!isYooKassaEnabled(this.runtimeConfig) || !this.runtimeConfig.yookassaWebhookEnabled) {
+      throw new HttpException(
+        { error: "YooKassa webhook endpoint disabled in current runtime." },
+        404
+      );
+    }
+
+    const parsed = parseYooKassaWebhookPayload(params.payload);
+    let checkoutId = parsed.checkoutId;
+    if (!checkoutId && parsed.providerPaymentId) {
+      const checkout = await this.purchasesRepository.findCheckoutByProviderPaymentId(
+        parsed.providerPaymentId
+      );
+      checkoutId = checkout?.id;
+    }
+
+    if (!checkoutId) {
+      this.logger.warn(
+        JSON.stringify({
+          event: "payment_webhook_unmatched",
+          provider: "yookassa",
+          eventId: parsed.eventId,
+          providerPaymentId: parsed.providerPaymentId,
+          reason: "missing_checkout_mapping",
+        })
+      );
+      return {
+        ok: true,
+        event: {
+          status: parsed.status,
+          outcome: "ignored_missing_checkout",
+        },
+        checkout: null,
+      };
+    }
+
+    return this.processProviderWebhookEvent({
+      provider: "yookassa",
+      payload: {
+        eventId: parsed.eventId,
+        checkoutId,
+        status: parsed.status,
+        providerPaymentId: parsed.providerPaymentId,
+        payload: parsed.payload,
+      },
+    });
+  }
+
+  private async processProviderWebhookEvent(params: {
+    provider: "card" | "yookassa";
+    payload: ProviderWebhookPayloadDto;
+  }): Promise<ProviderWebhookResult> {
     const eventId = params.payload.eventId.trim();
     if (!eventId) {
       throw new HttpException({ error: "eventId обязателен." }, 400);
     }
+    const checkoutId = params.payload.checkoutId?.trim();
+    if (!checkoutId) {
+      throw new HttpException({ error: "checkoutId обязателен." }, 400);
+    }
 
-    const dedupeKey = `card:${eventId}`;
-    const existingEvent = await this.purchasesRepository.findPaymentEventByDedupeKey(dedupeKey);
+    const dedupeKey = `${params.provider}:${eventId}`;
+    this.logger.log(
+      JSON.stringify({
+        event: "payment_webhook_received",
+        provider: params.provider,
+        eventId,
+        checkoutId,
+        status: params.payload.status,
+      })
+    );
+    const existingEvent = await this.purchasesRepository.findPaymentEventByDedupeKey(
+      dedupeKey
+    );
     if (existingEvent) {
-      const checkout = await this.purchasesRepository.findCheckoutById(existingEvent.checkoutId);
+      const checkout = await this.purchasesRepository.findCheckoutById(
+        existingEvent.checkoutId
+      );
       return {
         ok: true,
         event: {
@@ -747,17 +851,17 @@ export class PurchasesService implements OnModuleInit {
       };
     }
 
-    const lockKey = `lock:provider:webhook:${params.payload.checkoutId}`;
+    const lockKey = `lock:provider:webhook:${checkoutId}`;
     return this.withLock(lockKey, async () => {
       const now = nowIso();
-      const checkout = await this.purchasesRepository.findCheckoutById(params.payload.checkoutId);
+      const checkout = await this.purchasesRepository.findCheckoutById(checkoutId);
       if (!checkout) {
         await this.purchasesRepository.insertPaymentEvent({
           id: ensureId("pay_evt"),
-          provider: "card",
+          provider: params.provider,
           externalEventId: eventId,
           dedupeKey,
-          checkoutId: params.payload.checkoutId,
+          checkoutId,
           status: params.payload.status,
           outcome: "ignored_missing_checkout",
           payload: params.payload.payload ?? null,
@@ -774,24 +878,47 @@ export class PurchasesService implements OnModuleInit {
         };
       }
 
-      const transition = computeProviderTransition(
-        checkout.state,
-        params.payload.status
-      );
+      const transition = computeProviderTransition(checkout.state, params.payload.status);
       let effectiveCheckout = checkout;
       let outcome = transition.outcome;
+      const currentPayload =
+        checkout.providerPayload &&
+        typeof checkout.providerPayload === "object" &&
+        !Array.isArray(checkout.providerPayload)
+          ? (checkout.providerPayload as Record<string, unknown>)
+          : {};
+      const webhookPayload =
+        params.payload.payload &&
+        typeof params.payload.payload === "object" &&
+        !Array.isArray(params.payload.payload)
+          ? (params.payload.payload as Record<string, unknown>)
+          : {};
 
-      if (transition.nextState && transition.nextState !== checkout.state) {
+      const hasProviderContextUpdate =
+        Boolean(params.payload.providerPaymentId?.trim()) ||
+        Object.keys(webhookPayload).length > 0;
+      const shouldUpdateCheckout =
+        Boolean(transition.nextState) &&
+        (transition.nextState !== checkout.state || hasProviderContextUpdate);
+
+      if (shouldUpdateCheckout && transition.nextState) {
         effectiveCheckout = {
           ...checkout,
           state: transition.nextState,
           providerEventId: eventId,
-          providerPaymentId: params.payload.providerPaymentId?.trim() || checkout.providerPaymentId,
+          providerPaymentId:
+            params.payload.providerPaymentId?.trim() || checkout.providerPaymentId,
+          providerPayload: {
+            ...currentPayload,
+            ...webhookPayload,
+            provider: params.provider,
+            providerStatus: params.payload.status,
+          },
           updatedAt: now,
         };
         await this.purchasesRepository.updateCheckout(effectiveCheckout);
         await this.appendTimelineEvent(effectiveCheckout.id, "provider_event", {
-          provider: "card",
+          provider: params.provider,
           status: params.payload.status,
           eventId,
           nextState: effectiveCheckout.state,
@@ -820,7 +947,7 @@ export class PurchasesService implements OnModuleInit {
 
       await this.purchasesRepository.insertPaymentEvent({
         id: ensureId("pay_evt"),
-        provider: "card",
+        provider: params.provider,
         externalEventId: eventId,
         dedupeKey,
         checkoutId: effectiveCheckout.id,
@@ -843,6 +970,125 @@ export class PurchasesService implements OnModuleInit {
         },
       };
     });
+  }
+
+  private shouldUseYooKassaProvider(method: CheckoutProcessDto["method"]) {
+    return isYooKassaEnabled(this.runtimeConfig) && (method === "card" || method === "sbp");
+  }
+
+  private async createYooKassaPaymentForCheckout(
+    checkout: CheckoutProcessDto,
+    scope: "create" | "retry"
+  ): Promise<CheckoutProcessDto> {
+    if (!this.shouldUseYooKassaProvider(checkout.method)) {
+      return checkout;
+    }
+
+    const idempotenceKey = buildYooKassaIdempotenceKey({
+      checkoutId: checkout.id,
+      scope,
+      stamp: checkout.updatedAt,
+    });
+
+    this.logger.log(
+      JSON.stringify({
+        event: "payment_create_attempt",
+        provider: "yookassa",
+        checkoutId: checkout.id,
+        method: checkout.method,
+        amount: checkout.amount,
+        currency: checkout.currency,
+        webhookPath: this.runtimeConfig.yookassaWebhookPath,
+      })
+    );
+
+    try {
+      const createdPayment = await createYooKassaPayment({
+        checkout,
+        runtimeConfig: this.runtimeConfig,
+        idempotenceKey,
+      });
+      let updatedCheckout: CheckoutProcessDto = {
+        ...checkout,
+        providerPaymentId: createdPayment.paymentId,
+        providerPayload: createdPayment.providerPayload,
+        updatedAt: nowIso(),
+      };
+      await this.purchasesRepository.updateCheckout(updatedCheckout);
+      await this.appendTimelineEvent(updatedCheckout.id, "provider_payment_created", {
+        provider: "yookassa",
+        providerPaymentId: createdPayment.paymentId,
+        providerStatus: createdPayment.providerStatus,
+      });
+
+      if (createdPayment.normalizedStatus && createdPayment.normalizedStatus !== "awaiting_payment") {
+        const webhookResult = await this.processProviderWebhookEvent({
+          provider: "yookassa",
+          payload: {
+            eventId: `yk:create:${createdPayment.paymentId}:${createdPayment.providerStatus}`,
+            checkoutId: updatedCheckout.id,
+            status: createdPayment.normalizedStatus,
+            providerPaymentId: createdPayment.paymentId,
+            payload: {
+              provider: "yookassa",
+              source: "create_payment_response",
+              providerStatus: createdPayment.providerStatus,
+            },
+          },
+        });
+        if (webhookResult.checkout) {
+          const refreshed = await this.purchasesRepository.findCheckoutById(
+            webhookResult.checkout.id
+          );
+          if (refreshed) {
+            updatedCheckout = refreshed;
+          }
+        }
+      }
+
+      this.logger.log(
+        JSON.stringify({
+          event: "payment_create_success",
+          provider: "yookassa",
+          checkoutId: updatedCheckout.id,
+          providerPaymentId: createdPayment.paymentId,
+          providerStatus: createdPayment.providerStatus,
+        })
+      );
+
+      return updatedCheckout;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "provider_error";
+      const failedCheckout: CheckoutProcessDto = {
+        ...checkout,
+        state: "failed",
+        providerPayload: {
+          ...(checkout.providerPayload &&
+          typeof checkout.providerPayload === "object" &&
+          !Array.isArray(checkout.providerPayload)
+            ? (checkout.providerPayload as Record<string, unknown>)
+            : {}),
+          provider: "yookassa",
+          error: reason,
+          source: "create_payment",
+        },
+        updatedAt: nowIso(),
+      };
+      await this.purchasesRepository.updateCheckout(failedCheckout);
+      await this.appendTimelineEvent(failedCheckout.id, "provider_payment_create_failed", {
+        provider: "yookassa",
+        reason,
+      });
+      this.logger.error(
+        JSON.stringify({
+          event: "payment_create_failed",
+          provider: "yookassa",
+          checkoutId: checkout.id,
+          reason,
+        })
+      );
+      throw error;
+    }
   }
 
   async refundProviderCheckout(params: {
@@ -888,9 +1134,15 @@ export class PurchasesService implements OnModuleInit {
 
     await this.purchasesRepository.insertPaymentEvent({
       id: ensureId("pay_evt"),
-      provider: "card",
+      provider:
+        checkout.providerPayload &&
+        typeof checkout.providerPayload === "object" &&
+        !Array.isArray(checkout.providerPayload) &&
+        typeof (checkout.providerPayload as Record<string, unknown>).provider === "string"
+          ? ((checkout.providerPayload as Record<string, unknown>).provider as string)
+          : "card",
       externalEventId: ensureId("refund"),
-      dedupeKey: `card:refund:${checkout.id}:${now}`,
+      dedupeKey: `refund:${checkout.id}:${now}`,
       checkoutId: checkout.id,
       status: "canceled",
       outcome: "applied",

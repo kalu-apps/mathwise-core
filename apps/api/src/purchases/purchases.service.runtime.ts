@@ -10,6 +10,24 @@ import type {
 } from "./purchases.types";
 import { isTerminalCheckoutState } from "./purchases.types";
 
+const readProviderPayload = (checkout: CheckoutProcessDto) =>
+  checkout.providerPayload &&
+  typeof checkout.providerPayload === "object" &&
+  !Array.isArray(checkout.providerPayload)
+    ? (checkout.providerPayload as Record<string, unknown>)
+    : undefined;
+
+const readProviderPayloadString = (
+  checkout: CheckoutProcessDto,
+  key: string
+): string | undefined => {
+  const payload = readProviderPayload(checkout);
+  const value = payload?.[key];
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : undefined;
+};
+
 export const readCourseSnapshotPrice = (course: {
   priceGuided: number;
   priceSelf: number;
@@ -170,8 +188,21 @@ export const buildPaymentPayload = (
           ? "canceled"
           : "failed";
 
+  const providerPayload = readProviderPayload(checkout);
+  const providerName =
+    readProviderPayloadString(checkout, "provider") ?? checkout.method;
+  const redirectUrl = readProviderPayloadString(checkout, "redirectUrl");
+  const paymentUrl = readProviderPayloadString(checkout, "paymentUrl");
+  const returnUrl = readProviderPayloadString(checkout, "returnUrl");
+  const providerSbp =
+    providerPayload?.sbp &&
+    typeof providerPayload.sbp === "object" &&
+    !Array.isArray(providerPayload.sbp)
+      ? (providerPayload.sbp as Record<string, unknown>)
+      : undefined;
+
   const base: CheckoutPaymentDto = {
-    provider: checkout.method,
+    provider: providerName,
     status,
     outcome,
     providerPaymentId:
@@ -180,7 +211,45 @@ export const buildPaymentPayload = (
     lastProcessedAt: status === "awaiting_provider" ? null : checkout.updatedAt,
   };
 
-  if (checkout.method === "card") {
+  if (redirectUrl || paymentUrl || returnUrl || providerSbp) {
+    return {
+      ...base,
+      redirectUrl: redirectUrl ?? paymentUrl,
+      paymentUrl: paymentUrl ?? redirectUrl,
+      returnUrl,
+      requiresConfirmation:
+        status === "awaiting_provider" && Boolean(redirectUrl || paymentUrl),
+      sbp:
+        providerSbp &&
+        (typeof providerSbp.qrUrl === "string" ||
+          typeof providerSbp.deepLinkUrl === "string" ||
+          typeof providerSbp.expiresAt === "string")
+          ? {
+              qrUrl:
+                typeof providerSbp.qrUrl === "string"
+                  ? providerSbp.qrUrl
+                  : undefined,
+              deepLinkUrl:
+                typeof providerSbp.deepLinkUrl === "string"
+                  ? providerSbp.deepLinkUrl
+                  : undefined,
+              expiresAt:
+                typeof providerSbp.expiresAt === "string"
+                  ? providerSbp.expiresAt
+                  : undefined,
+            }
+          : undefined,
+    };
+  }
+
+  const shouldUseLegacyMockLinks =
+    !providerPayload &&
+    (!checkout.providerPaymentId ||
+      checkout.providerPaymentId.startsWith(`${checkout.method}_pi_`) ||
+      checkout.providerPaymentId.startsWith("local_pi_") ||
+      checkout.providerPaymentId.startsWith("stage_stub_pi_"));
+
+  if (checkout.method === "card" && shouldUseLegacyMockLinks) {
     return {
       ...base,
       paymentUrl: `https://pay.mock-card.local/checkout/${checkout.id}`,
@@ -189,7 +258,7 @@ export const buildPaymentPayload = (
     };
   }
 
-  if (checkout.method === "sbp") {
+  if (checkout.method === "sbp" && shouldUseLegacyMockLinks) {
     return {
       ...base,
       sbp: {
