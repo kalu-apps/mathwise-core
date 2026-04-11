@@ -40,7 +40,27 @@ type RequestOptions = {
   idempotencyPrefix?: string;
 };
 
-const API_BASE = "/api";
+const readNodeEnv = (name: string) => {
+  if (typeof process === "undefined") return undefined;
+  return process.env?.[name];
+};
+
+const getApiBase = () => {
+  const raw =
+    import.meta.env.VITE_API_BASE_URL?.trim() ??
+    readNodeEnv("API_BASE_URL")?.trim();
+  if (!raw) return "/api";
+  const normalized = raw.endsWith("/") ? raw.slice(0, -1) : raw;
+  if (normalized === "/api" || normalized.endsWith("/api")) {
+    return normalized;
+  }
+  if (normalized.includes("/api/")) {
+    return normalized;
+  }
+  return `${normalized}/api`;
+};
+
+const buildApiUrl = (path: string) => `${getApiBase()}${path}`;
 const DEFAULT_TIMEOUT_MS = 12_000;
 const CIRCUIT_WINDOW_MS = 30_000;
 const CIRCUIT_FAILURE_THRESHOLD = 4;
@@ -459,7 +479,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       }
 
       try {
-        const res = await fetch(`${API_BASE}${path}`, {
+        const res = await fetch(buildApiUrl(path), {
           method,
           credentials: "include",
           signal: controller.signal,
