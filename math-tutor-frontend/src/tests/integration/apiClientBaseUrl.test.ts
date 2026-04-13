@@ -27,7 +27,9 @@ describe("api client base url", () => {
   it("uses /api by default", async () => {
     delete process.env.API_BASE_URL;
 
-    const fetchMock = vi.fn(async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => {
+      void _input;
+      void _init;
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
         headers: { "content-type": "application/json" },
@@ -45,7 +47,9 @@ describe("api client base url", () => {
   it("uses API_BASE_URL and appends /api when missing", async () => {
     process.env.API_BASE_URL = "https://api.stage.mathwise.ru";
 
-    const fetchMock = vi.fn(async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => {
+      void _input;
+      void _init;
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
         headers: { "content-type": "application/json" },
