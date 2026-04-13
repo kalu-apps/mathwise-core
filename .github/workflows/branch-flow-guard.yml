@@ -1,0 +1,67 @@
+name: Branch Flow Guard
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+      - ready_for_review
+
+permissions:
+  contents: read
+
+jobs:
+  validate-branch-flow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR source/target branches
+        shell: bash
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+
+          echo "Base: ${BASE_REF}"
+          echo "Head: ${HEAD_REF}"
+
+          fail() {
+            echo "::error::$1"
+            exit 1
+          }
+
+          has_next_ref="false"
+          if [[ "${BASE_REF}" == "next" ]] || [[ "${HEAD_REF}" == "next" ]]; then
+            has_next_ref="true"
+          fi
+          if [[ "${BASE_REF}" =~ (^|/)next($|/) ]] || [[ "${HEAD_REF}" =~ (^|/)next($|/) ]]; then
+            has_next_ref="true"
+          fi
+          if [[ "${has_next_ref}" == "true" ]]; then
+            fail "Branch 'next' is deprecated and must not be used in PR flow."
+          fi
+
+          allowed="false"
+          if [[ "${BASE_REF}" == "staging" ]]; then
+            if [[ "${HEAD_REF}" =~ ^feature/ ]] \
+              || [[ "${HEAD_REF}" =~ ^refactor/ ]] \
+              || [[ "${HEAD_REF}" =~ ^perf/ ]] \
+              || [[ "${HEAD_REF}" =~ ^chore/ ]] \
+              || [[ "${HEAD_REF}" =~ ^fix/ ]] \
+              || [[ "${HEAD_REF}" =~ ^docs/ ]] \
+              || [[ "${HEAD_REF}" =~ ^dependabot/ ]]; then
+              allowed="true"
+            fi
+          fi
+
+          if [[ "${BASE_REF}" == "main" ]] && [[ "${HEAD_REF}" == "staging" ]]; then
+            allowed="true"
+          fi
+
+          if [[ "${allowed}" != "true" ]]; then
+            fail "Invalid branch flow: '${HEAD_REF}' -> '${BASE_REF}'. Allowed: feature/refactor/perf/chore/fix/docs/dependabot -> staging, and staging -> main."
+          fi
+
+          echo "Branch flow policy passed."
