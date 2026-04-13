@@ -1,0 +1,115 @@
+name: Build Core Artifact
+
+on:
+  push:
+    branches:
+      - staging
+      - main
+    paths:
+      - '.github/workflows/build-core-artifact.yml'
+      - 'apps/api/**'
+      - 'math-tutor-frontend/**'
+      - 'scripts/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: build-core-artifact-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-artifact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            apps/api/package-lock.json
+            math-tutor-frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm --prefix math-tutor-frontend ci
+
+      - name: Install API dependencies
+        run: npm --prefix apps/api ci
+
+      - name: Resolve frontend build mode
+        id: frontend-build
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_NAME}" == "staging" ]]; then
+            echo "script=build:stage" >> "$GITHUB_OUTPUT"
+            echo "mode=stage" >> "$GITHUB_OUTPUT"
+          else
+            echo "script=build" >> "$GITHUB_OUTPUT"
+            echo "mode=production" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Frontend checks
+        run: |
+          npm --prefix math-tutor-frontend run lint
+          npm --prefix math-tutor-frontend run typecheck
+          npm --prefix math-tutor-frontend run test
+          npm --prefix math-tutor-frontend run "${{ steps.frontend-build.outputs.script }}"
+
+      - name: API checks
+        run: |
+          npm --prefix apps/api run typecheck
+          npm --prefix apps/api run test
+          npm --prefix apps/api run build
+
+      - name: Prune API to production dependencies
+        run: npm --prefix apps/api prune --omit=dev
+
+      - name: Prepare artifact payload
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ARTIFACT_DIR="$RUNNER_TEMP/core-runtime"
+          rm -rf "$ARTIFACT_DIR"
+          mkdir -p "$ARTIFACT_DIR/api" "$ARTIFACT_DIR/frontend" "$ARTIFACT_DIR/scripts"
+
+          cp -R apps/api/dist "$ARTIFACT_DIR/api/dist"
+          cp -R apps/api/node_modules "$ARTIFACT_DIR/api/node_modules"
+          cp apps/api/package.json apps/api/package-lock.json "$ARTIFACT_DIR/api/"
+          cp -R math-tutor-frontend/dist "$ARTIFACT_DIR/frontend/dist"
+          cp scripts/release-verify.sh "$ARTIFACT_DIR/scripts/release-verify.sh"
+          chmod +x "$ARTIFACT_DIR/scripts/release-verify.sh"
+
+          cat > "$ARTIFACT_DIR/build-info.json" <<EOF
+          {
+            "repo": "${GITHUB_REPOSITORY}",
+            "runId": ${GITHUB_RUN_ID},
+            "runNumber": ${GITHUB_RUN_NUMBER},
+            "workflow": "${GITHUB_WORKFLOW}",
+            "ref": "${GITHUB_REF}",
+            "sha": "${GITHUB_SHA}",
+            "frontendBuildMode": "${{ steps.frontend-build.outputs.mode }}",
+            "builtAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+
+          tar -czf core-runtime.tgz -C "$ARTIFACT_DIR" .
+          shasum -a 256 core-runtime.tgz > core-runtime.tgz.sha256
+
+      - name: Upload core runtime artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-runtime-${{ github.ref_name }}
+          path: |
+            core-runtime.tgz
+            core-runtime.tgz.sha256
+          retention-days: 14
+          if-no-files-found: error
