@@ -1,0 +1,9 @@
+{
+  "name": "mathwise-core-deploy",
+  "private": true,
+  "scripts": {
+    "deploy:artifact": "node scripts/deploy-core-artifact.mjs",
+    "deploy:safe-restart": "node scripts/deploy-core-safe-restart.mjs",
+    "deploy:release": "npm run deploy:artifact && npm run deploy:safe-restart"
+  }
+}
