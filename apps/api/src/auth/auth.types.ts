@@ -1,5 +1,19 @@
 export type AuthUserRole = "student" | "teacher";
 export type AuthSocialProvider = "google" | "yandex" | "vk";
+export type AuthIdentityIntentChannel = "email" | AuthSocialProvider;
+export type AuthIdentityIntentState =
+  | "pending"
+  | "verified"
+  | "expired"
+  | "consumed"
+  | "conflict";
+export type AuthIdentityIntentConflictReason =
+  | "existing_account"
+  | "identity_conflict"
+  | "channel_not_supported"
+  | "invalid_identity"
+  | "too_many_attempts"
+  | "unknown";
 
 export type AuthUserDto = {
   id: string;
@@ -56,6 +70,37 @@ export type AuthPasswordStatusResponseDto = {
 export type AuthPasswordSaveResponseDto = {
   ok: boolean;
   message: string;
+};
+
+export type AuthIdentityIntentStartResponseDto = {
+  ok: boolean;
+  intentId: string | null;
+  state: AuthIdentityIntentState;
+  expiresAt: string | null;
+  message: string;
+  debugCode?: string | null;
+};
+
+export type AuthIdentityIntentVerifyResponseDto = {
+  ok: boolean;
+  intentId: string | null;
+  state: AuthIdentityIntentState;
+  expiresAt: string | null;
+  message: string;
+  conflictReason?: AuthIdentityIntentConflictReason;
+  nextAction?: "login" | "restart";
+};
+
+export type AuthIdentityIntentStatusResponseDto = {
+  ok: true;
+  intentId: string;
+  channel: AuthIdentityIntentChannel;
+  state: AuthIdentityIntentState;
+  expiresAt: string | null;
+  verifiedAt: string | null;
+  consumedAt: string | null;
+  conflictReason?: AuthIdentityIntentConflictReason;
+  canConsume: boolean;
 };
 
 export type StoredSession = {

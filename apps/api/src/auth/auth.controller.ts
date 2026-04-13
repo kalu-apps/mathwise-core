@@ -15,8 +15,12 @@ import {
   buildSessionSetCookie,
   readSessionIdFromCookieHeader,
 } from "./auth.cookies";
+import { AuthIdentityIntentService } from "./auth.identity-intent.service";
 import { AuthService } from "./auth.service";
 import type {
+  AuthIdentityIntentStartResponseDto,
+  AuthIdentityIntentStatusResponseDto,
+  AuthIdentityIntentVerifyResponseDto,
   AuthLogoutResponseDto,
   AuthPasswordSaveResponseDto,
   AuthPasswordStatusResponseDto,
@@ -43,7 +47,10 @@ type RequestWithCookie = {
 
 @Controller("api/auth")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly authIdentityIntentService: AuthIdentityIntentService
+  ) {}
 
   private async resolveUserFromRequest(
     req: RequestWithCookie,
@@ -141,6 +148,41 @@ export class AuthController {
       res.setHeader("Set-Cookie", buildSessionSetCookie(result.sessionId));
     }
     res.redirect(result.redirectUrl);
+  }
+
+  @Post("identity-intents/start")
+  async startIdentityIntent(
+    @Body()
+    body: {
+      channel?: string;
+      email?: string;
+      metadata?: Record<string, unknown>;
+    },
+    @Ip() ip?: string
+  ): Promise<AuthIdentityIntentStartResponseDto> {
+    return this.authIdentityIntentService.start({
+      channel: body?.channel,
+      email: body?.email,
+      ip,
+      metadata: body?.metadata,
+    });
+  }
+
+  @Post("identity-intents/verify")
+  async verifyIdentityIntent(
+    @Body() body: { intentId?: string; code?: string }
+  ): Promise<AuthIdentityIntentVerifyResponseDto> {
+    return this.authIdentityIntentService.verify({
+      intentId: body?.intentId,
+      code: body?.code,
+    });
+  }
+
+  @Get("identity-intents/:intentId/status")
+  async getIdentityIntentStatus(
+    @Param("intentId") intentId: string
+  ): Promise<AuthIdentityIntentStatusResponseDto> {
+    return this.authIdentityIntentService.getStatus(intentId);
   }
 
   @Get("session")

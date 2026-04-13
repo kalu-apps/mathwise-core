@@ -54,6 +54,10 @@ export type ApiRuntimeConfig = {
   authRecoveryTokenTtlSec: number;
   authRecoveryMaxAttempts: number;
   authRecoveryRateLimitPerHour: number;
+  authIdentityIntentsEnabled: boolean;
+  authIdentityIntentTtlSec: number;
+  authIdentityIntentMaxAttempts: number;
+  authIdentityIntentRateLimitPerHour: number;
   authOauthStateTtlSec: number;
   authOauthRedirectBaseUrl: string;
   authOauthProviders: Record<ApiAuthSocialProvider, ApiAuthSocialProviderConfig>;
@@ -408,6 +412,22 @@ export const getApiRuntimeConfig = (
     process.env.AUTH_OAUTH_REDIRECT_BASE_URL,
     corsOrigin || "http://localhost:5173"
   );
+  const authIdentityIntentsEnabled = parseBoolean(
+    process.env.AUTH_IDENTITY_INTENTS_ENABLED,
+    false
+  );
+  const authIdentityIntentTtlSec = parsePositiveInteger(
+    process.env.AUTH_IDENTITY_INTENT_TTL_SEC,
+    15 * 60
+  );
+  const authIdentityIntentMaxAttempts = parsePositiveInteger(
+    process.env.AUTH_IDENTITY_INTENT_MAX_ATTEMPTS,
+    6
+  );
+  const authIdentityIntentRateLimitPerHour = parsePositiveInteger(
+    process.env.AUTH_IDENTITY_INTENT_RATE_LIMIT_PER_HOUR,
+    20
+  );
   const authOauthStateTtlSec = parsePositiveInteger(
     process.env.AUTH_OAUTH_STATE_TTL_SEC,
     10 * 60
@@ -737,6 +757,10 @@ export const getApiRuntimeConfig = (
       process.env.AUTH_RECOVERY_RATE_LIMIT_PER_HOUR,
       20
     ),
+    authIdentityIntentsEnabled,
+    authIdentityIntentTtlSec,
+    authIdentityIntentMaxAttempts,
+    authIdentityIntentRateLimitPerHour,
     authOauthStateTtlSec,
     authOauthRedirectBaseUrl,
     authOauthProviders,
