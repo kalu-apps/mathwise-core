@@ -60,6 +60,30 @@ cp math-tutor-frontend/.env.stage.example math-tutor-frontend/.env.stage
 
 Подробный runbook: [`docs/stage-bootstrap-mw-app-01.md`](docs/stage-bootstrap-mw-app-01.md)
 
+## Artifact Deploy (Core Staging)
+Для server-side деплоя без локальной сборки на сервере:
+
+```bash
+cd /opt/mathwise/core-staging
+set -a
+. /etc/mathwise/deploy-gh.env
+set +a
+
+DEPLOY_GH_REPO='kalu-apps/mathwise-core' \
+DEPLOY_GH_BRANCH='staging' \
+DEPLOY_GH_WORKFLOW='build-core-artifact.yml' \
+DEPLOY_GH_ARTIFACT_NAME='core-runtime-staging' \
+DEPLOY_API_BASE_URL='https://stage.mathwise.ru' \
+DEPLOY_RESTART_API_CMD='systemctl restart mathwise-core-staging-api.service' \
+DEPLOY_RESTART_FRONTEND_CMD='systemctl restart mathwise-core-staging-frontend.service' \
+DEPLOY_RELOAD_NGINX_CMD='systemctl reload nginx' \
+npm run deploy:release
+```
+
+Скрипты:
+- `npm run deploy:artifact` — скачать последний успешный GitHub artifact и атомарно применить runtime payload (`apps/api/dist`, `apps/api/node_modules`, `math-tutor-frontend/dist`).
+- `npm run deploy:safe-restart` — рестарт сервисов + readiness/smoke check.
+
 ## Связь с доской
 Интерактивная доска вынесена в отдельный сервис и отдельный репозиторий.
 Из core вызывается через backend-gated handoff:
