@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { DatabaseService } from "../db/database.service";
-import type { AuthUserDto } from "./auth.types";
+import type { AuthSocialProvider, AuthUserDto } from "./auth.types";
 
 type AuthUserRow = {
   id: string;
@@ -12,6 +12,26 @@ type AuthUserRow = {
   photo: string | null;
   passwordHash: string | null;
   updatedAt: string | null;
+};
+
+type AuthUserIdentityRow = {
+  id: string;
+  userId: string;
+  provider: AuthSocialProvider;
+  providerUserId: string;
+  email: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AuthUserIdentity = {
+  id: string;
+  userId: string;
+  provider: AuthSocialProvider;
+  providerUserId: string;
+  email?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type RecoveryArtifactRow = {
@@ -94,6 +114,26 @@ export class AuthRepository {
     await this.databaseService.execute(`
       CREATE INDEX IF NOT EXISTS idx_auth_recovery_user_state
       ON auth_recovery_artifacts (user_id, state, created_at DESC)
+    `);
+
+    await this.databaseService.execute(`
+      CREATE TABLE IF NOT EXISTS auth_user_identities (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
+        provider TEXT NOT NULL CHECK (provider IN ('google', 'yandex', 'vk')),
+        provider_user_id TEXT NOT NULL,
+        email TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        updated_at_ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (provider, provider_user_id),
+        UNIQUE (user_id, provider)
+      )
+    `);
+
+    await this.databaseService.execute(`
+      CREATE INDEX IF NOT EXISTS idx_auth_user_identities_user_provider
+      ON auth_user_identities (user_id, provider)
     `);
   }
 
@@ -570,6 +610,95 @@ export class AuthRepository {
     }
   }
 
+  async findIdentityByProvider(params: {
+    provider: AuthSocialProvider;
+    providerUserId: string;
+  }): Promise<AuthUserIdentity | null> {
+    const rows = await this.databaseService.query<AuthUserIdentityRow>(
+      `
+        SELECT
+          id,
+          user_id AS "userId",
+          provider,
+          provider_user_id AS "providerUserId",
+          email,
+          created_at AS "createdAt",
+          updated_at AS "updatedAt"
+        FROM auth_user_identities
+        WHERE provider = $1
+          AND provider_user_id = $2
+        LIMIT 1
+      `,
+      [params.provider, params.providerUserId]
+    );
+    const row = rows[0];
+    return row ? this.mapIdentity(row) : null;
+  }
+
+  async findIdentityByUserAndProvider(params: {
+    userId: string;
+    provider: AuthSocialProvider;
+  }): Promise<AuthUserIdentity | null> {
+    const rows = await this.databaseService.query<AuthUserIdentityRow>(
+      `
+        SELECT
+          id,
+          user_id AS "userId",
+          provider,
+          provider_user_id AS "providerUserId",
+          email,
+          created_at AS "createdAt",
+          updated_at AS "updatedAt"
+        FROM auth_user_identities
+        WHERE user_id = $1
+          AND provider = $2
+        LIMIT 1
+      `,
+      [params.userId, params.provider]
+    );
+    const row = rows[0];
+    return row ? this.mapIdentity(row) : null;
+  }
+
+  async upsertIdentity(params: {
+    id: string;
+    userId: string;
+    provider: AuthSocialProvider;
+    providerUserId: string;
+    email?: string;
+  }): Promise<void> {
+    const now = new Date().toISOString();
+    await this.databaseService.execute(
+      `
+        INSERT INTO auth_user_identities (
+          id,
+          user_id,
+          provider,
+          provider_user_id,
+          email,
+          created_at,
+          updated_at,
+          updated_at_ts
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $6, NOW())
+        ON CONFLICT (provider, provider_user_id)
+        DO UPDATE SET
+          user_id = EXCLUDED.user_id,
+          email = COALESCE(EXCLUDED.email, auth_user_identities.email),
+          updated_at = EXCLUDED.updated_at,
+          updated_at_ts = NOW()
+      `,
+      [
+        params.id,
+        params.userId,
+        params.provider,
+        params.providerUserId,
+        params.email ?? null,
+        now,
+      ]
+    );
+  }
+
   private mapRowWithPassword(
     row: AuthUserRow
   ): AuthUserDto & { passwordHash: string | null } {
@@ -594,6 +723,18 @@ export class AuthRepository {
       role: row.role,
       phone: row.phone ?? undefined,
       photo: row.photo ?? undefined,
+    };
+  }
+
+  private mapIdentity(row: AuthUserIdentityRow): AuthUserIdentity {
+    return {
+      id: row.id,
+      userId: row.userId,
+      provider: row.provider,
+      providerUserId: row.providerUserId,
+      email: row.email ?? undefined,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
     };
   }
 }

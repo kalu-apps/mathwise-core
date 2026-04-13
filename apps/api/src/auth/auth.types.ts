@@ -1,4 +1,5 @@
 export type AuthUserRole = "student" | "teacher";
+export type AuthSocialProvider = "google" | "yandex" | "vk";
 
 export type AuthUserDto = {
   id: string;
@@ -62,4 +63,14 @@ export type StoredSession = {
   userId: string;
   issuedAt: string;
   expiresAt: string;
+};
+
+export type AuthSocialProfile = {
+  provider: AuthSocialProvider;
+  providerUserId: string;
+  email: string;
+  emailVerified: boolean;
+  firstName?: string;
+  lastName?: string;
+  photo?: string;
 };

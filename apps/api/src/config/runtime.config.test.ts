@@ -353,3 +353,58 @@ test("runtime config: yookassa test mode reads and normalizes config", () => {
     restoreEnv(snapshot);
   }
 });
+
+test("runtime config: enabled social oauth provider requires credentials", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.AUTH_OAUTH_GOOGLE_ENABLED = "true";
+    process.env.AUTH_OAUTH_GOOGLE_CLIENT_ID = "google-client-id";
+    delete process.env.AUTH_OAUTH_GOOGLE_CLIENT_SECRET;
+
+    assert.throws(
+      () => getApiRuntimeConfig(),
+      /Missing required env for google oauth/
+    );
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("runtime config: enabled social oauth provider is parsed and exposed", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.AUTH_OAUTH_REDIRECT_BASE_URL = "https://stage.board.mathwise.ru";
+    process.env.AUTH_OAUTH_GOOGLE_ENABLED = "true";
+    process.env.AUTH_OAUTH_GOOGLE_CLIENT_ID = "google-client-id";
+    process.env.AUTH_OAUTH_GOOGLE_CLIENT_SECRET = "google-client-secret";
+
+    const config = getApiRuntimeConfig();
+    assert.equal(config.authOauthRedirectBaseUrl, "https://stage.board.mathwise.ru");
+    assert.equal(config.authOauthProviders.google.enabled, true);
+    assert.equal(config.authOauthProviders.google.clientId, "google-client-id");
+    assert.equal(
+      config.authOauthProviders.google.authorizeUrl,
+      "https://accounts.google.com/o/oauth2/v2/auth"
+    );
+  } finally {
+    restoreEnv(snapshot);
+  }
+});

@@ -1,6 +1,9 @@
 import crypto from "node:crypto";
 import { Injectable, OnModuleInit } from "@nestjs/common";
-import { getApiRuntimeConfig } from "../config/runtime.config";
+import {
+  getApiRuntimeConfig,
+  type ApiAuthSocialProviderConfig,
+} from "../config/runtime.config";
 import { DatabaseService } from "../db/database.service";
 import { ensureId, normalizeEmail, validateEmailFormat } from "../purchases/purchases.helpers";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -16,6 +19,8 @@ import type {
   AuthPasswordResetResponseDto,
   AuthRecoveryRequestResponseDto,
   AuthRecoveryVerifyResponseDto,
+  AuthSocialProfile,
+  AuthSocialProvider,
   AuthUserDto,
   RequestMagicCodeResponseDto,
 } from "./auth.types";
@@ -33,6 +38,29 @@ const buildOpaqueToken = () =>
   typeof crypto.randomUUID === "function"
     ? crypto.randomUUID().replace(/-/g, "")
     : crypto.randomBytes(16).toString("hex");
+
+const OAUTH_STATE_PREFIX = "auth:oauth:state:";
+
+type OauthStatePayload = {
+  provider: AuthSocialProvider;
+  redirectPath: string;
+  issuedAt: string;
+};
+
+type OauthProfileResult =
+  | { ok: true; profile: AuthSocialProfile }
+  | {
+      ok: false;
+      errorCode:
+        | "provider_misconfigured"
+        | "token_exchange_failed"
+        | "provider_profile_failed"
+        | "email_missing"
+        | "email_not_verified"
+        | "profile_invalid";
+    };
+
+const SOCIAL_PROVIDERS: AuthSocialProvider[] = ["google", "yandex", "vk"];
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -91,6 +119,279 @@ export class AuthService implements OnModuleInit {
         ),
       });
     }
+  }
+
+  getEnabledSocialProviders(): AuthSocialProvider[] {
+    return SOCIAL_PROVIDERS.filter(
+      (provider) => this.runtimeConfig.authOauthProviders[provider]?.enabled
+    );
+  }
+
+  async buildSocialLoginStartUrl(params: {
+    provider: string;
+    redirectPath?: string;
+  }): Promise<
+    | { ok: true; redirectUrl: string }
+    | {
+        ok: false;
+        redirectUrl: string;
+        errorCode:
+          | "provider_not_supported"
+          | "provider_disabled"
+          | "provider_misconfigured";
+      }
+  > {
+    const provider = this.parseSocialProvider(params.provider);
+    const redirectPath = this.sanitizeClientRedirectPath(params.redirectPath);
+
+    if (!provider) {
+      return {
+        ok: false,
+        errorCode: "provider_not_supported",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath,
+          errorCode: "provider_not_supported",
+        }),
+      };
+    }
+
+    const providerConfig = this.runtimeConfig.authOauthProviders[provider];
+    if (!providerConfig?.enabled) {
+      return {
+        ok: false,
+        errorCode: "provider_disabled",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath,
+          provider,
+          errorCode: "provider_disabled",
+        }),
+      };
+    }
+    if (!providerConfig.clientId || !providerConfig.clientSecret) {
+      return {
+        ok: false,
+        errorCode: "provider_misconfigured",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath,
+          provider,
+          errorCode: "provider_misconfigured",
+        }),
+      };
+    }
+
+    const state = buildOpaqueToken();
+    const payload: OauthStatePayload = {
+      provider,
+      redirectPath,
+      issuedAt: nowIso(),
+    };
+    await this.redisService.set(
+      `${OAUTH_STATE_PREFIX}${state}`,
+      JSON.stringify(payload),
+      this.runtimeConfig.authOauthStateTtlSec
+    );
+
+    const authorizationUrl = this.buildAuthorizationUrl({
+      provider,
+      providerConfig,
+      state,
+    });
+
+    return {
+      ok: true,
+      redirectUrl: authorizationUrl.toString(),
+    };
+  }
+
+  async completeSocialLogin(params: {
+    provider: string;
+    code?: string;
+    state?: string;
+    providerError?: string;
+  }): Promise<{
+    ok: boolean;
+    redirectUrl: string;
+    sessionId?: string;
+    errorCode?: string;
+  }> {
+    const provider = this.parseSocialProvider(params.provider);
+    if (!provider) {
+      return {
+        ok: false,
+        errorCode: "provider_not_supported",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath: "/",
+          errorCode: "provider_not_supported",
+        }),
+      };
+    }
+
+    const state = params.state?.trim() || "";
+    if (!state) {
+      return {
+        ok: false,
+        errorCode: "invalid_state",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath: "/",
+          provider,
+          errorCode: "invalid_state",
+        }),
+      };
+    }
+
+    const statePayload = await this.consumeOauthState(state);
+    if (!statePayload || statePayload.provider !== provider) {
+      return {
+        ok: false,
+        errorCode: "invalid_state",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath: "/",
+          provider,
+          errorCode: "invalid_state",
+        }),
+      };
+    }
+    const redirectPath = statePayload.redirectPath;
+
+    if (params.providerError?.trim()) {
+      return {
+        ok: false,
+        errorCode: "provider_rejected",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath,
+          provider,
+          errorCode: "provider_rejected",
+        }),
+      };
+    }
+
+    const providerConfig = this.runtimeConfig.authOauthProviders[provider];
+    if (!providerConfig?.enabled || !providerConfig.clientId || !providerConfig.clientSecret) {
+      return {
+        ok: false,
+        errorCode: "provider_misconfigured",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath,
+          provider,
+          errorCode: "provider_misconfigured",
+        }),
+      };
+    }
+
+    const code = params.code?.trim() || "";
+    if (!code) {
+      return {
+        ok: false,
+        errorCode: "token_exchange_failed",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath,
+          provider,
+          errorCode: "token_exchange_failed",
+        }),
+      };
+    }
+
+    const profileResult = await this.fetchSocialProfile(provider, providerConfig, code);
+    if (!profileResult.ok) {
+      return {
+        ok: false,
+        errorCode: profileResult.errorCode,
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath,
+          provider,
+          errorCode: profileResult.errorCode,
+        }),
+      };
+    }
+
+    const normalizedEmail = normalizeEmail(profileResult.profile.email);
+    if (!normalizedEmail || !validateEmailFormat(normalizedEmail)) {
+      return {
+        ok: false,
+        errorCode: "email_missing",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath,
+          provider,
+          errorCode: "email_missing",
+        }),
+      };
+    }
+    if (!profileResult.profile.emailVerified) {
+      return {
+        ok: false,
+        errorCode: "email_not_verified",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath,
+          provider,
+          errorCode: "email_not_verified",
+        }),
+      };
+    }
+
+    const user = await this.authRepository.findByEmail(normalizedEmail);
+    if (!user) {
+      return {
+        ok: false,
+        errorCode: "account_not_found",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath,
+          provider,
+          errorCode: "account_not_found",
+        }),
+      };
+    }
+
+    const identityByProvider = await this.authRepository.findIdentityByProvider({
+      provider,
+      providerUserId: profileResult.profile.providerUserId,
+    });
+    if (identityByProvider && identityByProvider.userId !== user.id) {
+      return {
+        ok: false,
+        errorCode: "identity_conflict",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath,
+          provider,
+          errorCode: "identity_conflict",
+        }),
+      };
+    }
+
+    const identityByUser = await this.authRepository.findIdentityByUserAndProvider({
+      userId: user.id,
+      provider,
+    });
+    if (
+      identityByUser &&
+      identityByUser.providerUserId !== profileResult.profile.providerUserId
+    ) {
+      return {
+        ok: false,
+        errorCode: "identity_conflict",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath,
+          provider,
+          errorCode: "identity_conflict",
+        }),
+      };
+    }
+
+    await this.authRepository.upsertIdentity({
+      id: identityByUser?.id ?? identityByProvider?.id ?? ensureId("identity"),
+      userId: user.id,
+      provider,
+      providerUserId: profileResult.profile.providerUserId,
+      email: normalizedEmail,
+    });
+
+    const session = await this.sessionStore.createSession(user.id);
+    return {
+      ok: true,
+      sessionId: session.id,
+      redirectUrl: this.buildClientRedirectUrl({
+        redirectPath,
+      }),
+    };
   }
 
   async ensureUserByEmail(params: {
@@ -267,7 +568,7 @@ export class AuthService implements OnModuleInit {
         status: 409,
         code: "password_not_set",
         error:
-          "Для этого аккаунта пароль пока не задан. Используйте вход по коду из email.",
+          "Для этого аккаунта пароль пока не задан. Используйте восстановление пароля через код из email.",
       };
     }
 
@@ -574,6 +875,360 @@ export class AuthService implements OnModuleInit {
     await this.authRepository.expireRecoveryArtifactsForEmail(email);
 
     return { ok: true, message: "Пароль обновлен." };
+  }
+
+  private parseSocialProvider(value: string): AuthSocialProvider | null {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "google" || normalized === "yandex" || normalized === "vk") {
+      return normalized;
+    }
+    return null;
+  }
+
+  private sanitizeClientRedirectPath(raw: string | undefined): string {
+    const candidate = (raw ?? "").trim();
+    if (!candidate) return "/";
+    if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
+      return "/";
+    }
+    if (candidate.startsWith("//")) return "/";
+    if (!candidate.startsWith("/")) return "/";
+    if (candidate.startsWith("/api/")) return "/";
+    return candidate;
+  }
+
+  private buildClientRedirectUrl(params: {
+    redirectPath: string;
+    provider?: AuthSocialProvider;
+    errorCode?: string;
+  }): string {
+    const baseOrigin = this.runtimeConfig.authOauthRedirectBaseUrl;
+    const redirectPath = this.sanitizeClientRedirectPath(params.redirectPath);
+    const target = new URL(redirectPath, `${baseOrigin}/`);
+    if (params.provider) {
+      target.searchParams.set("authSocialProvider", params.provider);
+    }
+    if (params.errorCode) {
+      target.searchParams.set("authSocialError", params.errorCode);
+    } else {
+      target.searchParams.delete("authSocialError");
+      target.searchParams.delete("authSocialProvider");
+    }
+    return target.toString();
+  }
+
+  private getOauthCallbackUrl(provider: AuthSocialProvider): string {
+    return `${this.runtimeConfig.authOauthRedirectBaseUrl}/api/auth/oauth/${provider}/callback`;
+  }
+
+  private buildAuthorizationUrl(params: {
+    provider: AuthSocialProvider;
+    providerConfig: ApiAuthSocialProviderConfig;
+    state: string;
+  }): URL {
+    const redirectUri = this.getOauthCallbackUrl(params.provider);
+    const authUrl = new URL(params.providerConfig.authorizeUrl);
+    authUrl.searchParams.set("response_type", "code");
+    authUrl.searchParams.set("client_id", params.providerConfig.clientId);
+    authUrl.searchParams.set("redirect_uri", redirectUri);
+    authUrl.searchParams.set("scope", params.providerConfig.scope);
+    authUrl.searchParams.set("state", params.state);
+
+    if (params.provider === "google") {
+      authUrl.searchParams.set("include_granted_scopes", "true");
+      authUrl.searchParams.set("prompt", "select_account");
+    }
+    if (params.provider === "vk") {
+      authUrl.searchParams.set("v", "5.199");
+      authUrl.searchParams.set("display", "page");
+    }
+    return authUrl;
+  }
+
+  private async consumeOauthState(state: string): Promise<OauthStatePayload | null> {
+    const key = `${OAUTH_STATE_PREFIX}${state}`;
+    const raw = await this.redisService.get(key);
+    await this.redisService.del(key);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw) as OauthStatePayload;
+      if (
+        !parsed ||
+        typeof parsed !== "object" ||
+        typeof parsed.provider !== "string" ||
+        typeof parsed.redirectPath !== "string" ||
+        typeof parsed.issuedAt !== "string"
+      ) {
+        return null;
+      }
+      const provider = this.parseSocialProvider(parsed.provider);
+      if (!provider) return null;
+      return {
+        provider,
+        redirectPath: this.sanitizeClientRedirectPath(parsed.redirectPath),
+        issuedAt: parsed.issuedAt,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private async fetchSocialProfile(
+    provider: AuthSocialProvider,
+    providerConfig: ApiAuthSocialProviderConfig,
+    code: string
+  ): Promise<OauthProfileResult> {
+    if (!providerConfig.clientId || !providerConfig.clientSecret) {
+      return { ok: false, errorCode: "provider_misconfigured" };
+    }
+    try {
+      if (provider === "google") {
+        return await this.fetchGoogleProfile(providerConfig, code);
+      }
+      if (provider === "yandex") {
+        return await this.fetchYandexProfile(providerConfig, code);
+      }
+      return await this.fetchVkProfile(providerConfig, code);
+    } catch {
+      return { ok: false, errorCode: "provider_profile_failed" };
+    }
+  }
+
+  private async fetchGoogleProfile(
+    providerConfig: ApiAuthSocialProviderConfig,
+    code: string
+  ): Promise<OauthProfileResult> {
+    const redirectUri = this.getOauthCallbackUrl("google");
+    const tokenBody = new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: providerConfig.clientId,
+      client_secret: providerConfig.clientSecret,
+      redirect_uri: redirectUri,
+      code,
+    });
+    const tokenResponse = await fetch(providerConfig.tokenUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: tokenBody.toString(),
+    });
+    const tokenPayload = await this.parseJsonResponse(tokenResponse);
+    const token = this.readString(tokenPayload, "access_token");
+    if (!tokenResponse.ok || !token) {
+      return { ok: false, errorCode: "token_exchange_failed" };
+    }
+
+    const profileResponse = await fetch(providerConfig.userInfoUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const profilePayload = await this.parseJsonResponse(profileResponse);
+    if (!profileResponse.ok) {
+      return { ok: false, errorCode: "provider_profile_failed" };
+    }
+    const providerUserId = this.readString(profilePayload, "sub");
+    const email = this.readString(profilePayload, "email");
+    const emailVerified = this.readBoolean(profilePayload, "email_verified");
+    if (!providerUserId) {
+      return { ok: false, errorCode: "profile_invalid" };
+    }
+    if (!email) {
+      return { ok: false, errorCode: "email_missing" };
+    }
+
+    return {
+      ok: true,
+      profile: {
+        provider: "google",
+        providerUserId,
+        email,
+        emailVerified,
+        firstName: this.readString(profilePayload, "given_name") || undefined,
+        lastName: this.readString(profilePayload, "family_name") || undefined,
+        photo: this.readString(profilePayload, "picture") || undefined,
+      },
+    };
+  }
+
+  private async fetchYandexProfile(
+    providerConfig: ApiAuthSocialProviderConfig,
+    code: string
+  ): Promise<OauthProfileResult> {
+    const redirectUri = this.getOauthCallbackUrl("yandex");
+    const tokenBody = new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: providerConfig.clientId,
+      client_secret: providerConfig.clientSecret,
+      redirect_uri: redirectUri,
+      code,
+    });
+    const tokenResponse = await fetch(providerConfig.tokenUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: tokenBody.toString(),
+    });
+    const tokenPayload = await this.parseJsonResponse(tokenResponse);
+    const token = this.readString(tokenPayload, "access_token");
+    if (!tokenResponse.ok || !token) {
+      return { ok: false, errorCode: "token_exchange_failed" };
+    }
+
+    const profileUrl = new URL(providerConfig.userInfoUrl);
+    if (!profileUrl.searchParams.has("format")) {
+      profileUrl.searchParams.set("format", "json");
+    }
+    const profileResponse = await fetch(profileUrl.toString(), {
+      method: "GET",
+      headers: {
+        Authorization: `OAuth ${token}`,
+      },
+    });
+    const profilePayload = await this.parseJsonResponse(profileResponse);
+    if (!profileResponse.ok) {
+      return { ok: false, errorCode: "provider_profile_failed" };
+    }
+    const providerUserId = this.readString(profilePayload, "id");
+    const defaultEmail = this.readString(profilePayload, "default_email");
+    const emails = this.readStringArray(profilePayload, "emails");
+    const email = defaultEmail || emails[0] || "";
+    if (!providerUserId) {
+      return { ok: false, errorCode: "profile_invalid" };
+    }
+    if (!email) {
+      return { ok: false, errorCode: "email_missing" };
+    }
+
+    return {
+      ok: true,
+      profile: {
+        provider: "yandex",
+        providerUserId,
+        email,
+        emailVerified: true,
+        firstName: this.readString(profilePayload, "first_name") || undefined,
+        lastName: this.readString(profilePayload, "last_name") || undefined,
+      },
+    };
+  }
+
+  private async fetchVkProfile(
+    providerConfig: ApiAuthSocialProviderConfig,
+    code: string
+  ): Promise<OauthProfileResult> {
+    const redirectUri = this.getOauthCallbackUrl("vk");
+    const tokenUrl = new URL(providerConfig.tokenUrl);
+    tokenUrl.searchParams.set("client_id", providerConfig.clientId);
+    tokenUrl.searchParams.set("client_secret", providerConfig.clientSecret);
+    tokenUrl.searchParams.set("redirect_uri", redirectUri);
+    tokenUrl.searchParams.set("code", code);
+    tokenUrl.searchParams.set("v", "5.199");
+
+    const tokenResponse = await fetch(tokenUrl.toString(), {
+      method: "GET",
+    });
+    const tokenPayload = await this.parseJsonResponse(tokenResponse);
+    if (!tokenResponse.ok) {
+      return { ok: false, errorCode: "token_exchange_failed" };
+    }
+    const token = this.readString(tokenPayload, "access_token");
+    const userId = this.readString(tokenPayload, "user_id");
+    const email = this.readString(tokenPayload, "email");
+    if (!token || !userId) {
+      return { ok: false, errorCode: "token_exchange_failed" };
+    }
+    if (!email) {
+      return { ok: false, errorCode: "email_missing" };
+    }
+
+    const profileUrl = new URL(providerConfig.userInfoUrl);
+    profileUrl.searchParams.set("access_token", token);
+    profileUrl.searchParams.set("v", "5.199");
+    profileUrl.searchParams.set("user_ids", userId);
+    profileUrl.searchParams.set("fields", "photo_200");
+
+    const profileResponse = await fetch(profileUrl.toString(), {
+      method: "GET",
+    });
+    const profilePayload = await this.parseJsonResponse(profileResponse);
+    if (!profileResponse.ok) {
+      return { ok: false, errorCode: "provider_profile_failed" };
+    }
+    const responseList = this.readArray(profilePayload, "response");
+    const firstProfile =
+      responseList.length > 0 && typeof responseList[0] === "object"
+        ? (responseList[0] as Record<string, unknown>)
+        : null;
+    const firstName = firstProfile
+      ? this.readString(firstProfile, "first_name") || undefined
+      : undefined;
+    const lastName = firstProfile
+      ? this.readString(firstProfile, "last_name") || undefined
+      : undefined;
+    const photo = firstProfile
+      ? this.readString(firstProfile, "photo_200") || undefined
+      : undefined;
+
+    return {
+      ok: true,
+      profile: {
+        provider: "vk",
+        providerUserId: userId,
+        email,
+        emailVerified: true,
+        firstName,
+        lastName,
+        photo,
+      },
+    };
+  }
+
+  private async parseJsonResponse(response: Response): Promise<unknown> {
+    const text = await response.text();
+    if (!text) return null;
+    try {
+      return JSON.parse(text) as unknown;
+    } catch {
+      return null;
+    }
+  }
+
+  private readString(payload: unknown, key: string): string {
+    if (!payload || typeof payload !== "object") return "";
+    const value = (payload as Record<string, unknown>)[key];
+    if (typeof value === "string") return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value);
+    }
+    return "";
+  }
+
+  private readBoolean(payload: unknown, key: string): boolean {
+    if (!payload || typeof payload !== "object") return false;
+    const value = (payload as Record<string, unknown>)[key];
+    if (typeof value === "boolean") return value;
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      return normalized === "true" || normalized === "1" || normalized === "yes";
+    }
+    if (typeof value === "number") return value === 1;
+    return false;
+  }
+
+  private readArray(payload: unknown, key: string): unknown[] {
+    if (!payload || typeof payload !== "object") return [];
+    const value = (payload as Record<string, unknown>)[key];
+    return Array.isArray(value) ? value : [];
+  }
+
+  private readStringArray(payload: unknown, key: string): string[] {
+    return this.readArray(payload, key).filter(
+      (value): value is string => typeof value === "string" && value.trim().length > 0
+    );
   }
 
   async getSession(sessionId: string | null): Promise<AuthUserDto | null> {

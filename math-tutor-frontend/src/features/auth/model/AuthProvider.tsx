@@ -11,10 +11,8 @@ import {
   AUTH_STORAGE_TTL_MS,
 } from "./constants";
 import {
-  confirmMagicLink,
   getAuthSession,
   logoutAuthSession,
-  requestMagicLink,
   requestPasswordLogin,
 } from "./api";
 import { useAuthUiStore } from "./authUiStore";
@@ -88,7 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthModalOpen = useAuthUiStore((state) => state.isAuthModalOpen);
   const authModalMode = useAuthUiStore((state) => state.authModalMode);
   const authModalEmail = useAuthUiStore((state) => state.authModalEmail);
-  const openAuthModal = useAuthUiStore((state) => state.openAuthModal);
+  const authModalError = useAuthUiStore((state) => state.authModalError);
+  const openAuthModalInStore = useAuthUiStore((state) => state.openAuthModal);
+  const openAuthModalWithErrorInStore = useAuthUiStore(
+    (state) => state.openAuthModalWithError
+  );
   const openRecoverModal = useAuthUiStore((state) => state.openRecoverModal);
   const closeAuthModal = useAuthUiStore((state) => state.closeAuthModal);
   const showcaseAutoLoginStartedRef = useRef(false);
@@ -307,62 +309,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [clearLocalAuthState, logout, user]);
 
-  /* ================= LOGIN ================= */
-
-  const requestLoginCode = async (email: string) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail) {
-      return {
-        ok: false,
-        error: t("auth.emailRequired"),
-      };
-    }
-
-    try {
-      const response = await requestMagicLink(normalizedEmail);
-      if (!response.ok) {
-        return {
-          ok: false,
-          error: response.message || t("auth.loginFailed"),
-        };
-      }
-      return {
-        ok: true,
-        message: response.message,
-        debugCode: response.debugCode ?? null,
-      };
-    } catch (error) {
-      return {
-        ok: false,
-        error: error instanceof Error ? error.message : t("auth.loginFailed"),
-      };
-    }
-  };
-
-  const confirmLoginCode = async (email: string, code: string) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedCode = code.trim();
-    if (!normalizedEmail || !normalizedCode) {
-      return {
-        ok: false,
-        error: t("auth.magicCodeRequired"),
-      };
-    }
-    try {
-      const safeUser = await confirmMagicLink(normalizedEmail, normalizedCode);
-      setUser(safeUser);
-      writeStorage(AUTH_STORAGE_KEY, safeUser, { ttlMs: AUTH_STORAGE_TTL_MS });
-      closeAuthModal();
-      return { ok: true };
-    } catch (error) {
-      await syncSession();
-      return {
-        ok: false,
-        error: error instanceof Error ? error.message : t("auth.loginFailed"),
-      };
-    }
-  };
-
   const loginWithPassword = async (email: string, password: string) => {
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedPassword = password.normalize("NFKC");
@@ -409,17 +355,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isAuthReady,
-        requestLoginCode,
-        confirmLoginCode,
         loginWithPassword,
         updateUser,
         logout,
         isAuthModalOpen,
         authModalMode,
         authModalEmail,
+        authModalError,
         openAuthModal: () => {
           blurActiveElement();
-          openAuthModal();
+          openAuthModalInStore();
+        },
+        openAuthModalWithError: (error, email) => {
+          blurActiveElement();
+          openAuthModalWithErrorInStore(error, email);
         },
         openRecoverModal: (email?: string) => {
           blurActiveElement();

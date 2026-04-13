@@ -37,6 +37,9 @@ Non-local policy:
 - `POST /api/auth/recovery/request`
 - `POST /api/auth/recovery/verify`
 - `POST /api/auth/password/reset`
+- `GET /api/auth/oauth/providers`
+- `GET /api/auth/oauth/:provider/start`
+- `GET /api/auth/oauth/:provider/callback`
 - `GET /api/stage-access/status` / `POST /api/stage-access/verify` / `POST /api/stage-access/logout` (stage site gate, STAGE_ONLY_REMOVE_BEFORE_PROD)
 - `POST /api/checkouts/:checkoutId/stage-confirm` (stage-only confirm stub, STAGE_ONLY_REMOVE_BEFORE_PROD)
 
@@ -46,6 +49,7 @@ Non-local policy:
 - provisioning (`user/profile/entitlement`) выполняется только после provider-confirmed события.
 - уроки/контент отдаются в `public_preview` или `entitled_full` режиме только по backend authz.
 - stage gate cookie отделен от auth session cookie и не логинит пользователя автоматически.
+- social login (`google`, `yandex`, `vk`) допускает вход только в уже существующий user account (без auto-signup).
 
 ## Media / S3 foundation
 

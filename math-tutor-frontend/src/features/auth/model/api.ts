@@ -7,6 +7,28 @@ import { authGateway } from "@/shared/gateway";
 import { AUTH_STORAGE_KEY } from "./constants";
 import type { TeacherDashboardContextResponseContract } from "@/shared/contracts/profile.contract";
 
+const readNodeEnv = (name: string) => {
+  if (typeof process === "undefined") return undefined;
+  return process.env?.[name];
+};
+
+const getApiBase = () => {
+  const raw =
+    import.meta.env.VITE_API_BASE_URL?.trim() ??
+    readNodeEnv("API_BASE_URL")?.trim();
+  if (!raw) return "/api";
+  const normalized = raw.endsWith("/") ? raw.slice(0, -1) : raw;
+  if (normalized === "/api" || normalized.endsWith("/api")) {
+    return normalized;
+  }
+  if (normalized.includes("/api/")) {
+    return normalized;
+  }
+  return `${normalized}/api`;
+};
+
+export type SocialProvider = "google" | "yandex" | "vk";
+
 export type RequestMagicCodeResponse = {
   ok: boolean;
   message: string;
@@ -102,16 +124,17 @@ export async function requestPasswordReset(
   );
 }
 
-export async function confirmPasswordReset(params: {
+export type VerifyPasswordResetCodeResponse = {
+  ok: boolean;
+  message: string;
+  recoveryToken?: string;
+};
+
+export async function verifyPasswordResetCode(params: {
   email: string;
   token: string;
-  newPassword: string;
-}): Promise<SavePasswordResponse> {
-  const verification = await api.post<{
-    ok: boolean;
-    message: string;
-    recoveryToken?: string;
-  }>(
+}): Promise<VerifyPasswordResetCodeResponse> {
+  return api.post<VerifyPasswordResetCodeResponse>(
     "/auth/recovery/verify",
     {
       email: params.email,
@@ -119,22 +142,58 @@ export async function confirmPasswordReset(params: {
     },
     { notifyDataUpdate: false }
   );
-  if (!verification.ok || !verification.recoveryToken) {
-    throw new Error(verification.message || "Код восстановления недействителен.");
-  }
-  const reset = await api.post<SavePasswordResponse>(
+}
+
+export async function resetPasswordWithRecoveryToken(params: {
+  email: string;
+  recoveryToken: string;
+  newPassword: string;
+}): Promise<SavePasswordResponse> {
+  return api.post<SavePasswordResponse>(
     "/auth/password/reset",
     {
       email: params.email,
-      recoveryToken: verification.recoveryToken,
+      recoveryToken: params.recoveryToken,
       newPassword: params.newPassword,
     },
     { notifyDataUpdate: false }
   );
+}
+
+export async function confirmPasswordReset(params: {
+  email: string;
+  token: string;
+  newPassword: string;
+}): Promise<SavePasswordResponse> {
+  const verification = await verifyPasswordResetCode({
+    email: params.email,
+    token: params.token,
+  });
+  if (!verification.ok || !verification.recoveryToken) {
+    throw new Error(verification.message || "Код восстановления недействителен.");
+  }
+  const reset = await resetPasswordWithRecoveryToken({
+    email: params.email,
+    recoveryToken: verification.recoveryToken,
+    newPassword: params.newPassword,
+  });
   if (!reset.ok) {
     throw new Error(reset.message || "Не удалось обновить пароль.");
   }
   return reset;
+}
+
+export function buildSocialLoginStartUrl(
+  provider: SocialProvider,
+  redirectPath?: string
+): string {
+  const base = getApiBase();
+  const target = new URL(`${base}/auth/oauth/${provider}/start`, window.location.origin);
+  const normalizedRedirect = redirectPath?.trim();
+  if (normalizedRedirect) {
+    target.searchParams.set("redirect", normalizedRedirect);
+  }
+  return target.toString();
 }
 
 export type SelfHealAccessResponse = {

@@ -4,7 +4,9 @@ import {
   Get,
   HttpException,
   Ip,
+  Param,
   Post,
+  Query,
   Req,
   Res,
 } from "@nestjs/common";
@@ -27,6 +29,10 @@ import type {
 
 type HttpResponseWithHeaders = {
   setHeader: (name: string, value: string) => void;
+};
+
+type HttpRedirectResponse = {
+  redirect: (url: string) => void;
 };
 
 type RequestWithCookie = {
@@ -94,6 +100,47 @@ export class AuthController {
     }
     res.setHeader("Set-Cookie", buildSessionSetCookie(result.sessionId));
     return result.user;
+  }
+
+  @Get("oauth/providers")
+  getOauthProviders(): { providers: string[] } {
+    return {
+      providers: this.authService.getEnabledSocialProviders(),
+    };
+  }
+
+  @Get("oauth/:provider/start")
+  async startOauth(
+    @Param("provider") provider: string,
+    @Query("redirect") redirectPath: string | undefined,
+    @Res() res: HttpRedirectResponse
+  ): Promise<void> {
+    const result = await this.authService.buildSocialLoginStartUrl({
+      provider,
+      redirectPath,
+    });
+    res.redirect(result.redirectUrl);
+  }
+
+  @Get("oauth/:provider/callback")
+  async oauthCallback(
+    @Param("provider") provider: string,
+    @Query("code") code: string | undefined,
+    @Query("state") state: string | undefined,
+    @Query("error") providerError: string | undefined,
+    @Res({ passthrough: true })
+    res: HttpResponseWithHeaders & HttpRedirectResponse
+  ): Promise<void> {
+    const result = await this.authService.completeSocialLogin({
+      provider,
+      code,
+      state,
+      providerError,
+    });
+    if (result.ok && result.sessionId) {
+      res.setHeader("Set-Cookie", buildSessionSetCookie(result.sessionId));
+    }
+    res.redirect(result.redirectUrl);
   }
 
   @Get("session")
