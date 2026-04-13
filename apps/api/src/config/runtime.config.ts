@@ -4,6 +4,17 @@ export type ApiAppEnv = "local" | "preview" | "stage" | "prod";
 export type ApiCookieSameSite = "Lax" | "Strict" | "None";
 export type ApiEmailDeliveryMode = "disabled" | "provider" | "smtp";
 export type ApiYooKassaMode = "disabled" | "test" | "prod";
+export type ApiAuthSocialProvider = "google" | "yandex" | "vk";
+
+export type ApiAuthSocialProviderConfig = {
+  enabled: boolean;
+  clientId: string;
+  clientSecret: string;
+  authorizeUrl: string;
+  tokenUrl: string;
+  userInfoUrl: string;
+  scope: string;
+};
 
 export type ApiRuntimeConfig = {
   port: number;
@@ -43,6 +54,9 @@ export type ApiRuntimeConfig = {
   authRecoveryTokenTtlSec: number;
   authRecoveryMaxAttempts: number;
   authRecoveryRateLimitPerHour: number;
+  authOauthStateTtlSec: number;
+  authOauthRedirectBaseUrl: string;
+  authOauthProviders: Record<ApiAuthSocialProvider, ApiAuthSocialProviderConfig>;
   emailDeliveryMode: ApiEmailDeliveryMode;
   emailProviderApiKey: string;
   emailSmtpHost: string;
@@ -202,6 +216,27 @@ const isUnsafeNonLocalSeedSource = (sourceFile: string) => {
   if (normalized.includes("/math-tutor-frontend/")) return true;
   if (filename === "mock-db.json") return true;
   return false;
+};
+
+const normalizeUrlOrigin = (raw: string | undefined, fallback: string) => {
+  const candidate = raw?.trim() || fallback;
+  if (!candidate) {
+    throw new Error("[api-runtime] OAuth redirect base url is missing.");
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    throw new Error(
+      `[api-runtime] Invalid OAuth base URL value: ${candidate}`
+    );
+  }
+  if (!/^https?:$/.test(parsed.protocol)) {
+    throw new Error(
+      `[api-runtime] OAuth base URL must be http/https: ${candidate}`
+    );
+  }
+  return parsed.origin;
 };
 
 export const getApiRuntimeConfig = (
@@ -368,6 +403,91 @@ export const getApiRuntimeConfig = (
       );
     }
   }
+
+  const authOauthRedirectBaseUrl = normalizeUrlOrigin(
+    process.env.AUTH_OAUTH_REDIRECT_BASE_URL,
+    corsOrigin || "http://localhost:5173"
+  );
+  const authOauthStateTtlSec = parsePositiveInteger(
+    process.env.AUTH_OAUTH_STATE_TTL_SEC,
+    10 * 60
+  );
+  const buildSocialConfig = (
+    provider: ApiAuthSocialProvider,
+    defaults: {
+      authorizeUrl: string;
+      tokenUrl: string;
+      userInfoUrl: string;
+      scope: string;
+    }
+  ): ApiAuthSocialProviderConfig => {
+    const upper = provider.toUpperCase();
+    const enabled = parseBoolean(process.env[`AUTH_OAUTH_${upper}_ENABLED`], false);
+    const clientId = process.env[`AUTH_OAUTH_${upper}_CLIENT_ID`]?.trim() || "";
+    const clientSecret =
+      process.env[`AUTH_OAUTH_${upper}_CLIENT_SECRET`]?.trim() || "";
+    const authorizeUrl =
+      process.env[`AUTH_OAUTH_${upper}_AUTHORIZE_URL`]?.trim() || defaults.authorizeUrl;
+    const tokenUrl =
+      process.env[`AUTH_OAUTH_${upper}_TOKEN_URL`]?.trim() || defaults.tokenUrl;
+    const userInfoUrl =
+      process.env[`AUTH_OAUTH_${upper}_USERINFO_URL`]?.trim() || defaults.userInfoUrl;
+    const scope = process.env[`AUTH_OAUTH_${upper}_SCOPE`]?.trim() || defaults.scope;
+
+    if (enabled && (!clientId || !clientSecret)) {
+      throw new Error(
+        `[api-runtime] Missing required env for ${provider} oauth: AUTH_OAUTH_${upper}_CLIENT_ID / AUTH_OAUTH_${upper}_CLIENT_SECRET`
+      );
+    }
+
+    for (const [name, value] of [
+      ["authorize", authorizeUrl],
+      ["token", tokenUrl],
+      ["userinfo", userInfoUrl],
+    ] as const) {
+      try {
+        const parsed = new URL(value);
+        if (!/^https?:$/.test(parsed.protocol)) {
+          throw new Error();
+        }
+      } catch {
+        throw new Error(
+          `[api-runtime] Invalid ${provider} oauth ${name} URL: ${value}`
+        );
+      }
+    }
+
+    return {
+      enabled,
+      clientId,
+      clientSecret,
+      authorizeUrl,
+      tokenUrl,
+      userInfoUrl,
+      scope,
+    };
+  };
+  const authOauthProviders: Record<ApiAuthSocialProvider, ApiAuthSocialProviderConfig> =
+    {
+      google: buildSocialConfig("google", {
+        authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+        tokenUrl: "https://oauth2.googleapis.com/token",
+        userInfoUrl: "https://openidconnect.googleapis.com/v1/userinfo",
+        scope: "openid email profile",
+      }),
+      yandex: buildSocialConfig("yandex", {
+        authorizeUrl: "https://oauth.yandex.ru/authorize",
+        tokenUrl: "https://oauth.yandex.ru/token",
+        userInfoUrl: "https://login.yandex.ru/info",
+        scope: "login:email login:info",
+      }),
+      vk: buildSocialConfig("vk", {
+        authorizeUrl: "https://oauth.vk.com/authorize",
+        tokenUrl: "https://oauth.vk.com/access_token",
+        userInfoUrl: "https://api.vk.com/method/users.get",
+        scope: "email",
+      }),
+    };
 
   const emailDeliveryMode = parseEmailDeliveryMode(
     process.env.EMAIL_DELIVERY_MODE,
@@ -617,6 +737,9 @@ export const getApiRuntimeConfig = (
       process.env.AUTH_RECOVERY_RATE_LIMIT_PER_HOUR,
       20
     ),
+    authOauthStateTtlSec,
+    authOauthRedirectBaseUrl,
+    authOauthProviders,
     emailDeliveryMode,
     emailProviderApiKey,
     emailSmtpHost,

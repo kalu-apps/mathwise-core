@@ -44,11 +44,11 @@ export const ru = {
     emailRequired: "Введите email",
     passwordRequired: "Введите email и пароль",
     loginFailed: "Не удалось войти",
-    sendLinkFailed: "Не удалось отправить ссылку",
-    modalTitle: "Вход по email",
+    sendLinkFailed: "Не удалось обработать запрос входа",
+    modalTitle: "Вход в Mathwise",
     modalDescription:
-      "Введите email и выберите способ входа. Если аккаунт уже создан, используйте код из письма или пароль.",
-    modalSubmit: "Получить ссылку для входа",
+      "Войдите по паролю или через социальную сеть. Доступ открывается для существующих аккаунтов с активной покупкой.",
+    modalSubmit: "Войти",
     methodMagic: "По ссылке",
     methodPassword: "По паролю",
     magicCodeSent: "Код входа отправлен на email.",
@@ -62,10 +62,14 @@ export const ru = {
     passwordLabel: "Пароль",
     passwordSubmit: "Войти по паролю",
     passwordResetShow: "Забыли пароль?",
+    passwordVisibilityToggle: "Показать или скрыть пароль",
+    newPasswordVisibilityToggle: "Показать или скрыть новый пароль",
+    confirmPasswordVisibilityToggle: "Показать или скрыть подтверждение пароля",
     passwordResetHide: "Скрыть восстановление",
     passwordResetRequest: "Отправить код сброса",
     passwordResetTokenLabel: "Код из письма",
     passwordResetNewLabel: "Новый пароль",
+    passwordResetConfirmLabel: "Повторите новый пароль",
     passwordResetRequestAccepted:
       "Если аккаунт с таким email существует, мы отправили код восстановления.",
     passwordResetRequestFailed:
@@ -74,9 +78,21 @@ export const ru = {
     passwordResetTokenInvalid: "Код должен состоять из 6 цифр.",
     passwordResetPasswordRequired: "Введите новый пароль.",
     passwordResetPasswordTooShort: "Пароль должен содержать минимум 10 символов.",
+    passwordPolicyTooLong: "Максимальная длина пароля — 64 символа.",
+    passwordPolicyNoSpaces: "Пароль не должен содержать пробелы.",
+    passwordPolicyAsciiOnly:
+      "Используйте только латиницу, цифры и специальные символы.",
+    passwordPolicyNeedLower: "Добавьте хотя бы одну строчную букву.",
+    passwordPolicyNeedUpper: "Добавьте хотя бы одну заглавную букву.",
+    passwordPolicyNeedDigit: "Добавьте хотя бы одну цифру.",
+    passwordPolicyNeedSpecial: "Добавьте хотя бы один специальный символ.",
+    passwordResetConfirmRequired: "Повторите новый пароль.",
+    passwordResetConfirmMismatch: "Пароли не совпадают.",
     passwordPolicyHint:
       "Новый пароль: 10-64 символа, только латиница, минимум одна заглавная, строчная, цифра и спецсимвол.",
     passwordResetConfirm: "Сохранить новый пароль",
+    passwordResetDoneLogin:
+      "Пароль обновлён. Теперь войдите по паролю или через социальную сеть.",
     passwordResetFieldsRequired:
       "Введите email, код подтверждения и новый пароль.",
     passwordResetDebug:
@@ -84,6 +100,35 @@ export const ru = {
     passwordLockedUntil: "Попробуйте снова после: {until}.",
     recoverAction: "Проблема со входом?",
     recoverTitle: "Восстановление доступа",
+    recoverFlowDescription:
+      "Шаги восстановления: 1) email, 2) код из письма, 3) новый пароль.",
+    recoveryStepLabel: "Шаг {step} из 3",
+    recoveryCodeVerify: "Подтвердить код",
+    recoveryCodeVerified: "Код подтверждён. Установите новый пароль.",
+    recoveryBackStep: "Вернуться на шаг назад",
+    backToLogin: "Вернуться к входу",
+    socialDivider: "или продолжить через",
+    socialVk: "Войти через VK",
+    socialYandex: "Войти через Яндекс",
+    socialGoogle: "Войти через Google",
+    socialErrorDefault:
+      "Не удалось завершить вход через социальную сеть. Попробуйте ещё раз.",
+    socialErrorProviderUnavailable:
+      "Этот способ входа временно недоступен. Используйте пароль или другой провайдер.",
+    socialErrorStateInvalid:
+      "Сессия входа истекла. Повторите авторизацию через кнопку входа.",
+    socialErrorProviderRejected:
+      "Авторизация у провайдера была отменена или отклонена.",
+    socialErrorProviderFailed:
+      "Провайдер вернул неполный ответ. Попробуйте снова через несколько секунд.",
+    socialErrorEmailMissing:
+      "Провайдер не передал email. Выберите другой способ входа.",
+    socialErrorEmailNotVerified:
+      "Email у провайдера не подтвержден. Подтвердите email и повторите вход.",
+    socialErrorAccountNotFound:
+      "Аккаунт с таким email не найден. Используйте email, который привязан к покупке курса.",
+    socialErrorIdentityConflict:
+      "Этот социальный аккаунт уже связан с другим профилем. Обратитесь в поддержку.",
     recoverHint:
       "Войти можно, если этот email уже привязан к аккаунту преподавателя или ученика с покупкой курса либо записью на индивидуальные занятия. Если аккаунта еще нет, сначала оформите покупку курса или запись на занятие.",
     recoverEnterEmail:
@@ -110,7 +155,7 @@ export const ru = {
     anonymousPreview:
       "Доступен предпросмотр. Войдите в аккаунт, чтобы продолжить обучение после покупки.",
     awaitingVerification:
-      "Доступ пока ограничен. Подтвердите email через вход по magic-link.",
+      "Доступ пока ограничен. Подтвердите email и войдите по паролю или через социальную сеть.",
     awaitingProfile:
       "Оплата получена, но профиль заполнен не полностью. Завершите профиль и войдите повторно.",
     paidButRestricted:

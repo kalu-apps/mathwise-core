@@ -4,13 +4,6 @@ import type { User } from "@/entities/user/model/types";
 type AuthContextType = {
   user: User | null;
   isAuthReady: boolean;
-  requestLoginCode: (
-    email: string
-  ) => Promise<{ ok: boolean; error?: string; message?: string; debugCode?: string | null }>;
-  confirmLoginCode: (
-    email: string,
-    code: string
-  ) => Promise<{ ok: boolean; error?: string }>;
   loginWithPassword: (
     email: string,
     password: string
@@ -20,7 +13,9 @@ type AuthContextType = {
   isAuthModalOpen: boolean;
   authModalMode: "login" | "recover";
   authModalEmail: string;
+  authModalError: string | null;
   openAuthModal: () => void;
+  openAuthModalWithError: (error: string, email?: string) => void;
   openRecoverModal: (email?: string) => void;
   closeAuthModal: () => void;
 };

@@ -1,38 +1,40 @@
 .auth-modal {
   .MuiPaper-root {
-    border-radius: 22px;
+    border-radius: 24px;
     padding-top: 8px;
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    box-shadow: var(--shadow-lg);
+    background:
+      radial-gradient(circle at 8% 6%, color-mix(in srgb, #f8f7ff 72%, transparent) 0%, transparent 42%),
+      radial-gradient(circle at 96% 92%, color-mix(in srgb, #e7f2ff 66%, transparent) 0%, transparent 44%),
+      var(--card-bg);
+    border: 1px solid color-mix(in srgb, var(--card-border) 84%, #ffffff 16%);
+    box-shadow: 0 20px 56px rgba(15, 23, 42, 0.2);
     backdrop-filter: blur(14px);
   }
 
   &__title {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 700;
     text-align: center;
     padding: 24px 24px 8px;
-    letter-spacing: -0.02em;
-    position: relative;
+    letter-spacing: -0.025em;
   }
 
   &__close {
     position: absolute !important;
     top: 14px;
     right: 14px;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 10px !important;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
-    background: color-mix(in srgb, var(--surface-soft) 78%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 82%, transparent);
+    background: color-mix(in srgb, var(--surface-soft) 74%, transparent);
   }
 
   &__content {
-    padding: 20px 32px 0;
+    padding: 20px 30px 24px;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 14px;
 
     > * {
       min-width: 0;
@@ -40,72 +42,103 @@
   }
 
   &__description {
-    line-height: 1.5;
+    line-height: 1.52;
+    font-size: 14px;
   }
 
-  &__warning-lines {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-
-    p {
-      margin: 0;
-      line-height: 1.5;
-    }
+  &__divider {
+    margin: 2px 0 0;
   }
 
-  &__actions {
-    margin-top: 8px;
-    padding-bottom: 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 0;
-
-    > * {
-      max-width: 100%;
-      min-width: 0;
-      box-sizing: border-box;
-    }
+  &__social-caption {
+    text-align: center;
+    letter-spacing: 0.01em;
   }
 
-  &__mode-switch {
+  &__social-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 
-    .auth-modal__mode-btn {
-      min-width: 0;
-      border-radius: 12px;
-      text-transform: none;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+  &__social-btn {
+    min-height: 46px;
+    border-radius: 13px;
+    text-transform: none;
+    justify-content: flex-start;
+    gap: 10px;
+    border-color: color-mix(in srgb, var(--border-subtle) 88%, transparent);
+    color: var(--text-primary);
+    font-weight: 600;
+
+    &:hover {
+      border-color: color-mix(in srgb, var(--btn-primary-bg) 54%, var(--border-subtle));
+      background: color-mix(in srgb, var(--surface-soft) 78%, transparent);
     }
   }
 
-  &__secondary-actions {
-    display: flex;
-    justify-content: flex-end;
+  &__social-btn--vk .auth-modal__social-badge {
+    background: linear-gradient(135deg, #2787f5 0%, #1c6ad4 100%);
+    color: #fff;
   }
 
-  &__reset-panel {
+  &__social-btn--yandex .auth-modal__social-badge {
+    background: linear-gradient(135deg, #ff5a3d 0%, #ff2f2f 100%);
+    color: #fff;
+  }
+
+  &__social-btn--google .auth-modal__social-badge {
+    background: #fff;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+    color: #111827;
+  }
+
+  &__social-badge {
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  &__social-loading {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  &__link-btn {
+    text-transform: none;
+    font-size: 14px;
+    color: color-mix(in srgb, var(--text-primary) 82%, var(--btn-primary-bg));
+    align-self: center;
+  }
+
+  &__step-note {
+    font-size: 12px;
+  }
+
+  &__recovery-passwords {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    padding: 12px;
     border-radius: 14px;
     border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
-    background: color-mix(in srgb, var(--surface-soft) 54%, transparent);
-    padding: 12px;
+    background: color-mix(in srgb, var(--surface-soft) 58%, transparent);
   }
 
-  &__primary {
+  &__recover-actions {
     display: flex;
-    justify-content: flex-end;
+    flex-direction: column;
     gap: 10px;
   }
 
-  /* TextField */
   .MuiTextField-root {
     background: var(--input-bg);
     border-radius: 14px;
@@ -113,176 +146,74 @@
     .MuiOutlinedInput-root {
       border-radius: 14px;
       background: var(--input-bg);
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
-
-      &.Mui-focused {
-        box-shadow: none !important;
-      }
 
       .MuiOutlinedInput-notchedOutline {
         border-color: var(--input-border);
       }
+
+      &.Mui-focused .MuiOutlinedInput-notchedOutline {
+        border-color: color-mix(in srgb, var(--btn-primary-bg) 62%, #ffffff 38%);
+      }
     }
   }
 
-  .MuiInputBase-input:focus,
-  .MuiInputBase-input:focus-visible,
-  .MuiOutlinedInput-input:focus,
-  .MuiOutlinedInput-input:focus-visible,
-  input:focus,
-  input:focus-visible,
-  textarea:focus,
-  textarea:focus-visible {
-    outline: none !important;
-    box-shadow: none !important;
-  }
-
-  /* label — чтобы НЕ обрезался */
   .MuiInputLabel-root {
     background: var(--input-bg);
     padding: 0 6px;
     font-size: 14px;
   }
 
-  /* main button */
   .MuiButton-contained {
-    height: 48px;
-    font-size: 16px;
-    font-weight: 600;
+    min-height: 48px;
     border-radius: 14px;
-    background: var(--btn-primary-bg);
     text-transform: none;
-    box-shadow: 0 12px 24px rgba(79, 70, 229, 0.25);
+    font-weight: 600;
+    font-size: 15px;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--btn-primary-bg) 88%, #ffffff 12%) 0%,
+      var(--btn-primary-bg-hover) 100%
+    );
+    box-shadow: 0 12px 28px rgba(30, 64, 175, 0.22);
 
     &:hover {
-      background: var(--btn-primary-bg-hover);
-      box-shadow: var(--shadow-md);
+      box-shadow: 0 14px 30px rgba(30, 64, 175, 0.28);
     }
   }
 
-  /* text button */
   .MuiButton-text {
     text-transform: none;
-    font-size: 14px;
-    color: var(--text-primary);
-  }
-
-  &__recover-hint,
-  &__recover-state {
-    margin: 0;
-  }
-
-  &__recover-description {
-    line-height: 1.45;
-  }
-
-  &__reset-submit,
-  &__resend {
-    min-height: 44px;
   }
 }
 
-/* 📱 mobile */
 @media (max-width: 600px) {
   .auth-modal {
     .MuiPaper-root {
       margin: 0 !important;
       width: 100% !important;
       max-width: var(--dialog-mobile-width) !important;
-      border-radius: 18px;
-      box-sizing: border-box;
+      border-radius: 20px;
+    }
+
+    &__title {
+      font-size: 21px;
+      padding: 18px 20px 6px;
     }
 
     &__content {
-      padding: 12px 14px 0;
-      gap: 12px;
+      padding: 14px 14px 18px;
+      gap: 11px;
     }
 
-    &__mode-switch {
-      .auth-modal__mode-btn {
-        font-size: 12px;
-        padding-inline: 8px;
-      }
+    &__social-btn {
+      min-height: 44px;
+      font-size: 14px;
+      padding-inline: 12px;
     }
 
-    &__actions {
-      padding-bottom: 20px;
-      align-items: stretch;
-      gap: 10px;
-
-      .MuiButton-root {
-        min-width: 0;
-        width: 100%;
-        max-width: 100%;
-        white-space: normal;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-      }
-
-      .auth-modal__primary {
-        justify-content: flex-end;
-        gap: 10px;
-      }
-
-      .auth-modal__submit,
-      .auth-modal__recover {
-        min-width: 46px;
-        width: 46px;
-        max-width: 46px;
-        padding: 8px;
-        flex: 0 0 46px;
-      }
-
-      .auth-modal__resend,
-      .auth-modal__reset-submit {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        justify-content: center;
-        padding-inline: 10px;
-        white-space: normal;
-        line-height: 1.25;
-      }
-
-      .auth-modal__recover-hint,
-      .auth-modal__recover-state,
-      .auth-modal__recover-description {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        box-sizing: border-box;
-      }
-
-      .auth-modal__recover-description {
-        font-size: 12px;
-        line-height: 1.4;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-      }
-
-      .auth-modal__secondary-actions {
-        justify-content: flex-start;
-      }
-
-      .auth-modal__reset-toggle {
-        width: auto;
-        max-width: 100%;
-        min-width: 0;
-        white-space: normal;
-        overflow-wrap: anywhere;
-      }
-
-      .auth-modal__warning-lines p {
-        font-size: 13px;
-        line-height: 1.45;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-      }
-    }
-
-    &__reset-panel {
+    &__recovery-passwords {
       padding: 10px;
-      gap: 9px;
+      gap: 8px;
     }
   }
 }
