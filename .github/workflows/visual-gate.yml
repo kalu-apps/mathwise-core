@@ -5,17 +5,6 @@ on:
     branches:
       - staging
       - main
-    paths:
-      - '.github/workflows/**'
-      - 'apps/api/**'
-      - 'math-tutor-frontend/src/**'
-      - 'math-tutor-frontend/package.json'
-      - 'math-tutor-frontend/package-lock.json'
-      - 'math-tutor-frontend/tsconfig*.json'
-      - 'math-tutor-frontend/eslint.config.js'
-      - 'math-tutor-frontend/vite.config.ts'
-      - 'math-tutor-frontend/vitest.config.ts'
-      - 'scripts/**'
 
 permissions:
   contents: read
