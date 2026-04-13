@@ -171,10 +171,6 @@ export function StageAccessGateProvider({ children }: { children: ReactNode }) {
       <Paper sx={{ p: 3, maxWidth: 440, width: "100%" }}>
         <Stack spacing={2}>
           <Typography variant="h6">Stage Site Access</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Это временный stage-only gate. Он открывает доступ к сайту, но не
-            выполняет пользовательский вход teacher/student.
-          </Typography>
           <TextField
             label="Stage access secret"
             value={secret}
