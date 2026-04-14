@@ -1,6 +1,8 @@
 import type { ApiRuntimeConfig } from "./runtime.config";
 
-export const STAGE_ONLY_REMOVE_BEFORE_PROD = "STAGE_ONLY_REMOVE_BEFORE_PROD" as const;
+// Marker used in stage-gated payloads for diagnostics and observability.
+// Keep value stable so clients do not break while cleanup continues.
+export const STAGE_RUNTIME_MARKER = "STAGE_ONLY_REMOVE_BEFORE_PROD" as const;
 
 type StageRuntimeSlice = Pick<
   ApiRuntimeConfig,

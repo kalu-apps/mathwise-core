@@ -10,7 +10,7 @@ import type { AuthUserDto } from "../auth/auth.types";
 import { AuthService } from "../auth/auth.service";
 import { getApiRuntimeConfig } from "../config/runtime.config";
 import {
-  STAGE_ONLY_REMOVE_BEFORE_PROD,
+  STAGE_RUNTIME_MARKER,
   isStagePaymentConfirmRuntimeEnabled,
 } from "../config/runtime.governance";
 import { CoursesRepository } from "../courses/courses.repository";
@@ -604,7 +604,7 @@ export class PurchasesService implements OnModuleInit {
         {
           error: "Stage payment confirm недоступен в текущем runtime.",
           code: "stage_payment_confirm_unavailable",
-          marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
+          marker: STAGE_RUNTIME_MARKER,
         },
         404
       );
@@ -688,7 +688,7 @@ export class PurchasesService implements OnModuleInit {
         providerPaymentId,
         payload: {
           source: "stage_stub",
-          marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
+          marker: STAGE_RUNTIME_MARKER,
           actorUserId: actorUser.id,
         },
       };
@@ -697,7 +697,7 @@ export class PurchasesService implements OnModuleInit {
         eventId,
         providerPaymentId,
         actorUserId: actorUser.id,
-        marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
+        marker: STAGE_RUNTIME_MARKER,
       });
 
       await this.handleProviderWebhook({
@@ -719,7 +719,7 @@ export class PurchasesService implements OnModuleInit {
       await this.appendTimelineEvent(effective.id, "stage_confirm_applied", {
         state: effective.state,
         actorUserId: actorUser.id,
-        marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
+        marker: STAGE_RUNTIME_MARKER,
       });
 
       return {

@@ -75,7 +75,7 @@ curl -fsS "$API_BASE_URL/runtime/diagnostics"
   - teacher availability управляется только через `GET/PUT /api/availability/me`
   - public slots читаются через `GET /api/teachers/:teacherId/availability`
   - отмена/перенос меняют статус (`scheduled/rescheduled/canceled/...`), а не удаляют историю
-- stage-only временные меры (STAGE_ONLY_REMOVE_BEFORE_PROD):
+- stage-gated временные меры:
   - stage gate endpoints работают: `/api/stage-access/status|verify|logout`
   - stage payment confirm endpoint работает только в stage: `POST /api/checkouts/:checkoutId/stage-confirm`
   - вне stage этот endpoint возвращает deny и не участвует в runtime

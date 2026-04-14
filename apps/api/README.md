@@ -40,8 +40,8 @@ Non-local policy:
 - `GET /api/auth/oauth/providers`
 - `GET /api/auth/oauth/:provider/start`
 - `GET /api/auth/oauth/:provider/callback`
-- `GET /api/stage-access/status` / `POST /api/stage-access/verify` / `POST /api/stage-access/logout` (stage site gate, STAGE_ONLY_REMOVE_BEFORE_PROD)
-- `POST /api/checkouts/:checkoutId/stage-confirm` (stage-only confirm stub, STAGE_ONLY_REMOVE_BEFORE_PROD)
+- `GET /api/stage-access/status` / `POST /api/stage-access/verify` / `POST /api/stage-access/logout` (stage site gate, runtime-flag controlled)
+- `POST /api/checkouts/:checkoutId/stage-confirm` (stage confirm helper, runtime-flag controlled)
 
 Важно:
 - ручного `confirm-paid` endpoint больше нет;

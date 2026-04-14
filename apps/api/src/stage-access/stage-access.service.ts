@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { HttpException, Injectable } from "@nestjs/common";
 import { getApiRuntimeConfig } from "../config/runtime.config";
 import {
-  STAGE_ONLY_REMOVE_BEFORE_PROD,
+  STAGE_RUNTIME_MARKER,
   isStageSiteGateRuntimeEnabled,
 } from "../config/runtime.governance";
 import {
@@ -19,7 +19,7 @@ type StageTokenPayload = {
   v: 1;
   iat: number;
   exp: number;
-  marker: typeof STAGE_ONLY_REMOVE_BEFORE_PROD;
+  marker: typeof STAGE_RUNTIME_MARKER;
 };
 
 const nowMs = () => Date.now();
@@ -60,7 +60,7 @@ export class StageAccessService {
         enabled: false,
         granted: true,
         expiresAt: null,
-        marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
+        marker: STAGE_RUNTIME_MARKER,
       };
     }
 
@@ -70,7 +70,7 @@ export class StageAccessService {
         enabled: true,
         granted: false,
         expiresAt: null,
-        marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
+        marker: STAGE_RUNTIME_MARKER,
       };
     }
 
@@ -78,7 +78,7 @@ export class StageAccessService {
       enabled: true,
       granted: true,
       expiresAt: new Date(parsed.exp).toISOString(),
-      marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
+      marker: STAGE_RUNTIME_MARKER,
     };
   }
 
@@ -108,7 +108,7 @@ export class StageAccessService {
         enabled: true,
         granted: true,
         expiresAt: new Date(token.exp).toISOString(),
-        marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
+        marker: STAGE_RUNTIME_MARKER,
       },
       setCookie: buildStageAccessSetCookie(token.value),
     };
@@ -122,7 +122,7 @@ export class StageAccessService {
         enabled: true,
         granted: false,
         expiresAt: null,
-        marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
+        marker: STAGE_RUNTIME_MARKER,
       },
       clearCookie: buildStageAccessClearCookie(),
     };
@@ -161,7 +161,7 @@ export class StageAccessService {
 
     if (
       payload?.v !== 1 ||
-      payload.marker !== STAGE_ONLY_REMOVE_BEFORE_PROD ||
+      payload.marker !== STAGE_RUNTIME_MARKER ||
       !Number.isFinite(payload.iat) ||
       !Number.isFinite(payload.exp)
     ) {
@@ -178,7 +178,7 @@ export class StageAccessService {
       v: 1,
       iat,
       exp,
-      marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
+      marker: STAGE_RUNTIME_MARKER,
     };
     const encoded = toBase64Url(JSON.stringify(payload));
     const signature = this.signPayload(encoded);

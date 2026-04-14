@@ -1,5 +1,5 @@
 import { Injectable, type NestMiddleware } from "@nestjs/common";
-import { STAGE_ONLY_REMOVE_BEFORE_PROD } from "../config/runtime.governance";
+import { STAGE_RUNTIME_MARKER } from "../config/runtime.governance";
 import { StageAccessService } from "./stage-access.service";
 
 const STAGE_ACCESS_PUBLIC_PREFIX = "/api/stage-access/";
@@ -54,7 +54,7 @@ export class StageAccessGateMiddleware implements NestMiddleware {
     res.status(401).json({
       error: "Stage access required.",
       code: "stage_access_required",
-      marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
+      marker: STAGE_RUNTIME_MARKER,
     });
   }
 }

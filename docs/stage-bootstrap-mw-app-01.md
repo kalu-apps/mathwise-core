@@ -17,7 +17,7 @@ cp math-tutor-frontend/.env.stage.example math-tutor-frontend/.env.stage
 - `apps/api/.env.stage`: `EMAIL_DELIVERY_MODE` (`disabled` по умолчанию, `provider` только с `EMAIL_PROVIDER_API_KEY`)
 - `apps/api/.env.stage`: `WORKBOOK_LAUNCH_ENABLED`, `WORKBOOK_BOARD_BASE_URL`, `WORKBOOK_LAUNCH_SECRET`
 - `apps/api/.env.stage`: `PAYMENT_MOCK_ENABLED=false` и `PAYMENT_PROVIDER_AUTO_CONFIRM_LOCAL=false`
-- `apps/api/.env.stage`: `STAGE_SITE_GATE_ENABLED=true`, `STAGE_SITE_GATE_SECRET` задан, `STAGE_PAYMENT_CONFIRM_ENABLED=true` (STAGE_ONLY_REMOVE_BEFORE_PROD)
+- `apps/api/.env.stage`: `STAGE_SITE_GATE_ENABLED=true`, `STAGE_SITE_GATE_SECRET` задан, `STAGE_PAYMENT_CONFIRM_ENABLED=true` (stage-gated runtime controls)
 - `apps/api/.env.stage`: `COURSES_SEED_SOURCE_FILE` не должен указывать на frontend artifacts (`math-tutor-frontend/mock-db.json`)
 - `math-tutor-frontend/.env.stage`: `VITE_APP_ENV=stage`, `VITE_API_BASE_URL`, `VITE_GATEWAY_MODE=http`, `VITE_STAGE_PAYMENT_CONFIRM_ENABLED=true`
 - `math-tutor-frontend/.env.stage`: `VITE_LESSON_VIDEO_UPLOAD_MAX_MB=2048`

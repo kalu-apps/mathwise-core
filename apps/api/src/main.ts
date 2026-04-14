@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
-import { STAGE_ONLY_REMOVE_BEFORE_PROD } from "./config/runtime.governance";
+import { STAGE_RUNTIME_MARKER } from "./config/runtime.governance";
 import { getApiRuntimeConfig } from "./config/runtime.config";
 
 const asConfigured = (value: string) => (value ? "configured" : "missing");
@@ -35,7 +35,7 @@ const logStartupDiagnostics = (runtimeConfig: ReturnType<typeof getApiRuntimeCon
     stageOnly: {
       stageSiteGateEnabled: runtimeConfig.stageSiteGateEnabled,
       stagePaymentConfirmEnabled: runtimeConfig.stagePaymentConfirmEnabled,
-      marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
+      marker: STAGE_RUNTIME_MARKER,
     },
     timestamp: new Date().toISOString(),
   };
