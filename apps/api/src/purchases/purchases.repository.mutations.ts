@@ -164,6 +164,59 @@ export const writeCourseEntitlement = async (
   );
 };
 
+export const writeCapabilityGrant = async (
+  executor: SqlMutationExecutor,
+  params: {
+    id: string;
+    userId: string;
+    capability: "course_access" | "teacher_chat_access" | "whiteboard_access";
+    sourceKind: "purchase" | "booking" | "legacy_inferred";
+    sourceRef: string;
+    courseId?: string;
+    teacherId?: string;
+    state: "active" | "revoked" | "expired";
+    grantedAt: string;
+    updatedAt: string;
+  }
+) => {
+  await executor.execute(
+    `
+      INSERT INTO access_capability_grants (
+        id,
+        user_id,
+        capability,
+        source_kind,
+        source_ref,
+        course_id,
+        teacher_id,
+        state,
+        granted_at,
+        updated_at,
+        updated_at_ts
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+      ON CONFLICT (user_id, capability, source_kind, source_ref, course_id, teacher_id)
+      DO UPDATE SET
+        state = EXCLUDED.state,
+        granted_at = EXCLUDED.granted_at,
+        updated_at = EXCLUDED.updated_at,
+        updated_at_ts = NOW()
+    `,
+    [
+      params.id,
+      params.userId,
+      params.capability,
+      params.sourceKind,
+      params.sourceRef,
+      params.courseId ?? "",
+      params.teacherId ?? "",
+      params.state,
+      params.grantedAt,
+      params.updatedAt,
+    ]
+  );
+};
+
 export const writeCheckout = async (
   executor: SqlMutationExecutor,
   checkout: CheckoutProcessDto

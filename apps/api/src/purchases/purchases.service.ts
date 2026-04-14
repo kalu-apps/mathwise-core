@@ -1471,6 +1471,50 @@ export class PurchasesService implements OnModuleInit {
     }
   }
 
+  private async syncCapabilityGrantsAfterProvision(params: {
+    userId: string;
+    purchaseId: string;
+    courseId: string;
+    teacherId?: string | null;
+    tariff: "standard" | "premium";
+    grantedAt: string;
+  }): Promise<void> {
+    const repositoryWithCapabilities =
+      this.purchasesRepository as unknown as {
+        upsertCapabilityGrantsForPurchase?: (payload: {
+          userId: string;
+          purchaseId: string;
+          courseId: string;
+          teacherId?: string | null;
+          tariff: "standard" | "premium";
+          grantedAt: string;
+        }) => Promise<void>;
+      };
+    if (
+      typeof repositoryWithCapabilities.upsertCapabilityGrantsForPurchase !==
+      "function"
+    ) {
+      return;
+    }
+
+    try {
+      await repositoryWithCapabilities.upsertCapabilityGrantsForPurchase({
+        userId: params.userId,
+        purchaseId: params.purchaseId,
+        courseId: params.courseId,
+        teacherId: params.teacherId,
+        tariff: params.tariff,
+        grantedAt: params.grantedAt,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `capability grants sync failed for purchase=${params.purchaseId}, user=${params.userId}: ${
+          error instanceof Error ? error.message : "unknown"
+        }`
+      );
+    }
+  }
+
   private async syncIdentityCompletionAfterProvision(
     checkout: CheckoutProcessDto,
     isNewIdentityUser: boolean
@@ -1657,6 +1701,14 @@ export class PurchasesService implements OnModuleInit {
         },
       });
 
+      await this.syncCapabilityGrantsAfterProvision({
+        userId: identity.user.id,
+        purchaseId: purchase.id,
+        courseId: finalCheckout.courseId,
+        teacherId: course.teacherId,
+        tariff: purchase.tariff ?? "standard",
+        grantedAt: finalCheckout.updatedAt,
+      });
       await this.consumeIdentityIntentAfterProvision(finalCheckout);
       await this.syncIdentityCompletionAfterProvision(finalCheckout, identity.isNew);
 

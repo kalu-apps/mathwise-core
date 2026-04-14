@@ -78,8 +78,9 @@ export class ChatService implements OnModuleInit {
       null;
     const teacher = teacherId ? await this.authRepository.findById(teacherId) : null;
 
-    const hasPremiumAccess = capabilities.canChatWithTeacher;
-    const available = hasPremiumAccess && Boolean(teacher);
+    const hasPremiumAccess = capabilities.hasPremiumInteractionAccess;
+    const hasBookingAccess = capabilities.hasBookingInteractionAccess;
+    const available = capabilities.canChatWithTeacher && Boolean(teacher);
 
     return {
       available,
@@ -89,7 +90,7 @@ export class ChatService implements OnModuleInit {
           ? "eligible"
           : "premium_or_booking_required",
       hasPremiumAccess,
-      hasBookingAccess: false,
+      hasBookingAccess,
       teacherId: teacher?.id ?? null,
       teacherName: teacher
         ? `${teacher.firstName} ${teacher.lastName}`.trim()
@@ -333,7 +334,8 @@ export class ChatService implements OnModuleInit {
     if (!capabilities.canChatWithTeacher) {
       throw new HttpException(
         {
-          error: "Чат доступен только при активной premium-возможности.",
+          error:
+            "Чат доступен только при активной premium или booking-возможности.",
           code: "chat_access_denied",
         },
         403

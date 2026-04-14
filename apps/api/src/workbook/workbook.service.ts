@@ -190,7 +190,7 @@ export class WorkbookService {
       throw new HttpException(
         {
           error:
-            "Рабочая тетрадь доступна только при активной premium-возможности.",
+            "Рабочая тетрадь доступна только при активной premium или booking-возможности.",
           code: "workbook_access_denied",
         },
         403

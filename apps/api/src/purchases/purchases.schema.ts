@@ -143,6 +143,34 @@ export const PURCHASES_SCHEMA_STATEMENTS = [
     )
   `,
   `
+    CREATE TABLE IF NOT EXISTS access_capability_grants (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      capability TEXT NOT NULL CHECK (
+        capability IN ('course_access', 'teacher_chat_access', 'whiteboard_access')
+      ),
+      source_kind TEXT NOT NULL CHECK (
+        source_kind IN ('purchase', 'booking', 'legacy_inferred')
+      ),
+      source_ref TEXT NOT NULL DEFAULT '',
+      course_id TEXT NOT NULL DEFAULT '',
+      teacher_id TEXT NOT NULL DEFAULT '',
+      state TEXT NOT NULL CHECK (state IN ('active', 'revoked', 'expired')),
+      granted_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      updated_at_ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (user_id, capability, source_kind, source_ref, course_id, teacher_id)
+    )
+  `,
+  `
+    CREATE INDEX IF NOT EXISTS idx_access_capability_grants_user_capability
+    ON access_capability_grants (user_id, capability, state, updated_at DESC)
+  `,
+  `
+    CREATE INDEX IF NOT EXISTS idx_access_capability_grants_source
+    ON access_capability_grants (source_kind, source_ref, user_id, state)
+  `,
+  `
     CREATE INDEX IF NOT EXISTS idx_course_entitlements_user_course
     ON course_entitlements (user_id, course_id, updated_at DESC)
   `,

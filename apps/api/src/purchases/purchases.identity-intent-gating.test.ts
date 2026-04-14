@@ -66,10 +66,26 @@ const createServiceForCheckout = (options?: {
   }>;
   existingCheckoutByIntent?: CheckoutProcessDto | null;
   existingActiveCheckout?: CheckoutProcessDto | null;
+  onCapabilitySync?: (payload: {
+    userId: string;
+    purchaseId: string;
+    courseId: string;
+    tariff: "standard" | "premium";
+    teacherId?: string | null;
+    grantedAt: string;
+  }) => Promise<void>;
 }) => {
   const inserted: CheckoutProcessDto[] = [];
   const timelineTypes: string[] = [];
   const consumeCalls: string[] = [];
+  const capabilitySyncCalls: Array<{
+    userId: string;
+    purchaseId: string;
+    courseId: string;
+    tariff: "standard" | "premium";
+    teacherId?: string | null;
+    grantedAt: string;
+  }> = [];
 
   const purchasesRepository = {
     findIdempotentResponse: async () => null,
@@ -92,6 +108,19 @@ const createServiceForCheckout = (options?: {
     updateCheckout: async () => undefined,
     findPurchaseByUserAndCourse: async () => null,
     provisionCheckoutAtomic: async () => undefined,
+    upsertCapabilityGrantsForPurchase: async (payload: {
+      userId: string;
+      purchaseId: string;
+      courseId: string;
+      tariff: "standard" | "premium";
+      teacherId?: string | null;
+      grantedAt: string;
+    }) => {
+      capabilitySyncCalls.push(payload);
+      if (options?.onCapabilitySync) {
+        await options.onCapabilitySync(payload);
+      }
+    },
   };
 
   const service = new PurchasesService(
@@ -103,6 +132,8 @@ const createServiceForCheckout = (options?: {
         title: "Course 1",
         priceGuided: 1000,
         priceSelf: 1000,
+        teacherId: "teacher_1",
+        status: "published",
       }),
     } as never,
     {
@@ -170,7 +201,7 @@ const createServiceForCheckout = (options?: {
     } as never
   );
 
-  return { service, inserted, timelineTypes, consumeCalls };
+  return { service, inserted, timelineTypes, consumeCalls, capabilitySyncCalls };
 };
 
 test("purchase gating: unauth checkout without identity_intent_id is blocked", async () => {
@@ -441,5 +472,69 @@ test("purchase gating: provisioning consumes identity intent after successful fi
 
     assert.equal(finalCheckout.state, "provisioned");
     assert.deepEqual(consumeCalls, ["intent_provision_1"]);
+  });
+});
+
+test("purchase capability sync: standard checkout emits standard capability issuance", async () => {
+  await withStageRuntimeEnv({}, async () => {
+    const { service, capabilitySyncCalls } = createServiceForCheckout();
+
+    const checkout: CheckoutProcessDto = {
+      id: "checkout_cap_standard_1",
+      email: "verified@example.com",
+      firstName: "Student",
+      lastName: "One",
+      phone: "+79990000000",
+      courseId: "course_1",
+      method: "card",
+      amount: 1000,
+      currency: "RUB",
+      tariff: "standard",
+      state: "provider_confirmed",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await (
+      service as unknown as {
+        ensureCheckoutProvisioned: (input: CheckoutProcessDto) => Promise<CheckoutProcessDto>;
+      }
+    ).ensureCheckoutProvisioned(checkout);
+
+    assert.equal(capabilitySyncCalls.length, 1);
+    assert.equal(capabilitySyncCalls[0]?.tariff, "standard");
+    assert.equal(capabilitySyncCalls[0]?.teacherId, "teacher_1");
+  });
+});
+
+test("purchase capability sync: premium checkout emits premium capability issuance", async () => {
+  await withStageRuntimeEnv({}, async () => {
+    const { service, capabilitySyncCalls } = createServiceForCheckout();
+
+    const checkout: CheckoutProcessDto = {
+      id: "checkout_cap_premium_1",
+      email: "verified@example.com",
+      firstName: "Student",
+      lastName: "One",
+      phone: "+79990000000",
+      courseId: "course_1",
+      method: "card",
+      amount: 1000,
+      currency: "RUB",
+      tariff: "premium",
+      state: "provider_confirmed",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await (
+      service as unknown as {
+        ensureCheckoutProvisioned: (input: CheckoutProcessDto) => Promise<CheckoutProcessDto>;
+      }
+    ).ensureCheckoutProvisioned(checkout);
+
+    assert.equal(capabilitySyncCalls.length, 1);
+    assert.equal(capabilitySyncCalls[0]?.tariff, "premium");
+    assert.equal(capabilitySyncCalls[0]?.courseId, "course_1");
   });
 });

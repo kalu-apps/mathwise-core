@@ -93,3 +93,66 @@ test("chat: teacher cannot access foreign thread", async () => {
     }
   );
 });
+
+test("chat: booking-capable student can access messages", async () => {
+  const service = new ChatService(
+    {
+      ensureSchema: async () => undefined,
+      findThreadById: async () => ({
+        id: "thread_booking_1",
+        studentId: "student_2",
+        teacherId: "teacher_2",
+      }),
+      listMessagesByThread: async () => [
+        {
+          id: "msg_1",
+          threadId: "thread_booking_1",
+          senderId: "teacher_2",
+          senderRole: "teacher",
+          senderName: "Teacher Two",
+          senderPhoto: null,
+          text: "Добрый день",
+          attachments: [],
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    } as never,
+    {} as never,
+    {
+      getCapabilitiesForUser: async () => ({
+        role: "student",
+        userId: "student_2",
+        isIdentityVerified: true,
+        hasActiveCourseEntitlement: false,
+        canAccessCourse: false,
+        canAccessAllLessons: false,
+        canChatWithTeacher: true,
+        canAccessWorkbook: true,
+        isPremiumStudent: false,
+        hasPremiumInteractionAccess: false,
+        hasBookingInteractionAccess: true,
+        grantedCapabilities: ["teacher_chat_access", "whiteboard_access"],
+        activeCapabilityGrants: [],
+        entitledCourseIds: [],
+        premiumCourseIds: [],
+        teacherIdsForPremiumInteractions: ["teacher_2"],
+        primaryTeacherId: "teacher_2",
+        resolvedAt: new Date().toISOString(),
+      }),
+    } as never
+  );
+
+  const messages = await service.getMessages({
+    actorUser: {
+      id: "student_2",
+      email: "student2@example.test",
+      firstName: "Student",
+      lastName: "Two",
+      role: "student",
+    },
+    threadId: "thread_booking_1",
+  });
+
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0]?.threadId, "thread_booking_1");
+});

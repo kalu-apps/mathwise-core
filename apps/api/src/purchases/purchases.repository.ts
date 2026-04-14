@@ -13,6 +13,7 @@ import {
 } from "./purchases.mappers";
 import { PURCHASES_SCHEMA_STATEMENTS } from "./purchases.schema";
 import {
+  writeCapabilityGrant,
   writeAccessContext,
   writeCheckout,
   writeCourseEntitlement,
@@ -579,6 +580,95 @@ export class PurchasesRepository {
     updatedAt: string;
   }): Promise<void> {
     await writeCourseEntitlement(this.databaseService, params);
+  }
+
+  async upsertCapabilityGrantsForPurchase(params: {
+    userId: string;
+    purchaseId: string;
+    courseId: string;
+    tariff: "standard" | "premium";
+    teacherId?: string | null;
+    grantedAt: string;
+  }): Promise<void> {
+    const teacherId = params.teacherId?.trim() || "";
+    const now = params.grantedAt;
+    const grants: Array<{
+      capability: "course_access" | "teacher_chat_access" | "whiteboard_access";
+      sourceKind: "purchase" | "booking" | "legacy_inferred";
+      sourceRef: string;
+      courseId?: string;
+      teacherId?: string;
+    }> = [
+      {
+        capability: "course_access",
+        sourceKind: "purchase",
+        sourceRef: params.purchaseId,
+        courseId: params.courseId,
+      },
+    ];
+
+    if (params.tariff === "premium") {
+      grants.push(
+        {
+          capability: "teacher_chat_access",
+          sourceKind: "purchase",
+          sourceRef: params.purchaseId,
+          courseId: params.courseId,
+          teacherId,
+        },
+        {
+          capability: "whiteboard_access",
+          sourceKind: "purchase",
+          sourceRef: params.purchaseId,
+          courseId: params.courseId,
+          teacherId,
+        }
+      );
+    }
+
+    await this.databaseService.transaction<void>(async (tx) => {
+      for (const grant of grants) {
+        await writeCapabilityGrant(tx, {
+          id: `${params.userId}:${grant.sourceKind}:${grant.sourceRef}:${grant.capability}:${grant.courseId ?? ""}:${grant.teacherId ?? ""}`,
+          userId: params.userId,
+          capability: grant.capability,
+          sourceKind: grant.sourceKind,
+          sourceRef: grant.sourceRef,
+          courseId: grant.courseId ?? "",
+          teacherId: grant.teacherId ?? "",
+          state: "active",
+          grantedAt: now,
+          updatedAt: now,
+        });
+      }
+    });
+  }
+
+  async upsertCapabilityGrantsForBooking(params: {
+    userId: string;
+    bookingId: string;
+    teacherId: string;
+    grantedAt: string;
+  }): Promise<void> {
+    const teacherId = params.teacherId.trim();
+    await this.databaseService.transaction<void>(async (tx) => {
+      for (const capability of [
+        "teacher_chat_access",
+        "whiteboard_access",
+      ] as const) {
+        await writeCapabilityGrant(tx, {
+          id: `${params.userId}:booking:${params.bookingId}:${capability}:${teacherId}`,
+          userId: params.userId,
+          capability,
+          sourceKind: "booking",
+          sourceRef: params.bookingId,
+          teacherId,
+          state: "active",
+          grantedAt: params.grantedAt,
+          updatedAt: params.grantedAt,
+        });
+      }
+    });
   }
 
   async upsertConsentRecords(params: {
