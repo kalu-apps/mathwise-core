@@ -102,6 +102,8 @@ export type ApiRuntimeConfig = {
   bookingV2Enabled: boolean;
   bookingV2GuestCompatibilityEnabled: boolean;
   bookingSlotHoldTtlSec: number;
+  teacherInvitesEnabled: boolean;
+  teacherInviteTtlSec: number;
   releaseVersion: string;
 };
 
@@ -710,6 +712,14 @@ export const getApiRuntimeConfig = (
     process.env.BOOKING_SLOT_HOLD_TTL_SEC,
     15 * 60
   );
+  const teacherInvitesEnabled = parseBoolean(
+    process.env.TEACHER_INVITES_ENABLED,
+    false
+  );
+  const teacherInviteTtlSec = parsePositiveInteger(
+    process.env.TEACHER_INVITE_TTL_SEC,
+    7 * 24 * 60 * 60
+  );
 
   const releaseVersion =
     process.env.RELEASE_VERSION?.trim() ||
@@ -831,6 +841,8 @@ export const getApiRuntimeConfig = (
     bookingV2Enabled,
     bookingV2GuestCompatibilityEnabled,
     bookingSlotHoldTtlSec,
+    teacherInvitesEnabled,
+    teacherInviteTtlSec,
     releaseVersion,
   };
 };

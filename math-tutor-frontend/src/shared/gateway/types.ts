@@ -22,6 +22,9 @@ import type {
 import type {
   ProfileMeResponseContract,
   StudentProfileContextResponseContract,
+  TeacherInviteAcceptResponseContract,
+  TeacherInviteCreateResponseContract,
+  TeacherInviteInspectResponseContract,
   TeacherDashboardContextResponseContract,
 } from "@/shared/contracts/profile.contract";
 import type { Booking } from "@/entities/booking/model/types";
@@ -121,6 +124,21 @@ export type ProfileGateway = {
   getProfileMe: () => Promise<ProfileMeResponseContract>;
   getStudentProfileContext: () => Promise<StudentProfileContextResponseContract>;
   getTeacherDashboardContext: () => Promise<TeacherDashboardContextResponseContract>;
+  createTeacherInvite: (payload: {
+    targetEmail?: string;
+    note?: string;
+  }) => Promise<TeacherInviteCreateResponseContract>;
+  inspectTeacherInvite: (token: string) => Promise<TeacherInviteInspectResponseContract>;
+  acceptTeacherInvite: (payload: {
+    token: string;
+    registration?: {
+      email?: string;
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      password?: string;
+    };
+  }) => Promise<TeacherInviteAcceptResponseContract>;
 };
 
 export type PurchasesGateway = {

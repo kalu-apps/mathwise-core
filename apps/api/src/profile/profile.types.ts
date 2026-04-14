@@ -76,3 +76,75 @@ export type TeacherDashboardContextDto = {
   bookings: BookingContextDto[];
   availability: Array<Omit<TeacherAvailabilityContextDto, "teacherId">>;
 };
+
+export type TeacherInviteStatus =
+  | "active"
+  | "expired"
+  | "consumed"
+  | "revoked"
+  | "invalid";
+
+export type TeacherInviteDto = {
+  id: string;
+  teacherId: string;
+  status: Exclude<TeacherInviteStatus, "invalid">;
+  targetEmailCanonical?: string;
+  note?: string;
+  maxUses: number;
+  useCount: number;
+  createdAt: string;
+  expiresAt: string;
+  consumedAt?: string;
+  consumedByUserId?: string;
+};
+
+export type CreateTeacherInvitePayloadDto = {
+  targetEmail?: string;
+  note?: string;
+};
+
+export type CreateTeacherInviteResponseDto = {
+  ok: true;
+  invite: TeacherInviteDto;
+  inviteUrl: string;
+};
+
+export type TeacherInviteInspectResponseDto = {
+  ok: true;
+  status: TeacherInviteStatus;
+  inviteId: string | null;
+  teacher:
+    | {
+        id: string;
+        firstName: string;
+        lastName: string;
+        photo?: string;
+      }
+    | null;
+  targetEmailMasked?: string;
+  expiresAt: string | null;
+  canAccept: boolean;
+  requiresAuth: boolean;
+  requiresEmailMatch: boolean;
+};
+
+export type AcceptTeacherInvitePayloadDto = {
+  token?: string;
+  registration?: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    password?: string;
+  };
+};
+
+export type AcceptTeacherInviteResponseDto = {
+  ok: true;
+  inviteId: string;
+  teacherId: string;
+  studentId: string;
+  accepted: boolean;
+  sessionEstablished: boolean;
+  nextPath: string;
+};

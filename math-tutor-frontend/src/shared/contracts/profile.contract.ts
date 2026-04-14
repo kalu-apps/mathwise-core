@@ -25,3 +25,59 @@ export type TeacherDashboardContextResponseContract = {
   bookings: Booking[];
   availability: AvailabilitySlot[];
 };
+
+export type TeacherInviteStatusContract =
+  | "active"
+  | "expired"
+  | "consumed"
+  | "revoked"
+  | "invalid";
+
+export type TeacherInviteResponseContract = {
+  id: string;
+  teacherId: string;
+  status: Exclude<TeacherInviteStatusContract, "invalid">;
+  targetEmailCanonical?: string;
+  note?: string;
+  maxUses: number;
+  useCount: number;
+  createdAt: string;
+  expiresAt: string;
+  consumedAt?: string;
+  consumedByUserId?: string;
+};
+
+export type TeacherInviteCreateResponseContract = {
+  ok: true;
+  invite: TeacherInviteResponseContract;
+  inviteUrl: string;
+};
+
+export type TeacherInviteInspectResponseContract = {
+  ok: true;
+  status: TeacherInviteStatusContract;
+  inviteId: string | null;
+  teacher:
+    | {
+        id: string;
+        firstName: string;
+        lastName: string;
+        photo?: string;
+      }
+    | null;
+  targetEmailMasked?: string;
+  expiresAt: string | null;
+  canAccept: boolean;
+  requiresAuth: boolean;
+  requiresEmailMatch: boolean;
+};
+
+export type TeacherInviteAcceptResponseContract = {
+  ok: true;
+  inviteId: string;
+  teacherId: string;
+  studentId: string;
+  accepted: boolean;
+  sessionEstablished: boolean;
+  nextPath: string;
+};

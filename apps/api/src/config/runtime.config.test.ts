@@ -490,3 +490,49 @@ test("runtime config: purchase identity-intent gating requires identity intents"
     restoreEnv(snapshot);
   }
 });
+
+test("runtime config: teacher invites are disabled by default", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    delete process.env.TEACHER_INVITES_ENABLED;
+    delete process.env.TEACHER_INVITE_TTL_SEC;
+
+    const config = getApiRuntimeConfig();
+    assert.equal(config.teacherInvitesEnabled, false);
+    assert.equal(config.teacherInviteTtlSec, 7 * 24 * 60 * 60);
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("runtime config: teacher invites env overrides are parsed", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.TEACHER_INVITES_ENABLED = "true";
+    process.env.TEACHER_INVITE_TTL_SEC = "1800";
+
+    const config = getApiRuntimeConfig();
+    assert.equal(config.teacherInvitesEnabled, true);
+    assert.equal(config.teacherInviteTtlSec, 1800);
+  } finally {
+    restoreEnv(snapshot);
+  }
+});

@@ -31,6 +31,9 @@ import type {
 import type {
   ProfileMeResponseContract,
   StudentProfileContextResponseContract,
+  TeacherInviteAcceptResponseContract,
+  TeacherInviteCreateResponseContract,
+  TeacherInviteInspectResponseContract,
   TeacherDashboardContextResponseContract,
 } from "@/shared/contracts/profile.contract";
 import type { Booking } from "@/entities/booking/model/types";
@@ -315,6 +318,23 @@ export const httpProfileGateway: ProfileGateway = {
   },
   async getTeacherDashboardContext(): Promise<TeacherDashboardContextResponseContract> {
     return requestHttpJson<TeacherDashboardContextResponseContract>("/teacher/context");
+  },
+  async createTeacherInvite(payload): Promise<TeacherInviteCreateResponseContract> {
+    return requestHttpJson<TeacherInviteCreateResponseContract>("/teacher/invites", {
+      method: "POST",
+      body: payload ?? {},
+    });
+  },
+  async inspectTeacherInvite(token): Promise<TeacherInviteInspectResponseContract> {
+    return requestHttpJson<TeacherInviteInspectResponseContract>(
+      `/teacher/invites/inspect?token=${encodeURIComponent(token)}`
+    );
+  },
+  async acceptTeacherInvite(payload): Promise<TeacherInviteAcceptResponseContract> {
+    return requestHttpJson<TeacherInviteAcceptResponseContract>("/teacher/invites/accept", {
+      method: "POST",
+      body: payload,
+    });
   },
 };
 

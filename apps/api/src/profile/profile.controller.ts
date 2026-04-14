@@ -3,18 +3,26 @@ import {
   Controller,
   Get,
   HttpException,
+  Post,
+  Query,
   Put,
   Req,
   Res,
 } from "@nestjs/common";
 import { AuthService } from "../auth/auth.service";
 import {
+  buildSessionSetCookie,
   buildSessionClearCookie,
   readSessionIdFromCookieHeader,
 } from "../auth/auth.cookies";
 import { ProfileService } from "./profile.service";
 import type {
+  AcceptTeacherInvitePayloadDto,
+  AcceptTeacherInviteResponseDto,
+  CreateTeacherInvitePayloadDto,
+  CreateTeacherInviteResponseDto,
   StudentProfileContextDto,
+  TeacherInviteInspectResponseDto,
   TeacherDashboardContextDto,
 } from "./profile.types";
 import type { AuthUserDto } from "../auth/auth.types";
@@ -117,5 +125,50 @@ export class ProfileController {
       throw new HttpException({ error: "Доступ только для преподавателя." }, 403);
     }
     return this.profileService.getTeacherDashboardContext(user.id);
+  }
+
+  @Post("teacher/invites")
+  async createTeacherInvite(
+    @Body() body: CreateTeacherInvitePayloadDto,
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<CreateTeacherInviteResponseDto> {
+    const actorUser = await this.resolveUserFromRequest(req, res);
+    return this.profileService.createTeacherInvite({
+      actorUser,
+      payload: body ?? {},
+    });
+  }
+
+  @Get("teacher/invites/inspect")
+  async inspectTeacherInvite(
+    @Query("token") token: string | undefined
+  ): Promise<TeacherInviteInspectResponseDto> {
+    return this.profileService.inspectTeacherInvite(token ?? "");
+  }
+
+  @Post("teacher/invites/accept")
+  async acceptTeacherInvite(
+    @Body() body: AcceptTeacherInvitePayloadDto,
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<AcceptTeacherInviteResponseDto> {
+    const actorUser = await this.resolveUserFromRequest(req, res);
+    const result = await this.profileService.acceptTeacherInvite({
+      actorUser,
+      payload: body ?? {},
+    });
+    if (result.sessionId) {
+      res.setHeader("Set-Cookie", buildSessionSetCookie(result.sessionId));
+    }
+    return {
+      ok: result.ok,
+      inviteId: result.inviteId,
+      teacherId: result.teacherId,
+      studentId: result.studentId,
+      accepted: result.accepted,
+      sessionEstablished: result.sessionEstablished,
+      nextPath: result.nextPath,
+    };
   }
 }

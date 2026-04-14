@@ -79,6 +79,7 @@ import {
   deleteCourse,
   publishCourse as publishCourseCommand,
 } from "@/entities/course/model/storage";
+import { createTeacherInvite } from "@/entities/profile/model/storage";
 import {
   deletePurchasesByCourse,
   getPurchases,
@@ -191,6 +192,9 @@ export default function TeacherDashboard() {
   const [studentsWithFeedbackIds, setStudentsWithFeedbackIds] = useState<
     string[]
   >([]);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteStatusMessage, setInviteStatusMessage] = useState<string | null>(null);
+  const [inviteCreating, setInviteCreating] = useState(false);
   const [chatThreadIdsByStudentId, setChatThreadIdsByStudentId] = useState<
     Record<string, string>
   >({});
@@ -462,6 +466,47 @@ export default function TeacherDashboard() {
     },
     [userId, isTeacher, syncStudyNotes]
   );
+
+  const handleCreateInviteLink = useCallback(async () => {
+    if (!isTeacher) return;
+    const targetEmailInput = window.prompt(
+      "Email ученика для инвайта (необязательно):",
+      ""
+    );
+    if (targetEmailInput === null) return;
+    const noteInput = window.prompt("Комментарий к инвайту (необязательно):", "");
+    if (noteInput === null) return;
+
+    setInviteCreating(true);
+    setInviteStatusMessage(null);
+    try {
+      const response = await createTeacherInvite({
+        targetEmail: targetEmailInput.trim() || undefined,
+        note: noteInput.trim() || undefined,
+      });
+      setInviteLink(response.inviteUrl);
+      let copied = false;
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(response.inviteUrl);
+          copied = true;
+        } catch {
+          copied = false;
+        }
+      }
+      setInviteStatusMessage(
+        copied
+          ? "Ссылка-приглашение создана и скопирована в буфер."
+          : "Ссылка-приглашение создана. Скопируйте ее вручную."
+      );
+    } catch (error) {
+      setInviteStatusMessage(
+        error instanceof Error ? error.message : "Не удалось создать ссылку-приглашение."
+      );
+    } finally {
+      setInviteCreating(false);
+    }
+  }, [isTeacher]);
 
   const handleTeacherOpenSchedule = useCallback(() => {
     setTab(3);
@@ -1137,6 +1182,31 @@ export default function TeacherDashboard() {
       {/* STUDENTS */}
       {tab === 1 && (
         <div className="teacher-dashboard__section">
+          <div className="teacher-dashboard__section-actions">
+            <Button
+              variant="contained"
+              onClick={() => {
+                void handleCreateInviteLink();
+              }}
+              startIcon={<LinkRoundedIcon />}
+              disabled={inviteCreating}
+            >
+              {inviteCreating ? "Создаем..." : "Создать invite-ссылку"}
+            </Button>
+          </div>
+          {inviteStatusMessage ? (
+            <Alert
+              severity={
+                inviteStatusMessage.includes("Не удалось") ? "error" : "success"
+              }
+              sx={{ mb: 2 }}
+            >
+              {inviteStatusMessage}
+              {inviteLink ? (
+                <div style={{ marginTop: 8, wordBreak: "break-all" }}>{inviteLink}</div>
+              ) : null}
+            </Alert>
+          ) : null}
           {dashboardError ? (
             <RecoverableErrorAlert
               error={dashboardError}

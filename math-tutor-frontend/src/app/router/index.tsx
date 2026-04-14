@@ -11,6 +11,7 @@ const CourseDetails = lazy(() => import("@/pages/courses/CourseDetails"));
 const CourseTestDetails = lazy(() => import("@/pages/courses/CourseTestDetails"));
 const LessonDetails = lazy(() => import("@/pages/lessons/LessonDetails"));
 const Booking = lazy(() => import("@/pages/booking/Booking"));
+const TeacherInvitePage = lazy(() => import("@/pages/invite/TeacherInvitePage"));
 const AboutTeacher = lazy(() => import("@/pages/about-teacher/AboutTeacher"));
 const NotFound = lazy(() => import("@/pages/notfound/NotFound"));
 const StudentProfile = lazy(() => import("@/pages/profile/StudentProfile"));
@@ -67,6 +68,7 @@ export const router = createBrowserRouter([
 
       /** 📅 Индивидуальные занятия */
       { path: "/booking", element: withSuspense(<Booking />) },
+      { path: "/invite", element: withSuspense(<TeacherInvitePage />) },
       { path: "/about-teacher", element: withSuspense(<AboutTeacher />) },
       { path: "/contact", element: withSuspense(<AboutTeacher />) },
 

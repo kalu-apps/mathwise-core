@@ -2,6 +2,9 @@ import { profileGateway } from "@/shared/gateway";
 import type {
   ProfileMeResponseContract,
   StudentProfileContextResponseContract,
+  TeacherInviteAcceptResponseContract,
+  TeacherInviteCreateResponseContract,
+  TeacherInviteInspectResponseContract,
   TeacherDashboardContextResponseContract,
 } from "@/shared/contracts/profile.contract";
 
@@ -15,4 +18,30 @@ export async function getStudentProfileContext(): Promise<StudentProfileContextR
 
 export async function getTeacherDashboardContext(): Promise<TeacherDashboardContextResponseContract> {
   return profileGateway.getTeacherDashboardContext();
+}
+
+export async function createTeacherInvite(payload?: {
+  targetEmail?: string;
+  note?: string;
+}): Promise<TeacherInviteCreateResponseContract> {
+  return profileGateway.createTeacherInvite(payload ?? {});
+}
+
+export async function inspectTeacherInvite(
+  token: string
+): Promise<TeacherInviteInspectResponseContract> {
+  return profileGateway.inspectTeacherInvite(token);
+}
+
+export async function acceptTeacherInvite(payload: {
+  token: string;
+  registration?: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    password?: string;
+  };
+}): Promise<TeacherInviteAcceptResponseContract> {
+  return profileGateway.acceptTeacherInvite(payload);
 }
