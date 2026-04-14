@@ -29,6 +29,52 @@ const getApiBase = () => {
 
 export type SocialProvider = "google" | "yandex" | "vk";
 
+export type IdentityIntentChannel = "email" | SocialProvider;
+export type IdentityIntentState =
+  | "pending"
+  | "verified"
+  | "expired"
+  | "consumed"
+  | "conflict";
+export type IdentityIntentConflictReason =
+  | "existing_account"
+  | "identity_conflict"
+  | "channel_not_supported"
+  | "invalid_identity"
+  | "too_many_attempts"
+  | "unknown";
+
+export type StartIdentityIntentResponse = {
+  ok: boolean;
+  intentId: string | null;
+  state: IdentityIntentState;
+  expiresAt: string | null;
+  message: string;
+  debugCode?: string | null;
+};
+
+export type VerifyIdentityIntentResponse = {
+  ok: boolean;
+  intentId: string | null;
+  state: IdentityIntentState;
+  expiresAt: string | null;
+  message: string;
+  conflictReason?: IdentityIntentConflictReason;
+  nextAction?: "login" | "restart";
+};
+
+export type IdentityIntentStatusResponse = {
+  ok: true;
+  intentId: string;
+  channel: IdentityIntentChannel;
+  state: IdentityIntentState;
+  expiresAt: string | null;
+  verifiedAt: string | null;
+  consumedAt: string | null;
+  conflictReason?: IdentityIntentConflictReason;
+  canConsume: boolean;
+};
+
 export type RequestMagicCodeResponse = {
   ok: boolean;
   message: string;
@@ -67,6 +113,27 @@ export async function getAuthSession(): Promise<User | null> {
 
 export async function logoutAuthSession(): Promise<void> {
   await authGateway.logout();
+}
+
+export async function startIdentityIntent(params: {
+  channel?: IdentityIntentChannel;
+  email?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<StartIdentityIntentResponse> {
+  return authGateway.startIdentityIntent(params);
+}
+
+export async function verifyIdentityIntent(params: {
+  intentId: string;
+  code: string;
+}): Promise<VerifyIdentityIntentResponse> {
+  return authGateway.verifyIdentityIntent(params);
+}
+
+export async function getIdentityIntentStatus(
+  intentId: string
+): Promise<IdentityIntentStatusResponse> {
+  return authGateway.getIdentityIntentStatus(intentId);
 }
 
 export type PasswordStatusResponse = {

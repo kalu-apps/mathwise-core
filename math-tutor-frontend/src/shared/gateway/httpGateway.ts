@@ -1,5 +1,8 @@
 import { ApiError, api } from "@/shared/api/client";
 import type {
+  AuthIdentityIntentStartResponseContract,
+  AuthIdentityIntentStatusResponseContract,
+  AuthIdentityIntentVerifyResponseContract,
   AuthLogoutResponseContract,
   AuthMagicLinkRequestResponseContract,
   AuthSessionResponseContract,
@@ -40,6 +43,9 @@ import type { Booking } from "@/entities/booking/model/types";
 import type { Purchase } from "@/entities/purchase/model/types";
 import { buildIdempotencyHeaders } from "@/shared/lib/idempotency";
 import type {
+  BookingSlotHoldStatusResponseContract,
+  ConfirmBookingSlotHoldPayloadContract,
+  CreateBookingSlotHoldPayloadContract,
   DeleteBookingResponseContract,
 } from "@/shared/contracts/booking.contract";
 import type {
@@ -174,6 +180,35 @@ export const httpGateway: AuthGateway = {
       method: "POST",
       body: {},
     });
+  },
+  async startIdentityIntent(
+    payload
+  ): Promise<AuthIdentityIntentStartResponseContract> {
+    return requestHttpJson<AuthIdentityIntentStartResponseContract>(
+      "/auth/identity-intents/start",
+      {
+        method: "POST",
+        body: payload ?? {},
+      }
+    );
+  },
+  async verifyIdentityIntent(
+    payload
+  ): Promise<AuthIdentityIntentVerifyResponseContract> {
+    return requestHttpJson<AuthIdentityIntentVerifyResponseContract>(
+      "/auth/identity-intents/verify",
+      {
+        method: "POST",
+        body: payload,
+      }
+    );
+  },
+  async getIdentityIntentStatus(
+    intentId
+  ): Promise<AuthIdentityIntentStatusResponseContract> {
+    return requestHttpJson<AuthIdentityIntentStatusResponseContract>(
+      `/auth/identity-intents/${encodeURIComponent(intentId)}/status`
+    );
   },
   probeSession: probeAuthSession,
 };
@@ -482,6 +517,41 @@ export const httpBookingsGateway: BookingsGateway = {
     return api.post<Booking>("/bookings", payload, {
       headers: buildIdempotencyHeaders("booking", options?.idempotencyKey),
     });
+  },
+  async createBookingSlotHold(
+    payload: CreateBookingSlotHoldPayloadContract,
+    options
+  ): Promise<BookingSlotHoldStatusResponseContract> {
+    return api.post<BookingSlotHoldStatusResponseContract>(
+      "/bookings/holds",
+      payload,
+      {
+        headers: buildIdempotencyHeaders("booking_hold", options?.idempotencyKey),
+      }
+    );
+  },
+  async getBookingSlotHoldStatus(
+    holdId: string
+  ): Promise<BookingSlotHoldStatusResponseContract> {
+    return api.get<BookingSlotHoldStatusResponseContract>(
+      `/bookings/holds/${encodeURIComponent(holdId)}`
+    );
+  },
+  async confirmBookingSlotHold(
+    holdId: string,
+    payload?: ConfirmBookingSlotHoldPayloadContract,
+    options?: { idempotencyKey?: string }
+  ): Promise<Booking> {
+    return api.post<Booking>(
+      `/bookings/holds/${encodeURIComponent(holdId)}/confirm`,
+      payload ?? {},
+      {
+        headers: buildIdempotencyHeaders(
+          "booking_hold_confirm",
+          options?.idempotencyKey
+        ),
+      }
+    );
   },
   async updateBooking(id, patch): Promise<Booking> {
     return api.put<Booking>(`/bookings/${encodeURIComponent(id)}`, patch, {

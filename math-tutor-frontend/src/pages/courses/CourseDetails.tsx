@@ -2,7 +2,12 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "r
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { LessonItem } from "@/entities/lesson/ui/LessonItem";
 import { useAuth } from "@/features/auth/model/AuthContext";
-import { selfHealAccess } from "@/features/auth/model/api";
+import {
+  getIdentityIntentStatus,
+  selfHealAccess,
+  startIdentityIntent,
+  verifyIdentityIntent,
+} from "@/features/auth/model/api";
 import {
   checkoutPurchase,
 } from "@/entities/purchase/model/storage";
@@ -104,6 +109,10 @@ import {
   isCourseTestLockedByAccess,
   type PaymentMethod,
 } from "@/pages/courses/model/courseDetailsHelpers";
+import {
+  mapIdentityIntentStatusMessage,
+  normalizeIdentityIntentCode,
+} from "@/pages/courses/model/identityIntentBridge";
 import { isStagePaymentConfirmEnabled } from "@/app/runtime/stageRuntime";
 import { resolveCourseDetailsEmptyState } from "@/pages/courses/model/errorMapping";
 
@@ -144,6 +153,8 @@ const mapPurchaseFlowErrorMessage = (error: unknown): string => {
       return "Эта сессия верификации уже использована. Запустите новый checkout.";
     case "identity_intent_context_mismatch":
       return "Контекст подтверждения не совпадает с оформлением покупки. Начните checkout заново.";
+    case "identity_intent_context_invalid":
+      return "Контекст подтверждения identity больше невалиден. Запросите новый код и повторите checkout.";
     case "identity_intent_invalid":
       return "Не удалось подтвердить identity для оплаты. Повторите попытку через окно входа.";
     default:
@@ -248,6 +259,17 @@ export default function CourseDetails() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown | null>(null);
   const [pendingType, setPendingType] = useState<"guided" | "self" | null>(null);
+  const [purchaseIntentId, setPurchaseIntentId] = useState<string | null>(null);
+  const [purchaseIntentCode, setPurchaseIntentCode] = useState("");
+  const [purchaseIntentExpiresAt, setPurchaseIntentExpiresAt] = useState<string | null>(
+    null
+  );
+  const [purchaseIntentMessage, setPurchaseIntentMessage] = useState<string | null>(
+    null
+  );
+  const [purchaseIntentError, setPurchaseIntentError] = useState<string | null>(null);
+  const [purchaseIntentStartLoading, setPurchaseIntentStartLoading] = useState(false);
+  const [purchaseIntentVerifyLoading, setPurchaseIntentVerifyLoading] = useState(false);
   const [checkoutNoticeState, setCheckoutNoticeState] = useState<AccessUiState | null>(
     null
   );
@@ -654,18 +676,19 @@ export default function CourseDetails() {
     Boolean(activeCheckoutId) &&
     user?.role === "student" &&
     isAwaitingCheckoutPayment;
+  const isPurchaseIdentityVerified = Boolean(user) || Boolean(purchaseIntentId);
   const purchaseDialogFlowSteps = [
     {
       key: "verify",
       title: "1. Подтверждение identity",
       description: "Подтвердите владельца аккаунта перед checkout.",
-      state: user ? ("done" as const) : ("current" as const),
+      state: isPurchaseIdentityVerified ? ("done" as const) : ("current" as const),
     },
     {
       key: "payment",
       title: "2. Оплата курса",
       description: "Выберите способ оплаты и перейдите к провайдеру.",
-      state: "pending" as const,
+      state: isPurchaseIdentityVerified ? ("current" as const) : ("pending" as const),
     },
     {
       key: "finalize",
@@ -771,6 +794,11 @@ export default function CourseDetails() {
     setPurchaseAcceptTerms(false);
     setPurchaseAcceptPrivacy(false);
     setPurchaseMethod("card");
+    setPurchaseIntentId(null);
+    setPurchaseIntentCode("");
+    setPurchaseIntentExpiresAt(null);
+    setPurchaseIntentMessage(null);
+    setPurchaseIntentError(null);
     const nextBnplMarketing = selectBnplMarketingInfo(
       type === "guided" ? course.priceGuided : course.priceSelf
     );
@@ -783,6 +811,79 @@ export default function CourseDetails() {
     setActiveCheckoutId(null);
     setCheckoutPaymentUrl(null);
     setPurchaseOpen(true);
+  };
+
+  const handleStartPurchaseIdentityIntent = async () => {
+    if (user) return;
+    const email = purchaseEmail.trim().toLowerCase();
+    if (!email) {
+      setPurchaseIntentError("Введите email и запросите код подтверждения.");
+      return;
+    }
+    try {
+      setPurchaseIntentStartLoading(true);
+      setPurchaseIntentError(null);
+      const started = await startIdentityIntent({
+        channel: "email",
+        email,
+        metadata: {
+          source: "course_checkout",
+          courseId: course?.id ?? null,
+        },
+      });
+      setPurchaseIntentId(started.intentId);
+      setPurchaseIntentExpiresAt(started.expiresAt ?? null);
+      setPurchaseIntentMessage(
+        started.message || mapIdentityIntentStatusMessage(started.state)
+      );
+      if (!started.intentId) {
+        setPurchaseIntentError(
+          "Не удалось запустить верификацию identity. Проверьте email и повторите попытку."
+        );
+      }
+    } catch (error) {
+      setPurchaseIntentError(mapPurchaseFlowErrorMessage(error));
+    } finally {
+      setPurchaseIntentStartLoading(false);
+    }
+  };
+
+  const handleVerifyPurchaseIdentityIntent = async () => {
+    if (user) return;
+    const intentId = purchaseIntentId?.trim() || "";
+    const code = purchaseIntentCode.trim();
+    if (!intentId) {
+      setPurchaseIntentError("Сначала запросите код подтверждения.");
+      return;
+    }
+    if (!code) {
+      setPurchaseIntentError("Введите код подтверждения из письма.");
+      return;
+    }
+    try {
+      setPurchaseIntentVerifyLoading(true);
+      setPurchaseIntentError(null);
+      const verified = await verifyIdentityIntent({ intentId, code });
+      setPurchaseIntentMessage(
+        verified.message || mapIdentityIntentStatusMessage(verified.state)
+      );
+      setPurchaseIntentExpiresAt(verified.expiresAt ?? null);
+      if (verified.state === "verified" && verified.intentId) {
+        setPurchaseIntentId(verified.intentId);
+        return;
+      }
+      if (verified.nextAction === "restart") {
+        setPurchaseIntentId(null);
+        setPurchaseIntentCode("");
+      }
+      setPurchaseIntentError(
+        verified.message || mapIdentityIntentStatusMessage(verified.state)
+      );
+    } catch (error) {
+      setPurchaseIntentError(mapPurchaseFlowErrorMessage(error));
+    } finally {
+      setPurchaseIntentVerifyLoading(false);
+    }
   };
 
   const handlePurchaseSubmit = async () => {
@@ -812,6 +913,34 @@ export default function CourseDetails() {
 
     const price = pendingType === "guided" ? course.priceGuided : course.priceSelf;
     const checkoutEmail = user?.email ?? purchaseEmail.trim().toLowerCase();
+    let verifiedIntentId: string | undefined;
+    if (!user) {
+      if (!purchaseIntentId) {
+        setPurchaseIntentError(
+          "Перед оплатой подтвердите identity через код на email."
+        );
+        return;
+      }
+      try {
+        const intentStatus = await getIdentityIntentStatus(purchaseIntentId);
+        if (intentStatus.state !== "verified") {
+          setPurchaseIntentMessage(mapIdentityIntentStatusMessage(intentStatus.state));
+          setPurchaseIntentError(
+            "Identity intent не готов к checkout. Запросите и подтвердите код повторно."
+          );
+          if (intentStatus.state !== "pending") {
+            setPurchaseIntentId(null);
+            setPurchaseIntentCode("");
+            setPurchaseIntentExpiresAt(intentStatus.expiresAt);
+          }
+          return;
+        }
+        verifiedIntentId = intentStatus.intentId;
+      } catch (error) {
+        setPurchaseIntentError(mapPurchaseFlowErrorMessage(error));
+        return;
+      }
+    }
     const executed = await purchaseSubmitGuard.run(
       async () => {
         let shouldOpenAttentionModal = false;
@@ -820,6 +949,7 @@ export default function CourseDetails() {
           const result = await checkoutPurchase({
             userId: user?.id,
             email: checkoutEmail,
+            identityIntentId: verifiedIntentId,
             firstName: purchaseFirstName.trim(),
             lastName: purchaseLastName.trim(),
             phone: toRuPhoneStorage(purchasePhone),
@@ -2095,10 +2225,68 @@ export default function CourseDetails() {
                 label="Email"
                 type="email"
                 value={purchaseEmail}
-                onChange={(e) => setPurchaseEmail(e.target.value)}
+                onChange={(e) => {
+                  setPurchaseEmail(e.target.value);
+                  setPurchaseIntentId(null);
+                  setPurchaseIntentCode("");
+                  setPurchaseIntentExpiresAt(null);
+                  setPurchaseIntentMessage(null);
+                  setPurchaseIntentError(null);
+                }}
                 fullWidth
                 InputLabelProps={{ shrink: true }}
               />
+              {purchaseIntentMessage ? (
+                <Alert severity={isPurchaseIdentityVerified ? "success" : "info"}>
+                  {purchaseIntentMessage}
+                  {purchaseIntentExpiresAt
+                    ? ` Код действует до ${new Date(
+                        purchaseIntentExpiresAt
+                      ).toLocaleTimeString("ru-RU", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}.`
+                    : ""}
+                </Alert>
+              ) : null}
+              {purchaseIntentError ? (
+                <Alert severity="warning">{purchaseIntentError}</Alert>
+              ) : null}
+              {!isPurchaseIdentityVerified ? (
+                <>
+                  <TextField
+                    label="Код подтверждения"
+                    value={purchaseIntentCode}
+                    onChange={(event) =>
+                      setPurchaseIntentCode(normalizeIdentityIntentCode(event.target.value))
+                    }
+                    inputProps={{ inputMode: "numeric", pattern: "[0-9]*", maxLength: 6 }}
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                  />
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => void handleStartPurchaseIdentityIntent()}
+                      disabled={purchaseIntentStartLoading || purchaseLoading}
+                    >
+                      {purchaseIntentStartLoading ? "Отправляем код..." : "Получить код"}
+                    </Button>
+                    <Button
+                      variant="contained"
+                      onClick={() => void handleVerifyPurchaseIdentityIntent()}
+                      disabled={
+                        purchaseIntentVerifyLoading ||
+                        purchaseLoading ||
+                        !purchaseIntentId ||
+                        purchaseIntentCode.trim().length < 4
+                      }
+                    >
+                      {purchaseIntentVerifyLoading ? "Проверяем..." : "Подтвердить identity"}
+                    </Button>
+                  </div>
+                </>
+              ) : null}
             </>
           )}
           <TextField
@@ -2234,6 +2422,7 @@ export default function CourseDetails() {
           <Button
             variant="contained"
             onClick={() => void handlePurchaseSubmit()}
+            disabled={purchaseLoading || (!user && !isPurchaseIdentityVerified)}
             sx={mobileDialogActionSx}
             aria-label={isMobile ? "Продолжить" : undefined}
           >

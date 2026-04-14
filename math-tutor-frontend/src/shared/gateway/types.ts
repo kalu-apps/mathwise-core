@@ -1,4 +1,7 @@
 import type {
+  AuthIdentityIntentStartResponseContract,
+  AuthIdentityIntentStatusResponseContract,
+  AuthIdentityIntentVerifyResponseContract,
   AuthLogoutResponseContract,
   AuthMagicLinkRequestResponseContract,
   AuthSessionProbeResultContract,
@@ -30,6 +33,9 @@ import type {
 import type { Booking } from "@/entities/booking/model/types";
 import type { Purchase } from "@/entities/purchase/model/types";
 import type {
+  BookingSlotHoldStatusResponseContract,
+  ConfirmBookingSlotHoldPayloadContract,
+  CreateBookingSlotHoldPayloadContract,
   CreateBookingPayloadContract,
   DeleteBookingResponseContract,
   GetBookingsParamsContract,
@@ -76,6 +82,18 @@ export type AuthGateway = {
   }) => Promise<AuthSessionResponseContract>;
   getSession: () => Promise<AuthSessionResponseContract>;
   logout: () => Promise<AuthLogoutResponseContract>;
+  startIdentityIntent: (payload: {
+    channel?: "email" | "google" | "yandex" | "vk";
+    email?: string;
+    metadata?: Record<string, unknown>;
+  }) => Promise<AuthIdentityIntentStartResponseContract>;
+  verifyIdentityIntent: (payload: {
+    intentId: string;
+    code: string;
+  }) => Promise<AuthIdentityIntentVerifyResponseContract>;
+  getIdentityIntentStatus: (
+    intentId: string
+  ) => Promise<AuthIdentityIntentStatusResponseContract>;
   probeSession: (signal?: AbortSignal) => Promise<AuthSessionProbeResultContract>;
 };
 
@@ -181,6 +199,18 @@ export type BookingsGateway = {
   getBookings: (params?: GetBookingsParamsContract) => Promise<Booking[]>;
   createBooking: (
     payload: CreateBookingPayloadContract,
+    options?: { idempotencyKey?: string }
+  ) => Promise<Booking>;
+  createBookingSlotHold: (
+    payload: CreateBookingSlotHoldPayloadContract,
+    options?: { idempotencyKey?: string }
+  ) => Promise<BookingSlotHoldStatusResponseContract>;
+  getBookingSlotHoldStatus: (
+    holdId: string
+  ) => Promise<BookingSlotHoldStatusResponseContract>;
+  confirmBookingSlotHold: (
+    holdId: string,
+    payload?: ConfirmBookingSlotHoldPayloadContract,
     options?: { idempotencyKey?: string }
   ) => Promise<Booking>;
   updateBooking: (id: string, patch: UpdateBookingPatchContract) => Promise<Booking>;

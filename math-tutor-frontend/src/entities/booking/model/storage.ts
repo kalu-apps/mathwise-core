@@ -4,6 +4,7 @@ import type {
   BookingLessonKind,
   BookingMaterial,
   BookingPaymentStatus,
+  BookingSlotHoldStatusResponse,
 } from "./types";
 import type { ConsentScope } from "@/domain/auth-payments/model/types";
 
@@ -40,6 +41,39 @@ export async function createBooking(
   options?: { idempotencyKey?: string }
 ): Promise<Booking> {
   return bookingGateway.createBooking(payload, options);
+}
+
+export type CreateBookingSlotHoldPayload = {
+  teacherId: string;
+  slotId: string;
+  studentEmail?: string;
+};
+
+export async function createBookingSlotHold(
+  payload: CreateBookingSlotHoldPayload,
+  options?: { idempotencyKey?: string }
+): Promise<BookingSlotHoldStatusResponse> {
+  return bookingGateway.createBookingSlotHold(payload, options);
+}
+
+export async function getBookingSlotHoldStatus(
+  holdId: string
+): Promise<BookingSlotHoldStatusResponse> {
+  return bookingGateway.getBookingSlotHoldStatus(holdId);
+}
+
+export type ConfirmBookingSlotHoldPayload = {
+  consents?: {
+    acceptedScopes: ConsentScope[];
+  };
+};
+
+export async function confirmBookingSlotHold(
+  holdId: string,
+  payload?: ConfirmBookingSlotHoldPayload,
+  options?: { idempotencyKey?: string }
+): Promise<Booking> {
+  return bookingGateway.confirmBookingSlotHold(holdId, payload, options);
 }
 
 export async function updateBooking(
