@@ -349,3 +349,75 @@ test("identity completion: existing user with password stays completed", async (
     restoreEnv(snapshot);
   }
 });
+
+test("oauth vk authorization url skips legacy params for oauth.vk.ru", async () => {
+  const snapshot = { ...process.env };
+  try {
+    applyEnv();
+
+    const service = new AuthService(
+      { execute: async () => undefined } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never
+    );
+
+    const authorizationUrl = (service as any).buildAuthorizationUrl({
+      provider: "vk",
+      providerConfig: {
+        enabled: true,
+        clientId: "vk-client-id",
+        clientSecret: "vk-client-secret",
+        authorizeUrl: "https://oauth.vk.ru/authorize",
+        tokenUrl: "https://oauth.vk.ru/access_token",
+        userInfoUrl: "https://api.vk.com/method/users.get",
+        scope: "email",
+      },
+      state: "state-1",
+    }) as URL;
+
+    assert.equal(authorizationUrl.searchParams.get("response_type"), "code");
+    assert.equal(authorizationUrl.searchParams.get("client_id"), "vk-client-id");
+    assert.equal(authorizationUrl.searchParams.get("scope"), "email");
+    assert.equal(authorizationUrl.searchParams.get("state"), "state-1");
+    assert.equal(authorizationUrl.searchParams.get("v"), null);
+    assert.equal(authorizationUrl.searchParams.get("display"), null);
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("oauth vk authorization url keeps legacy params for oauth.vk.com", async () => {
+  const snapshot = { ...process.env };
+  try {
+    applyEnv();
+
+    const service = new AuthService(
+      { execute: async () => undefined } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never
+    );
+
+    const authorizationUrl = (service as any).buildAuthorizationUrl({
+      provider: "vk",
+      providerConfig: {
+        enabled: true,
+        clientId: "vk-client-id",
+        clientSecret: "vk-client-secret",
+        authorizeUrl: "https://oauth.vk.com/authorize",
+        tokenUrl: "https://oauth.vk.com/access_token",
+        userInfoUrl: "https://api.vk.com/method/users.get",
+        scope: "email",
+      },
+      state: "state-2",
+    }) as URL;
+
+    assert.equal(authorizationUrl.searchParams.get("v"), "5.199");
+    assert.equal(authorizationUrl.searchParams.get("display"), "page");
+  } finally {
+    restoreEnv(snapshot);
+  }
+});

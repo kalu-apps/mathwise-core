@@ -1201,8 +1201,12 @@ export class AuthService implements OnModuleInit {
       authUrl.searchParams.set("prompt", "select_account");
     }
     if (params.provider === "vk") {
-      authUrl.searchParams.set("v", "5.199");
-      authUrl.searchParams.set("display", "page");
+      const vkHost = authUrl.hostname.toLowerCase();
+      // Legacy oauth.vk.com uses versioned API semantics, oauth.vk.ru does not.
+      if (vkHost === "oauth.vk.com") {
+        authUrl.searchParams.set("v", "5.199");
+        authUrl.searchParams.set("display", "page");
+      }
     }
     return authUrl;
   }
