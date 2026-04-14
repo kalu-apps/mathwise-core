@@ -1008,3 +1008,65 @@ test("bookings: legacy guest path stays available when booking-v2 is disabled", 
     }
   );
 });
+
+test("bookings: guest booking requires hold flow when booking-v2 compat is disabled", async () => {
+  await withBookingV2Env(
+    {
+      BOOKING_V2_ENABLED: "true",
+      BOOKING_V2_GUEST_COMPAT_ENABLED: "false",
+    },
+    async () => {
+      const { repository, date } = buildBaseRepository();
+      const authRepository = {
+        findById: async () => ({
+          id: "teacher_1",
+          email: "teacher@example.com",
+          firstName: "Teacher",
+          lastName: "One",
+          role: "teacher",
+        }),
+        findByEmail: async () => null,
+      };
+      const redisService = {
+        setIfAbsent: async () => true,
+        releaseLock: async () => undefined,
+      };
+
+      const service = new BookingsService(
+        repository as never,
+        authRepository as never,
+        redisService as never
+      );
+
+      await assert.rejects(
+        () =>
+          service.createBooking({
+            payload: {
+              teacherId: "teacher_1",
+              teacherName: "Teacher One",
+              slotId: "slot_1",
+              studentEmail: "guest@example.com",
+              studentFirstName: "Guest",
+              studentLastName: "Student",
+              date,
+              startTime: "10:00",
+              endTime: "11:00",
+            },
+            actorUser: null,
+          }),
+        (error: unknown) => {
+          if (!(error instanceof HttpException)) return false;
+          if (error.getStatus() !== 409) return false;
+          const response = error.getResponse() as {
+            code?: string;
+            nextAction?: string;
+          };
+          return (
+            response.code === "booking_registration_required" &&
+            response.nextAction === "booking_v2_hold"
+          );
+        }
+      );
+    }
+  );
+});

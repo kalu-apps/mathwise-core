@@ -2,7 +2,6 @@ import { Body, Controller, HttpCode, Post } from "@nestjs/common";
 import { TelemetryService } from "./telemetry.service";
 import type { RumIngestPayloadDto, RumIngestResponseDto } from "./telemetry.types";
 
-// STAGE_ONLY_REMOVE_BEFORE_PROD: lightweight endpoint to keep active RUM contract parity.
 @Controller("api/telemetry")
 export class TelemetryController {
   constructor(private readonly telemetryService: TelemetryService) {}

@@ -2,6 +2,10 @@ import crypto from "node:crypto";
 import { HttpException, Injectable } from "@nestjs/common";
 import { getApiRuntimeConfig } from "../config/runtime.config";
 import {
+  STAGE_ONLY_REMOVE_BEFORE_PROD,
+  isStageSiteGateRuntimeEnabled,
+} from "../config/runtime.governance";
+import {
   buildStageAccessClearCookie,
   buildStageAccessSetCookie,
   readStageAccessTokenFromCookieHeader,
@@ -15,7 +19,7 @@ type StageTokenPayload = {
   v: 1;
   iat: number;
   exp: number;
-  marker: "STAGE_ONLY_REMOVE_BEFORE_PROD";
+  marker: typeof STAGE_ONLY_REMOVE_BEFORE_PROD;
 };
 
 const nowMs = () => Date.now();
@@ -47,7 +51,7 @@ export class StageAccessService {
   private readonly runtimeConfig = getApiRuntimeConfig();
 
   isEnabled() {
-    return this.runtimeConfig.stageSiteGateEnabled;
+    return isStageSiteGateRuntimeEnabled(this.runtimeConfig);
   }
 
   getStatus(cookieHeader: string | undefined): StageAccessStatusDto {
@@ -56,7 +60,7 @@ export class StageAccessService {
         enabled: false,
         granted: true,
         expiresAt: null,
-        marker: "STAGE_ONLY_REMOVE_BEFORE_PROD",
+        marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
       };
     }
 
@@ -66,7 +70,7 @@ export class StageAccessService {
         enabled: true,
         granted: false,
         expiresAt: null,
-        marker: "STAGE_ONLY_REMOVE_BEFORE_PROD",
+        marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
       };
     }
 
@@ -74,7 +78,7 @@ export class StageAccessService {
       enabled: true,
       granted: true,
       expiresAt: new Date(parsed.exp).toISOString(),
-      marker: "STAGE_ONLY_REMOVE_BEFORE_PROD",
+      marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
     };
   }
 
@@ -104,7 +108,7 @@ export class StageAccessService {
         enabled: true,
         granted: true,
         expiresAt: new Date(token.exp).toISOString(),
-        marker: "STAGE_ONLY_REMOVE_BEFORE_PROD",
+        marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
       },
       setCookie: buildStageAccessSetCookie(token.value),
     };
@@ -118,7 +122,7 @@ export class StageAccessService {
         enabled: true,
         granted: false,
         expiresAt: null,
-        marker: "STAGE_ONLY_REMOVE_BEFORE_PROD",
+        marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
       },
       clearCookie: buildStageAccessClearCookie(),
     };
@@ -157,7 +161,7 @@ export class StageAccessService {
 
     if (
       payload?.v !== 1 ||
-      payload.marker !== "STAGE_ONLY_REMOVE_BEFORE_PROD" ||
+      payload.marker !== STAGE_ONLY_REMOVE_BEFORE_PROD ||
       !Number.isFinite(payload.iat) ||
       !Number.isFinite(payload.exp)
     ) {
@@ -174,7 +178,7 @@ export class StageAccessService {
       v: 1,
       iat,
       exp,
-      marker: "STAGE_ONLY_REMOVE_BEFORE_PROD",
+      marker: STAGE_ONLY_REMOVE_BEFORE_PROD,
     };
     const encoded = toBase64Url(JSON.stringify(payload));
     const signature = this.signPayload(encoded);
@@ -194,4 +198,3 @@ export class StageAccessService {
       .replace(/=+$/g, "");
   }
 }
-

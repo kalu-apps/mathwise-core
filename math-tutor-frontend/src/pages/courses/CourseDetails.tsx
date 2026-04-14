@@ -162,7 +162,6 @@ const mapPurchaseFlowErrorMessage = (error: unknown): string => {
   }
 };
 
-// STAGE_ONLY_REMOVE_BEFORE_PROD
 const STAGE_PAYMENT_CONFIRM_ENABLED = isStagePaymentConfirmEnabled();
 
 export default function CourseDetails() {
@@ -1045,7 +1044,6 @@ export default function CourseDetails() {
     if (executed === undefined) return;
   };
 
-  // STAGE_ONLY_REMOVE_BEFORE_PROD
   const handleStageCheckoutConfirm = async () => {
     if (!activeCheckoutId) return;
     const executed = await checkoutActionGuard.run(

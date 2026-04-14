@@ -4,6 +4,7 @@ import type { AuthUserDto } from "../auth/auth.types";
 import { AuthRepository } from "../auth/auth.repository";
 import { CapabilitiesService } from "../capabilities/capabilities.service";
 import { getApiRuntimeConfig } from "../config/runtime.config";
+import { shouldRequireBookingV2HoldForGuest } from "../config/runtime.governance";
 import { validateEmailFormat } from "../purchases/purchases.helpers";
 import { RedisService } from "../redis/redis.service";
 import { BookingsRepository } from "./bookings.repository";
@@ -261,11 +262,7 @@ export class BookingsService implements OnModuleInit {
         403
       );
     }
-    if (
-      this.runtimeConfig.bookingV2Enabled &&
-      !actorUser &&
-      !this.runtimeConfig.bookingV2GuestCompatibilityEnabled
-    ) {
+    if (shouldRequireBookingV2HoldForGuest(this.runtimeConfig, Boolean(actorUser))) {
       throw new HttpException(
         {
           error:
