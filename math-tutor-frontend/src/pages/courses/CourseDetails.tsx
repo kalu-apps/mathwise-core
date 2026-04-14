@@ -75,6 +75,7 @@ import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { PageLoader } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { BackNavButton } from "@/shared/ui/BackNavButton";
+import { OnboardingFlowPanel } from "@/shared/ui/OnboardingFlowPanel";
 import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
 import {
   selectBnplMarketingInfo,
@@ -125,6 +126,30 @@ const PAYMENT_METHODS: PaymentMethodMeta[] = PAYMENT_METHODS_BASE.map((method) =
   ...method,
   Icon: PAYMENT_METHOD_ICON_BY_ID[method.id],
 }));
+
+const mapPurchaseFlowErrorMessage = (error: unknown): string => {
+  if (!(error instanceof ApiError)) {
+    return error instanceof Error
+      ? error.message
+      : "Не удалось оформить покупку. Попробуйте позже.";
+  }
+
+  const details = (error.details ?? {}) as { code?: string };
+  switch (details.code) {
+    case "identity_intent_required":
+      return "Перед оплатой нужно подтвердить identity. Войдите в аккаунт или используйте социальный вход.";
+    case "identity_intent_expired":
+      return "Сессия верификации истекла. Повторите вход и запустите оплату снова.";
+    case "identity_intent_consumed":
+      return "Эта сессия верификации уже использована. Запустите новый checkout.";
+    case "identity_intent_context_mismatch":
+      return "Контекст подтверждения не совпадает с оформлением покупки. Начните checkout заново.";
+    case "identity_intent_invalid":
+      return "Не удалось подтвердить identity для оплаты. Повторите попытку через окно входа.";
+    default:
+      return error.message || "Не удалось оформить покупку. Попробуйте позже.";
+  }
+};
 
 // STAGE_ONLY_REMOVE_BEFORE_PROD
 const STAGE_PAYMENT_CONFIRM_ENABLED = isStagePaymentConfirmEnabled();
@@ -474,7 +499,7 @@ export default function CourseDetails() {
     }
     const fallbackEmail =
       (purchaseEmail || user?.email || "").trim().toLowerCase() || undefined;
-    openRecoverModal(fallbackEmail);
+    openRecoverModal(fallbackEmail, "course");
   }, [navigate, openRecoverModal, purchaseEmail, user?.email, user?.role]);
 
   const handleBackToSource = useCallback(() => {
@@ -629,6 +654,75 @@ export default function CourseDetails() {
     Boolean(activeCheckoutId) &&
     user?.role === "student" &&
     isAwaitingCheckoutPayment;
+  const purchaseDialogFlowSteps = [
+    {
+      key: "verify",
+      title: "1. Подтверждение identity",
+      description: "Подтвердите владельца аккаунта перед checkout.",
+      state: user ? ("done" as const) : ("current" as const),
+    },
+    {
+      key: "payment",
+      title: "2. Оплата курса",
+      description: "Выберите способ оплаты и перейдите к провайдеру.",
+      state: "pending" as const,
+    },
+    {
+      key: "finalize",
+      title: "3. Финализация доступа",
+      description: "После оплаты система завершит профиль и откроет курс.",
+      state: "pending" as const,
+    },
+  ];
+  const checkoutIdentityMarker = checkoutFlowStatus?.access?.identityState ?? "";
+  const firstPasswordPending = checkoutIdentityMarker === "pending_first_password";
+  const checkoutIdentityState =
+    checkoutIdentityMarker === "verified" ||
+    checkoutIdentityMarker === "authenticated" ||
+    firstPasswordPending ||
+    Boolean(user)
+      ? "done"
+      : "current";
+  const checkoutPaymentState =
+    checkoutFlowStatus?.payment.status === "provider_confirmed" ||
+    checkoutFlowStatus?.payment.status === "paid" ||
+    checkoutFlowStatus?.state === "provisioned"
+      ? "done"
+      : isAwaitingCheckoutPayment
+      ? "current"
+      : "pending";
+  const checkoutFinalizeState =
+    firstPasswordPending
+      ? "blocked"
+      : checkoutFlowStatus?.state === "provisioned" ||
+        checkoutFlowStatus?.access?.accessState === "active"
+      ? "done"
+      : checkoutFlowStatus?.state === "email_verification_pending"
+      ? "current"
+      : "pending";
+  const checkoutDialogFlowSteps = [
+    {
+      key: "verify",
+      title: "1. Identity",
+      description: "Контекст identity привязан к checkout и защищен от дублей.",
+      state: checkoutIdentityState as "done" | "current",
+    },
+    {
+      key: "payment",
+      title: "2. Оплата",
+      description: "Завершите платеж у провайдера и вернитесь в кабинет.",
+      state: checkoutPaymentState as "done" | "current" | "pending",
+    },
+    {
+      key: "finalize",
+      title: "3. Активация аккаунта",
+      description:
+        firstPasswordPending
+          ? "Требуется создать первый пароль для завершения lifecycle."
+          : "Система синхронизирует права и открывает доступ к курсу.",
+      state: checkoutFinalizeState as "done" | "current" | "pending" | "blocked",
+    },
+  ];
 
   const mobileDialogActionSx = isMobile
     ? {
@@ -795,13 +889,16 @@ export default function CourseDetails() {
               return;
             }
           }
+          const errorCode =
+            error instanceof ApiError
+              ? ((error.details ?? {}) as { code?: string }).code
+              : undefined;
           const requiresAuthAttach =
-            error instanceof Error && error.message.includes("Авторизуйтесь");
-          setModalMessage(
-            error instanceof Error
-              ? error.message
-              : "Не удалось оформить покупку. Попробуйте позже."
-          );
+            (error instanceof Error && error.message.includes("Авторизуйтесь")) ||
+            errorCode === "identity_intent_required" ||
+            errorCode === "identity_intent_context_mismatch" ||
+            errorCode === "identity_conflict_auth_required";
+          setModalMessage(mapPurchaseFlowErrorMessage(error));
           setShowLoginAction(requiresAuthAttach);
           shouldOpenAttentionModal = true;
         } finally {
@@ -1791,10 +1888,14 @@ export default function CourseDetails() {
       {pageNoticeState && (
         <AccessStateBanner
           state={pageNoticeState}
-          onLogin={pageNoticeState !== "entitlement_missing" ? openAuthModal : undefined}
+          onLogin={
+            pageNoticeState !== "entitlement_missing"
+              ? () => openAuthModal("course")
+              : undefined
+          }
           onRecover={
             pageNoticeState !== "entitlement_missing"
-              ? () => openRecoverModal(user?.email)
+              ? () => openRecoverModal(user?.email, "course")
               : undefined
           }
           onCompleteProfile={
@@ -1943,7 +2044,7 @@ export default function CourseDetails() {
             <Button
               onClick={() => {
                 setModalOpen(false);
-                openAuthModal();
+                openAuthModal("course");
               }}
               variant="contained"
               sx={{
@@ -1978,10 +2079,17 @@ export default function CourseDetails() {
           closeAriaLabel="Закрыть форму покупки"
         />
         <DialogContent sx={stackedDialogContentSx}>
+          <OnboardingFlowPanel
+            kicker="Course onboarding"
+            title="verify identity → pay → finalize account"
+            description="Для неавторизованной покупки сначала подтверждается identity, затем создается checkout."
+            steps={purchaseDialogFlowSteps}
+            compact
+          />
           {!user && (
             <>
               <Typography color="text.secondary">
-                Укажите email — на него будет отправлена ссылка для входа.
+                Укажите email, который будет подтвержден и использован как источник identity для checkout.
               </Typography>
               <TextField
                 label="Email"
@@ -2158,6 +2266,13 @@ export default function CourseDetails() {
           closeAriaLabel="Закрыть окно статуса оплаты"
         />
         <DialogContent sx={stackedDialogContentSx}>
+          <OnboardingFlowPanel
+            kicker="Course lifecycle"
+            title="Состояние активации после checkout"
+            description="Панель показывает progression от верификации identity до финального доступа."
+            steps={checkoutDialogFlowSteps}
+            compact
+          />
           <div className="course-details__checkout-summary">
             <div>
               <span>Checkout ID</span>

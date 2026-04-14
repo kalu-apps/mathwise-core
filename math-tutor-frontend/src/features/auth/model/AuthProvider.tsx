@@ -16,6 +16,7 @@ import {
   requestPasswordLogin,
 } from "./api";
 import { useAuthUiStore } from "./authUiStore";
+import type { AuthModalContext } from "./authUiStore";
 import { ApiError } from "@/shared/api/client";
 import { t } from "@/shared/i18n";
 
@@ -85,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAuthModalOpen = useAuthUiStore((state) => state.isAuthModalOpen);
   const authModalMode = useAuthUiStore((state) => state.authModalMode);
+  const authModalContext = useAuthUiStore((state) => state.authModalContext);
   const authModalEmail = useAuthUiStore((state) => state.authModalEmail);
   const authModalError = useAuthUiStore((state) => state.authModalError);
   const openAuthModalInStore = useAuthUiStore((state) => state.openAuthModal);
@@ -360,19 +362,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         isAuthModalOpen,
         authModalMode,
+        authModalContext,
         authModalEmail,
         authModalError,
-        openAuthModal: () => {
+        openAuthModal: (context?: AuthModalContext) => {
           blurActiveElement();
-          openAuthModalInStore();
+          openAuthModalInStore(context);
         },
-        openAuthModalWithError: (error, email) => {
+        openAuthModalWithError: (error, email, context) => {
           blurActiveElement();
-          openAuthModalWithErrorInStore(error, email);
+          openAuthModalWithErrorInStore(error, email, context);
         },
-        openRecoverModal: (email?: string) => {
+        openRecoverModal: (email?: string, context?: AuthModalContext) => {
           blurActiveElement();
-          openRecoverModal(email);
+          openRecoverModal(email, context);
         },
         closeAuthModal: () => {
           closeAuthModal();

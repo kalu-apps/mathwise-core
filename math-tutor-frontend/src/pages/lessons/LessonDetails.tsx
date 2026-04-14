@@ -353,7 +353,7 @@ export default function LessonDetails() {
                 </Button>
               )}
               {showLoginButton && !accessNoticeState && (
-                <Button variant="outlined" onClick={openAuthModal}>
+                <Button variant="outlined" onClick={() => openAuthModal()}>
                   Войти
                 </Button>
               )}

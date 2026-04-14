@@ -104,6 +104,59 @@
     }
   }
 
+  &__invite-shell {
+    border: 1px solid color-mix(in srgb, var(--card-border) 86%, #ffffff 14%);
+    border-radius: 18px;
+    padding: 14px;
+    background:
+      linear-gradient(140deg, var(--surface-elevated), var(--surface-soft)),
+      radial-gradient(
+        circle at 96% 6%,
+        color-mix(in srgb, var(--brand-soft) 16%, transparent),
+        transparent 52%
+      );
+    box-shadow: var(--shadow-sm);
+    display: grid;
+    gap: 12px;
+  }
+
+  &__invite-copy {
+    display: grid;
+    gap: 6px;
+
+    span {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+  }
+
+  &__invite-link {
+    margin-top: 8px;
+    word-break: break-all;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+    background: color-mix(in srgb, var(--surface-soft) 84%, transparent);
+  }
+
   &__profile-layout {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

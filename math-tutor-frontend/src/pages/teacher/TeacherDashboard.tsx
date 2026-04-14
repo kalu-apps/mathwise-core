@@ -1182,17 +1182,27 @@ export default function TeacherDashboard() {
       {/* STUDENTS */}
       {tab === 1 && (
         <div className="teacher-dashboard__section">
-          <div className="teacher-dashboard__section-actions">
-            <Button
-              variant="contained"
-              onClick={() => {
-                void handleCreateInviteLink();
-              }}
-              startIcon={<LinkRoundedIcon />}
-              disabled={inviteCreating}
-            >
-              {inviteCreating ? "Создаем..." : "Создать invite-ссылку"}
-            </Button>
+          <div className="teacher-dashboard__invite-shell">
+            <div className="teacher-dashboard__invite-copy">
+              <span>Teacher invite</span>
+              <h3>Добавьте ученика по персональной ссылке</h3>
+              <p>
+                Ссылка запускает controlled onboarding: ученик регистрируется или входит в аккаунт
+                и безопасно привязывается к вашему контуру.
+              </p>
+            </div>
+            <div className="teacher-dashboard__section-actions">
+              <Button
+                variant="contained"
+                onClick={() => {
+                  void handleCreateInviteLink();
+                }}
+                startIcon={<LinkRoundedIcon />}
+                disabled={inviteCreating}
+              >
+                {inviteCreating ? "Создаем..." : "Создать invite-ссылку"}
+              </Button>
+            </div>
           </div>
           {inviteStatusMessage ? (
             <Alert
@@ -1203,7 +1213,7 @@ export default function TeacherDashboard() {
             >
               {inviteStatusMessage}
               {inviteLink ? (
-                <div style={{ marginTop: 8, wordBreak: "break-all" }}>{inviteLink}</div>
+                <div className="teacher-dashboard__invite-link">{inviteLink}</div>
               ) : null}
             </Alert>
           ) : null}

@@ -44,6 +44,7 @@ import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { PageLoader } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
+import { OnboardingFlowPanel } from "@/shared/ui/OnboardingFlowPanel";
 
 const blurActiveElement = () => {
   if (typeof document === "undefined") return;
@@ -161,6 +162,51 @@ export default function Booking() {
     () => calendarDays.find((day) => availableDateSet.has(day.value))?.value ?? calendarDays[0]?.value ?? "",
     [calendarDays, availableDateSet]
   );
+  const bookingFlowSteps = useMemo(() => {
+    const slotState = selectedSlotId ? "done" : bookingOpen ? "current" : "pending";
+    const identityState =
+      guestCheckoutOpen || pendingAuthOpen || Boolean(pendingAuthRebookSlotId)
+        ? "current"
+        : user
+        ? "done"
+        : "pending";
+    const confirmState =
+      bookingSaving || Boolean(pendingAuthRebookSlotId)
+        ? "current"
+        : selectedSlotId && Boolean(user)
+        ? "current"
+        : "pending";
+    return [
+      {
+        key: "slot",
+        title: "1. Выберите слот",
+        description: "Зафиксируйте удобное время у преподавателя.",
+        state: slotState as "done" | "current" | "pending",
+      },
+      {
+        key: "identity",
+        title: "2. Подтвердите аккаунт",
+        description:
+          "Для индивидуального занятия нужен полный профиль ученика без гостевого режима.",
+        state: identityState as "done" | "current" | "pending",
+      },
+      {
+        key: "confirm",
+        title: "3. Подтверждение записи",
+        description:
+          "После авторизации система подтверждает бронь и открывает доступ к чату и доске.",
+        state: confirmState as "current" | "pending",
+      },
+    ];
+  }, [
+    bookingOpen,
+    bookingSaving,
+    guestCheckoutOpen,
+    pendingAuthOpen,
+    pendingAuthRebookSlotId,
+    selectedSlotId,
+    user,
+  ]);
 
   const mobileDialogActionSx = isMobile
     ? {
@@ -401,7 +447,7 @@ export default function Booking() {
       if (active instanceof HTMLElement) {
         active.blur();
       }
-      openAuthModal();
+      openAuthModal("booking");
       setPendingAuthOpen(false);
     }, 0);
 
@@ -520,8 +566,8 @@ export default function Booking() {
       {accessNoticeState && (
         <AccessStateBanner
           state={accessNoticeState}
-          onLogin={openAuthModal}
-          onRecover={() => openRecoverModal(user?.email)}
+          onLogin={() => openAuthModal("booking")}
+          onRecover={() => openRecoverModal(user?.email, "booking")}
           onRecheck={
             accessNoticeState === "paid_but_restricted"
               ? () => {
@@ -532,6 +578,13 @@ export default function Booking() {
           onCompleteProfile={() => navigate("/profile")}
         />
       )}
+      <OnboardingFlowPanel
+        className="booking-page__onboarding"
+        kicker="Индивидуальный контур"
+        title="Запись на занятие: slot hold → регистрация → подтверждение"
+        description="Путь записи собран как единый onboarding flow: сначала слот, затем identity и только после этого финальное подтверждение."
+        steps={bookingFlowSteps}
+      />
       <div className="booking-page__hero">
         <div className="booking-page__hero-shade" />
         <div className="booking-page__hero-content">

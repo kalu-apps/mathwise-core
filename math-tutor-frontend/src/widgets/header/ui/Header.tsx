@@ -130,7 +130,7 @@ export function Header() {
             </>
           ) : (
             <Tooltip title={t("header.login")}>
-              <IconButton onClick={openAuthModal}>
+              <IconButton onClick={() => openAuthModal()}>
                 <LoginIcon />
               </IconButton>
             </Tooltip>

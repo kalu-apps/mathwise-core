@@ -2,6 +2,7 @@
 @use "./visual/migrated/header";
 @use "./visual/migrated/connectivity-banner";
 @use "./visual/migrated/auth-modal";
+@use "./visual/migrated/onboarding-shell";
 @use "./visual/migrated/password-security";
 @use "./visual/migrated/loading";
 @use "./visual/migrated/news-feed";
@@ -17,6 +18,7 @@
 @use "./visual/migrated/courses-preview";
 @use "./visual/migrated/cta-section";
 @use "./visual/migrated/hero-section";
+@use "./visual/migrated/invite";
 @use "./visual/migrated/lesson-details";
 @use "./visual/migrated/lesson-editor";
 @use "./visual/migrated/lesson-item";

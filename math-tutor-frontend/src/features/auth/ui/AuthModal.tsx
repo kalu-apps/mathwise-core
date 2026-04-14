@@ -17,6 +17,9 @@ import { useAuth } from "@/features/auth/model/AuthContext";
 import { t } from "@/shared/i18n";
 import { ButtonPending } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
+import type { AuthModalContext } from "@/features/auth/model/authUiStore";
+import { OnboardingFlowPanel } from "@/shared/ui/OnboardingFlowPanel";
+import type { OnboardingFlowStep } from "@/shared/ui/OnboardingFlowPanel";
 import {
   buildSocialLoginStartUrl,
   requestPasswordReset,
@@ -28,6 +31,7 @@ import {
 interface AuthModalProps {
   open: boolean;
   onClose: () => void;
+  context?: AuthModalContext;
   mode?: "login" | "recover";
   initialEmail?: string;
   initialError?: string | null;
@@ -35,6 +39,13 @@ interface AuthModalProps {
 
 type ViewMode = "login" | "recover";
 type RecoveryStep = 1 | 2 | 3;
+
+type FlowMeta = {
+  kicker: string;
+  loginTitle: string;
+  loginDescription: string;
+  recoverTitle: string;
+};
 
 const blurActiveElement = () => {
   if (typeof document === "undefined") return;
@@ -98,9 +109,41 @@ const mapSocialButton = (provider: SocialProvider) => {
 
 const parseRecoveryCode = (value: string) => value.replace(/\D+/g, "").slice(0, 6);
 
+const flowMetaByContext: Record<AuthModalContext, FlowMeta> = {
+  general: {
+    kicker: "Авторизация",
+    loginTitle: "Вход в личный кабинет",
+    loginDescription:
+      "Используйте пароль или социальный провайдер. Если пароль утерян, восстановите доступ в три шага.",
+    recoverTitle: "Восстановление доступа к аккаунту",
+  },
+  course: {
+    kicker: "Покупка курса",
+    loginTitle: "Подтвердите identity перед оплатой",
+    loginDescription:
+      "Этот шаг нужен, чтобы оплата и доступ к курсу были привязаны к правильному аккаунту без дублей.",
+    recoverTitle: "Восстановление для завершения покупки",
+  },
+  booking: {
+    kicker: "Индивидуальное занятие",
+    loginTitle: "Войдите для подтверждения записи",
+    loginDescription:
+      "Для закрепления слота нужен полный аккаунт ученика. После входа запись автоматически завершится.",
+    recoverTitle: "Восстановление доступа к записи",
+  },
+  invite: {
+    kicker: "Приглашение преподавателя",
+    loginTitle: "Продолжите по ссылке-приглашению",
+    loginDescription:
+      "Войдите в существующий аккаунт или восстановите доступ, чтобы безопасно принять приглашение.",
+    recoverTitle: "Восстановление для принятия приглашения",
+  },
+};
+
 export function AuthModal({
   open,
   onClose,
+  context = "general",
   mode = "login",
   initialEmail = "",
   initialError = null,
@@ -136,6 +179,109 @@ export function AuthModal({
 
   const normalizedEmail = normalizeEmailInput(email);
   const socialProviders: SocialProvider[] = ["vk", "yandex", "google"];
+  const flowMeta = flowMetaByContext[context];
+  const loginSteps: OnboardingFlowStep[] =
+    context === "course"
+      ? [
+          {
+            key: "verify",
+            title: "1. Верификация",
+            description: "Проверьте email или войдите через VK, Яндекс, Google.",
+            state: "current" as const,
+          },
+          {
+            key: "payment",
+            title: "2. Оплата",
+            description: "После подтверждения identity продолжите checkout курса.",
+            state: "pending" as const,
+          },
+          {
+            key: "finalize",
+            title: "3. Активация",
+            description: "Кабинет и права доступа будут завершены после оплаты.",
+            state: "pending" as const,
+          },
+        ]
+      : context === "booking"
+      ? [
+          {
+            key: "slot",
+            title: "1. Слот",
+            description: "Слот уже выбран и ожидает подтверждения с вашей стороны.",
+            state: "done" as const,
+          },
+          {
+            key: "identity",
+            title: "2. Вход или регистрация",
+            description: "Подтвердите identity, чтобы закрепить запись за вашим профилем.",
+            state: "current" as const,
+          },
+          {
+            key: "confirm",
+            title: "3. Подтверждение",
+            description: "После авторизации запись на занятие завершится автоматически.",
+            state: "pending" as const,
+          },
+        ]
+      : context === "invite"
+      ? [
+          {
+            key: "inspect",
+            title: "1. Проверка приглашения",
+            description: "Ссылка валидна и готова к принятию.",
+            state: "done" as const,
+          },
+          {
+            key: "auth",
+            title: "2. Вход или регистрация",
+            description: "Подтвердите identity, чтобы связать профиль с преподавателем.",
+            state: "current" as const,
+          },
+          {
+            key: "accept",
+            title: "3. Привязка",
+            description: "После входа приглашение будет применено к вашему аккаунту.",
+            state: "pending" as const,
+          },
+        ]
+      : [
+          {
+            key: "auth",
+            title: "1. Авторизация",
+            description: "Войдите в аккаунт удобным способом.",
+            state: "current" as const,
+          },
+          {
+            key: "cabinet",
+            title: "2. Продолжение",
+            description: "Система вернет вас к целевому разделу после успешного входа.",
+            state: "pending" as const,
+          },
+        ];
+  const codeStepState: OnboardingFlowStep["state"] =
+    recoverStep === 2 ? "current" : recoverStep > 2 ? "done" : "pending";
+  const passwordStepState: OnboardingFlowStep["state"] =
+    recoverStep === 3 ? "current" : "pending";
+  const recoverySteps: OnboardingFlowStep[] = [
+    {
+      key: "email",
+      title: "1. Email",
+      description: "Укажите email, на который отправить код подтверждения.",
+      state: recoverStep === 1 ? "current" : "done",
+    },
+    {
+      key: "code",
+      title: "2. Код",
+      description: "Введите 6-значный код из письма.",
+      state: codeStepState,
+    },
+    {
+      key: "password",
+      title: "3. Новый пароль",
+      description: "Задайте новый пароль и подтвердите его.",
+      state: passwordStepState,
+    },
+  ];
 
   useEffect(() => {
     if (!open) return;
@@ -390,7 +536,7 @@ export function AuthModal({
       className="ui-dialog ui-dialog--compact auth-modal"
     >
       <DialogTitleWithClose
-        title={viewMode === "login" ? t("auth.modalTitle") : t("auth.recoverTitle")}
+        title={viewMode === "login" ? flowMeta.loginTitle : flowMeta.recoverTitle}
         className="auth-modal__title"
         onClose={handleDialogClose}
         closeAriaLabel={t("common.close")}
@@ -399,11 +545,19 @@ export function AuthModal({
       <DialogContent className="auth-modal__content">
         {renderError()}
         {infoMessage && <Alert severity="success">{infoMessage}</Alert>}
+        <OnboardingFlowPanel
+          kicker={flowMeta.kicker}
+          title={viewMode === "login" ? flowMeta.loginTitle : flowMeta.recoverTitle}
+          description={viewMode === "login" ? flowMeta.loginDescription : t("auth.recoverFlowDescription")}
+          steps={viewMode === "login" ? loginSteps : recoverySteps}
+          compact
+          className="auth-modal__flow"
+        />
 
         {viewMode === "login" ? (
           <>
             <Typography variant="body2" color="text.secondary" className="auth-modal__description">
-              {t("auth.modalDescription")}
+              {flowMeta.loginDescription}
             </Typography>
 
             <TextField

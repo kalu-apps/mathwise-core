@@ -472,7 +472,7 @@ export default function CourseTestDetails() {
         <Alert severity="error">{error ?? "Тест не найден."}</Alert>
         <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
           {!user ? (
-            <Button variant="contained" onClick={openAuthModal}>
+            <Button variant="contained" onClick={() => openAuthModal()}>
               Войти
             </Button>
           ) : null}
