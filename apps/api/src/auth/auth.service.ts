@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { Injectable, OnModuleInit } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import {
   getApiRuntimeConfig,
   type ApiAuthSocialProviderConfig,
@@ -49,6 +49,7 @@ type OauthStatePayload = {
   provider: AuthSocialProvider;
   redirectPath: string;
   issuedAt: string;
+  codeVerifier?: string;
 };
 
 type OauthProfileResult =
@@ -71,6 +72,7 @@ type PasswordChangeReason = "first_password_set" | "password_changed" | "passwor
 @Injectable()
 export class AuthService implements OnModuleInit {
   private readonly runtimeConfig = getApiRuntimeConfig();
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     private readonly databaseService: DatabaseService,
@@ -186,21 +188,30 @@ export class AuthService implements OnModuleInit {
     }
 
     const state = buildOpaqueToken();
+    const codeVerifier =
+      provider === "vk" ? this.generatePkceCodeVerifier() : undefined;
     const payload: OauthStatePayload = {
       provider,
       redirectPath,
       issuedAt: nowIso(),
+      codeVerifier,
     };
     await this.redisService.set(
       `${OAUTH_STATE_PREFIX}${state}`,
       JSON.stringify(payload),
       this.runtimeConfig.authOauthStateTtlSec
     );
+    this.logger.log(
+      `[oauth:start] provider=${provider} pkce=${codeVerifier ? "enabled" : "disabled"} state=${this.fingerprint(state)}`
+    );
 
     const authorizationUrl = this.buildAuthorizationUrl({
       provider,
       providerConfig,
       state,
+      codeChallenge: codeVerifier
+        ? this.buildPkceCodeChallenge(codeVerifier)
+        : undefined,
     });
 
     return {
@@ -234,6 +245,7 @@ export class AuthService implements OnModuleInit {
 
     const state = params.state?.trim() || "";
     if (!state) {
+      this.logger.warn(`[oauth:callback] provider=${provider} missing_state`);
       return {
         ok: false,
         errorCode: "invalid_state",
@@ -247,6 +259,9 @@ export class AuthService implements OnModuleInit {
 
     const statePayload = await this.consumeOauthState(state);
     if (!statePayload || statePayload.provider !== provider) {
+      this.logger.warn(
+        `[oauth:callback] provider=${provider} invalid_state state=${this.fingerprint(state)}`
+      );
       return {
         ok: false,
         errorCode: "invalid_state",
@@ -258,8 +273,16 @@ export class AuthService implements OnModuleInit {
       };
     }
     const redirectPath = statePayload.redirectPath;
+    this.logger.log(
+      `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} has_code=${
+        params.code?.trim() ? "yes" : "no"
+      }`
+    );
 
     if (params.providerError?.trim()) {
+      this.logger.warn(
+        `[oauth:callback] provider=${provider} provider_error=${params.providerError.trim()}`
+      );
       return {
         ok: false,
         errorCode: "provider_rejected",
@@ -286,6 +309,9 @@ export class AuthService implements OnModuleInit {
 
     const code = params.code?.trim() || "";
     if (!code) {
+      this.logger.warn(
+        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} missing_code`
+      );
       return {
         ok: false,
         errorCode: "token_exchange_failed",
@@ -297,8 +323,33 @@ export class AuthService implements OnModuleInit {
       };
     }
 
-    const profileResult = await this.fetchSocialProfile(provider, providerConfig, code);
+    if (provider === "vk" && !statePayload.codeVerifier) {
+      this.logger.warn(
+        `[oauth:callback] provider=vk state=${this.fingerprint(state)} missing_pkce_verifier`
+      );
+      return {
+        ok: false,
+        errorCode: "invalid_state",
+        redirectUrl: this.buildClientRedirectUrl({
+          redirectPath,
+          provider,
+          errorCode: "invalid_state",
+        }),
+      };
+    }
+
+    const profileResult = await this.fetchSocialProfile(
+      provider,
+      providerConfig,
+      code,
+      {
+        codeVerifier: statePayload.codeVerifier,
+      }
+    );
     if (!profileResult.ok) {
+      this.logger.warn(
+        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} profile_result=${profileResult.errorCode}`
+      );
       return {
         ok: false,
         errorCode: profileResult.errorCode,
@@ -312,6 +363,9 @@ export class AuthService implements OnModuleInit {
 
     const normalizedEmail = normalizeEmail(profileResult.profile.email);
     if (!normalizedEmail || !validateEmailFormat(normalizedEmail)) {
+      this.logger.warn(
+        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} invalid_email`
+      );
       return {
         ok: false,
         errorCode: "email_missing",
@@ -323,6 +377,9 @@ export class AuthService implements OnModuleInit {
       };
     }
     if (!profileResult.profile.emailVerified) {
+      this.logger.warn(
+        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} email_not_verified`
+      );
       return {
         ok: false,
         errorCode: "email_not_verified",
@@ -336,6 +393,9 @@ export class AuthService implements OnModuleInit {
 
     const user = await this.authRepository.findByEmail(normalizedEmail);
     if (!user) {
+      this.logger.warn(
+        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} account_not_found`
+      );
       return {
         ok: false,
         errorCode: "account_not_found",
@@ -352,6 +412,9 @@ export class AuthService implements OnModuleInit {
       providerUserId: profileResult.profile.providerUserId,
     });
     if (identityByProvider && identityByProvider.userId !== user.id) {
+      this.logger.warn(
+        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} identity_conflict_provider_user`
+      );
       return {
         ok: false,
         errorCode: "identity_conflict",
@@ -371,6 +434,9 @@ export class AuthService implements OnModuleInit {
       identityByUser &&
       identityByUser.providerUserId !== profileResult.profile.providerUserId
     ) {
+      this.logger.warn(
+        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} identity_conflict_user_provider`
+      );
       return {
         ok: false,
         errorCode: "identity_conflict",
@@ -397,6 +463,9 @@ export class AuthService implements OnModuleInit {
       accountFinalizedHint: true,
       source: `social_login:${provider}`,
     });
+    this.logger.log(
+      `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} success user_id=${user.id}`
+    );
     return {
       ok: true,
       sessionId: session.id,
@@ -1187,6 +1256,7 @@ export class AuthService implements OnModuleInit {
     provider: AuthSocialProvider;
     providerConfig: ApiAuthSocialProviderConfig;
     state: string;
+    codeChallenge?: string;
   }): URL {
     const redirectUri = this.getOauthCallbackUrl(params.provider);
     const authUrl = new URL(params.providerConfig.authorizeUrl);
@@ -1202,6 +1272,10 @@ export class AuthService implements OnModuleInit {
     }
     if (params.provider === "vk") {
       const vkHost = authUrl.hostname.toLowerCase();
+      if (params.codeChallenge) {
+        authUrl.searchParams.set("code_challenge", params.codeChallenge);
+        authUrl.searchParams.set("code_challenge_method", "S256");
+      }
       // Legacy oauth.vk.com uses versioned API semantics, oauth.vk.ru does not.
       if (vkHost === "oauth.vk.com") {
         authUrl.searchParams.set("v", "5.199");
@@ -1233,6 +1307,10 @@ export class AuthService implements OnModuleInit {
         provider,
         redirectPath: this.sanitizeClientRedirectPath(parsed.redirectPath),
         issuedAt: parsed.issuedAt,
+        codeVerifier:
+          typeof parsed.codeVerifier === "string" && parsed.codeVerifier.trim().length > 0
+            ? parsed.codeVerifier.trim()
+            : undefined,
       };
     } catch {
       return null;
@@ -1242,7 +1320,8 @@ export class AuthService implements OnModuleInit {
   private async fetchSocialProfile(
     provider: AuthSocialProvider,
     providerConfig: ApiAuthSocialProviderConfig,
-    code: string
+    code: string,
+    options?: { codeVerifier?: string }
   ): Promise<OauthProfileResult> {
     if (!providerConfig.clientId || !providerConfig.clientSecret) {
       return { ok: false, errorCode: "provider_misconfigured" };
@@ -1254,7 +1333,7 @@ export class AuthService implements OnModuleInit {
       if (provider === "yandex") {
         return await this.fetchYandexProfile(providerConfig, code);
       }
-      return await this.fetchVkProfile(providerConfig, code);
+      return await this.fetchVkProfile(providerConfig, code, options?.codeVerifier);
     } catch {
       return { ok: false, errorCode: "provider_profile_failed" };
     }
@@ -1384,19 +1463,45 @@ export class AuthService implements OnModuleInit {
 
   private async fetchVkProfile(
     providerConfig: ApiAuthSocialProviderConfig,
-    code: string
+    code: string,
+    codeVerifier?: string
   ): Promise<OauthProfileResult> {
     const redirectUri = this.getOauthCallbackUrl("vk");
     const tokenUrl = new URL(providerConfig.tokenUrl);
-    tokenUrl.searchParams.set("client_id", providerConfig.clientId);
-    tokenUrl.searchParams.set("client_secret", providerConfig.clientSecret);
-    tokenUrl.searchParams.set("redirect_uri", redirectUri);
-    tokenUrl.searchParams.set("code", code);
-    tokenUrl.searchParams.set("v", "5.199");
+    const isVkIdOauth = tokenUrl.hostname.toLowerCase() === "oauth.vk.ru";
+    let tokenResponse: Response;
 
-    const tokenResponse = await fetch(tokenUrl.toString(), {
-      method: "GET",
-    });
+    if (isVkIdOauth) {
+      const tokenBody = new URLSearchParams({
+        grant_type: "authorization_code",
+        client_id: providerConfig.clientId,
+        client_secret: providerConfig.clientSecret,
+        redirect_uri: redirectUri,
+        code,
+      });
+      if (codeVerifier) {
+        tokenBody.set("code_verifier", codeVerifier);
+      }
+      tokenResponse = await fetch(tokenUrl.toString(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: tokenBody.toString(),
+      });
+    } else {
+      tokenUrl.searchParams.set("client_id", providerConfig.clientId);
+      tokenUrl.searchParams.set("client_secret", providerConfig.clientSecret);
+      tokenUrl.searchParams.set("redirect_uri", redirectUri);
+      tokenUrl.searchParams.set("code", code);
+      tokenUrl.searchParams.set("v", "5.199");
+      if (codeVerifier) {
+        tokenUrl.searchParams.set("code_verifier", codeVerifier);
+      }
+      tokenResponse = await fetch(tokenUrl.toString(), {
+        method: "GET",
+      });
+    }
     const tokenPayload = await this.parseJsonResponse(tokenResponse);
     if (!tokenResponse.ok) {
       return { ok: false, errorCode: "token_exchange_failed" };
@@ -1495,6 +1600,18 @@ export class AuthService implements OnModuleInit {
     return this.readArray(payload, key).filter(
       (value): value is string => typeof value === "string" && value.trim().length > 0
     );
+  }
+
+  private generatePkceCodeVerifier(): string {
+    return crypto.randomBytes(48).toString("base64url");
+  }
+
+  private buildPkceCodeChallenge(codeVerifier: string): string {
+    return crypto.createHash("sha256").update(codeVerifier).digest("base64url");
+  }
+
+  private fingerprint(value: string): string {
+    return crypto.createHash("sha256").update(value).digest("hex").slice(0, 12);
   }
 
   async getSession(sessionId: string | null): Promise<AuthUserDto | null> {

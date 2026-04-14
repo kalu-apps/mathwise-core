@@ -421,3 +421,101 @@ test("oauth vk authorization url keeps legacy params for oauth.vk.com", async ()
     restoreEnv(snapshot);
   }
 });
+
+test("oauth vk authorization url includes PKCE challenge when provided", async () => {
+  const snapshot = { ...process.env };
+  try {
+    applyEnv();
+
+    const service = new AuthService(
+      { execute: async () => undefined } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never
+    );
+
+    const authorizationUrl = (service as any).buildAuthorizationUrl({
+      provider: "vk",
+      providerConfig: {
+        enabled: true,
+        clientId: "vk-client-id",
+        clientSecret: "vk-client-secret",
+        authorizeUrl: "https://oauth.vk.ru/authorize",
+        tokenUrl: "https://oauth.vk.ru/access_token",
+        userInfoUrl: "https://api.vk.com/method/users.get",
+        scope: "email",
+      },
+      state: "state-3",
+      codeChallenge: "challenge-xyz",
+    }) as URL;
+
+    assert.equal(authorizationUrl.searchParams.get("code_challenge"), "challenge-xyz");
+    assert.equal(authorizationUrl.searchParams.get("code_challenge_method"), "S256");
+    assert.equal(authorizationUrl.searchParams.get("v"), null);
+    assert.equal(authorizationUrl.searchParams.get("display"), null);
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("vk oauth start persists state with PKCE verifier and returns challenge in authorize URL", async () => {
+  const snapshot = { ...process.env };
+  try {
+    applyEnv();
+    process.env.AUTH_OAUTH_REDIRECT_BASE_URL = "https://stage.mathwise.ru";
+    process.env.AUTH_OAUTH_VK_ENABLED = "true";
+    process.env.AUTH_OAUTH_VK_CLIENT_ID = "vk-client-id";
+    process.env.AUTH_OAUTH_VK_CLIENT_SECRET = "vk-client-secret";
+    process.env.AUTH_OAUTH_VK_AUTHORIZE_URL = "https://oauth.vk.ru/authorize";
+    process.env.AUTH_OAUTH_VK_TOKEN_URL = "https://oauth.vk.ru/access_token";
+    process.env.AUTH_OAUTH_VK_USERINFO_URL = "https://api.vk.com/method/users.get";
+    process.env.AUTH_OAUTH_VK_SCOPE = "email";
+
+    let persistedKey = "";
+    let persistedValue = "";
+    let persistedTtl = 0;
+    const redisService = {
+      set: async (key: string, value: string, ttlSec?: number) => {
+        persistedKey = key;
+        persistedValue = value;
+        persistedTtl = Number(ttlSec ?? 0);
+      },
+    };
+
+    const service = new AuthService(
+      { execute: async () => undefined } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      redisService as never
+    );
+
+    const started = await service.buildSocialLoginStartUrl({
+      provider: "vk",
+      redirectPath: "/courses/math",
+    });
+
+    assert.equal(started.ok, true);
+    const authorizeUrl = new URL(started.redirectUrl);
+    assert.equal(authorizeUrl.origin, "https://oauth.vk.ru");
+    assert.equal(authorizeUrl.searchParams.get("code_challenge_method"), "S256");
+    assert.equal(
+      (authorizeUrl.searchParams.get("code_challenge") ?? "").length > 10,
+      true
+    );
+
+    assert.equal(persistedKey.startsWith("auth:oauth:state:"), true);
+    assert.equal(persistedTtl > 0, true);
+    const payload = JSON.parse(persistedValue) as {
+      provider: string;
+      redirectPath: string;
+      codeVerifier?: string;
+    };
+    assert.equal(payload.provider, "vk");
+    assert.equal(payload.redirectPath, "/courses/math");
+    assert.equal((payload.codeVerifier ?? "").length >= 43, true);
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
