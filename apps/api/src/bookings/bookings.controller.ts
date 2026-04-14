@@ -20,6 +20,9 @@ import type { AuthUserDto } from "../auth/auth.types";
 import { BookingsService } from "./bookings.service";
 import type {
   BookingDto,
+  BookingSlotHoldStatusResponseDto,
+  ConfirmBookingSlotHoldPayloadDto,
+  CreateBookingSlotHoldPayloadDto,
   CreateBookingPayloadDto,
   UpdateBookingPatchDto,
 } from "./bookings.types";
@@ -77,6 +80,45 @@ export class BookingsController {
   ): Promise<BookingDto> {
     const actorUser = await this.resolveUserFromRequest(req, res);
     return this.bookingsService.createBooking({
+      payload: body,
+      actorUser,
+      idempotencyKey,
+    });
+  }
+
+  @Post("bookings/holds")
+  async createBookingSlotHold(
+    @Body() body: CreateBookingSlotHoldPayloadDto,
+    @Headers("x-idempotency-key") idempotencyKey: string | undefined,
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<BookingSlotHoldStatusResponseDto> {
+    const actorUser = await this.resolveUserFromRequest(req, res);
+    return this.bookingsService.createSlotHold({
+      payload: body,
+      actorUser,
+      idempotencyKey,
+    });
+  }
+
+  @Get("bookings/holds/:holdId")
+  async getBookingSlotHoldStatus(
+    @Param("holdId") holdId: string
+  ): Promise<BookingSlotHoldStatusResponseDto> {
+    return this.bookingsService.getSlotHoldStatus({ holdId });
+  }
+
+  @Post("bookings/holds/:holdId/confirm")
+  async confirmBookingSlotHold(
+    @Param("holdId") holdId: string,
+    @Body() body: ConfirmBookingSlotHoldPayloadDto,
+    @Headers("x-idempotency-key") idempotencyKey: string | undefined,
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<BookingDto> {
+    const actorUser = await this.resolveUserFromRequest(req, res);
+    return this.bookingsService.confirmSlotHoldBooking({
+      holdId,
       payload: body,
       actorUser,
       idempotencyKey,

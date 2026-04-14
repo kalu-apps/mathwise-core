@@ -99,6 +99,9 @@ export type ApiRuntimeConfig = {
   workbookBoardBaseUrl: string;
   workbookLaunchSecret: string;
   workbookLaunchTtlSec: number;
+  bookingV2Enabled: boolean;
+  bookingV2GuestCompatibilityEnabled: boolean;
+  bookingSlotHoldTtlSec: number;
   releaseVersion: string;
 };
 
@@ -695,6 +698,18 @@ export const getApiRuntimeConfig = (
     process.env.WORKBOOK_LAUNCH_TTL_SEC,
     120
   );
+  const bookingV2Enabled = parseBoolean(
+    process.env.BOOKING_V2_ENABLED,
+    false
+  );
+  const bookingV2GuestCompatibilityEnabled = parseBoolean(
+    process.env.BOOKING_V2_GUEST_COMPAT_ENABLED,
+    true
+  );
+  const bookingSlotHoldTtlSec = parsePositiveInteger(
+    process.env.BOOKING_SLOT_HOLD_TTL_SEC,
+    15 * 60
+  );
 
   const releaseVersion =
     process.env.RELEASE_VERSION?.trim() ||
@@ -813,6 +828,9 @@ export const getApiRuntimeConfig = (
     workbookLaunchSecret:
       workbookLaunchSecret || "local-workbook-launch-secret-dev-only",
     workbookLaunchTtlSec,
+    bookingV2Enabled,
+    bookingV2GuestCompatibilityEnabled,
+    bookingSlotHoldTtlSec,
     releaseVersion,
   };
 };

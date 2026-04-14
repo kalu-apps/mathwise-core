@@ -14,6 +14,11 @@ export type BookingStatus =
   | "completed"
   | "no_show";
 export type BookingIdentityKind = "user_bound" | "guest_pending";
+export type BookingSlotHoldStatus =
+  | "active"
+  | "consumed"
+  | "released"
+  | "expired";
 
 export type BookingConsentSnapshotDto = {
   acceptedScopes: string[];
@@ -78,4 +83,45 @@ export type BookingRecord = BookingDto & {
   identityKind: BookingIdentityKind;
   identityEmailCanonical: string;
   canceledAt?: string;
+};
+
+export type BookingSlotHoldDto = {
+  id: string;
+  slotId: string;
+  teacherId: string;
+  teacherName: string;
+  teacherPhoto?: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: BookingSlotHoldStatus;
+  identityEmailCanonical?: string;
+  createdAt: string;
+  expiresAt: string;
+  consumedAt?: string;
+  releasedAt?: string;
+};
+
+export type CreateBookingSlotHoldPayloadDto = {
+  teacherId: string;
+  slotId: string;
+  studentEmail?: string;
+};
+
+export type BookingSlotHoldStatusResponseDto = {
+  ok: true;
+  hold: BookingSlotHoldDto;
+  canConfirm: boolean;
+  nextAction?:
+    | "login_required_existing_account"
+    | "complete_registration"
+    | "hold_expired"
+    | "hold_released"
+    | "hold_consumed";
+};
+
+export type ConfirmBookingSlotHoldPayloadDto = {
+  consents?: {
+    acceptedScopes: string[];
+  };
 };

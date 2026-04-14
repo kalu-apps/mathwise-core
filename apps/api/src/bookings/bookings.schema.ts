@@ -93,6 +93,40 @@ export const BOOKINGS_SCHEMA_STATEMENTS = [
     )
   `,
   `
+    CREATE TABLE IF NOT EXISTS booking_slot_holds (
+      id TEXT PRIMARY KEY,
+      slot_id TEXT NOT NULL,
+      teacher_id TEXT NOT NULL,
+      teacher_name TEXT NOT NULL DEFAULT '',
+      teacher_photo TEXT,
+      date TEXT NOT NULL DEFAULT '',
+      start_time TEXT NOT NULL DEFAULT '',
+      end_time TEXT NOT NULL DEFAULT '',
+      initiated_by_user_id TEXT,
+      identity_email_canonical TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'active'
+        CHECK (status IN ('active', 'consumed', 'released', 'expired')),
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      consumed_at TEXT,
+      released_at TEXT,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `,
+  `
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_booking_slot_holds_active_slot
+    ON booking_slot_holds (slot_id)
+    WHERE status = 'active'
+  `,
+  `
+    CREATE INDEX IF NOT EXISTS idx_booking_slot_holds_status_expiry
+    ON booking_slot_holds (status, expires_at ASC)
+  `,
+  `
+    CREATE INDEX IF NOT EXISTS idx_booking_slot_holds_identity
+    ON booking_slot_holds (identity_email_canonical, status, created_at DESC)
+  `,
+  `
     CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_teacher_availability_unique_time
     ON profile_teacher_availability (teacher_id, date, start_time, end_time)
   `,

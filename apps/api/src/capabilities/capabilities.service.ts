@@ -358,6 +358,55 @@ export class CapabilitiesService implements OnModuleInit {
     return Array.from(ids).sort((a, b) => a.localeCompare(b));
   }
 
+  async grantBookingInteractionCapabilities(params: {
+    userId: string;
+    bookingId: string;
+    teacherId: string;
+    grantedAt?: string;
+  }): Promise<void> {
+    const grantedAt = params.grantedAt?.trim() || nowIso();
+    const teacherId = params.teacherId.trim();
+    await this.databaseService.transaction<void>(async (tx) => {
+      for (const capability of [
+        "teacher_chat_access",
+        "whiteboard_access",
+      ] as const) {
+        await tx.execute(
+          `
+            INSERT INTO access_capability_grants (
+              id,
+              user_id,
+              capability,
+              source_kind,
+              source_ref,
+              course_id,
+              teacher_id,
+              state,
+              granted_at,
+              updated_at,
+              updated_at_ts
+            )
+            VALUES ($1, $2, $3, 'booking', $4, '', $5, 'active', $6, $6, NOW())
+            ON CONFLICT (user_id, capability, source_kind, source_ref, course_id, teacher_id)
+            DO UPDATE SET
+              state = 'active',
+              granted_at = EXCLUDED.granted_at,
+              updated_at = EXCLUDED.updated_at,
+              updated_at_ts = NOW()
+          `,
+          [
+            `${params.userId}:booking:${params.bookingId}:${capability}:${teacherId}`,
+            params.userId,
+            capability,
+            params.bookingId,
+            teacherId,
+            grantedAt,
+          ]
+        );
+      }
+    });
+  }
+
   private async listActiveCapabilityGrants(
     userId: string
   ): Promise<CapabilityGrantRow[]> {

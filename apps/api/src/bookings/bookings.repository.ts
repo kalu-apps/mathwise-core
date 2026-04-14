@@ -1,6 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { DatabaseService, type DatabaseExecutor } from "../db/database.service";
-import type { BookingDto, BookingRecord } from "./bookings.types";
+import type {
+  BookingDto,
+  BookingRecord,
+  BookingSlotHoldDto,
+  BookingSlotHoldStatus,
+} from "./bookings.types";
 import {
   mapBookingRow,
   mapBookingRowWithSlot,
@@ -18,6 +23,24 @@ type AvailabilityRow = {
 
 type IdempotencyRow = {
   response: unknown;
+};
+
+type BookingSlotHoldRow = {
+  id: string;
+  slotId: string;
+  teacherId: string;
+  teacherName: string;
+  teacherPhoto: string | null;
+  date: string;
+  startTime: string;
+  endTime: string;
+  initiatedByUserId: string | null;
+  identityEmailCanonical: string;
+  status: BookingSlotHoldStatus;
+  createdAt: string;
+  expiresAt: string;
+  consumedAt: string | null;
+  releasedAt: string | null;
 };
 
 @Injectable()
@@ -416,6 +439,288 @@ export class BookingsRepository {
     );
   }
 
+  async createSlotHoldWithSlotClaim(params: {
+    hold: BookingSlotHoldDto & {
+      initiatedByUserId?: string;
+    };
+    slotId: string;
+  }): Promise<boolean> {
+    return this.databaseService.transaction<boolean>(async (tx) => {
+      const claimed = await tx.query<{ id: string }>(
+        `
+          DELETE FROM profile_teacher_availability
+          WHERE id = $1
+          RETURNING id
+        `,
+        [params.slotId]
+      );
+      if (claimed.length === 0) {
+        return false;
+      }
+
+      await tx.execute(
+        `
+          INSERT INTO booking_slot_holds (
+            id,
+            slot_id,
+            teacher_id,
+            teacher_name,
+            teacher_photo,
+            date,
+            start_time,
+            end_time,
+            initiated_by_user_id,
+            identity_email_canonical,
+            status,
+            created_at,
+            expires_at,
+            consumed_at,
+            released_at,
+            updated_at
+          )
+          VALUES (
+            $1, $2, $3, $4, $5,
+            $6, $7, $8, $9, $10,
+            $11, $12, $13, $14, $15, NOW()
+          )
+        `,
+        [
+          params.hold.id,
+          params.hold.slotId,
+          params.hold.teacherId,
+          params.hold.teacherName,
+          params.hold.teacherPhoto ?? null,
+          params.hold.date,
+          params.hold.startTime,
+          params.hold.endTime,
+          params.hold.initiatedByUserId?.trim() || null,
+          params.hold.identityEmailCanonical ?? "",
+          params.hold.status,
+          params.hold.createdAt,
+          params.hold.expiresAt,
+          params.hold.consumedAt ?? null,
+          params.hold.releasedAt ?? null,
+        ]
+      );
+      return true;
+    });
+  }
+
+  async findActiveSlotHoldBySlotId(slotId: string): Promise<BookingSlotHoldDto | null> {
+    const rows = await this.databaseService.query<BookingSlotHoldRow>(
+      `
+        SELECT
+          id,
+          slot_id AS "slotId",
+          teacher_id AS "teacherId",
+          teacher_name AS "teacherName",
+          teacher_photo AS "teacherPhoto",
+          date,
+          start_time AS "startTime",
+          end_time AS "endTime",
+          initiated_by_user_id AS "initiatedByUserId",
+          identity_email_canonical AS "identityEmailCanonical",
+          status,
+          created_at AS "createdAt",
+          expires_at AS "expiresAt",
+          consumed_at AS "consumedAt",
+          released_at AS "releasedAt"
+        FROM booking_slot_holds
+        WHERE slot_id = $1
+          AND status = 'active'
+        ORDER BY created_at DESC
+        LIMIT 1
+      `,
+      [slotId]
+    );
+    const row = rows[0];
+    return row ? this.mapSlotHoldRow(row) : null;
+  }
+
+  async findSlotHoldById(holdId: string): Promise<BookingSlotHoldDto | null> {
+    const rows = await this.databaseService.query<BookingSlotHoldRow>(
+      `
+        SELECT
+          id,
+          slot_id AS "slotId",
+          teacher_id AS "teacherId",
+          teacher_name AS "teacherName",
+          teacher_photo AS "teacherPhoto",
+          date,
+          start_time AS "startTime",
+          end_time AS "endTime",
+          initiated_by_user_id AS "initiatedByUserId",
+          identity_email_canonical AS "identityEmailCanonical",
+          status,
+          created_at AS "createdAt",
+          expires_at AS "expiresAt",
+          consumed_at AS "consumedAt",
+          released_at AS "releasedAt"
+        FROM booking_slot_holds
+        WHERE id = $1
+        LIMIT 1
+      `,
+      [holdId]
+    );
+    const row = rows[0];
+    return row ? this.mapSlotHoldRow(row) : null;
+  }
+
+  async transitionSlotHoldToReleasedAtomic(params: {
+    holdId: string;
+    status: "released" | "expired";
+    releasedAt: string;
+  }): Promise<BookingSlotHoldDto | null> {
+    return this.databaseService.transaction<BookingSlotHoldDto | null>(async (tx) => {
+      const rows = await tx.query<BookingSlotHoldRow>(
+        `
+          SELECT
+            id,
+            slot_id AS "slotId",
+            teacher_id AS "teacherId",
+            teacher_name AS "teacherName",
+            teacher_photo AS "teacherPhoto",
+            date,
+            start_time AS "startTime",
+            end_time AS "endTime",
+            initiated_by_user_id AS "initiatedByUserId",
+            identity_email_canonical AS "identityEmailCanonical",
+            status,
+            created_at AS "createdAt",
+            expires_at AS "expiresAt",
+            consumed_at AS "consumedAt",
+            released_at AS "releasedAt"
+          FROM booking_slot_holds
+          WHERE id = $1
+          LIMIT 1
+          FOR UPDATE
+        `,
+        [params.holdId]
+      );
+      const existing = rows[0];
+      if (!existing) return null;
+      if (existing.status !== "active") {
+        return this.mapSlotHoldRow(existing);
+      }
+
+      const updatedRows = await tx.query<BookingSlotHoldRow>(
+        `
+          UPDATE booking_slot_holds
+          SET
+            status = $2,
+            released_at = $3,
+            updated_at = NOW()
+          WHERE id = $1
+            AND status = 'active'
+          RETURNING
+            id,
+            slot_id AS "slotId",
+            teacher_id AS "teacherId",
+            teacher_name AS "teacherName",
+            teacher_photo AS "teacherPhoto",
+            date,
+            start_time AS "startTime",
+            end_time AS "endTime",
+            initiated_by_user_id AS "initiatedByUserId",
+            identity_email_canonical AS "identityEmailCanonical",
+            status,
+            created_at AS "createdAt",
+            expires_at AS "expiresAt",
+            consumed_at AS "consumedAt",
+            released_at AS "releasedAt"
+        `,
+        [params.holdId, params.status, params.releasedAt]
+      );
+      const updated = updatedRows[0];
+      if (!updated) {
+        return this.mapSlotHoldRow(existing);
+      }
+
+      await tx.execute(
+        `
+          INSERT INTO profile_teacher_availability (
+            id,
+            teacher_id,
+            date,
+            start_time,
+            end_time,
+            updated_at
+          )
+          VALUES ($1, $2, $3, $4, $5, NOW())
+          ON CONFLICT (id)
+          DO NOTHING
+        `,
+        [
+          updated.slotId,
+          updated.teacherId,
+          updated.date,
+          updated.startTime,
+          updated.endTime,
+        ]
+      );
+
+      return this.mapSlotHoldRow(updated);
+    });
+  }
+
+  async confirmSlotHoldBookingAtomic(params: {
+    holdId: string;
+    consumedAt: string;
+    booking: BookingRecord;
+  }): Promise<{
+    outcome: "confirmed" | "missing" | BookingSlotHoldStatus;
+  }> {
+    return this.databaseService.transaction(async (tx) => {
+      const rows = await tx.query<BookingSlotHoldRow>(
+        `
+          SELECT
+            id,
+            slot_id AS "slotId",
+            teacher_id AS "teacherId",
+            teacher_name AS "teacherName",
+            teacher_photo AS "teacherPhoto",
+            date,
+            start_time AS "startTime",
+            end_time AS "endTime",
+            initiated_by_user_id AS "initiatedByUserId",
+            identity_email_canonical AS "identityEmailCanonical",
+            status,
+            created_at AS "createdAt",
+            expires_at AS "expiresAt",
+            consumed_at AS "consumedAt",
+            released_at AS "releasedAt"
+          FROM booking_slot_holds
+          WHERE id = $1
+          LIMIT 1
+          FOR UPDATE
+        `,
+        [params.holdId]
+      );
+      const existing = rows[0];
+      if (!existing) {
+        return { outcome: "missing" as const };
+      }
+      if (existing.status !== "active") {
+        return { outcome: existing.status };
+      }
+
+      await tx.execute(
+        `
+          UPDATE booking_slot_holds
+          SET
+            status = 'consumed',
+            consumed_at = $2,
+            updated_at = NOW()
+          WHERE id = $1
+        `,
+        [params.holdId, params.consumedAt]
+      );
+
+      await this.insertBookingWithExecutor(tx, params.booking);
+      return { outcome: "confirmed" as const };
+    });
+  }
+
   async upsertAvailabilitySlot(slot: AvailabilityRow): Promise<void> {
     await this.databaseService.execute(
       `
@@ -791,5 +1096,24 @@ export class BookingsRepository {
         booking.createdAt,
       ]
     );
+  }
+
+  private mapSlotHoldRow(row: BookingSlotHoldRow): BookingSlotHoldDto {
+    return {
+      id: row.id,
+      slotId: row.slotId,
+      teacherId: row.teacherId,
+      teacherName: row.teacherName,
+      teacherPhoto: row.teacherPhoto ?? undefined,
+      date: row.date,
+      startTime: row.startTime,
+      endTime: row.endTime,
+      status: row.status,
+      identityEmailCanonical: row.identityEmailCanonical || undefined,
+      createdAt: row.createdAt,
+      expiresAt: row.expiresAt,
+      consumedAt: row.consumedAt ?? undefined,
+      releasedAt: row.releasedAt ?? undefined,
+    };
   }
 }
