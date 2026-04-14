@@ -8,6 +8,7 @@ import { AuthRepository } from "./auth.repository";
 import {
   type AuthIdentityIntentChannel,
   type AuthIdentityIntentConflictReason,
+  type AuthIdentityIntentPurchaseResolutionDto,
   type AuthIdentityIntentStartResponseDto,
   type AuthIdentityIntentState,
   type AuthIdentityIntentStatusResponseDto,
@@ -321,6 +322,71 @@ export class AuthIdentityIntentService implements OnModuleInit {
       conflictReason: intent.conflictReason,
       canConsume: intent.verificationState === "verified",
     };
+  }
+
+  async resolveVerifiedForPurchase(
+    intentIdRaw: string
+  ): Promise<AuthIdentityIntentPurchaseResolutionDto> {
+    this.ensureFeatureEnabled();
+    const intentId = intentIdRaw.trim();
+    if (!intentId) {
+      throw new HttpException(
+        {
+          error: "Для checkout требуется подтвержденный identity intent.",
+          code: "identity_intent_required",
+        },
+        400
+      );
+    }
+
+    const loaded = await this.identityIntentRepository.findById(intentId);
+    if (!loaded) {
+      throw new HttpException(
+        {
+          error: "Identity intent недействителен или устарел.",
+          code: "identity_intent_invalid",
+        },
+        409
+      );
+    }
+
+    const intent = await this.materializeLifecycleState(loaded);
+    if (intent.verificationState === "verified") {
+      const email = normalizeEmail(intent.identityEmail ?? intent.identityValue);
+      if (!email || !validateEmailFormat(email)) {
+        throw new HttpException(
+          {
+            error: "Identity intent содержит некорректный identity context.",
+            code: "identity_intent_context_invalid",
+          },
+          409
+        );
+      }
+
+      return {
+        intentId: intent.id,
+        channel: intent.channel,
+        email,
+        verifiedAt: intent.verifiedAt ?? null,
+        expiresAt: intent.expiresAt,
+      };
+    }
+
+    const codeByState: Record<AuthIdentityIntentState, string> = {
+      pending: "identity_intent_not_verified",
+      verified: "identity_intent_not_verified",
+      expired: "identity_intent_expired",
+      consumed: "identity_intent_consumed",
+      conflict: "identity_intent_conflict",
+    };
+
+    throw new HttpException(
+      {
+        error: "Identity intent недействителен или устарел.",
+        code: codeByState[intent.verificationState],
+      },
+      409
+    );
   }
 
   async consume(intentIdRaw: string): Promise<{

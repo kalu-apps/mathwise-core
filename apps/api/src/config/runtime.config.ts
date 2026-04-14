@@ -58,6 +58,7 @@ export type ApiRuntimeConfig = {
   authIdentityIntentTtlSec: number;
   authIdentityIntentMaxAttempts: number;
   authIdentityIntentRateLimitPerHour: number;
+  authPurchaseIdentityIntentGatingEnabled: boolean;
   authOauthStateTtlSec: number;
   authOauthRedirectBaseUrl: string;
   authOauthProviders: Record<ApiAuthSocialProvider, ApiAuthSocialProviderConfig>;
@@ -428,6 +429,15 @@ export const getApiRuntimeConfig = (
     process.env.AUTH_IDENTITY_INTENT_RATE_LIMIT_PER_HOUR,
     20
   );
+  const authPurchaseIdentityIntentGatingEnabled = parseBoolean(
+    process.env.AUTH_PURCHASE_IDENTITY_INTENT_GATING_ENABLED,
+    false
+  );
+  if (authPurchaseIdentityIntentGatingEnabled && !authIdentityIntentsEnabled) {
+    throw new Error(
+      "[api-runtime] AUTH_PURCHASE_IDENTITY_INTENT_GATING_ENABLED requires AUTH_IDENTITY_INTENTS_ENABLED=true"
+    );
+  }
   const authOauthStateTtlSec = parsePositiveInteger(
     process.env.AUTH_OAUTH_STATE_TTL_SEC,
     10 * 60
@@ -761,6 +771,7 @@ export const getApiRuntimeConfig = (
     authIdentityIntentTtlSec,
     authIdentityIntentMaxAttempts,
     authIdentityIntentRateLimitPerHour,
+    authPurchaseIdentityIntentGatingEnabled,
     authOauthStateTtlSec,
     authOauthRedirectBaseUrl,
     authOauthProviders,

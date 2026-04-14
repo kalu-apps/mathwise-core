@@ -1,4 +1,11 @@
-import { HttpException, Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import {
+  HttpException,
+  Injectable,
+  Logger,
+  OnModuleInit,
+  Optional,
+} from "@nestjs/common";
+import { AuthIdentityIntentService } from "../auth/auth.identity-intent.service";
 import type { AuthUserDto } from "../auth/auth.types";
 import { AuthService } from "../auth/auth.service";
 import { getApiRuntimeConfig } from "../config/runtime.config";
@@ -78,7 +85,9 @@ export class PurchasesService implements OnModuleInit {
     private readonly mediaService: MediaService,
     private readonly authService: AuthService,
     private readonly notificationsService: NotificationsService,
-    private readonly redisService: RedisService
+    private readonly redisService: RedisService,
+    @Optional()
+    private readonly authIdentityIntentService: AuthIdentityIntentService | null = null
   ) {}
 
   async onModuleInit() {
@@ -166,11 +175,6 @@ export class PurchasesService implements OnModuleInit {
       throw new HttpException({ error: "Курс не найден." }, 404);
     }
 
-    const email = normalizeEmail(actorUser?.email || payload.email);
-    if (!email || !validateEmailFormat(email)) {
-      throw new HttpException({ error: "Некорректный email для checkout." }, 400);
-    }
-
     if (!actorUser && payload.userId) {
       throw new HttpException({ error: "Недопустимый checkout context." }, 401);
     }
@@ -178,6 +182,13 @@ export class PurchasesService implements OnModuleInit {
     if (actorUser && payload.userId && payload.userId !== actorUser.id) {
       throw new HttpException({ error: "Недопустимый checkout context." }, 403);
     }
+
+    const checkoutIdentity = await this.resolveCheckoutIdentityContext({
+      actorUser,
+      payload,
+    });
+    const email = checkoutIdentity.email;
+    const identityIntent = checkoutIdentity.identityIntent;
 
     const normalizedIdempotency = params.idempotencyKey?.trim();
     if (normalizedIdempotency) {
@@ -201,6 +212,20 @@ export class PurchasesService implements OnModuleInit {
 
     const lockKey = `lock:purchase:checkout:create:${actorUser?.id ?? email}:${courseId}`;
     const response = await this.withLock(lockKey, async () => {
+      if (identityIntent?.intentId) {
+        const existingByIntent =
+          await this.purchasesRepository.findLatestCheckoutByIdentityIntentId(
+            identityIntent.intentId
+          );
+        if (existingByIntent) {
+          const maybeProvisioned = await this.resumeProvisionIfNeeded(existingByIntent);
+          return this.buildCheckoutPurchaseResponse(
+            maybeProvisioned,
+            actorUser ?? undefined
+          );
+        }
+      }
+
       const existingActive = await this.purchasesRepository.findLatestActiveCheckout({
         userId: actorUser?.id,
         email,
@@ -229,6 +254,11 @@ export class PurchasesService implements OnModuleInit {
         tariff,
         currency: "RUB",
         state: "pending_provider",
+        providerPayload: this.buildCheckoutProviderPayload({
+          identityIntentId: identityIntent?.intentId,
+          identityIntentChannel: identityIntent?.channel,
+          identityIntentVerifiedAt: identityIntent?.verifiedAt,
+        }),
         consentSnapshot: acceptedScopes,
         createdAt,
         updatedAt: createdAt,
@@ -1301,6 +1331,146 @@ export class PurchasesService implements OnModuleInit {
     throw new HttpException({ error: "Недопустимый checkout." }, 403);
   }
 
+  private async resolveCheckoutIdentityContext(params: {
+    payload: CheckoutPayloadDto;
+    actorUser: AuthUserDto | null;
+  }): Promise<{
+    email: string;
+    identityIntent?: {
+      intentId: string;
+      channel: string;
+      verifiedAt: string | null;
+    };
+  }> {
+    const { actorUser, payload } = params;
+    if (actorUser) {
+      const email = normalizeEmail(actorUser.email || payload.email);
+      if (!email || !validateEmailFormat(email)) {
+        throw new HttpException({ error: "Некорректный email для checkout." }, 400);
+      }
+      return { email };
+    }
+
+    if (!this.runtimeConfig.authPurchaseIdentityIntentGatingEnabled) {
+      const email = normalizeEmail(payload.email);
+      if (!email || !validateEmailFormat(email)) {
+        throw new HttpException({ error: "Некорректный email для checkout." }, 400);
+      }
+      return { email };
+    }
+
+    if (!this.runtimeConfig.authIdentityIntentsEnabled) {
+      throw new HttpException(
+        {
+          error: "Purchase gating через identity intent временно недоступен.",
+          code: "identity_intent_runtime_disabled",
+        },
+        503
+      );
+    }
+    if (!this.authIdentityIntentService) {
+      throw new HttpException(
+        {
+          error: "Purchase gating через identity intent временно недоступен.",
+          code: "identity_intent_runtime_unavailable",
+        },
+        503
+      );
+    }
+
+    const intentId = payload.identityIntentId?.trim() || "";
+    if (!intentId) {
+      throw new HttpException(
+        {
+          error: "Для checkout требуется подтвержденный identity intent.",
+          code: "identity_intent_required",
+        },
+        400
+      );
+    }
+
+    const resolved = await this.authIdentityIntentService.resolveVerifiedForPurchase(
+      intentId
+    );
+    const payloadEmail = normalizeEmail(payload.email);
+    if (payloadEmail && payloadEmail !== resolved.email) {
+      throw new HttpException(
+        {
+          error:
+            "Подтвержденный identity intent не совпадает с email в checkout payload.",
+          code: "identity_intent_context_mismatch",
+        },
+        409
+      );
+    }
+
+    return {
+      email: resolved.email,
+      identityIntent: {
+        intentId: resolved.intentId,
+        channel: resolved.channel,
+        verifiedAt: resolved.verifiedAt,
+      },
+    };
+  }
+
+  private buildCheckoutProviderPayload(params: {
+    identityIntentId?: string;
+    identityIntentChannel?: string;
+    identityIntentVerifiedAt?: string | null;
+  }): Record<string, unknown> | undefined {
+    const identityIntentId = params.identityIntentId?.trim() || "";
+    if (!identityIntentId) {
+      return undefined;
+    }
+    return {
+      identityIntentId,
+      identityIntentChannel: params.identityIntentChannel ?? "email",
+      identityIntentVerifiedAt: params.identityIntentVerifiedAt ?? null,
+    };
+  }
+
+  private extractIdentityIntentIdFromCheckout(
+    checkout: CheckoutProcessDto
+  ): string | null {
+    if (
+      !checkout.providerPayload ||
+      typeof checkout.providerPayload !== "object" ||
+      Array.isArray(checkout.providerPayload)
+    ) {
+      return null;
+    }
+    const raw = (checkout.providerPayload as Record<string, unknown>).identityIntentId;
+    if (typeof raw !== "string") return null;
+    const value = raw.trim();
+    return value.length > 0 ? value : null;
+  }
+
+  private async consumeIdentityIntentAfterProvision(
+    checkout: CheckoutProcessDto
+  ): Promise<void> {
+    const identityIntentId = this.extractIdentityIntentIdFromCheckout(checkout);
+    if (!identityIntentId || !this.authIdentityIntentService) {
+      return;
+    }
+
+    try {
+      const consumed = await this.authIdentityIntentService.consume(identityIntentId);
+      if (consumed.ok || consumed.state === "consumed" || consumed.state === "expired") {
+        return;
+      }
+      this.logger.warn(
+        `identity_intent consume skipped for checkout=${checkout.id}, intent=${identityIntentId}, state=${consumed.state}`
+      );
+    } catch (error) {
+      this.logger.warn(
+        `identity_intent consume failed for checkout=${checkout.id}, intent=${identityIntentId}: ${
+          error instanceof Error ? error.message : "unknown"
+        }`
+      );
+    }
+  }
+
   private async resumeProvisionIfNeeded(
     checkout: CheckoutProcessDto
   ): Promise<CheckoutProcessDto> {
@@ -1453,6 +1623,8 @@ export class PurchasesService implements OnModuleInit {
           updatedAt: nowIso(),
         },
       });
+
+      await this.consumeIdentityIntentAfterProvision(finalCheckout);
 
       await this.purchasesRepository.upsertConsentRecords({
         checkoutId: finalCheckout.id,

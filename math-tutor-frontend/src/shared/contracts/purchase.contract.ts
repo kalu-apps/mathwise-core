@@ -10,6 +10,7 @@ import type {
 export type CheckoutPayloadContract = {
   userId?: string;
   email?: string;
+  identityIntentId?: string;
   firstName: string;
   lastName: string;
   phone: string;

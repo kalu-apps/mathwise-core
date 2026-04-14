@@ -81,6 +81,12 @@ export const PURCHASES_SCHEMA_STATEMENTS = [
     ON checkout_processes (course_id, user_id, state, updated_at DESC)
   `,
   `
+    CREATE INDEX IF NOT EXISTS idx_checkout_processes_identity_intent
+    ON checkout_processes ((provider_payload_json ->> 'identityIntentId'))
+    WHERE provider_payload_json IS NOT NULL
+      AND provider_payload_json ? 'identityIntentId'
+  `,
+  `
     CREATE TABLE IF NOT EXISTS checkout_timeline_events (
       id TEXT PRIMARY KEY,
       checkout_id TEXT NOT NULL,

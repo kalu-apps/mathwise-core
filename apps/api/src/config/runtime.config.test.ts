@@ -425,12 +425,14 @@ test("runtime config: identity intents are disabled by default", () => {
     delete process.env.AUTH_IDENTITY_INTENT_TTL_SEC;
     delete process.env.AUTH_IDENTITY_INTENT_MAX_ATTEMPTS;
     delete process.env.AUTH_IDENTITY_INTENT_RATE_LIMIT_PER_HOUR;
+    delete process.env.AUTH_PURCHASE_IDENTITY_INTENT_GATING_ENABLED;
 
     const config = getApiRuntimeConfig();
     assert.equal(config.authIdentityIntentsEnabled, false);
     assert.equal(config.authIdentityIntentTtlSec, 900);
     assert.equal(config.authIdentityIntentMaxAttempts, 6);
     assert.equal(config.authIdentityIntentRateLimitPerHour, 20);
+    assert.equal(config.authPurchaseIdentityIntentGatingEnabled, false);
   } finally {
     restoreEnv(snapshot);
   }
@@ -452,12 +454,38 @@ test("runtime config: identity intents env overrides are parsed", () => {
     process.env.AUTH_IDENTITY_INTENT_TTL_SEC = "1200";
     process.env.AUTH_IDENTITY_INTENT_MAX_ATTEMPTS = "9";
     process.env.AUTH_IDENTITY_INTENT_RATE_LIMIT_PER_HOUR = "45";
+    process.env.AUTH_PURCHASE_IDENTITY_INTENT_GATING_ENABLED = "true";
 
     const config = getApiRuntimeConfig();
     assert.equal(config.authIdentityIntentsEnabled, true);
     assert.equal(config.authIdentityIntentTtlSec, 1200);
     assert.equal(config.authIdentityIntentMaxAttempts, 9);
     assert.equal(config.authIdentityIntentRateLimitPerHour, 45);
+    assert.equal(config.authPurchaseIdentityIntentGatingEnabled, true);
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("runtime config: purchase identity-intent gating requires identity intents", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.AUTH_IDENTITY_INTENTS_ENABLED = "false";
+    process.env.AUTH_PURCHASE_IDENTITY_INTENT_GATING_ENABLED = "true";
+
+    assert.throws(
+      () => getApiRuntimeConfig(),
+      /AUTH_PURCHASE_IDENTITY_INTENT_GATING_ENABLED requires AUTH_IDENTITY_INTENTS_ENABLED=true/
+    );
   } finally {
     restoreEnv(snapshot);
   }

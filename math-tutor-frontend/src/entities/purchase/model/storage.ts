@@ -284,6 +284,7 @@ export async function addPurchase(purchase: Purchase): Promise<void> {
 export type CheckoutPayload = {
   userId?: string;
   email?: string;
+  identityIntentId?: string;
   firstName: string;
   lastName: string;
   phone: string;

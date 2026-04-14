@@ -114,6 +114,7 @@ export type CheckoutStatusResponseDto = {
 export type CheckoutPayloadDto = {
   userId?: string;
   email?: string;
+  identityIntentId?: string;
   firstName: string;
   lastName: string;
   phone: string;

@@ -103,6 +103,14 @@ export type AuthIdentityIntentStatusResponseDto = {
   canConsume: boolean;
 };
 
+export type AuthIdentityIntentPurchaseResolutionDto = {
+  intentId: string;
+  channel: AuthIdentityIntentChannel;
+  email: string;
+  verifiedAt: string | null;
+  expiresAt: string;
+};
+
 export type StoredSession = {
   id: string;
   userId: string;

@@ -414,6 +414,44 @@ export class PurchasesRepository {
     return row ? mapCheckoutRow(row) : null;
   }
 
+  async findLatestCheckoutByIdentityIntentId(
+    identityIntentId: string
+  ): Promise<CheckoutProcessDto | null> {
+    const rows = await this.databaseService.query<CheckoutRow>(
+      `
+        SELECT
+          id,
+          user_id AS "userId",
+          email,
+          first_name AS "firstName",
+          last_name AS "lastName",
+          phone,
+          course_id AS "courseId",
+          method,
+          bnpl_installments_count AS "bnplInstallmentsCount",
+          amount,
+          tariff,
+          currency,
+          state,
+          provider_payment_id AS "providerPaymentId",
+          provider_event_id AS "providerEventId",
+          provider_payload_json AS "providerPayload",
+          consent_snapshot_json AS "consentSnapshot",
+          created_at AS "createdAt",
+          updated_at AS "updatedAt",
+          expires_at AS "expiresAt"
+        FROM checkout_processes
+        WHERE provider_payload_json IS NOT NULL
+          AND provider_payload_json ->> 'identityIntentId' = $1
+        ORDER BY updated_at DESC, id DESC
+        LIMIT 1
+      `,
+      [identityIntentId]
+    );
+    const row = rows[0];
+    return row ? mapCheckoutRow(row) : null;
+  }
+
   async addCheckoutTimelineEvent(params: {
     id: string;
     checkoutId: string;
