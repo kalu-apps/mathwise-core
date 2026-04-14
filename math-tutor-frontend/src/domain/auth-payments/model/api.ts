@@ -6,7 +6,10 @@ import type {
   LessonAccessDecision,
 } from "./access";
 import type { PaymentEventStatus } from "./types";
-import type { CheckoutMethod, CheckoutState } from "./types";
+import type {
+  CheckoutListItemContract,
+  CheckoutStatusResponseContract,
+} from "@/shared/contracts/purchase.contract";
 
 export async function getCourseAccessDecision(params: {
   courseId: string;
@@ -121,44 +124,7 @@ export async function runSupportReconciliation(params?: {
   };
 }
 
-export type CheckoutStatusResponse = {
-  checkoutId: string;
-  state: string;
-  method: string;
-  bnplInstallmentsCount?: number;
-  amount: number;
-  currency: string;
-  createdAt: string;
-  updatedAt: string;
-  expiresAt: string | null;
-  isTerminal: boolean;
-  payment: {
-    provider: string;
-    status: string;
-    outcome: string;
-    paymentUrl?: string;
-    redirectUrl?: string;
-    returnUrl?: string;
-    providerPaymentId?: string;
-    requiresConfirmation: boolean;
-    lastProcessedAt: string | null;
-    sbp?: {
-      qrUrl?: string;
-      deepLinkUrl?: string;
-      expiresAt?: string;
-    };
-  };
-  access: {
-    identityState: string;
-    entitlementState: string;
-    profileComplete: boolean;
-    accessState:
-      | "active"
-      | "awaiting_profile"
-      | "awaiting_verification"
-      | "paid_but_restricted";
-  } | null;
-};
+export type CheckoutStatusResponse = CheckoutStatusResponseContract;
 
 export async function getCheckoutStatus(checkoutId: string) {
   return purchaseGateway.getCheckoutStatus(checkoutId);
@@ -179,18 +145,7 @@ export async function getCheckoutTimeline(checkoutId: string) {
   return purchaseGateway.getCheckoutTimeline(checkoutId);
 }
 
-export type CheckoutListItem = {
-  id: string;
-  userId?: string;
-  email: string;
-  courseId: string;
-  method: CheckoutMethod;
-  bnplInstallmentsCount?: number;
-  state: CheckoutState;
-  createdAt: string;
-  updatedAt: string;
-  expiresAt?: string;
-};
+export type CheckoutListItem = CheckoutListItemContract;
 
 export async function getCheckouts(params?: {
   userId?: string;

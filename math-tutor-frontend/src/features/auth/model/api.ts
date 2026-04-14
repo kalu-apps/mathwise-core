@@ -6,6 +6,19 @@ import { readStorage } from "@/shared/lib/localDb";
 import { authGateway } from "@/shared/gateway";
 import { AUTH_STORAGE_KEY } from "./constants";
 import type { TeacherDashboardContextResponseContract } from "@/shared/contracts/profile.contract";
+import type {
+  AuthFirstPasswordCompleteResponseContract,
+  AuthFirstPasswordStatusResponseContract,
+  AuthIdentityCompletionStatusResponseContract,
+  AuthIdentityIntentChannelContract,
+  AuthIdentityIntentConflictReasonContract,
+  AuthIdentityIntentStartResponseContract,
+  AuthIdentityIntentStateContract,
+  AuthIdentityIntentStatusResponseContract,
+  AuthIdentityIntentVerifyResponseContract,
+  AuthPasswordSaveResponseContract,
+  AuthPasswordStatusResponseContract,
+} from "@/shared/contracts/auth.contract";
 
 const readNodeEnv = (name: string) => {
   if (typeof process === "undefined") return undefined;
@@ -29,51 +42,15 @@ const getApiBase = () => {
 
 export type SocialProvider = "google" | "yandex" | "vk";
 
-export type IdentityIntentChannel = "email" | SocialProvider;
-export type IdentityIntentState =
-  | "pending"
-  | "verified"
-  | "expired"
-  | "consumed"
-  | "conflict";
+export type IdentityIntentChannel = AuthIdentityIntentChannelContract;
+export type IdentityIntentState = AuthIdentityIntentStateContract;
 export type IdentityIntentConflictReason =
-  | "existing_account"
-  | "identity_conflict"
-  | "channel_not_supported"
-  | "invalid_identity"
-  | "too_many_attempts"
-  | "unknown";
-
-export type StartIdentityIntentResponse = {
-  ok: boolean;
-  intentId: string | null;
-  state: IdentityIntentState;
-  expiresAt: string | null;
-  message: string;
-  debugCode?: string | null;
-};
-
-export type VerifyIdentityIntentResponse = {
-  ok: boolean;
-  intentId: string | null;
-  state: IdentityIntentState;
-  expiresAt: string | null;
-  message: string;
-  conflictReason?: IdentityIntentConflictReason;
-  nextAction?: "login" | "restart";
-};
-
-export type IdentityIntentStatusResponse = {
-  ok: true;
-  intentId: string;
-  channel: IdentityIntentChannel;
-  state: IdentityIntentState;
-  expiresAt: string | null;
-  verifiedAt: string | null;
-  consumedAt: string | null;
-  conflictReason?: IdentityIntentConflictReason;
-  canConsume: boolean;
-};
+  AuthIdentityIntentConflictReasonContract;
+export type StartIdentityIntentResponse = AuthIdentityIntentStartResponseContract;
+export type VerifyIdentityIntentResponse =
+  AuthIdentityIntentVerifyResponseContract;
+export type IdentityIntentStatusResponse =
+  AuthIdentityIntentStatusResponseContract;
 
 export type RequestMagicCodeResponse = {
   ok: boolean;
@@ -136,57 +113,12 @@ export async function getIdentityIntentStatus(
   return authGateway.getIdentityIntentStatus(intentId);
 }
 
-export type PasswordStatusResponse = {
-  ok: boolean;
-  hasPassword: boolean;
-  state: "none" | "active" | "reset_pending" | "locked_temp";
-  lockedUntil: string | null;
-  lastPasswordChangeAt: string | null;
-};
-
-export type IdentityCompletionStatusResponse = {
-  ok: true;
-  userId: string;
-  identityVerified: boolean;
-  accountFinalized: boolean;
-  hasPassword: boolean;
-  firstPasswordRequired: boolean;
-  completionState:
-    | "pending_identity_verification"
-    | "pending_account_finalization"
-    | "pending_first_password"
-    | "completed";
-  identityVerifiedAt: string | null;
-  accountFinalizedAt: string | null;
-  firstPasswordSetAt: string | null;
-  completedAt: string | null;
-  source: string | null;
-};
-
-export type FirstPasswordStatusResponse = {
-  ok: true;
-  userId: string;
-  required: boolean;
-  hasPassword: boolean;
-  completionState:
-    | "pending_identity_verification"
-    | "pending_account_finalization"
-    | "pending_first_password"
-    | "completed";
-  completed: boolean;
-};
-
-export type FirstPasswordCompleteResponse = {
-  ok: boolean;
-  message: string;
-  firstPasswordRequired?: boolean;
-  completionState?:
-    | "pending_identity_verification"
-    | "pending_account_finalization"
-    | "pending_first_password"
-    | "completed";
-  completed?: boolean;
-};
+export type PasswordStatusResponse = AuthPasswordStatusResponseContract;
+export type IdentityCompletionStatusResponse =
+  AuthIdentityCompletionStatusResponseContract;
+export type FirstPasswordStatusResponse = AuthFirstPasswordStatusResponseContract;
+export type FirstPasswordCompleteResponse =
+  AuthFirstPasswordCompleteResponseContract;
 
 export async function getPasswordStatus(): Promise<PasswordStatusResponse> {
   return api.get<PasswordStatusResponse>("/auth/password/status");
@@ -210,10 +142,7 @@ export async function completeFirstPassword(
   );
 }
 
-export type SavePasswordResponse = {
-  ok: boolean;
-  message: string;
-};
+export type SavePasswordResponse = AuthPasswordSaveResponseContract;
 
 export async function setPassword(params: {
   currentPassword?: string;

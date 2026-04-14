@@ -108,78 +108,6 @@ export class ProfileRepository {
       ADD COLUMN IF NOT EXISTS tariff TEXT CHECK (tariff IN ('standard', 'premium'))
     `);
     await this.databaseService.execute(`
-      CREATE TABLE IF NOT EXISTS profile_bookings (
-        id TEXT PRIMARY KEY,
-        teacher_id TEXT NOT NULL,
-        teacher_name TEXT NOT NULL DEFAULT '',
-        teacher_photo TEXT,
-        student_id TEXT NOT NULL,
-        student_name TEXT NOT NULL DEFAULT '',
-        student_email TEXT NOT NULL DEFAULT '',
-        student_phone TEXT,
-        student_photo TEXT,
-        date TEXT NOT NULL DEFAULT '',
-        start_time TEXT NOT NULL DEFAULT '',
-        end_time TEXT NOT NULL DEFAULT '',
-        lesson_kind TEXT NOT NULL CHECK (lesson_kind IN ('trial', 'regular')),
-        payment_status TEXT NOT NULL CHECK (payment_status IN ('unpaid', 'paid')),
-        meeting_url TEXT,
-        materials_json JSONB NOT NULL DEFAULT '[]'::jsonb,
-        created_at TEXT NOT NULL DEFAULT '',
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-    await this.databaseService.execute(`
-      CREATE INDEX IF NOT EXISTS idx_profile_bookings_student
-      ON profile_bookings (student_id, date ASC, start_time ASC)
-    `);
-    await this.databaseService.execute(`
-      CREATE INDEX IF NOT EXISTS idx_profile_bookings_teacher
-      ON profile_bookings (teacher_id, date ASC, start_time ASC)
-    `);
-    await this.databaseService.execute(`
-      ALTER TABLE profile_bookings
-      ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'scheduled'
-        CHECK (status IN ('scheduled', 'rescheduled', 'canceled', 'completed', 'no_show'))
-    `);
-    await this.databaseService.execute(`
-      ALTER TABLE profile_bookings
-      ADD COLUMN IF NOT EXISTS slot_id TEXT
-    `);
-    await this.databaseService.execute(`
-      ALTER TABLE profile_bookings
-      ADD COLUMN IF NOT EXISTS consent_snapshot_json JSONB
-    `);
-    await this.databaseService.execute(`
-      ALTER TABLE profile_bookings
-      ADD COLUMN IF NOT EXISTS identity_kind TEXT NOT NULL DEFAULT 'user_bound'
-        CHECK (identity_kind IN ('user_bound', 'guest_pending'))
-    `);
-    await this.databaseService.execute(`
-      ALTER TABLE profile_bookings
-      ADD COLUMN IF NOT EXISTS identity_email_canonical TEXT NOT NULL DEFAULT ''
-    `);
-    await this.databaseService.execute(`
-      ALTER TABLE profile_bookings
-      ADD COLUMN IF NOT EXISTS canceled_at TEXT
-    `);
-
-    await this.databaseService.execute(`
-      CREATE TABLE IF NOT EXISTS profile_teacher_availability (
-        id TEXT PRIMARY KEY,
-        teacher_id TEXT NOT NULL,
-        date TEXT NOT NULL DEFAULT '',
-        start_time TEXT NOT NULL DEFAULT '',
-        end_time TEXT NOT NULL DEFAULT '',
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-    await this.databaseService.execute(`
-      CREATE INDEX IF NOT EXISTS idx_profile_teacher_availability_teacher
-      ON profile_teacher_availability (teacher_id, date ASC, start_time ASC)
-    `);
-
-    await this.databaseService.execute(`
       CREATE TABLE IF NOT EXISTS profile_teacher_invites (
         id TEXT PRIMARY KEY,
         teacher_id TEXT NOT NULL,
@@ -231,21 +159,39 @@ export class ProfileRepository {
 
   async hasAnyProfileData(): Promise<boolean> {
     const [purchaseRows, bookingRows, availabilityRows] = await Promise.all([
-      this.databaseService.query<{ count: string }>(
-        "SELECT COUNT(*)::text AS count FROM profile_purchases"
-      ),
-      this.databaseService.query<{ count: string }>(
-        "SELECT COUNT(*)::text AS count FROM profile_bookings"
-      ),
-      this.databaseService.query<{ count: string }>(
-        "SELECT COUNT(*)::text AS count FROM profile_teacher_availability"
-      ),
+      this.safeCountRows("profile_purchases"),
+      this.safeCountRows("profile_bookings"),
+      this.safeCountRows("profile_teacher_availability"),
     ]);
     return (
-      Number(purchaseRows[0]?.count ?? 0) > 0 ||
-      Number(bookingRows[0]?.count ?? 0) > 0 ||
-      Number(availabilityRows[0]?.count ?? 0) > 0
+      purchaseRows > 0 ||
+      bookingRows > 0 ||
+      availabilityRows > 0
     );
+  }
+
+  private async safeCountRows(
+    tableName:
+      | "profile_purchases"
+      | "profile_bookings"
+      | "profile_teacher_availability"
+  ): Promise<number> {
+    try {
+      const rows = await this.databaseService.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM ${tableName}`
+      );
+      return Number(rows[0]?.count ?? 0);
+    } catch (error) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        (error as { code?: string }).code === "42P01"
+      ) {
+        return 0;
+      }
+      throw error;
+    }
   }
 
   async findPurchasesByUser(userId: string): Promise<PurchaseContextDto[]> {

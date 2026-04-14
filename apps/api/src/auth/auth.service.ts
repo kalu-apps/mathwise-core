@@ -12,6 +12,22 @@ import { hashPassword, verifyPassword } from "./auth.password";
 import { AuthRepository } from "./auth.repository";
 import { readAuthSeedUsers, upsertAuthUsers } from "./auth.seed";
 import { SessionStore } from "./session.store";
+import {
+  OAUTH_STATE_PREFIX,
+  SOCIAL_PROVIDERS,
+  type OauthProfileResult,
+  type OauthStatePayload,
+  buildAuthorizationUrl as buildOauthAuthorizationUrl,
+  buildClientRedirectUrl as buildOauthClientRedirectUrl,
+  buildPkceCodeChallenge as buildOauthPkceCodeChallenge,
+  consumeOauthState as consumeOauthStatePayload,
+  fetchSocialProfile as fetchOauthSocialProfile,
+  fingerprint as fingerprintOauthState,
+  generatePkceCodeVerifier as generateOauthPkceCodeVerifier,
+  getOauthCallbackUrl as getOauthProviderCallbackUrl,
+  parseSocialProvider as parseOauthProvider,
+  sanitizeClientRedirectPath as sanitizeOauthClientRedirectPath,
+} from "./auth.oauth-orchestration";
 import type {
   AuthFirstPasswordCompleteResponseDto,
   AuthFirstPasswordStatusResponseDto,
@@ -23,7 +39,6 @@ import type {
   AuthPasswordResetResponseDto,
   AuthRecoveryRequestResponseDto,
   AuthRecoveryVerifyResponseDto,
-  AuthSocialProfile,
   AuthSocialProvider,
   AuthUserDto,
   RequestMagicCodeResponseDto,
@@ -42,30 +57,6 @@ const buildOpaqueToken = () =>
   typeof crypto.randomUUID === "function"
     ? crypto.randomUUID().replace(/-/g, "")
     : crypto.randomBytes(16).toString("hex");
-
-const OAUTH_STATE_PREFIX = "auth:oauth:state:";
-
-type OauthStatePayload = {
-  provider: AuthSocialProvider;
-  redirectPath: string;
-  issuedAt: string;
-  codeVerifier?: string;
-};
-
-type OauthProfileResult =
-  | { ok: true; profile: AuthSocialProfile }
-  | {
-      ok: false;
-      errorCode:
-        | "provider_misconfigured"
-        | "token_exchange_failed"
-        | "provider_profile_failed"
-        | "email_missing"
-        | "email_not_verified"
-        | "profile_invalid";
-    };
-
-const SOCIAL_PROVIDERS: AuthSocialProvider[] = ["google", "yandex", "vk"];
 
 type PasswordChangeReason = "first_password_set" | "password_changed" | "password_reset";
 
@@ -1209,23 +1200,11 @@ export class AuthService implements OnModuleInit {
   }
 
   private parseSocialProvider(value: string): AuthSocialProvider | null {
-    const normalized = value.trim().toLowerCase();
-    if (normalized === "google" || normalized === "yandex" || normalized === "vk") {
-      return normalized;
-    }
-    return null;
+    return parseOauthProvider(value);
   }
 
   private sanitizeClientRedirectPath(raw: string | undefined): string {
-    const candidate = (raw ?? "").trim();
-    if (!candidate) return "/";
-    if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
-      return "/";
-    }
-    if (candidate.startsWith("//")) return "/";
-    if (!candidate.startsWith("/")) return "/";
-    if (candidate.startsWith("/api/")) return "/";
-    return candidate;
+    return sanitizeOauthClientRedirectPath(raw);
   }
 
   private buildClientRedirectUrl(params: {
@@ -1233,23 +1212,14 @@ export class AuthService implements OnModuleInit {
     provider?: AuthSocialProvider;
     errorCode?: string;
   }): string {
-    const baseOrigin = this.runtimeConfig.authOauthRedirectBaseUrl;
-    const redirectPath = this.sanitizeClientRedirectPath(params.redirectPath);
-    const target = new URL(redirectPath, `${baseOrigin}/`);
-    if (params.provider) {
-      target.searchParams.set("authSocialProvider", params.provider);
-    }
-    if (params.errorCode) {
-      target.searchParams.set("authSocialError", params.errorCode);
-    } else {
-      target.searchParams.delete("authSocialError");
-      target.searchParams.delete("authSocialProvider");
-    }
-    return target.toString();
+    return buildOauthClientRedirectUrl(this.runtimeConfig.authOauthRedirectBaseUrl, params);
   }
 
   private getOauthCallbackUrl(provider: AuthSocialProvider): string {
-    return `${this.runtimeConfig.authOauthRedirectBaseUrl}/api/auth/oauth/${provider}/callback`;
+    return getOauthProviderCallbackUrl(
+      this.runtimeConfig.authOauthRedirectBaseUrl,
+      provider
+    );
   }
 
   private buildAuthorizationUrl(params: {
@@ -1258,67 +1228,17 @@ export class AuthService implements OnModuleInit {
     state: string;
     codeChallenge?: string;
   }): URL {
-    const redirectUri = this.getOauthCallbackUrl(params.provider);
-    const authUrl = new URL(params.providerConfig.authorizeUrl);
-    authUrl.searchParams.set("response_type", "code");
-    authUrl.searchParams.set("client_id", params.providerConfig.clientId);
-    authUrl.searchParams.set("redirect_uri", redirectUri);
-    authUrl.searchParams.set("scope", params.providerConfig.scope);
-    authUrl.searchParams.set("state", params.state);
-
-    if (params.provider === "google") {
-      authUrl.searchParams.set("include_granted_scopes", "true");
-      authUrl.searchParams.set("prompt", "select_account");
-    }
-    if (params.provider === "vk") {
-      const vkHost = authUrl.hostname.toLowerCase();
-      if (params.codeChallenge) {
-        authUrl.searchParams.set("code_challenge", params.codeChallenge);
-        // oauth.vk.ru currently rejects explicit code_challenge_method values.
-        // Keep PKCE challenge and rely on provider default handling.
-        if (vkHost === "oauth.vk.com") {
-          authUrl.searchParams.set("code_challenge_method", "S256");
-        }
-      }
-      // Legacy oauth.vk.com uses versioned API semantics, oauth.vk.ru does not.
-      if (vkHost === "oauth.vk.com") {
-        authUrl.searchParams.set("v", "5.199");
-        authUrl.searchParams.set("display", "page");
-      }
-    }
-    return authUrl;
+    return buildOauthAuthorizationUrl({
+      ...params,
+      redirectBaseUrl: this.runtimeConfig.authOauthRedirectBaseUrl,
+    });
   }
 
   private async consumeOauthState(state: string): Promise<OauthStatePayload | null> {
-    const key = `${OAUTH_STATE_PREFIX}${state}`;
-    const raw = await this.redisService.get(key);
-    await this.redisService.del(key);
-    if (!raw) return null;
-    try {
-      const parsed = JSON.parse(raw) as OauthStatePayload;
-      if (
-        !parsed ||
-        typeof parsed !== "object" ||
-        typeof parsed.provider !== "string" ||
-        typeof parsed.redirectPath !== "string" ||
-        typeof parsed.issuedAt !== "string"
-      ) {
-        return null;
-      }
-      const provider = this.parseSocialProvider(parsed.provider);
-      if (!provider) return null;
-      return {
-        provider,
-        redirectPath: this.sanitizeClientRedirectPath(parsed.redirectPath),
-        issuedAt: parsed.issuedAt,
-        codeVerifier:
-          typeof parsed.codeVerifier === "string" && parsed.codeVerifier.trim().length > 0
-            ? parsed.codeVerifier.trim()
-            : undefined,
-      };
-    } catch {
-      return null;
-    }
+    return consumeOauthStatePayload({
+      redisService: this.redisService,
+      state,
+    });
   }
 
   private async fetchSocialProfile(
@@ -1327,295 +1247,25 @@ export class AuthService implements OnModuleInit {
     code: string,
     options?: { codeVerifier?: string }
   ): Promise<OauthProfileResult> {
-    if (!providerConfig.clientId || !providerConfig.clientSecret) {
-      return { ok: false, errorCode: "provider_misconfigured" };
-    }
-    try {
-      if (provider === "google") {
-        return await this.fetchGoogleProfile(providerConfig, code);
-      }
-      if (provider === "yandex") {
-        return await this.fetchYandexProfile(providerConfig, code);
-      }
-      return await this.fetchVkProfile(providerConfig, code, options?.codeVerifier);
-    } catch {
-      return { ok: false, errorCode: "provider_profile_failed" };
-    }
-  }
-
-  private async fetchGoogleProfile(
-    providerConfig: ApiAuthSocialProviderConfig,
-    code: string
-  ): Promise<OauthProfileResult> {
-    const redirectUri = this.getOauthCallbackUrl("google");
-    const tokenBody = new URLSearchParams({
-      grant_type: "authorization_code",
-      client_id: providerConfig.clientId,
-      client_secret: providerConfig.clientSecret,
-      redirect_uri: redirectUri,
+    return fetchOauthSocialProfile({
+      provider,
+      providerConfig,
       code,
+      redirectBaseUrl: this.runtimeConfig.authOauthRedirectBaseUrl,
+      codeVerifier: options?.codeVerifier,
     });
-    const tokenResponse = await fetch(providerConfig.tokenUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: tokenBody.toString(),
-    });
-    const tokenPayload = await this.parseJsonResponse(tokenResponse);
-    const token = this.readString(tokenPayload, "access_token");
-    if (!tokenResponse.ok || !token) {
-      return { ok: false, errorCode: "token_exchange_failed" };
-    }
-
-    const profileResponse = await fetch(providerConfig.userInfoUrl, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    const profilePayload = await this.parseJsonResponse(profileResponse);
-    if (!profileResponse.ok) {
-      return { ok: false, errorCode: "provider_profile_failed" };
-    }
-    const providerUserId = this.readString(profilePayload, "sub");
-    const email = this.readString(profilePayload, "email");
-    const emailVerified = this.readBoolean(profilePayload, "email_verified");
-    if (!providerUserId) {
-      return { ok: false, errorCode: "profile_invalid" };
-    }
-    if (!email) {
-      return { ok: false, errorCode: "email_missing" };
-    }
-
-    return {
-      ok: true,
-      profile: {
-        provider: "google",
-        providerUserId,
-        email,
-        emailVerified,
-        firstName: this.readString(profilePayload, "given_name") || undefined,
-        lastName: this.readString(profilePayload, "family_name") || undefined,
-        photo: this.readString(profilePayload, "picture") || undefined,
-      },
-    };
-  }
-
-  private async fetchYandexProfile(
-    providerConfig: ApiAuthSocialProviderConfig,
-    code: string
-  ): Promise<OauthProfileResult> {
-    const redirectUri = this.getOauthCallbackUrl("yandex");
-    const tokenBody = new URLSearchParams({
-      grant_type: "authorization_code",
-      client_id: providerConfig.clientId,
-      client_secret: providerConfig.clientSecret,
-      redirect_uri: redirectUri,
-      code,
-    });
-    const tokenResponse = await fetch(providerConfig.tokenUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: tokenBody.toString(),
-    });
-    const tokenPayload = await this.parseJsonResponse(tokenResponse);
-    const token = this.readString(tokenPayload, "access_token");
-    if (!tokenResponse.ok || !token) {
-      return { ok: false, errorCode: "token_exchange_failed" };
-    }
-
-    const profileUrl = new URL(providerConfig.userInfoUrl);
-    if (!profileUrl.searchParams.has("format")) {
-      profileUrl.searchParams.set("format", "json");
-    }
-    const profileResponse = await fetch(profileUrl.toString(), {
-      method: "GET",
-      headers: {
-        Authorization: `OAuth ${token}`,
-      },
-    });
-    const profilePayload = await this.parseJsonResponse(profileResponse);
-    if (!profileResponse.ok) {
-      return { ok: false, errorCode: "provider_profile_failed" };
-    }
-    const providerUserId = this.readString(profilePayload, "id");
-    const defaultEmail = this.readString(profilePayload, "default_email");
-    const emails = this.readStringArray(profilePayload, "emails");
-    const email = defaultEmail || emails[0] || "";
-    if (!providerUserId) {
-      return { ok: false, errorCode: "profile_invalid" };
-    }
-    if (!email) {
-      return { ok: false, errorCode: "email_missing" };
-    }
-
-    return {
-      ok: true,
-      profile: {
-        provider: "yandex",
-        providerUserId,
-        email,
-        emailVerified: true,
-        firstName: this.readString(profilePayload, "first_name") || undefined,
-        lastName: this.readString(profilePayload, "last_name") || undefined,
-      },
-    };
-  }
-
-  private async fetchVkProfile(
-    providerConfig: ApiAuthSocialProviderConfig,
-    code: string,
-    codeVerifier?: string
-  ): Promise<OauthProfileResult> {
-    const redirectUri = this.getOauthCallbackUrl("vk");
-    const tokenUrl = new URL(providerConfig.tokenUrl);
-    const isVkIdOauth = tokenUrl.hostname.toLowerCase() === "oauth.vk.ru";
-    let tokenResponse: Response;
-
-    if (isVkIdOauth) {
-      const tokenBody = new URLSearchParams({
-        grant_type: "authorization_code",
-        client_id: providerConfig.clientId,
-        client_secret: providerConfig.clientSecret,
-        redirect_uri: redirectUri,
-        code,
-      });
-      if (codeVerifier) {
-        tokenBody.set("code_verifier", codeVerifier);
-      }
-      tokenResponse = await fetch(tokenUrl.toString(), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: tokenBody.toString(),
-      });
-    } else {
-      tokenUrl.searchParams.set("client_id", providerConfig.clientId);
-      tokenUrl.searchParams.set("client_secret", providerConfig.clientSecret);
-      tokenUrl.searchParams.set("redirect_uri", redirectUri);
-      tokenUrl.searchParams.set("code", code);
-      tokenUrl.searchParams.set("v", "5.199");
-      if (codeVerifier) {
-        tokenUrl.searchParams.set("code_verifier", codeVerifier);
-      }
-      tokenResponse = await fetch(tokenUrl.toString(), {
-        method: "GET",
-      });
-    }
-    const tokenPayload = await this.parseJsonResponse(tokenResponse);
-    if (!tokenResponse.ok) {
-      return { ok: false, errorCode: "token_exchange_failed" };
-    }
-    const token = this.readString(tokenPayload, "access_token");
-    const userId = this.readString(tokenPayload, "user_id");
-    const email = this.readString(tokenPayload, "email");
-    if (!token || !userId) {
-      return { ok: false, errorCode: "token_exchange_failed" };
-    }
-    if (!email) {
-      return { ok: false, errorCode: "email_missing" };
-    }
-
-    const profileUrl = new URL(providerConfig.userInfoUrl);
-    profileUrl.searchParams.set("access_token", token);
-    profileUrl.searchParams.set("v", "5.199");
-    profileUrl.searchParams.set("user_ids", userId);
-    profileUrl.searchParams.set("fields", "photo_200");
-
-    const profileResponse = await fetch(profileUrl.toString(), {
-      method: "GET",
-    });
-    const profilePayload = await this.parseJsonResponse(profileResponse);
-    if (!profileResponse.ok) {
-      return { ok: false, errorCode: "provider_profile_failed" };
-    }
-    const responseList = this.readArray(profilePayload, "response");
-    const firstProfile =
-      responseList.length > 0 && typeof responseList[0] === "object"
-        ? (responseList[0] as Record<string, unknown>)
-        : null;
-    const firstName = firstProfile
-      ? this.readString(firstProfile, "first_name") || undefined
-      : undefined;
-    const lastName = firstProfile
-      ? this.readString(firstProfile, "last_name") || undefined
-      : undefined;
-    const photo = firstProfile
-      ? this.readString(firstProfile, "photo_200") || undefined
-      : undefined;
-
-    return {
-      ok: true,
-      profile: {
-        provider: "vk",
-        providerUserId: userId,
-        email,
-        emailVerified: true,
-        firstName,
-        lastName,
-        photo,
-      },
-    };
-  }
-
-  private async parseJsonResponse(response: Response): Promise<unknown> {
-    const text = await response.text();
-    if (!text) return null;
-    try {
-      return JSON.parse(text) as unknown;
-    } catch {
-      return null;
-    }
-  }
-
-  private readString(payload: unknown, key: string): string {
-    if (!payload || typeof payload !== "object") return "";
-    const value = (payload as Record<string, unknown>)[key];
-    if (typeof value === "string") return value.trim();
-    if (typeof value === "number" && Number.isFinite(value)) {
-      return String(value);
-    }
-    return "";
-  }
-
-  private readBoolean(payload: unknown, key: string): boolean {
-    if (!payload || typeof payload !== "object") return false;
-    const value = (payload as Record<string, unknown>)[key];
-    if (typeof value === "boolean") return value;
-    if (typeof value === "string") {
-      const normalized = value.trim().toLowerCase();
-      return normalized === "true" || normalized === "1" || normalized === "yes";
-    }
-    if (typeof value === "number") return value === 1;
-    return false;
-  }
-
-  private readArray(payload: unknown, key: string): unknown[] {
-    if (!payload || typeof payload !== "object") return [];
-    const value = (payload as Record<string, unknown>)[key];
-    return Array.isArray(value) ? value : [];
-  }
-
-  private readStringArray(payload: unknown, key: string): string[] {
-    return this.readArray(payload, key).filter(
-      (value): value is string => typeof value === "string" && value.trim().length > 0
-    );
   }
 
   private generatePkceCodeVerifier(): string {
-    return crypto.randomBytes(48).toString("base64url");
+    return generateOauthPkceCodeVerifier();
   }
 
   private buildPkceCodeChallenge(codeVerifier: string): string {
-    return crypto.createHash("sha256").update(codeVerifier).digest("base64url");
+    return buildOauthPkceCodeChallenge(codeVerifier);
   }
 
   private fingerprint(value: string): string {
-    return crypto.createHash("sha256").update(value).digest("hex").slice(0, 12);
+    return fingerprintOauthState(value);
   }
 
   async getSession(sessionId: string | null): Promise<AuthUserDto | null> {

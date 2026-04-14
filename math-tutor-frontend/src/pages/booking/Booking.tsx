@@ -19,12 +19,6 @@ import { getPublicTeachers } from "@/features/auth/model/api";
 import { getTeacherAvailability } from "@/features/teacher-availability/api";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
 import {
-  confirmBookingSlotHold,
-  createBooking,
-  createBookingSlotHold,
-  getBookingSlotHoldStatus,
-} from "@/entities/booking/model/storage";
-import {
   buildCalendarDays,
   formatLongDate,
   groupSlotsByDate,
@@ -51,6 +45,14 @@ import { PageLoader } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { OnboardingFlowPanel } from "@/shared/ui/OnboardingFlowPanel";
 import { mapBookingHoldResolutionMessage } from "@/pages/booking/model/bookingHoldBridge";
+import {
+  buildBookingFlowSteps,
+  confirmHoldAfterAuth,
+  createLegacyBookingAfterAuth,
+  isBookingV2UnavailableError,
+  reserveAndConfirmStudentBooking,
+  reserveGuestBookingOrCreateLegacy,
+} from "@/pages/booking/model/bookingFlowController";
 
 const blurActiveElement = () => {
   if (typeof document === "undefined") return;
@@ -170,55 +172,29 @@ export default function Booking() {
     () => calendarDays.find((day) => availableDateSet.has(day.value))?.value ?? calendarDays[0]?.value ?? "",
     [calendarDays, availableDateSet]
   );
-  const bookingFlowSteps = useMemo(() => {
-    const slotState = selectedSlotId ? "done" : bookingOpen ? "current" : "pending";
-    const identityState =
-      guestCheckoutOpen ||
-      pendingAuthOpen ||
-      Boolean(pendingAuthRebookSlotId) ||
-      Boolean(pendingAuthHoldId)
-        ? "current"
-        : user
-        ? "done"
-        : "pending";
-    const confirmState =
-      bookingSaving || Boolean(pendingAuthRebookSlotId) || Boolean(pendingAuthHoldId)
-        ? "current"
-        : selectedSlotId && Boolean(user)
-        ? "current"
-        : "pending";
-    return [
-      {
-        key: "slot",
-        title: "1. Выберите слот",
-        description: "Зафиксируйте удобное время у преподавателя.",
-        state: slotState as "done" | "current" | "pending",
-      },
-      {
-        key: "identity",
-        title: "2. Подтвердите аккаунт",
-        description:
-          "Для индивидуального занятия нужен полный профиль ученика без гостевого режима.",
-        state: identityState as "done" | "current" | "pending",
-      },
-      {
-        key: "confirm",
-        title: "3. Подтверждение записи",
-        description:
-          "После авторизации система подтверждает бронь и открывает доступ к чату и доске.",
-        state: confirmState as "current" | "pending",
-      },
-    ];
-  }, [
-    bookingOpen,
-    bookingSaving,
-    guestCheckoutOpen,
-    pendingAuthOpen,
-    pendingAuthHoldId,
-    pendingAuthRebookSlotId,
-    selectedSlotId,
-    user,
-  ]);
+  const bookingFlowSteps = useMemo(
+    () =>
+      buildBookingFlowSteps({
+        bookingOpen,
+        selectedSlotId,
+        guestCheckoutOpen,
+        pendingAuthOpen,
+        pendingAuthRebookSlotId,
+        pendingAuthHoldId,
+        bookingSaving,
+        userPresent: Boolean(user),
+      }),
+    [
+      bookingOpen,
+      selectedSlotId,
+      guestCheckoutOpen,
+      pendingAuthOpen,
+      pendingAuthRebookSlotId,
+      pendingAuthHoldId,
+      bookingSaving,
+      user,
+    ]
+  );
 
   const mobileDialogActionSx = isMobile
     ? {
@@ -241,23 +217,6 @@ export default function Booking() {
     setMessageText(text);
     setMessageOpen(true);
   }, []);
-
-  const extractApiErrorCode = useCallback((error: unknown) => {
-    if (!(error instanceof ApiError)) return "";
-    const details = (error.details ?? {}) as { code?: string };
-    return String(details.code ?? "").trim();
-  }, []);
-
-  const isBookingV2Unavailable = useCallback(
-    (error: unknown) => {
-      if (!(error instanceof ApiError)) return false;
-      const code = extractApiErrorCode(error);
-      if (code === "booking_v2_disabled") return true;
-      if (error.status === 404) return true;
-      return false;
-    },
-    [extractApiErrorCode]
-  );
 
   const handleBookingConflictError = useCallback(
     (error: unknown, slotId?: string): boolean => {
@@ -361,55 +320,23 @@ export default function Booking() {
     try {
       const saved = await bookingActionGuard.run(
         async () => {
-          try {
-            const hold = await createBookingSlotHold(
-              {
-                teacherId: teacher.id,
-                slotId: slot.id,
-                studentEmail: user.email,
-              },
-              { idempotencyKey: `hold:${slot.id}:${user.id}` }
-            );
-            const holdStatus = await getBookingSlotHoldStatus(hold.hold.id);
-            if (!holdStatus.canConfirm || holdStatus.hold.status !== "active") {
-              throw new ApiError(
-                "Время удержания слота истекло. Выберите новый слот.",
-                409,
-                { code: "slot_hold_expired" }
-              );
-            }
-            await confirmBookingSlotHold(
-              hold.hold.id,
-              {
-                consents: {
-                  acceptedScopes: ["terms", "privacy", "trial_booking"],
-                },
-              },
-              { idempotencyKey: `hold-confirm:${hold.hold.id}:${user.id}` }
-            );
-          } catch (error) {
-            if (!isBookingV2Unavailable(error)) {
-              throw error;
-            }
-            await createBooking({
-              teacherId: teacher.id,
-              teacherName: `${teacher.firstName} ${teacher.lastName}`.trim(),
-              teacherPhoto: info.photo || teacher.photo,
-              studentId: user.id,
-              studentName: `${user.firstName} ${user.lastName}`.trim() || user.email,
-              studentEmail: user.email,
-              studentPhone: toRuPhoneStorage(user.phone ?? "") || undefined,
-              studentPhoto: user.photo,
-              slotId: slot.id,
+          await reserveAndConfirmStudentBooking({
+            teacherId: teacher.id,
+            teacherName: `${teacher.firstName} ${teacher.lastName}`.trim(),
+            teacherPhoto: info.photo || teacher.photo,
+            studentId: user.id,
+            studentFirstName: user.firstName,
+            studentLastName: user.lastName,
+            studentEmail: user.email,
+            studentPhone: toRuPhoneStorage(user.phone ?? "") || undefined,
+            studentPhoto: user.photo,
+            slot: {
+              id: slot.id,
               date: slot.date,
               startTime: slot.startTime,
               endTime: slot.endTime,
-              lessonKind: "regular",
-              consents: {
-                acceptedScopes: ["terms", "privacy", "trial_booking"],
-              },
-            });
-          }
+            },
+          });
           setAvailability((prev) => prev.filter((s) => s.id !== slot.id));
           setBookingOpen(false);
           setGuestCheckoutOpen(false);
@@ -466,33 +393,7 @@ export default function Booking() {
       const normalizedGuestEmail = guestEmail.trim().toLowerCase();
       const saved = await bookingActionGuard.run(
         async () => {
-          try {
-            const hold = await createBookingSlotHold(
-              {
-                teacherId: teacher.id,
-                slotId: slot.id,
-                studentEmail: normalizedGuestEmail,
-              },
-              { idempotencyKey: `hold:${slot.id}:${normalizedGuestEmail}` }
-            );
-            setGuestCheckoutOpen(false);
-            setBookingOpen(false);
-            setPendingAuthHoldId(hold.hold.id);
-            setPendingAuthHoldSlotId(slot.id);
-            setPendingAuthRebookSlotId(null);
-            showMessage(
-              mapBookingHoldResolutionMessage(hold.nextAction) ??
-                "Слот удерживается ограниченное время. Войдите или завершите регистрацию, чтобы подтвердить запись."
-            );
-            setPendingAuthOpen(true);
-            return;
-          } catch (error) {
-            if (!isBookingV2Unavailable(error)) {
-              throw error;
-            }
-          }
-
-          await createBooking({
+          const result = await reserveGuestBookingOrCreateLegacy({
             teacherId: teacher.id,
             teacherName: `${teacher.firstName} ${teacher.lastName}`.trim(),
             teacherPhoto: info.photo || teacher.photo,
@@ -500,15 +401,26 @@ export default function Booking() {
             studentFirstName: guestFirstName.trim(),
             studentLastName: guestLastName.trim(),
             studentPhone: toRuPhoneStorage(guestPhone),
-            slotId: slot.id,
-            date: slot.date,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            lessonKind: "trial",
-            consents: {
-              acceptedScopes: ["terms", "privacy", "trial_booking"],
+            slot: {
+              id: slot.id,
+              date: slot.date,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
             },
           });
+          if (result.mode === "hold_created") {
+            setGuestCheckoutOpen(false);
+            setBookingOpen(false);
+            setPendingAuthHoldId(result.holdId);
+            setPendingAuthHoldSlotId(slot.id);
+            setPendingAuthRebookSlotId(null);
+            showMessage(
+              mapBookingHoldResolutionMessage(result.nextAction) ??
+                "Слот удерживается ограниченное время. Войдите или завершите регистрацию, чтобы подтвердить запись."
+            );
+            setPendingAuthOpen(true);
+            return;
+          }
           setAvailability((prev) => prev.filter((s) => s.id !== slot.id));
           setGuestCheckoutOpen(false);
           setBookingOpen(false);
@@ -574,37 +486,30 @@ export default function Booking() {
     let active = true;
     const run = async () => {
       try {
-        const holdStatus = await getBookingSlotHoldStatus(pendingAuthHoldId);
+        const result = await confirmHoldAfterAuth({
+          holdId: pendingAuthHoldId,
+          studentId: user.id,
+        });
         if (!active) return;
-        if (!holdStatus.canConfirm || holdStatus.hold.status !== "active") {
+        if (result.mode === "inactive") {
           setPendingAuthHoldId(null);
           setPendingAuthHoldSlotId(null);
           showMessage(
-            mapBookingHoldResolutionMessage(holdStatus.nextAction) ??
+            mapBookingHoldResolutionMessage(result.nextAction) ??
               "Время удержания слота истекло. Выберите новую дату и время."
           );
           return;
         }
         const saved = await bookingActionGuard.run(
-          async () => {
-            await confirmBookingSlotHold(
-              holdStatus.hold.id,
-              {
-                consents: {
-                  acceptedScopes: ["terms", "privacy", "trial_booking"],
-                },
-              },
-              { idempotencyKey: `hold-confirm:${holdStatus.hold.id}:${user.id}` }
-            );
-          },
+          async () => result,
           {
-            lockKey: `booking:hold-confirm:${holdStatus.hold.id}:${user.id}`,
+            lockKey: `booking:hold-confirm:${pendingAuthHoldId}:${user.id}`,
             retry: { label: t("common.retryBookingAction") },
           }
         );
         if (!active || saved === undefined) return;
         setAvailability((prev) =>
-          prev.filter((candidate) => candidate.id !== holdStatus.hold.slotId)
+          prev.filter((candidate) => candidate.id !== saved.slotId)
         );
         setPendingAuthHoldId(null);
         setPendingAuthHoldSlotId(null);
@@ -612,7 +517,7 @@ export default function Booking() {
         showMessage(t("booking.bookingSuccess"));
       } catch (error) {
         if (!active) return;
-        if (isBookingV2Unavailable(error)) {
+        if (isBookingV2UnavailableError(error)) {
           const slotId = pendingAuthHoldSlotId;
           if (slotId) {
             setPendingAuthRebookSlotId(slotId);
@@ -635,7 +540,7 @@ export default function Booking() {
   }, [
     bookingActionGuard,
     handleBookingConflictError,
-    isBookingV2Unavailable,
+    isBookingV2UnavailableError,
     pendingAuthHoldId,
     pendingAuthHoldSlotId,
     showMessage,
@@ -655,26 +560,24 @@ export default function Booking() {
     const run = async () => {
       try {
         const saved = await bookingActionGuard.run(
-          async () => {
-            await createBooking({
+          async () =>
+            createLegacyBookingAfterAuth({
               teacherId: teacher.id,
               teacherName: `${teacher.firstName} ${teacher.lastName}`.trim(),
               teacherPhoto: info.photo || teacher.photo,
               studentId: user.id,
-              studentName: `${user.firstName} ${user.lastName}`.trim() || user.email,
+              studentFirstName: user.firstName,
+              studentLastName: user.lastName,
               studentEmail: user.email,
               studentPhone: toRuPhoneStorage(user.phone ?? "") || undefined,
               studentPhoto: user.photo,
-              slotId: slot.id,
-              date: slot.date,
-              startTime: slot.startTime,
-              endTime: slot.endTime,
-              lessonKind: "regular",
-              consents: {
-                acceptedScopes: ["terms", "privacy", "trial_booking"],
+              slot: {
+                id: slot.id,
+                date: slot.date,
+                startTime: slot.startTime,
+                endTime: slot.endTime,
               },
-            });
-          },
+            }),
           {
             lockKey: `booking:${slot.id}:${user.id}`,
             retry: { label: t("common.retryBookingAction") },

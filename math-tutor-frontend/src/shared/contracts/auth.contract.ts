@@ -68,3 +68,54 @@ export type AuthIdentityIntentStatusResponseContract = {
   conflictReason?: AuthIdentityIntentConflictReasonContract;
   canConsume: boolean;
 };
+
+export type AuthIdentityCompletionStateContract =
+  | "pending_identity_verification"
+  | "pending_account_finalization"
+  | "pending_first_password"
+  | "completed";
+
+export type AuthPasswordStatusResponseContract = {
+  ok: boolean;
+  hasPassword: boolean;
+  state: "none" | "active" | "reset_pending" | "locked_temp";
+  lockedUntil: string | null;
+  lastPasswordChangeAt: string | null;
+};
+
+export type AuthIdentityCompletionStatusResponseContract = {
+  ok: true;
+  userId: string;
+  identityVerified: boolean;
+  accountFinalized: boolean;
+  hasPassword: boolean;
+  firstPasswordRequired: boolean;
+  completionState: AuthIdentityCompletionStateContract;
+  identityVerifiedAt: string | null;
+  accountFinalizedAt: string | null;
+  firstPasswordSetAt: string | null;
+  completedAt: string | null;
+  source: string | null;
+};
+
+export type AuthFirstPasswordStatusResponseContract = {
+  ok: true;
+  userId: string;
+  required: boolean;
+  hasPassword: boolean;
+  completionState: AuthIdentityCompletionStateContract;
+  completed: boolean;
+};
+
+export type AuthFirstPasswordCompleteResponseContract = {
+  ok: boolean;
+  message: string;
+  firstPasswordRequired?: boolean;
+  completionState?: AuthIdentityCompletionStateContract;
+  completed?: boolean;
+};
+
+export type AuthPasswordSaveResponseContract = {
+  ok: boolean;
+  message: string;
+};

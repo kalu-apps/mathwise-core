@@ -73,7 +73,9 @@ export type PurchaseAccessGate = {
 const toPaymentMethod = (
   method: CheckoutListItem["method"] | string | undefined
 ): PaymentAttemptMethod => {
-  if (method === "card" || method === "sbp" || method === "bnpl") return method;
+  if (method === "card") return "card";
+  if (method === "sbp") return "sbp";
+  if (method === "bnpl") return "bnpl";
   return "card";
 };
 

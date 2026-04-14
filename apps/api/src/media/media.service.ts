@@ -6,6 +6,7 @@ import {
   OnModuleInit,
 } from "@nestjs/common";
 import type { AuthUserDto } from "../auth/auth.types";
+import { getApiRuntimeConfig } from "../config/runtime.config";
 import {
   MediaRepository,
   type MediaReferenceUsage,
@@ -64,26 +65,6 @@ const formatSizeLimit = (bytes: number) => {
   return `${mb} МБ`;
 };
 
-const resolveLessonVideoMaxUploadBytes = () => {
-  const parsed = Number(process.env.MEDIA_LESSON_VIDEO_MAX_UPLOAD_MB);
-  const normalizedMb =
-    Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 2048;
-  const clampedMb = Math.min(4096, Math.max(1024, normalizedMb));
-  return clampedMb * 1024 * 1024;
-};
-
-const resolveGcIntervalMs = () => {
-  const parsed = Number(process.env.MEDIA_GC_INTERVAL_SEC);
-  const seconds = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 300;
-  return Math.max(60, seconds) * 1000;
-};
-
-const resolveGcBatchLimit = () => {
-  const parsed = Number(process.env.MEDIA_GC_BATCH_LIMIT);
-  if (!Number.isFinite(parsed) || parsed <= 0) return 200;
-  return Math.max(10, Math.min(1000, Math.floor(parsed)));
-};
-
 const MIN_MULTIPART_PART_SIZE_BYTES = 8 * 1024 * 1024;
 const MAX_MULTIPART_PARTS = 1000;
 
@@ -99,9 +80,14 @@ const resolveMultipartPartSizeBytes = (sizeBytes: number) => {
 
 @Injectable()
 export class MediaService implements OnModuleInit, OnModuleDestroy {
-  private readonly lessonVideoMaxUploadBytes = resolveLessonVideoMaxUploadBytes();
-  private readonly gcIntervalMs = resolveGcIntervalMs();
-  private readonly gcBatchLimit = resolveGcBatchLimit();
+  private readonly runtimeConfig = getApiRuntimeConfig({
+    requireDatabase: false,
+    requireRedis: false,
+  });
+  private readonly lessonVideoMaxUploadBytes =
+    this.runtimeConfig.mediaLessonVideoMaxUploadBytes;
+  private readonly gcIntervalMs = this.runtimeConfig.mediaGcIntervalSec * 1000;
+  private readonly gcBatchLimit = this.runtimeConfig.mediaGcBatchLimit;
   private gcTimer: NodeJS.Timeout | null = null;
   private gcRunning = false;
 

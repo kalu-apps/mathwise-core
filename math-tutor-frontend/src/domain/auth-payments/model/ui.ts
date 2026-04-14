@@ -125,6 +125,7 @@ export const getCheckoutAccessUiState = (
   if (!accessState) return null;
   if (accessState === "awaiting_profile") return "awaiting_profile";
   if (accessState === "awaiting_verification") return "awaiting_verification";
+  if (accessState === "email_correction_required") return "awaiting_verification";
   if (accessState === "paid_but_restricted") return "paid_but_restricted";
   return null;
 };

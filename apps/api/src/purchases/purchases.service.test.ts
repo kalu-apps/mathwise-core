@@ -121,7 +121,7 @@ test("purchases: stage runtime rejects mock checkout method", async () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -228,7 +228,7 @@ test("purchases: stage confirm is blocked when YooKassa mode is enabled", async 
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -295,7 +295,7 @@ test("purchases: stage confirm reuses backend provider-confirm chain", async () 
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";

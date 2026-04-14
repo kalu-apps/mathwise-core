@@ -130,18 +130,4 @@ export const BOOKINGS_SCHEMA_STATEMENTS = [
     CREATE UNIQUE INDEX IF NOT EXISTS idx_profile_teacher_availability_unique_time
     ON profile_teacher_availability (teacher_id, date, start_time, end_time)
   `,
-  `
-    CREATE TABLE IF NOT EXISTS write_idempotency_records (
-      scope TEXT NOT NULL,
-      idempotency_key TEXT NOT NULL,
-      response_json JSONB NOT NULL,
-      expires_at TIMESTAMPTZ NOT NULL,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      PRIMARY KEY (scope, idempotency_key)
-    )
-  `,
-  `
-    DELETE FROM write_idempotency_records
-    WHERE expires_at <= NOW()
-  `,
 ] as const;

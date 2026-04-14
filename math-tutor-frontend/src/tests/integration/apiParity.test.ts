@@ -36,4 +36,67 @@ describe("api parity", () => {
       }
     }
   });
+
+  it("keeps critical auth/booking/purchase/invite contract statuses in shared contracts", () => {
+    const authContracts = readFile(
+      path.resolve(process.cwd(), "src/shared/contracts/auth.contract.ts")
+    );
+    const bookingContracts = readFile(
+      path.resolve(process.cwd(), "src/shared/contracts/booking.contract.ts")
+    );
+    const purchaseContracts = readFile(
+      path.resolve(process.cwd(), "src/shared/contracts/purchase.contract.ts")
+    );
+    const profileContracts = readFile(
+      path.resolve(process.cwd(), "src/shared/contracts/profile.contract.ts")
+    );
+
+    const requiredAuthStates = [
+      "pending",
+      "verified",
+      "expired",
+      "consumed",
+      "conflict",
+      "pending_first_password",
+      "completed",
+    ];
+    for (const state of requiredAuthStates) {
+      expect(authContracts.includes(`\"${state}\"`)).toBe(true);
+    }
+
+    const requiredBookingLiterals = [
+      "active",
+      "expired",
+      "released",
+      "consumed",
+      "login_required_existing_account",
+      "complete_registration",
+      "hold_expired",
+      "hold_released",
+      "hold_consumed",
+    ];
+    for (const literal of requiredBookingLiterals) {
+      expect(bookingContracts.includes(`\"${literal}\"`)).toBe(true);
+    }
+
+    const requiredPurchaseLiterals = [
+      "email_correction_required",
+      "identityCompleted",
+      "firstPasswordRequired",
+    ];
+    for (const literal of requiredPurchaseLiterals) {
+      expect(purchaseContracts.includes(literal)).toBe(true);
+    }
+
+    const requiredInviteStatuses = [
+      "active",
+      "expired",
+      "consumed",
+      "revoked",
+      "invalid",
+    ];
+    for (const status of requiredInviteStatuses) {
+      expect(profileContracts.includes(`\"${status}\"`)).toBe(true);
+    }
+  });
 });

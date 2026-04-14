@@ -9,15 +9,14 @@ import type {
   Purchase,
   PurchasePaymentMethod,
 } from "./types";
-import type { User } from "@/entities/user/model/types";
 import { purchaseGateway } from "@/shared/gateway";
 import { dispatchDataUpdate } from "@/shared/lib/dataUpdateBus";
 import { buildBnplMockPurchaseData } from "./bnplMockAdapter";
 import type {
-  ConsentScope,
-  EntitlementState,
-  IdentityState,
-} from "@/domain/auth-payments/model/types";
+  BnplInstallmentPaymentResponseContract,
+  CheckoutPayloadContract,
+  CheckoutPurchaseResponseContract,
+} from "@/shared/contracts/purchase.contract";
 
 const isPaymentMethod = (value: unknown): value is PurchasePaymentMethod =>
   value === "card" ||
@@ -281,65 +280,9 @@ export async function addPurchase(purchase: Purchase): Promise<void> {
   await savePurchases([...purchases, normalizePurchase(purchase)]);
 }
 
-export type CheckoutPayload = {
-  userId?: string;
-  email?: string;
-  identityIntentId?: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  courseId: string;
-  price: number;
-  tariff?: "standard" | "premium";
-  paymentMethod?: "card" | "sbp" | "bnpl";
-  bnplInstallmentsCount?: number;
-  consents?: {
-    acceptedScopes: ConsentScope[];
-  };
-};
-
-export type CheckoutAccessState =
-  | "active"
-  | "awaiting_profile"
-  | "awaiting_verification"
-  | "paid_but_restricted";
-
-export type CheckoutPurchaseResponse = {
-  user?: User;
-  checkoutId: string;
-  checkoutState: string;
-  payment?: {
-    provider: "card" | "sbp" | "bnpl";
-    status:
-      | "awaiting_provider"
-      | "provider_confirmed"
-      | "paid"
-      | "failed"
-      | "canceled"
-      | "expired";
-    paymentUrl?: string;
-    redirectUrl?: string;
-    returnUrl?: string;
-    providerPaymentId?: string;
-    requiresConfirmation: boolean;
-    sbp?: {
-      qrUrl?: string;
-      deepLinkUrl?: string;
-      expiresAt?: string;
-    };
-  };
-  identityState: IdentityState;
-  entitlementState: EntitlementState | "none";
-  profileComplete: boolean;
-  accessState: CheckoutAccessState;
-  identityCompletionState?:
-    | "pending_identity_verification"
-    | "pending_account_finalization"
-    | "pending_first_password"
-    | "completed";
-  firstPasswordRequired?: boolean;
-  identityCompleted?: boolean;
-};
+export type CheckoutPayload = CheckoutPayloadContract;
+export type CheckoutAccessState = CheckoutPurchaseResponseContract["accessState"];
+export type CheckoutPurchaseResponse = CheckoutPurchaseResponseContract;
 
 export async function checkoutPurchase(
   payload: CheckoutPayload,
@@ -355,31 +298,7 @@ export async function attachCheckoutPurchase(
   return purchaseGateway.attachCheckoutPurchase(checkoutId, options);
 }
 
-export type BnplInstallmentPaymentResponse = {
-  ok: boolean;
-  purchaseId: string;
-  checkoutId: string;
-  checkoutState: string;
-  payment: {
-    provider: string;
-    status: string;
-    outcome: string;
-    paymentUrl?: string;
-    redirectUrl?: string;
-    returnUrl?: string;
-    providerPaymentId?: string;
-    requiresConfirmation: boolean;
-    lastProcessedAt: string | null;
-  };
-  bnpl: {
-    applied: boolean;
-    installmentsCount: number;
-    paidCount: number;
-    nextPaymentDate?: string;
-    completed: boolean;
-  };
-  purchase: Purchase;
-};
+export type BnplInstallmentPaymentResponse = BnplInstallmentPaymentResponseContract;
 
 export async function payBnplInstallment(
   purchaseId: string,

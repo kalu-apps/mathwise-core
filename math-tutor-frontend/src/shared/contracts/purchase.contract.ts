@@ -6,6 +6,7 @@ import type {
   EntitlementState,
   IdentityState,
 } from "@/domain/auth-payments/model/types";
+import type { AuthIdentityCompletionStateContract } from "@/shared/contracts/auth.contract";
 
 export type CheckoutPayloadContract = {
   userId?: string;
@@ -28,7 +29,19 @@ export type CheckoutAccessStateContract =
   | "active"
   | "awaiting_profile"
   | "awaiting_verification"
+  | "email_correction_required"
   | "paid_but_restricted";
+
+export type CheckoutPaymentProviderContract =
+  | "card"
+  | "sbp"
+  | "bnpl"
+  | "yookassa"
+  | "cloudpayments"
+  | "tbank"
+  | (string & {});
+
+export type CheckoutMethodContract = CheckoutMethod | "mock" | (string & {});
 
 export type CheckoutPurchaseResponseContract = {
   user?: {
@@ -41,9 +54,9 @@ export type CheckoutPurchaseResponseContract = {
     photo?: string;
   };
   checkoutId: string;
-  checkoutState: string;
+  checkoutState: CheckoutState;
   payment?: {
-    provider: "card" | "sbp" | "bnpl";
+    provider: CheckoutPaymentProviderContract;
     status:
       | "awaiting_provider"
       | "provider_confirmed"
@@ -66,11 +79,7 @@ export type CheckoutPurchaseResponseContract = {
   entitlementState: EntitlementState | "none";
   profileComplete: boolean;
   accessState: CheckoutAccessStateContract;
-  identityCompletionState?:
-    | "pending_identity_verification"
-    | "pending_account_finalization"
-    | "pending_first_password"
-    | "completed";
+  identityCompletionState?: AuthIdentityCompletionStateContract;
   firstPasswordRequired?: boolean;
   identityCompleted?: boolean;
 };
@@ -109,8 +118,8 @@ export type CancelCheckoutResponseContract = {
 
 export type CheckoutStatusResponseContract = {
   checkoutId: string;
-  state: string;
-  method: string;
+  state: CheckoutState;
+  method: CheckoutMethodContract;
   bnplInstallmentsCount?: number;
   amount: number;
   currency: string;
@@ -135,16 +144,12 @@ export type CheckoutStatusResponseContract = {
     };
   };
   access: {
-    identityState: string;
-    entitlementState: string;
+    identityState: "unverified" | "verified";
+    entitlementState: "none" | "active";
     profileComplete: boolean;
     accessState: CheckoutAccessStateContract;
   } | null;
-  identityCompletionState?:
-    | "pending_identity_verification"
-    | "pending_account_finalization"
-    | "pending_first_password"
-    | "completed";
+  identityCompletionState?: AuthIdentityCompletionStateContract;
   firstPasswordRequired?: boolean;
   identityCompleted?: boolean;
 };
@@ -173,7 +178,7 @@ export type CheckoutListItemContract = {
   userId?: string;
   email: string;
   courseId: string;
-  method: CheckoutMethod;
+  method: CheckoutMethodContract;
   bnplInstallmentsCount?: number;
   state: CheckoutState;
   createdAt: string;

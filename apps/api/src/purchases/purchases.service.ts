@@ -28,8 +28,12 @@ import {
   nowIso,
   parseBnplPlan,
   toPositiveAmount,
-  validateEmailFormat,
 } from "./purchases.helpers";
+import {
+  buildCheckoutProviderPayload,
+  resolveCheckoutIdentityContext,
+} from "./purchases.identity-orchestration";
+import { PurchasesProvisioningOrchestrator } from "./purchases.provisioning-orchestrator";
 import {
   type BnplInstallmentPaymentResponseDto,
   type CancelCheckoutResponseDto,
@@ -77,6 +81,7 @@ type ProviderWebhookResult = {
 export class PurchasesService implements OnModuleInit {
   private readonly runtimeConfig = getApiRuntimeConfig();
   private readonly logger = new Logger(PurchasesService.name);
+  private readonly provisioningOrchestrator: PurchasesProvisioningOrchestrator;
 
   constructor(
     private readonly purchasesRepository: PurchasesRepository,
@@ -88,7 +93,17 @@ export class PurchasesService implements OnModuleInit {
     private readonly redisService: RedisService,
     @Optional()
     private readonly authIdentityIntentService: AuthIdentityIntentService | null = null
-  ) {}
+  ) {
+    this.provisioningOrchestrator = new PurchasesProvisioningOrchestrator({
+      purchasesRepository: this.purchasesRepository,
+      coursesRepository: this.coursesRepository,
+      lessonsRepository: this.lessonsRepository,
+      authService: this.authService,
+      notificationsService: this.notificationsService,
+      authIdentityIntentService: this.authIdentityIntentService,
+      logger: this.logger,
+    });
+  }
 
   async onModuleInit() {
     await this.purchasesRepository.ensureSchema();
@@ -696,7 +711,9 @@ export class PurchasesService implements OnModuleInit {
       });
 
       const refreshed = await this.purchasesRepository.findCheckoutById(checkout.id);
-      const effective = refreshed ? await this.resumeProvisionIfNeeded(refreshed) : checkout;
+      const effective = refreshed
+        ? await this.resumeProvisionIfNeeded(refreshed)
+        : checkout;
       const status = await this.buildCheckoutStatusResponse(effective);
 
       await this.appendTimelineEvent(effective.id, "stage_confirm_applied", {
@@ -1334,468 +1351,35 @@ export class PurchasesService implements OnModuleInit {
   private async resolveCheckoutIdentityContext(params: {
     payload: CheckoutPayloadDto;
     actorUser: AuthUserDto | null;
-  }): Promise<{
-    email: string;
-    identityIntent?: {
-      intentId: string;
-      channel: string;
-      verifiedAt: string | null;
-    };
-  }> {
-    const { actorUser, payload } = params;
-    if (actorUser) {
-      const email = normalizeEmail(actorUser.email || payload.email);
-      if (!email || !validateEmailFormat(email)) {
-        throw new HttpException({ error: "Некорректный email для checkout." }, 400);
-      }
-      return { email };
-    }
-
-    if (!this.runtimeConfig.authPurchaseIdentityIntentGatingEnabled) {
-      const email = normalizeEmail(payload.email);
-      if (!email || !validateEmailFormat(email)) {
-        throw new HttpException({ error: "Некорректный email для checkout." }, 400);
-      }
-      return { email };
-    }
-
-    if (!this.runtimeConfig.authIdentityIntentsEnabled) {
-      throw new HttpException(
-        {
-          error: "Purchase gating через identity intent временно недоступен.",
-          code: "identity_intent_runtime_disabled",
-        },
-        503
-      );
-    }
-    if (!this.authIdentityIntentService) {
-      throw new HttpException(
-        {
-          error: "Purchase gating через identity intent временно недоступен.",
-          code: "identity_intent_runtime_unavailable",
-        },
-        503
-      );
-    }
-
-    const intentId = payload.identityIntentId?.trim() || "";
-    if (!intentId) {
-      throw new HttpException(
-        {
-          error: "Для checkout требуется подтвержденный identity intent.",
-          code: "identity_intent_required",
-        },
-        400
-      );
-    }
-
-    const resolved = await this.authIdentityIntentService.resolveVerifiedForPurchase(
-      intentId
-    );
-    const payloadEmail = normalizeEmail(payload.email);
-    if (payloadEmail && payloadEmail !== resolved.email) {
-      throw new HttpException(
-        {
-          error:
-            "Подтвержденный identity intent не совпадает с email в checkout payload.",
-          code: "identity_intent_context_mismatch",
-        },
-        409
-      );
-    }
-
-    return {
-      email: resolved.email,
-      identityIntent: {
-        intentId: resolved.intentId,
-        channel: resolved.channel,
-        verifiedAt: resolved.verifiedAt,
-      },
-    };
+  }) {
+    return resolveCheckoutIdentityContext({
+      payload: params.payload,
+      actorUser: params.actorUser,
+      runtimeConfig: this.runtimeConfig,
+      authIdentityIntentService: this.authIdentityIntentService,
+    });
   }
 
   private buildCheckoutProviderPayload(params: {
     identityIntentId?: string;
     identityIntentChannel?: string;
     identityIntentVerifiedAt?: string | null;
-  }): Record<string, unknown> | undefined {
-    const identityIntentId = params.identityIntentId?.trim() || "";
-    if (!identityIntentId) {
-      return undefined;
-    }
-    return {
-      identityIntentId,
-      identityIntentChannel: params.identityIntentChannel ?? "email",
-      identityIntentVerifiedAt: params.identityIntentVerifiedAt ?? null,
-    };
+  }) {
+    return buildCheckoutProviderPayload(params);
   }
 
-  private extractIdentityIntentIdFromCheckout(
-    checkout: CheckoutProcessDto
-  ): string | null {
-    if (
-      !checkout.providerPayload ||
-      typeof checkout.providerPayload !== "object" ||
-      Array.isArray(checkout.providerPayload)
-    ) {
-      return null;
-    }
-    const raw = (checkout.providerPayload as Record<string, unknown>).identityIntentId;
-    if (typeof raw !== "string") return null;
-    const value = raw.trim();
-    return value.length > 0 ? value : null;
+  private async resumeProvisionIfNeeded(checkout: CheckoutProcessDto) {
+    return this.provisioningOrchestrator.resumeProvisionIfNeeded(
+      checkout,
+      this.appendTimelineEvent.bind(this)
+    );
   }
 
-  private async consumeIdentityIntentAfterProvision(
-    checkout: CheckoutProcessDto
-  ): Promise<void> {
-    const identityIntentId = this.extractIdentityIntentIdFromCheckout(checkout);
-    if (!identityIntentId || !this.authIdentityIntentService) {
-      return;
-    }
-
-    try {
-      const consumed = await this.authIdentityIntentService.consume(identityIntentId);
-      if (consumed.ok || consumed.state === "consumed" || consumed.state === "expired") {
-        return;
-      }
-      this.logger.warn(
-        `identity_intent consume skipped for checkout=${checkout.id}, intent=${identityIntentId}, state=${consumed.state}`
-      );
-    } catch (error) {
-      this.logger.warn(
-        `identity_intent consume failed for checkout=${checkout.id}, intent=${identityIntentId}: ${
-          error instanceof Error ? error.message : "unknown"
-        }`
-      );
-    }
-  }
-
-  private async syncCapabilityGrantsAfterProvision(params: {
-    userId: string;
-    purchaseId: string;
-    courseId: string;
-    teacherId?: string | null;
-    tariff: "standard" | "premium";
-    grantedAt: string;
-  }): Promise<void> {
-    const repositoryWithCapabilities =
-      this.purchasesRepository as unknown as {
-        upsertCapabilityGrantsForPurchase?: (payload: {
-          userId: string;
-          purchaseId: string;
-          courseId: string;
-          teacherId?: string | null;
-          tariff: "standard" | "premium";
-          grantedAt: string;
-        }) => Promise<void>;
-      };
-    if (
-      typeof repositoryWithCapabilities.upsertCapabilityGrantsForPurchase !==
-      "function"
-    ) {
-      return;
-    }
-
-    try {
-      await repositoryWithCapabilities.upsertCapabilityGrantsForPurchase({
-        userId: params.userId,
-        purchaseId: params.purchaseId,
-        courseId: params.courseId,
-        teacherId: params.teacherId,
-        tariff: params.tariff,
-        grantedAt: params.grantedAt,
-      });
-    } catch (error) {
-      this.logger.warn(
-        `capability grants sync failed for purchase=${params.purchaseId}, user=${params.userId}: ${
-          error instanceof Error ? error.message : "unknown"
-        }`
-      );
-    }
-  }
-
-  private async syncIdentityCompletionAfterProvision(
-    checkout: CheckoutProcessDto,
-    isNewIdentityUser: boolean
-  ): Promise<void> {
-    if (!checkout.userId) {
-      return;
-    }
-    const identityIntentId = this.extractIdentityIntentIdFromCheckout(checkout);
-    const identityVerifiedHint = !isNewIdentityUser || Boolean(identityIntentId);
-
-    try {
-      await this.authService.syncIdentityCompletionAfterPurchase({
-        userId: checkout.userId,
-        identityVerifiedHint,
-        source: identityIntentId
-          ? "purchase_finalization_identity_intent"
-          : "purchase_finalization",
-      });
-    } catch (error) {
-      if (
-        error instanceof TypeError &&
-        error.message.includes("syncIdentityCompletionAfterPurchase is not a function")
-      ) {
-        return;
-      }
-      this.logger.warn(
-        `identity completion sync failed for checkout=${checkout.id}, user=${checkout.userId}: ${
-          error instanceof Error ? error.message : "unknown"
-        }`
-      );
-    }
-  }
-
-  private async resumeProvisionIfNeeded(
-    checkout: CheckoutProcessDto
-  ): Promise<CheckoutProcessDto> {
-    if (
-      checkout.state !== "provider_confirmed" &&
-      checkout.state !== "provision_pending" &&
-      checkout.state !== "provision_failed_retryable"
-    ) {
-      return checkout;
-    }
-    return this.ensureCheckoutProvisioned(checkout);
-  }
-
-  private async ensureCheckoutProvisioned(
-    checkout: CheckoutProcessDto
-  ): Promise<CheckoutProcessDto> {
-    if (
-      checkout.state !== "provider_confirmed" &&
-      checkout.state !== "provision_pending" &&
-      checkout.state !== "provision_failed_retryable"
-    ) {
-      return checkout;
-    }
-
-    const now = nowIso();
-    const provisioningCheckout: CheckoutProcessDto =
-      checkout.state === "provision_pending"
-        ? checkout
-        : {
-            ...checkout,
-            state: "provision_pending",
-            updatedAt: now,
-          };
-
-    if (provisioningCheckout !== checkout) {
-      await this.purchasesRepository.updateCheckout(provisioningCheckout);
-      await this.appendTimelineEvent(provisioningCheckout.id, "provision_pending", {
-        sourceState: checkout.state,
-      });
-    }
-
-    try {
-      const identity = await this.authService.ensureUserByEmail({
-        email: provisioningCheckout.email,
-        firstName: provisioningCheckout.firstName,
-        lastName: provisioningCheckout.lastName,
-        phone: provisioningCheckout.phone,
-      });
-
-      const boundCheckout: CheckoutProcessDto =
-        provisioningCheckout.userId === identity.user.id
-          ? provisioningCheckout
-          : {
-              ...provisioningCheckout,
-              userId: identity.user.id,
-              updatedAt: nowIso(),
-            };
-
-      if (boundCheckout !== provisioningCheckout) {
-        await this.purchasesRepository.updateCheckout(boundCheckout);
-        await this.appendTimelineEvent(boundCheckout.id, "identity_bound", {
-          userId: identity.user.id,
-          isNewUser: identity.isNew,
-        });
-      }
-
-      const course = await this.coursesRepository.findPublishedById(boundCheckout.courseId);
-      if (!course) {
-        throw new HttpException({ error: "Курс не найден во время provisioning." }, 404);
-      }
-      const lessons = await this.lessonsRepository.findAll(boundCheckout.courseId);
-
-      const existingPurchase = await this.purchasesRepository.findPurchaseByUserAndCourse(
-        identity.user.id,
-        boundCheckout.courseId
-      );
-
-      const purchase: PurchaseRecordDto = {
-        id: existingPurchase?.id ?? ensureId("purchase"),
-        userId: identity.user.id,
-        courseId: boundCheckout.courseId,
-        price: boundCheckout.amount,
-        tariff:
-          boundCheckout.tariff ??
-          existingPurchase?.tariff ??
-          "standard",
-        purchasedAt: nowIso(),
-        paymentMethod: boundCheckout.method,
-        checkoutId: boundCheckout.id,
-        bnpl:
-          boundCheckout.method === "bnpl"
-            ? {
-                provider: "unknown",
-                plan: {
-                  installmentsCount: normalizeInstallmentsCount(boundCheckout.bnplInstallmentsCount),
-                  paidCount: 1,
-                  nextPaymentDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-                  schedule: Array.from(
-                    { length: normalizeInstallmentsCount(boundCheckout.bnplInstallmentsCount) },
-                    (_, index) => ({
-                      dueDate: new Date(
-                        Date.now() + index * 14 * 24 * 60 * 60 * 1000
-                      ).toISOString(),
-                      amount: Math.max(
-                        0,
-                        Math.ceil(
-                          boundCheckout.amount /
-                            normalizeInstallmentsCount(boundCheckout.bnplInstallmentsCount)
-                        )
-                      ),
-                      status: index === 0 ? "paid" : "due",
-                    })
-                  ),
-                },
-                installmentsCount: normalizeInstallmentsCount(boundCheckout.bnplInstallmentsCount),
-                paidCount: 1,
-                lastKnownStatus: "active",
-              }
-            : existingPurchase?.bnpl,
-        courseSnapshot: course,
-        lessonsSnapshot: lessons,
-        purchasedTestItemIds: existingPurchase?.purchasedTestItemIds,
-      };
-
-      const isIdentityVerified = !identity.isNew;
-      const finalState: CheckoutStateDto = identity.isNew
-        ? "email_verification_pending"
-        : "provisioned";
-      const finalCheckout: CheckoutProcessDto = {
-        ...boundCheckout,
-        state: finalState,
-        updatedAt: nowIso(),
-      };
-
-      await this.purchasesRepository.provisionCheckoutAtomic({
-        checkout: finalCheckout,
-        purchase,
-        accessContext: {
-          userId: identity.user.id,
-          email: identity.user.email,
-          role: identity.user.role,
-          isIdentityVerified,
-          courseId: finalCheckout.courseId,
-          hasActiveEntitlement: true,
-        },
-        entitlement: {
-          id: ensureId("entl"),
-          state: "active",
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        },
-      });
-
-      await this.syncCapabilityGrantsAfterProvision({
-        userId: identity.user.id,
-        purchaseId: purchase.id,
-        courseId: finalCheckout.courseId,
-        teacherId: course.teacherId,
-        tariff: purchase.tariff ?? "standard",
-        grantedAt: finalCheckout.updatedAt,
-      });
-      await this.consumeIdentityIntentAfterProvision(finalCheckout);
-      await this.syncIdentityCompletionAfterProvision(finalCheckout, identity.isNew);
-
-      await this.purchasesRepository.upsertConsentRecords({
-        checkoutId: finalCheckout.id,
-        email: finalCheckout.email,
-        scopes: finalCheckout.consentSnapshot ?? [],
-        acceptedAt: finalCheckout.createdAt,
-      });
-
-      await this.appendTimelineEvent(finalCheckout.id, "checkout_provisioned", {
-        userId: identity.user.id,
-        purchaseId: purchase.id,
-        identityState: isIdentityVerified ? "verified" : "unverified",
-      });
-
-      if (identity.isNew) {
-        await this.notificationsService.enqueueAndDispatch({
-          id: ensureId("outbox"),
-          template: "registration",
-          dedupeKey: `registration:${identity.user.id}:${finalCheckout.id}`,
-          recipientEmail: identity.user.email,
-          userId: identity.user.id,
-          checkoutId: finalCheckout.id,
-          payload: {
-            reason: "provider_confirmed_payment",
-            checkoutId: finalCheckout.id,
-          },
-        });
-      }
-
-      await this.notificationsService.enqueueAndDispatch({
-        id: ensureId("outbox"),
-        template: "purchase_confirmed",
-        dedupeKey: `purchase_confirmed:${purchase.id}`,
-        recipientEmail: identity.user.email,
-        userId: identity.user.id,
-        checkoutId: finalCheckout.id,
-        payload: {
-          purchaseId: purchase.id,
-          courseId: purchase.courseId,
-          amount: purchase.price,
-        },
-      });
-
-      await this.notificationsService.enqueueAndDispatch({
-        id: ensureId("outbox"),
-        template: "purchase_access_granted",
-        dedupeKey: `purchase_access_granted:${purchase.id}`,
-        recipientEmail: identity.user.email,
-        userId: identity.user.id,
-        checkoutId: finalCheckout.id,
-        payload: {
-          purchaseId: purchase.id,
-          courseId: purchase.courseId,
-          accessState: finalState,
-        },
-      });
-
-      if (!identity.isNew) {
-        await this.notificationsService.enqueueAndDispatch({
-          id: ensureId("outbox"),
-          template: "login_hint",
-          dedupeKey: `login_hint:purchase:${identity.user.id}:${finalCheckout.id}`,
-          recipientEmail: identity.user.email,
-          userId: identity.user.id,
-          checkoutId: finalCheckout.id,
-          payload: {
-            reason: "existing_user_purchase",
-            checkoutId: finalCheckout.id,
-          },
-        });
-      }
-
-      return finalCheckout;
-    } catch (error) {
-      const failedCheckout: CheckoutProcessDto = {
-        ...provisioningCheckout,
-        state: "provision_failed_retryable",
-        updatedAt: nowIso(),
-      };
-      await this.purchasesRepository.updateCheckout(failedCheckout);
-      await this.appendTimelineEvent(failedCheckout.id, "provision_failed", {
-        error: error instanceof Error ? error.message : "unknown",
-      });
-      throw error;
-    }
+  private async ensureCheckoutProvisioned(checkout: CheckoutProcessDto) {
+    return this.provisioningOrchestrator.ensureCheckoutProvisioned(
+      checkout,
+      this.appendTimelineEvent.bind(this)
+    );
   }
 
   private async buildAccessPayload(

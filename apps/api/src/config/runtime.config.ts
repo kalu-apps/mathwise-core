@@ -95,6 +95,8 @@ export type ApiRuntimeConfig = {
   s3ForcePathStyle: boolean;
   mediaSignedUrlTtlSec: number;
   mediaLessonVideoMaxUploadBytes: number;
+  mediaGcIntervalSec: number;
+  mediaGcBatchLimit: number;
   workbookLaunchEnabled: boolean;
   workbookBoardBaseUrl: string;
   workbookLaunchSecret: string;
@@ -228,23 +230,23 @@ const isUnsafeNonLocalSeedSource = (sourceFile: string) => {
   return false;
 };
 
-const normalizeUrlOrigin = (raw: string | undefined, fallback: string) => {
+const normalizeUrlOrigin = (
+  raw: string | undefined,
+  fallback: string,
+  envName: string
+) => {
   const candidate = raw?.trim() || fallback;
   if (!candidate) {
-    throw new Error("[api-runtime] OAuth redirect base url is missing.");
+    throw new Error(`[api-runtime] ${envName} is missing.`);
   }
   let parsed: URL;
   try {
     parsed = new URL(candidate);
   } catch {
-    throw new Error(
-      `[api-runtime] Invalid OAuth base URL value: ${candidate}`
-    );
+    throw new Error(`[api-runtime] Invalid ${envName} value: ${candidate}`);
   }
   if (!/^https?:$/.test(parsed.protocol)) {
-    throw new Error(
-      `[api-runtime] OAuth base URL must be http/https: ${candidate}`
-    );
+    throw new Error(`[api-runtime] ${envName} must use http/https: ${candidate}`);
   }
   return parsed.origin;
 };
@@ -288,11 +290,16 @@ export const getApiRuntimeConfig = (
     );
   }
 
-  const corsOrigin = process.env.API_CORS_ORIGIN?.trim();
-  if (!isLocal && !corsOrigin) {
+  const corsOriginRaw = process.env.API_CORS_ORIGIN?.trim();
+  if (!isLocal && !corsOriginRaw) {
     throw new Error("[api-runtime] Missing required env: API_CORS_ORIGIN");
   }
-  if (!isLocal && corsOrigin && /(localhost|127\.0\.0\.1)/i.test(corsOrigin)) {
+  const corsOrigin = normalizeUrlOrigin(
+    corsOriginRaw,
+    "http://localhost:5173",
+    "API_CORS_ORIGIN"
+  );
+  if (!isLocal && /(localhost|127\.0\.0\.1|\[::1\]|::1)/i.test(corsOrigin)) {
     throw new Error(
       "[api-runtime] API_CORS_ORIGIN cannot point to localhost outside local APP_ENV"
     );
@@ -416,8 +423,14 @@ export const getApiRuntimeConfig = (
 
   const authOauthRedirectBaseUrl = normalizeUrlOrigin(
     process.env.AUTH_OAUTH_REDIRECT_BASE_URL,
-    corsOrigin || "http://localhost:5173"
+    corsOrigin,
+    "AUTH_OAUTH_REDIRECT_BASE_URL"
   );
+  if (!isLocal && authOauthRedirectBaseUrl !== corsOrigin) {
+    throw new Error(
+      "[api-runtime] AUTH_OAUTH_REDIRECT_BASE_URL must match API_CORS_ORIGIN origin outside local APP_ENV"
+    );
+  }
   const authIdentityIntentsEnabled = parseBoolean(
     process.env.AUTH_IDENTITY_INTENTS_ENABLED,
     false
@@ -517,8 +530,8 @@ export const getApiRuntimeConfig = (
         scope: "login:email login:info",
       }),
       vk: buildSocialConfig("vk", {
-        authorizeUrl: "https://oauth.vk.com/authorize",
-        tokenUrl: "https://oauth.vk.com/access_token",
+        authorizeUrl: "https://oauth.vk.ru/authorize",
+        tokenUrl: "https://oauth.vk.ru/access_token",
         userInfoUrl: "https://api.vk.com/method/users.get",
         scope: "email",
       }),
@@ -598,17 +611,28 @@ export const getApiRuntimeConfig = (
   const yookassaReturnUrl = yookassaEnabled
     ? ensureRequiredEnv("YOOKASSA_RETURN_URL", process.env.YOOKASSA_RETURN_URL)
     : process.env.YOOKASSA_RETURN_URL?.trim() || "";
+  let yookassaReturnOrigin: string | null = null;
   if (yookassaReturnUrl) {
     try {
       const parsed = new URL(yookassaReturnUrl);
       if (!["http:", "https:"].includes(parsed.protocol)) {
         throw new Error();
       }
+      yookassaReturnOrigin = parsed.origin;
     } catch {
       throw new Error(
         "[api-runtime] YOOKASSA_RETURN_URL must be a valid absolute URL"
       );
     }
+  }
+  if (
+    yookassaEnabled &&
+    yookassaReturnOrigin &&
+    yookassaReturnOrigin !== authOauthRedirectBaseUrl
+  ) {
+    throw new Error(
+      "[api-runtime] YOOKASSA_RETURN_URL origin must match AUTH_OAUTH_REDIRECT_BASE_URL"
+    );
   }
   const yookassaWebhookPath =
     process.env.YOOKASSA_WEBHOOK_PATH?.trim() ||
@@ -661,6 +685,14 @@ export const getApiRuntimeConfig = (
       1024,
       parsePositiveInteger(process.env.MEDIA_LESSON_VIDEO_MAX_UPLOAD_MB, 2048)
     )
+  );
+  const mediaGcIntervalSec = Math.max(
+    60,
+    parsePositiveInteger(process.env.MEDIA_GC_INTERVAL_SEC, 300)
+  );
+  const mediaGcBatchLimit = Math.max(
+    10,
+    Math.min(1000, parsePositiveInteger(process.env.MEDIA_GC_BATCH_LIMIT, 200))
   );
   const workbookLaunchEnabled = parseBoolean(
     process.env.WORKBOOK_LAUNCH_ENABLED,
@@ -730,7 +762,7 @@ export const getApiRuntimeConfig = (
     port: parsePort(process.env.API_PORT),
     host: process.env.API_HOST?.trim() || "0.0.0.0",
     appEnv,
-    corsOrigin: corsOrigin || "http://localhost:5173",
+    corsOrigin,
     databaseUrl: requireDatabase
       ? ensureRequiredEnv("DATABASE_URL", process.env.DATABASE_URL)
       : process.env.DATABASE_URL?.trim() || "",
@@ -833,6 +865,8 @@ export const getApiRuntimeConfig = (
     s3ForcePathStyle,
     mediaSignedUrlTtlSec,
     mediaLessonVideoMaxUploadBytes: mediaLessonVideoMaxUploadMb * 1024 * 1024,
+    mediaGcIntervalSec,
+    mediaGcBatchLimit,
     workbookLaunchEnabled,
     workbookBoardBaseUrl,
     workbookLaunchSecret:

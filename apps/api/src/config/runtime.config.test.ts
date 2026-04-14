@@ -21,7 +21,7 @@ test("runtime config: stage mode rejects AUTH_DEBUG_TOKENS=true", () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -39,11 +39,33 @@ test("runtime config: stage mode rejects AUTH_DEBUG_TOKENS=true", () => {
   }
 });
 
+test("runtime config: non-local requires absolute API_CORS_ORIGIN", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "stage.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+
+    assert.throws(
+      () => getApiRuntimeConfig(),
+      /Invalid API_CORS_ORIGIN value/
+    );
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
 test("runtime config: provider email mode requires EMAIL_PROVIDER_API_KEY", () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -67,7 +89,7 @@ test("runtime config: smtp mode does not require EMAIL_PROVIDER_API_KEY", () => 
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -97,7 +119,7 @@ test("runtime config: smtp mode requires EMAIL_SMTP_HOST", () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -126,7 +148,7 @@ test("runtime config: stage mode requires WORKBOOK_BOARD_BASE_URL when launch en
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -150,7 +172,7 @@ test("runtime config: stage mode rejects PAYMENT_MOCK_ENABLED=true", () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -173,7 +195,7 @@ test("runtime config: stage mode rejects frontend mock seed source", () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -196,7 +218,7 @@ test("runtime config: STAGE_SITE_GATE_ENABLED is rejected outside stage", () => 
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "preview";
-    process.env.API_CORS_ORIGIN = "https://preview.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://preview.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -220,7 +242,7 @@ test("runtime config: stage gate requires secret when enabled", () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -244,7 +266,7 @@ test("runtime config: STAGE_PAYMENT_CONFIRM_ENABLED is rejected outside stage", 
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "preview";
-    process.env.API_CORS_ORIGIN = "https://preview.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://preview.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -267,7 +289,7 @@ test("runtime config: yookassa disabled does not require credentials", () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -294,7 +316,7 @@ test("runtime config: yookassa test mode requires shop id, secret and return url
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -321,7 +343,7 @@ test("runtime config: yookassa test mode reads and normalizes config", () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -354,11 +376,38 @@ test("runtime config: yookassa test mode reads and normalizes config", () => {
   }
 });
 
+test("runtime config: yookassa return url origin must match oauth redirect origin", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
+    process.env.AUTH_OAUTH_REDIRECT_BASE_URL = "https://stage.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.YOOKASSA_MODE = "test";
+    process.env.YOOKASSA_SHOP_ID = "test_shop_id";
+    process.env.YOOKASSA_SECRET_KEY = "test_secret_key";
+    process.env.YOOKASSA_RETURN_URL = "https://pay.stage.mathwise.ru/courses";
+
+    assert.throws(
+      () => getApiRuntimeConfig(),
+      /YOOKASSA_RETURN_URL origin must match AUTH_OAUTH_REDIRECT_BASE_URL/
+    );
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
 test("runtime config: enabled social oauth provider requires credentials", () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -383,7 +432,7 @@ test("runtime config: enabled social oauth provider is parsed and exposed", () =
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -391,13 +440,13 @@ test("runtime config: enabled social oauth provider is parsed and exposed", () =
     process.env.AUTH_COOKIE_SECURE = "true";
     process.env.AUTH_DEBUG_TOKENS = "false";
     process.env.WORKBOOK_LAUNCH_ENABLED = "false";
-    process.env.AUTH_OAUTH_REDIRECT_BASE_URL = "https://stage.board.mathwise.ru";
+    process.env.AUTH_OAUTH_REDIRECT_BASE_URL = "https://stage.mathwise.ru";
     process.env.AUTH_OAUTH_GOOGLE_ENABLED = "true";
     process.env.AUTH_OAUTH_GOOGLE_CLIENT_ID = "google-client-id";
     process.env.AUTH_OAUTH_GOOGLE_CLIENT_SECRET = "google-client-secret";
 
     const config = getApiRuntimeConfig();
-    assert.equal(config.authOauthRedirectBaseUrl, "https://stage.board.mathwise.ru");
+    assert.equal(config.authOauthRedirectBaseUrl, "https://stage.mathwise.ru");
     assert.equal(config.authOauthProviders.google.enabled, true);
     assert.equal(config.authOauthProviders.google.clientId, "google-client-id");
     assert.equal(
@@ -409,11 +458,34 @@ test("runtime config: enabled social oauth provider is parsed and exposed", () =
   }
 });
 
+test("runtime config: oauth redirect base url must match cors origin outside local", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
+    process.env.AUTH_OAUTH_REDIRECT_BASE_URL = "https://accounts.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+
+    assert.throws(
+      () => getApiRuntimeConfig(),
+      /AUTH_OAUTH_REDIRECT_BASE_URL must match API_CORS_ORIGIN origin/
+    );
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
 test("runtime config: identity intents are disabled by default", () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -442,7 +514,7 @@ test("runtime config: identity intents env overrides are parsed", () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -471,7 +543,7 @@ test("runtime config: purchase identity-intent gating requires identity intents"
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -495,7 +567,7 @@ test("runtime config: teacher invites are disabled by default", () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -518,7 +590,7 @@ test("runtime config: teacher invites env overrides are parsed", () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.board.mathwise.ru";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -532,6 +604,29 @@ test("runtime config: teacher invites env overrides are parsed", () => {
     const config = getApiRuntimeConfig();
     assert.equal(config.teacherInvitesEnabled, true);
     assert.equal(config.teacherInviteTtlSec, 1800);
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("runtime config: media gc env overrides are parsed and clamped", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.MEDIA_GC_INTERVAL_SEC = "10";
+    process.env.MEDIA_GC_BATCH_LIMIT = "5000";
+
+    const config = getApiRuntimeConfig();
+    assert.equal(config.mediaGcIntervalSec, 60);
+    assert.equal(config.mediaGcBatchLimit, 1000);
   } finally {
     restoreEnv(snapshot);
   }

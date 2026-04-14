@@ -2,15 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "r
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { LessonItem } from "@/entities/lesson/ui/LessonItem";
 import { useAuth } from "@/features/auth/model/AuthContext";
-import {
-  getIdentityIntentStatus,
-  selfHealAccess,
-  startIdentityIntent,
-  verifyIdentityIntent,
-} from "@/features/auth/model/api";
-import {
-  checkoutPurchase,
-} from "@/entities/purchase/model/storage";
+import { selfHealAccess } from "@/features/auth/model/api";
 import type { Purchase } from "@/entities/purchase/model/types";
 import {
   Alert,
@@ -62,9 +54,6 @@ import {
 import type { Course } from "@/entities/course/model/types";
 import type { Lesson } from "@/entities/lesson/model/types";
 import {
-  cancelCheckout,
-  retryCheckout,
-  stageConfirmCheckout,
   type CheckoutListItem,
 } from "@/domain/auth-payments/model/api";
 import type { CourseAccessDecision } from "@/domain/auth-payments/model/access";
@@ -110,9 +99,20 @@ import {
   type PaymentMethod,
 } from "@/pages/courses/model/courseDetailsHelpers";
 import {
-  mapIdentityIntentStatusMessage,
   normalizeIdentityIntentCode,
 } from "@/pages/courses/model/identityIntentBridge";
+import {
+  cancelCourseCheckout,
+  confirmStageCheckoutPayment,
+  resolveCheckoutPaymentUrl,
+  resolvePendingAttachCheckoutId,
+  resolveVerifiedCheckoutIntent,
+  retryCheckoutPayment,
+  shouldOpenLoginAttachAction,
+  startCourseCheckoutIdentityIntent,
+  submitCourseCheckout,
+  verifyCourseCheckoutIdentityIntent,
+} from "@/pages/courses/model/coursePurchaseFlowController";
 import { isStagePaymentConfirmEnabled } from "@/app/runtime/stageRuntime";
 import { resolveCourseDetailsEmptyState } from "@/pages/courses/model/errorMapping";
 
@@ -698,10 +698,10 @@ export default function CourseDetails() {
     },
   ];
   const checkoutIdentityMarker = checkoutFlowStatus?.access?.identityState ?? "";
-  const firstPasswordPending = checkoutIdentityMarker === "pending_first_password";
+  const firstPasswordPending =
+    checkoutFlowStatus?.identityCompletionState === "pending_first_password";
   const checkoutIdentityState =
     checkoutIdentityMarker === "verified" ||
-    checkoutIdentityMarker === "authenticated" ||
     firstPasswordPending ||
     Boolean(user)
       ? "done"
@@ -823,20 +823,14 @@ export default function CourseDetails() {
     try {
       setPurchaseIntentStartLoading(true);
       setPurchaseIntentError(null);
-      const started = await startIdentityIntent({
-        channel: "email",
+      const started = await startCourseCheckoutIdentityIntent({
         email,
-        metadata: {
-          source: "course_checkout",
-          courseId: course?.id ?? null,
-        },
+        courseId: course?.id ?? null,
       });
-      setPurchaseIntentId(started.intentId);
-      setPurchaseIntentExpiresAt(started.expiresAt ?? null);
-      setPurchaseIntentMessage(
-        started.message || mapIdentityIntentStatusMessage(started.state)
-      );
-      if (!started.intentId) {
+      setPurchaseIntentId(started.intentId ?? null);
+      setPurchaseIntentExpiresAt(started.expiresAt);
+      setPurchaseIntentMessage(started.message);
+      if (!started.intentId?.trim()) {
         setPurchaseIntentError(
           "Не удалось запустить верификацию identity. Проверьте email и повторите попытку."
         );
@@ -863,11 +857,9 @@ export default function CourseDetails() {
     try {
       setPurchaseIntentVerifyLoading(true);
       setPurchaseIntentError(null);
-      const verified = await verifyIdentityIntent({ intentId, code });
-      setPurchaseIntentMessage(
-        verified.message || mapIdentityIntentStatusMessage(verified.state)
-      );
-      setPurchaseIntentExpiresAt(verified.expiresAt ?? null);
+      const verified = await verifyCourseCheckoutIdentityIntent({ intentId, code });
+      setPurchaseIntentMessage(verified.message);
+      setPurchaseIntentExpiresAt(verified.expiresAt);
       if (verified.state === "verified" && verified.intentId) {
         setPurchaseIntentId(verified.intentId);
         return;
@@ -876,9 +868,7 @@ export default function CourseDetails() {
         setPurchaseIntentId(null);
         setPurchaseIntentCode("");
       }
-      setPurchaseIntentError(
-        verified.message || mapIdentityIntentStatusMessage(verified.state)
-      );
+      setPurchaseIntentError(verified.message);
     } catch (error) {
       setPurchaseIntentError(mapPurchaseFlowErrorMessage(error));
     } finally {
@@ -922,9 +912,9 @@ export default function CourseDetails() {
         return;
       }
       try {
-        const intentStatus = await getIdentityIntentStatus(purchaseIntentId);
-        if (intentStatus.state !== "verified") {
-          setPurchaseIntentMessage(mapIdentityIntentStatusMessage(intentStatus.state));
+        const intentStatus = await resolveVerifiedCheckoutIntent(purchaseIntentId);
+        if (!intentStatus.ok) {
+          setPurchaseIntentMessage(intentStatus.message);
           setPurchaseIntentError(
             "Identity intent не готов к checkout. Запросите и подтвердите код повторно."
           );
@@ -946,7 +936,7 @@ export default function CourseDetails() {
         let shouldOpenAttentionModal = false;
         try {
           setPurchaseLoading(true);
-          const result = await checkoutPurchase({
+          const result = await submitCourseCheckout({
             userId: user?.id,
             email: checkoutEmail,
             identityIntentId: verifiedIntentId,
@@ -972,13 +962,7 @@ export default function CourseDetails() {
           }
 
           setActiveCheckoutId(result.checkoutId);
-          setCheckoutPaymentUrl(
-            result.payment?.redirectUrl ??
-              result.payment?.paymentUrl ??
-              result.payment?.sbp?.deepLinkUrl ??
-              result.payment?.sbp?.qrUrl ??
-              null
-          );
+          setCheckoutPaymentUrl(resolveCheckoutPaymentUrl(result.payment));
           setCheckoutProviderLabel(
             getPaymentProviderLabel(result.payment?.provider ?? purchaseMethod)
           );
@@ -1001,33 +985,16 @@ export default function CourseDetails() {
           }
           return;
         } catch (error) {
-          if (error instanceof ApiError) {
-            const details = (error.details ?? {}) as {
-              code?: string;
-              checkoutId?: string;
-            };
-            if (
-              details.code === "identity_conflict_auth_required" &&
-              typeof details.checkoutId === "string" &&
-              details.checkoutId
-            ) {
-              setPendingAttachCheckoutId(details.checkoutId);
-              setShowLoginAction(true);
-              setPurchaseOpen(false);
-              setModalMessage(error.message);
-              shouldOpenAttentionModal = true;
-              return;
-            }
+          const pendingAttachId = resolvePendingAttachCheckoutId(error);
+          if (pendingAttachId) {
+            setPendingAttachCheckoutId(pendingAttachId);
+            setShowLoginAction(true);
+            setPurchaseOpen(false);
+            setModalMessage(error instanceof Error ? error.message : "Авторизуйтесь для продолжения checkout.");
+            shouldOpenAttentionModal = true;
+            return;
           }
-          const errorCode =
-            error instanceof ApiError
-              ? ((error.details ?? {}) as { code?: string }).code
-              : undefined;
-          const requiresAuthAttach =
-            (error instanceof Error && error.message.includes("Авторизуйтесь")) ||
-            errorCode === "identity_intent_required" ||
-            errorCode === "identity_intent_context_mismatch" ||
-            errorCode === "identity_conflict_auth_required";
+          const requiresAuthAttach = shouldOpenLoginAttachAction(error);
           setModalMessage(mapPurchaseFlowErrorMessage(error));
           setShowLoginAction(requiresAuthAttach);
           shouldOpenAttentionModal = true;
@@ -1058,14 +1025,7 @@ export default function CourseDetails() {
         try {
           setCheckoutFlowLoading(true);
           setCheckoutFlowError(null);
-          const result = await retryCheckout(activeCheckoutId);
-          setCheckoutPaymentUrl(
-            result.payment.redirectUrl ??
-              result.payment.paymentUrl ??
-              result.payment.sbp?.deepLinkUrl ??
-              result.payment.sbp?.qrUrl ??
-              null
-          );
+          setCheckoutPaymentUrl(await retryCheckoutPayment(activeCheckoutId));
           await refreshCheckoutFlow(activeCheckoutId, { silent: true });
         } catch (error) {
           setCheckoutFlowError(
@@ -1093,13 +1053,8 @@ export default function CourseDetails() {
         try {
           setCheckoutFlowLoading(true);
           setCheckoutFlowError(null);
-          const result = await stageConfirmCheckout(activeCheckoutId);
           setCheckoutPaymentUrl(
-            result.payment.redirectUrl ??
-              result.payment.paymentUrl ??
-              result.payment.sbp?.deepLinkUrl ??
-              result.payment.sbp?.qrUrl ??
-              null
+            await confirmStageCheckoutPayment(activeCheckoutId)
           );
           await refreshCheckoutFlow(activeCheckoutId, { silent: true });
         } catch (error) {
@@ -1127,7 +1082,7 @@ export default function CourseDetails() {
         try {
           setCheckoutFlowLoading(true);
           setCheckoutFlowError(null);
-          await cancelCheckout(activeCheckoutId);
+          await cancelCourseCheckout(activeCheckoutId);
           await refreshCheckoutFlow(activeCheckoutId, { silent: true });
           setCheckoutFlowOpen(false);
           setModalMessage(

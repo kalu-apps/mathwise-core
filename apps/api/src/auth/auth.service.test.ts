@@ -7,7 +7,7 @@ import { AuthService } from "./auth.service";
 
 const REQUIRED_ENV: Record<string, string> = {
   APP_ENV: "stage",
-  API_CORS_ORIGIN: "https://stage.board.mathwise.ru",
+  API_CORS_ORIGIN: "https://stage.mathwise.ru",
   DATABASE_URL: "postgres://u:p@127.0.0.1:5432/db",
   REDIS_URL: "redis://127.0.0.1:6379",
   CARD_WEBHOOK_SECRET: "test-secret",
