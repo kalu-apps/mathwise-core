@@ -61,7 +61,7 @@ describe("api parity", () => {
       "completed",
     ];
     for (const state of requiredAuthStates) {
-      expect(authContracts.includes(`\"${state}\"`)).toBe(true);
+      expect(authContracts.includes(`"${state}"`)).toBe(true);
     }
 
     const requiredBookingLiterals = [
@@ -76,7 +76,7 @@ describe("api parity", () => {
       "hold_consumed",
     ];
     for (const literal of requiredBookingLiterals) {
-      expect(bookingContracts.includes(`\"${literal}\"`)).toBe(true);
+      expect(bookingContracts.includes(`"${literal}"`)).toBe(true);
     }
 
     const requiredPurchaseLiterals = [
@@ -96,7 +96,7 @@ describe("api parity", () => {
       "invalid",
     ];
     for (const status of requiredInviteStatuses) {
-      expect(profileContracts.includes(`\"${status}\"`)).toBe(true);
+      expect(profileContracts.includes(`"${status}"`)).toBe(true);
     }
   });
 });
