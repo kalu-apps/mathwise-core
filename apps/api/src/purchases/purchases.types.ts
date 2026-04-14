@@ -1,5 +1,10 @@
 export type CheckoutMethodDto = "mock" | "card" | "sbp" | "bnpl";
 export type PurchaseTariffDto = "standard" | "premium";
+export type CheckoutIdentityCompletionStateDto =
+  | "pending_identity_verification"
+  | "pending_account_finalization"
+  | "pending_first_password"
+  | "completed";
 
 export type CheckoutStateDto =
   | "created"
@@ -109,6 +114,9 @@ export type CheckoutStatusResponseDto = {
     profileComplete: boolean;
     accessState: CheckoutAccessStateDto;
   } | null;
+  identityCompletionState?: CheckoutIdentityCompletionStateDto;
+  firstPasswordRequired?: boolean;
+  identityCompleted?: boolean;
 };
 
 export type CheckoutPayloadDto = {
@@ -145,6 +153,9 @@ export type CheckoutPurchaseResponseDto = {
   entitlementState: "none" | "active";
   profileComplete: boolean;
   accessState: CheckoutAccessStateDto;
+  identityCompletionState?: CheckoutIdentityCompletionStateDto;
+  firstPasswordRequired?: boolean;
+  identityCompleted?: boolean;
 };
 
 export type CheckoutActionResponseDto = {

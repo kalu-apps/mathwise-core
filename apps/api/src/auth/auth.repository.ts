@@ -1,6 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { DatabaseService } from "../db/database.service";
-import type { AuthSocialProvider, AuthUserDto } from "./auth.types";
+import type {
+  AuthIdentityCompletionStateDto,
+  AuthSocialProvider,
+  AuthUserDto,
+} from "./auth.types";
 
 type AuthUserRow = {
   id: string;
@@ -48,6 +52,30 @@ export type RecoveryArtifactRow = {
   createdAt: string;
   updatedAt: string;
   consumedAt: string | null;
+};
+
+type AuthIdentityCompletionRow = {
+  userId: string;
+  identityVerifiedAt: string | null;
+  accountFinalizedAt: string | null;
+  firstPasswordSetAt: string | null;
+  completionState: AuthIdentityCompletionStateDto;
+  completedAt: string | null;
+  source: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AuthIdentityCompletionRecord = {
+  userId: string;
+  identityVerifiedAt?: string;
+  accountFinalizedAt?: string;
+  firstPasswordSetAt?: string;
+  completionState: AuthIdentityCompletionStateDto;
+  completedAt?: string;
+  source?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 @Injectable()
@@ -134,6 +162,33 @@ export class AuthRepository {
     await this.databaseService.execute(`
       CREATE INDEX IF NOT EXISTS idx_auth_user_identities_user_provider
       ON auth_user_identities (user_id, provider)
+    `);
+
+    await this.databaseService.execute(`
+      CREATE TABLE IF NOT EXISTS auth_identity_completions (
+        user_id TEXT PRIMARY KEY REFERENCES auth_users(id) ON DELETE CASCADE,
+        identity_verified_at TEXT,
+        account_finalized_at TEXT,
+        first_password_set_at TEXT,
+        completion_state TEXT NOT NULL CHECK (
+          completion_state IN (
+            'pending_identity_verification',
+            'pending_account_finalization',
+            'pending_first_password',
+            'completed'
+          )
+        ),
+        completed_at TEXT,
+        source TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        updated_at_ts TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await this.databaseService.execute(`
+      CREATE INDEX IF NOT EXISTS idx_auth_identity_completions_state
+      ON auth_identity_completions (completion_state, updated_at DESC)
     `);
   }
 
@@ -699,6 +754,80 @@ export class AuthRepository {
     );
   }
 
+  async findIdentityCompletionByUserId(
+    userId: string
+  ): Promise<AuthIdentityCompletionRecord | null> {
+    const rows = await this.databaseService.query<AuthIdentityCompletionRow>(
+      `
+        SELECT
+          user_id AS "userId",
+          identity_verified_at AS "identityVerifiedAt",
+          account_finalized_at AS "accountFinalizedAt",
+          first_password_set_at AS "firstPasswordSetAt",
+          completion_state AS "completionState",
+          completed_at AS "completedAt",
+          source,
+          created_at AS "createdAt",
+          updated_at AS "updatedAt"
+        FROM auth_identity_completions
+        WHERE user_id = $1
+        LIMIT 1
+      `,
+      [userId]
+    );
+    const row = rows[0];
+    return row ? this.mapIdentityCompletion(row) : null;
+  }
+
+  async upsertIdentityCompletion(params: {
+    userId: string;
+    identityVerifiedAt?: string | null;
+    accountFinalizedAt?: string | null;
+    firstPasswordSetAt?: string | null;
+    completionState: AuthIdentityCompletionStateDto;
+    completedAt?: string | null;
+    source?: string | null;
+  }): Promise<void> {
+    const now = new Date().toISOString();
+    await this.databaseService.execute(
+      `
+        INSERT INTO auth_identity_completions (
+          user_id,
+          identity_verified_at,
+          account_finalized_at,
+          first_password_set_at,
+          completion_state,
+          completed_at,
+          source,
+          created_at,
+          updated_at,
+          updated_at_ts
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8, NOW())
+        ON CONFLICT (user_id)
+        DO UPDATE SET
+          identity_verified_at = COALESCE(EXCLUDED.identity_verified_at, auth_identity_completions.identity_verified_at),
+          account_finalized_at = COALESCE(EXCLUDED.account_finalized_at, auth_identity_completions.account_finalized_at),
+          first_password_set_at = COALESCE(EXCLUDED.first_password_set_at, auth_identity_completions.first_password_set_at),
+          completion_state = EXCLUDED.completion_state,
+          completed_at = COALESCE(EXCLUDED.completed_at, auth_identity_completions.completed_at),
+          source = COALESCE(EXCLUDED.source, auth_identity_completions.source),
+          updated_at = EXCLUDED.updated_at,
+          updated_at_ts = NOW()
+      `,
+      [
+        params.userId,
+        params.identityVerifiedAt ?? null,
+        params.accountFinalizedAt ?? null,
+        params.firstPasswordSetAt ?? null,
+        params.completionState,
+        params.completedAt ?? null,
+        params.source ?? null,
+        now,
+      ]
+    );
+  }
+
   private mapRowWithPassword(
     row: AuthUserRow
   ): AuthUserDto & { passwordHash: string | null } {
@@ -733,6 +862,22 @@ export class AuthRepository {
       provider: row.provider,
       providerUserId: row.providerUserId,
       email: row.email ?? undefined,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  private mapIdentityCompletion(
+    row: AuthIdentityCompletionRow
+  ): AuthIdentityCompletionRecord {
+    return {
+      userId: row.userId,
+      identityVerifiedAt: row.identityVerifiedAt ?? undefined,
+      accountFinalizedAt: row.accountFinalizedAt ?? undefined,
+      firstPasswordSetAt: row.firstPasswordSetAt ?? undefined,
+      completionState: row.completionState,
+      completedAt: row.completedAt ?? undefined,
+      source: row.source ?? undefined,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };

@@ -13,6 +13,10 @@ import { AuthRepository } from "./auth.repository";
 import { readAuthSeedUsers, upsertAuthUsers } from "./auth.seed";
 import { SessionStore } from "./session.store";
 import type {
+  AuthFirstPasswordCompleteResponseDto,
+  AuthFirstPasswordStatusResponseDto,
+  AuthIdentityCompletionStateDto,
+  AuthIdentityCompletionStatusResponseDto,
   AuthLogoutResponseDto,
   AuthPasswordSaveResponseDto,
   AuthPasswordStatusResponseDto,
@@ -61,6 +65,8 @@ type OauthProfileResult =
     };
 
 const SOCIAL_PROVIDERS: AuthSocialProvider[] = ["google", "yandex", "vk"];
+
+type PasswordChangeReason = "first_password_set" | "password_changed" | "password_reset";
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -385,6 +391,12 @@ export class AuthService implements OnModuleInit {
     });
 
     const session = await this.sessionStore.createSession(user.id);
+    await this.safeReconcileIdentityCompletion({
+      userId: user.id,
+      identityVerifiedHint: true,
+      accountFinalizedHint: true,
+      source: `social_login:${provider}`,
+    });
     return {
       ok: true,
       sessionId: session.id,
@@ -563,6 +575,12 @@ export class AuthService implements OnModuleInit {
       };
     }
     if (!userWithCredential.passwordHash) {
+      await this.safeReconcileIdentityCompletion({
+        userId: userWithCredential.id,
+        identityVerifiedHint: true,
+        accountFinalizedHint: true,
+        source: "password_login_blocked",
+      });
       return {
         ok: false,
         status: 409,
@@ -619,6 +637,69 @@ export class AuthService implements OnModuleInit {
     };
   }
 
+  async getIdentityCompletionStatus(
+    userId: string
+  ): Promise<AuthIdentityCompletionStatusResponseDto> {
+    const status = await this.reconcileIdentityCompletion({
+      userId,
+      source: null,
+    });
+    return {
+      ok: true,
+      userId: status.userId,
+      identityVerified: status.identityVerified,
+      accountFinalized: status.accountFinalized,
+      hasPassword: status.hasPassword,
+      firstPasswordRequired: status.firstPasswordRequired,
+      completionState: status.completionState,
+      identityVerifiedAt: status.identityVerifiedAt,
+      accountFinalizedAt: status.accountFinalizedAt,
+      firstPasswordSetAt: status.firstPasswordSetAt,
+      completedAt: status.completedAt,
+      source: status.source,
+    };
+  }
+
+  async getFirstPasswordStatus(userId: string): Promise<AuthFirstPasswordStatusResponseDto> {
+    const completion = await this.getIdentityCompletionStatus(userId);
+    return {
+      ok: true,
+      userId: completion.userId,
+      required: completion.firstPasswordRequired,
+      hasPassword: completion.hasPassword,
+      completionState: completion.completionState,
+      completed: completion.completionState === "completed",
+    };
+  }
+
+  async completeFirstPassword(params: {
+    userId: string;
+    newPassword: string;
+  }): Promise<AuthFirstPasswordCompleteResponseDto> {
+    const saved = await this.setPassword(params);
+    const completion = await this.getIdentityCompletionStatus(params.userId);
+    return {
+      ok: saved.ok,
+      message: saved.message,
+      firstPasswordRequired: completion.firstPasswordRequired,
+      completionState: completion.completionState,
+      completed: completion.completionState === "completed",
+    };
+  }
+
+  async syncIdentityCompletionAfterPurchase(params: {
+    userId: string;
+    identityVerifiedHint: boolean;
+    source?: string;
+  }): Promise<void> {
+    await this.safeReconcileIdentityCompletion({
+      userId: params.userId,
+      identityVerifiedHint: params.identityVerifiedHint,
+      accountFinalizedHint: true,
+      source: params.source ?? "purchase_finalization",
+    });
+  }
+
   async setPassword(params: {
     userId: string;
     newPassword: string;
@@ -643,6 +724,18 @@ export class AuthService implements OnModuleInit {
       this.runtimeConfig.authPasswordPepper
     );
     await this.authRepository.updatePasswordHash(user.id, passwordHash);
+    await this.safeReconcileIdentityCompletion({
+      userId: user.id,
+      identityVerifiedHint: true,
+      accountFinalizedHint: true,
+      passwordSetAtHint: nowIso(),
+      source: "first_password_set",
+    });
+    await this.enqueuePasswordChangedNotification({
+      userId: user.id,
+      email: user.email,
+      reason: "first_password_set",
+    });
     return { ok: true, message: "Пароль успешно сохранен." };
   }
 
@@ -687,6 +780,18 @@ export class AuthService implements OnModuleInit {
     }
     const passwordHash = hashPassword(nextPassword, this.runtimeConfig.authPasswordPepper);
     await this.authRepository.updatePasswordHash(user.id, passwordHash);
+    await this.safeReconcileIdentityCompletion({
+      userId: user.id,
+      identityVerifiedHint: true,
+      accountFinalizedHint: true,
+      passwordSetAtHint: nowIso(),
+      source: "password_changed",
+    });
+    await this.enqueuePasswordChangedNotification({
+      userId: user.id,
+      email: user.email,
+      reason: "password_changed",
+    });
     return { ok: true, message: "Пароль успешно обновлен." };
   }
 
@@ -873,8 +978,165 @@ export class AuthService implements OnModuleInit {
     await this.authRepository.updatePasswordHash(artifact.userId, passwordHash);
     await this.authRepository.consumeRecoveryArtifact(artifact.id);
     await this.authRepository.expireRecoveryArtifactsForEmail(email);
+    await this.safeReconcileIdentityCompletion({
+      userId: artifact.userId,
+      identityVerifiedHint: true,
+      accountFinalizedHint: true,
+      passwordSetAtHint: nowIso(),
+      source: "password_reset",
+    });
+    await this.enqueuePasswordChangedNotification({
+      userId: artifact.userId,
+      email,
+      reason: "password_reset",
+    });
 
     return { ok: true, message: "Пароль обновлен." };
+  }
+
+  private computeIdentityCompletionState(params: {
+    identityVerified: boolean;
+    accountFinalized: boolean;
+    hasPassword: boolean;
+  }): AuthIdentityCompletionStateDto {
+    if (!params.identityVerified) {
+      return "pending_identity_verification";
+    }
+    if (!params.accountFinalized) {
+      return "pending_account_finalization";
+    }
+    if (!params.hasPassword) {
+      return "pending_first_password";
+    }
+    return "completed";
+  }
+
+  private async reconcileIdentityCompletion(params: {
+    userId: string;
+    identityVerifiedHint?: boolean;
+    accountFinalizedHint?: boolean;
+    passwordSetAtHint?: string;
+    source?: string | null;
+  }): Promise<{
+    userId: string;
+    identityVerified: boolean;
+    accountFinalized: boolean;
+    hasPassword: boolean;
+    firstPasswordRequired: boolean;
+    completionState: AuthIdentityCompletionStateDto;
+    identityVerifiedAt: string | null;
+    accountFinalizedAt: string | null;
+    firstPasswordSetAt: string | null;
+    completedAt: string | null;
+    source: string | null;
+  }> {
+    const user = await this.authRepository.findByIdWithCredential(params.userId);
+    if (!user) {
+      throw new Error("Пользователь не найден.");
+    }
+
+    const existing = await this.authRepository.findIdentityCompletionByUserId(user.id);
+    const now = nowIso();
+    const hasPassword = Boolean(user.passwordHash);
+    const defaultTimestamp = user.updatedAt || now;
+
+    const identityVerifiedAt =
+      existing?.identityVerifiedAt ??
+      (params.identityVerifiedHint ? now : hasPassword ? defaultTimestamp : null);
+    const accountFinalizedAt =
+      existing?.accountFinalizedAt ??
+      (params.accountFinalizedHint ? now : hasPassword ? defaultTimestamp : null);
+    const firstPasswordSetAt =
+      existing?.firstPasswordSetAt ??
+      (hasPassword ? params.passwordSetAtHint ?? defaultTimestamp : null);
+
+    const completionState = this.computeIdentityCompletionState({
+      identityVerified: Boolean(identityVerifiedAt),
+      accountFinalized: Boolean(accountFinalizedAt),
+      hasPassword,
+    });
+    const completedAt =
+      completionState === "completed"
+        ? existing?.completedAt ?? firstPasswordSetAt ?? now
+        : null;
+
+    await this.authRepository.upsertIdentityCompletion({
+      userId: user.id,
+      identityVerifiedAt,
+      accountFinalizedAt,
+      firstPasswordSetAt,
+      completionState,
+      completedAt,
+      source: params.source ?? null,
+    });
+
+    const stored = await this.authRepository.findIdentityCompletionByUserId(user.id);
+    const effective = stored ?? {
+      userId: user.id,
+      identityVerifiedAt: identityVerifiedAt ?? undefined,
+      accountFinalizedAt: accountFinalizedAt ?? undefined,
+      firstPasswordSetAt: firstPasswordSetAt ?? undefined,
+      completionState,
+      completedAt: completedAt ?? undefined,
+      source: params.source ?? undefined,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const identityVerified = Boolean(effective.identityVerifiedAt);
+    const accountFinalized = Boolean(effective.accountFinalizedAt);
+    const completion = this.computeIdentityCompletionState({
+      identityVerified,
+      accountFinalized,
+      hasPassword,
+    });
+
+    return {
+      userId: effective.userId,
+      identityVerified,
+      accountFinalized,
+      hasPassword,
+      firstPasswordRequired: completion === "pending_first_password",
+      completionState: completion,
+      identityVerifiedAt: effective.identityVerifiedAt ?? null,
+      accountFinalizedAt: effective.accountFinalizedAt ?? null,
+      firstPasswordSetAt: effective.firstPasswordSetAt ?? null,
+      completedAt:
+        completion === "completed" ? effective.completedAt ?? null : null,
+      source: effective.source ?? null,
+    };
+  }
+
+  private async safeReconcileIdentityCompletion(params: {
+    userId: string;
+    identityVerifiedHint?: boolean;
+    accountFinalizedHint?: boolean;
+    passwordSetAtHint?: string;
+    source?: string | null;
+  }): Promise<void> {
+    try {
+      await this.reconcileIdentityCompletion(params);
+    } catch {
+      // Do not block auth/purchase critical path on lifecycle bookkeeping.
+    }
+  }
+
+  private async enqueuePasswordChangedNotification(params: {
+    userId: string;
+    email: string;
+    reason: PasswordChangeReason;
+  }): Promise<void> {
+    await this.notificationsService.enqueueAndDispatch({
+      id: ensureId("outbox"),
+      template: "password_changed",
+      dedupeKey: `password_changed:${params.userId}:${params.reason}:${Date.now()}`,
+      recipientEmail: params.email,
+      userId: params.userId,
+      payload: {
+        reason: params.reason,
+        changedAt: nowIso(),
+      },
+    });
   }
 
   private parseSocialProvider(value: string): AuthSocialProvider | null {

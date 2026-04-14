@@ -66,6 +66,13 @@ export type CheckoutPurchaseResponseContract = {
   entitlementState: EntitlementState | "none";
   profileComplete: boolean;
   accessState: CheckoutAccessStateContract;
+  identityCompletionState?:
+    | "pending_identity_verification"
+    | "pending_account_finalization"
+    | "pending_first_password"
+    | "completed";
+  firstPasswordRequired?: boolean;
+  identityCompleted?: boolean;
 };
 
 export type BnplInstallmentPaymentResponseContract = {
@@ -133,6 +140,13 @@ export type CheckoutStatusResponseContract = {
     profileComplete: boolean;
     accessState: CheckoutAccessStateContract;
   } | null;
+  identityCompletionState?:
+    | "pending_identity_verification"
+    | "pending_account_finalization"
+    | "pending_first_password"
+    | "completed";
+  firstPasswordRequired?: boolean;
+  identityCompleted?: boolean;
 };
 
 export type CheckoutActionResponseContract = {

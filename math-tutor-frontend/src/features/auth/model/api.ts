@@ -77,8 +77,70 @@ export type PasswordStatusResponse = {
   lastPasswordChangeAt: string | null;
 };
 
+export type IdentityCompletionStatusResponse = {
+  ok: true;
+  userId: string;
+  identityVerified: boolean;
+  accountFinalized: boolean;
+  hasPassword: boolean;
+  firstPasswordRequired: boolean;
+  completionState:
+    | "pending_identity_verification"
+    | "pending_account_finalization"
+    | "pending_first_password"
+    | "completed";
+  identityVerifiedAt: string | null;
+  accountFinalizedAt: string | null;
+  firstPasswordSetAt: string | null;
+  completedAt: string | null;
+  source: string | null;
+};
+
+export type FirstPasswordStatusResponse = {
+  ok: true;
+  userId: string;
+  required: boolean;
+  hasPassword: boolean;
+  completionState:
+    | "pending_identity_verification"
+    | "pending_account_finalization"
+    | "pending_first_password"
+    | "completed";
+  completed: boolean;
+};
+
+export type FirstPasswordCompleteResponse = {
+  ok: boolean;
+  message: string;
+  firstPasswordRequired?: boolean;
+  completionState?:
+    | "pending_identity_verification"
+    | "pending_account_finalization"
+    | "pending_first_password"
+    | "completed";
+  completed?: boolean;
+};
+
 export async function getPasswordStatus(): Promise<PasswordStatusResponse> {
   return api.get<PasswordStatusResponse>("/auth/password/status");
+}
+
+export async function getIdentityCompletionStatus(): Promise<IdentityCompletionStatusResponse> {
+  return api.get<IdentityCompletionStatusResponse>("/auth/identity/completion");
+}
+
+export async function getFirstPasswordStatus(): Promise<FirstPasswordStatusResponse> {
+  return api.get<FirstPasswordStatusResponse>("/auth/password/first/status");
+}
+
+export async function completeFirstPassword(
+  newPassword: string
+): Promise<FirstPasswordCompleteResponse> {
+  return api.post<FirstPasswordCompleteResponse>(
+    "/auth/password/first/complete",
+    { newPassword },
+    { notifyDataUpdate: false }
+  );
 }
 
 export type SavePasswordResponse = {

@@ -1471,6 +1471,39 @@ export class PurchasesService implements OnModuleInit {
     }
   }
 
+  private async syncIdentityCompletionAfterProvision(
+    checkout: CheckoutProcessDto,
+    isNewIdentityUser: boolean
+  ): Promise<void> {
+    if (!checkout.userId) {
+      return;
+    }
+    const identityIntentId = this.extractIdentityIntentIdFromCheckout(checkout);
+    const identityVerifiedHint = !isNewIdentityUser || Boolean(identityIntentId);
+
+    try {
+      await this.authService.syncIdentityCompletionAfterPurchase({
+        userId: checkout.userId,
+        identityVerifiedHint,
+        source: identityIntentId
+          ? "purchase_finalization_identity_intent"
+          : "purchase_finalization",
+      });
+    } catch (error) {
+      if (
+        error instanceof TypeError &&
+        error.message.includes("syncIdentityCompletionAfterPurchase is not a function")
+      ) {
+        return;
+      }
+      this.logger.warn(
+        `identity completion sync failed for checkout=${checkout.id}, user=${checkout.userId}: ${
+          error instanceof Error ? error.message : "unknown"
+        }`
+      );
+    }
+  }
+
   private async resumeProvisionIfNeeded(
     checkout: CheckoutProcessDto
   ): Promise<CheckoutProcessDto> {
@@ -1625,6 +1658,7 @@ export class PurchasesService implements OnModuleInit {
       });
 
       await this.consumeIdentityIntentAfterProvision(finalCheckout);
+      await this.syncIdentityCompletionAfterProvision(finalCheckout, identity.isNew);
 
       await this.purchasesRepository.upsertConsentRecords({
         checkoutId: finalCheckout.id,
@@ -1767,6 +1801,7 @@ export class PurchasesService implements OnModuleInit {
   private async buildCheckoutStatusResponse(
     checkout: CheckoutProcessDto
   ): Promise<CheckoutStatusResponseDto> {
+    const identityCompletion = await this.readIdentityCompletionPayload(checkout);
     return {
       checkoutId: checkout.id,
       state: checkout.state,
@@ -1780,6 +1815,9 @@ export class PurchasesService implements OnModuleInit {
       isTerminal: isTerminalCheckoutState(checkout.state),
       payment: buildPaymentPayload(checkout),
       access: await this.buildAccessPayload(checkout),
+      identityCompletionState: identityCompletion?.identityCompletionState,
+      firstPasswordRequired: identityCompletion?.firstPasswordRequired,
+      identityCompleted: identityCompletion?.identityCompleted,
     };
   }
 
@@ -1788,6 +1826,7 @@ export class PurchasesService implements OnModuleInit {
     actorUser?: AuthUserDto
   ): Promise<CheckoutPurchaseResponseDto> {
     const access = await this.buildAccessPayload(checkout);
+    const identityCompletion = await this.readIdentityCompletionPayload(checkout);
     return {
       user: actorUser,
       checkoutId: checkout.id,
@@ -1797,7 +1836,30 @@ export class PurchasesService implements OnModuleInit {
       entitlementState: access?.entitlementState ?? "none",
       profileComplete: access?.profileComplete ?? false,
       accessState: access?.accessState ?? "awaiting_profile",
+      identityCompletionState: identityCompletion?.identityCompletionState,
+      firstPasswordRequired: identityCompletion?.firstPasswordRequired,
+      identityCompleted: identityCompletion?.identityCompleted,
     };
+  }
+
+  private async readIdentityCompletionPayload(checkout: CheckoutProcessDto): Promise<{
+    identityCompletionState: CheckoutStatusResponseDto["identityCompletionState"];
+    firstPasswordRequired: boolean;
+    identityCompleted: boolean;
+  } | null> {
+    if (!checkout.userId) {
+      return null;
+    }
+    try {
+      const completion = await this.authService.getIdentityCompletionStatus(checkout.userId);
+      return {
+        identityCompletionState: completion.completionState,
+        firstPasswordRequired: completion.firstPasswordRequired,
+        identityCompleted: completion.completionState === "completed",
+      };
+    } catch {
+      return null;
+    }
   }
 
   private async appendTimelineEvent(

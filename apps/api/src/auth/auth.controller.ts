@@ -18,6 +18,9 @@ import {
 import { AuthIdentityIntentService } from "./auth.identity-intent.service";
 import { AuthService } from "./auth.service";
 import type {
+  AuthFirstPasswordCompleteResponseDto,
+  AuthFirstPasswordStatusResponseDto,
+  AuthIdentityCompletionStatusResponseDto,
   AuthIdentityIntentStartResponseDto,
   AuthIdentityIntentStatusResponseDto,
   AuthIdentityIntentVerifyResponseDto,
@@ -220,6 +223,46 @@ export class AuthController {
       throw new HttpException({ error: "Требуется авторизация." }, 401);
     }
     return this.authService.getPasswordStatus(user.id);
+  }
+
+  @Get("identity/completion")
+  async getIdentityCompletion(
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<AuthIdentityCompletionStatusResponseDto> {
+    const user = await this.resolveUserFromRequest(req, res);
+    if (!user) {
+      throw new HttpException({ error: "Требуется авторизация." }, 401);
+    }
+    return this.authService.getIdentityCompletionStatus(user.id);
+  }
+
+  @Get("password/first/status")
+  async getFirstPasswordStatus(
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<AuthFirstPasswordStatusResponseDto> {
+    const user = await this.resolveUserFromRequest(req, res);
+    if (!user) {
+      throw new HttpException({ error: "Требуется авторизация." }, 401);
+    }
+    return this.authService.getFirstPasswordStatus(user.id);
+  }
+
+  @Post("password/first/complete")
+  async completeFirstPassword(
+    @Body() body: { newPassword?: string },
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<AuthFirstPasswordCompleteResponseDto> {
+    const user = await this.resolveUserFromRequest(req, res);
+    if (!user) {
+      throw new HttpException({ error: "Требуется авторизация." }, 401);
+    }
+    return this.authService.completeFirstPassword({
+      userId: user.id,
+      newPassword: body?.newPassword ?? "",
+    });
   }
 
   @Post("password/set")

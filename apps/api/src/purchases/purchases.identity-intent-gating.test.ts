@@ -108,7 +108,23 @@ const createServiceForCheckout = (options?: {
     {
       findAll: async () => [],
     } as never,
-    {} as never,
+    {
+      getIdentityCompletionStatus: async () => ({
+        ok: true as const,
+        userId: "user_1",
+        identityVerified: true,
+        accountFinalized: true,
+        hasPassword: true,
+        firstPasswordRequired: false,
+        completionState: "completed" as const,
+        identityVerifiedAt: "2026-04-14T00:00:00.000Z",
+        accountFinalizedAt: "2026-04-14T00:00:00.000Z",
+        firstPasswordSetAt: "2026-04-14T00:00:00.000Z",
+        completedAt: "2026-04-14T00:00:00.000Z",
+        source: "test",
+      }),
+      syncIdentityCompletionAfterPurchase: async () => undefined,
+    } as never,
     {
       ensureUserByEmail: async () => ({
         user: {

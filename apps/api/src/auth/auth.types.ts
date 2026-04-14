@@ -67,9 +67,47 @@ export type AuthPasswordStatusResponseDto = {
   lastPasswordChangeAt: string | null;
 };
 
+export type AuthIdentityCompletionStateDto =
+  | "pending_identity_verification"
+  | "pending_account_finalization"
+  | "pending_first_password"
+  | "completed";
+
+export type AuthIdentityCompletionStatusResponseDto = {
+  ok: true;
+  userId: string;
+  identityVerified: boolean;
+  accountFinalized: boolean;
+  hasPassword: boolean;
+  firstPasswordRequired: boolean;
+  completionState: AuthIdentityCompletionStateDto;
+  identityVerifiedAt: string | null;
+  accountFinalizedAt: string | null;
+  firstPasswordSetAt: string | null;
+  completedAt: string | null;
+  source: string | null;
+};
+
 export type AuthPasswordSaveResponseDto = {
   ok: boolean;
   message: string;
+};
+
+export type AuthFirstPasswordStatusResponseDto = {
+  ok: true;
+  userId: string;
+  required: boolean;
+  hasPassword: boolean;
+  completionState: AuthIdentityCompletionStateDto;
+  completed: boolean;
+};
+
+export type AuthFirstPasswordCompleteResponseDto = {
+  ok: boolean;
+  message: string;
+  firstPasswordRequired?: boolean;
+  completionState?: AuthIdentityCompletionStateDto;
+  completed?: boolean;
 };
 
 export type AuthIdentityIntentStartResponseDto = {

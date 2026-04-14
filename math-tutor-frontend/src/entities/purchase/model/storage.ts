@@ -332,6 +332,13 @@ export type CheckoutPurchaseResponse = {
   entitlementState: EntitlementState | "none";
   profileComplete: boolean;
   accessState: CheckoutAccessState;
+  identityCompletionState?:
+    | "pending_identity_verification"
+    | "pending_account_finalization"
+    | "pending_first_password"
+    | "completed";
+  firstPasswordRequired?: boolean;
+  identityCompleted?: boolean;
 };
 
 export async function checkoutPurchase(

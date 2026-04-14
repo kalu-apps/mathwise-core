@@ -154,6 +154,27 @@ export const buildNotificationMailContent = (
       );
       return { subject, text, html };
     }
+    case "password_changed": {
+      const changedAt = pickString(input.payload, "changedAt");
+      const reason = pickString(input.payload, "reason");
+      const reasonLabel =
+        reason === "first_password_set"
+          ? "Пароль был задан впервые."
+          : reason === "password_reset"
+            ? "Пароль был обновлен через восстановление доступа."
+            : "Пароль был изменен в настройках безопасности.";
+      const subject = withPrefix(input.subjectPrefix, "Пароль Mathwise изменен");
+      const changedAtLine = changedAt ? `\nВремя: ${changedAt}` : "";
+      const text = `Мы зафиксировали изменение пароля вашего аккаунта.${changedAtLine}\n${reasonLabel}${footer.text}`;
+      const html = wrapHtml(
+        "Пароль изменен",
+        `<p style="margin:0 0 10px">Мы зафиксировали изменение пароля вашего аккаунта.</p><p style="margin:0 0 10px">${
+          changedAt ? `Время: <strong>${escapeHtml(changedAt)}</strong><br/>` : ""
+        }${escapeHtml(reasonLabel)}</p>`,
+        footer.html
+      );
+      return { subject, text, html };
+    }
     default: {
       const subject = withPrefix(input.subjectPrefix, "Уведомление Mathwise");
       const text = `У вас новое уведомление в Mathwise.${footer.text}`;

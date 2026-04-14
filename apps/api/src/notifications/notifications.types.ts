@@ -3,7 +3,8 @@ export type NotificationTemplate =
   | "purchase_confirmed"
   | "purchase_access_granted"
   | "recovery_requested"
-  | "login_hint";
+  | "login_hint"
+  | "password_changed";
 
 export type NotificationStatus = "queued" | "sent" | "failed";
 

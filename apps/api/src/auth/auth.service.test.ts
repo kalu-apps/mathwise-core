@@ -144,3 +144,208 @@ test("magic-link request returns uniform message for existing and missing users"
     restoreEnv(snapshot);
   }
 });
+
+test("identity completion: purchase-finalized user without password requires first password", async () => {
+  const snapshot = { ...process.env };
+  try {
+    applyEnv();
+    const lifecycle = new Map<string, Record<string, unknown>>();
+    const users = new Map<string, Record<string, unknown>>([
+      [
+        "user_new_1",
+        {
+          id: "user_new_1",
+          email: "new@axiom.demo",
+          firstName: "New",
+          lastName: "User",
+          role: "student",
+          updatedAt: "2026-04-14T00:00:00.000Z",
+          passwordHash: null,
+        },
+      ],
+    ]);
+
+    const authRepository = {
+      findByIdWithCredential: async (userId: string) => users.get(userId) ?? null,
+      findIdentityCompletionByUserId: async (userId: string) =>
+        (lifecycle.get(userId) as Record<string, unknown> | undefined) ?? null,
+      upsertIdentityCompletion: async (payload: Record<string, unknown>) => {
+        lifecycle.set(String(payload.userId), {
+          userId: payload.userId,
+          identityVerifiedAt: payload.identityVerifiedAt ?? null,
+          accountFinalizedAt: payload.accountFinalizedAt ?? null,
+          firstPasswordSetAt: payload.firstPasswordSetAt ?? null,
+          completionState: payload.completionState,
+          completedAt: payload.completedAt ?? null,
+          source: payload.source ?? null,
+          createdAt: "2026-04-14T00:00:00.000Z",
+          updatedAt: "2026-04-14T00:00:00.000Z",
+        });
+      },
+    };
+
+    const service = new AuthService(
+      { execute: async () => undefined } as never,
+      authRepository as never,
+      {} as never,
+      { enqueueAndDispatch: async () => undefined } as never,
+      {} as never
+    );
+
+    await service.syncIdentityCompletionAfterPurchase({
+      userId: "user_new_1",
+      identityVerifiedHint: true,
+      source: "purchase_finalization_identity_intent",
+    });
+    const status = await service.getIdentityCompletionStatus("user_new_1");
+
+    assert.equal(status.ok, true);
+    assert.equal(status.identityVerified, true);
+    assert.equal(status.accountFinalized, true);
+    assert.equal(status.hasPassword, false);
+    assert.equal(status.firstPasswordRequired, true);
+    assert.equal(status.completionState, "pending_first_password");
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("identity completion: complete first password marks lifecycle completed and sends notification", async () => {
+  const snapshot = { ...process.env };
+  try {
+    applyEnv();
+    const lifecycle = new Map<string, Record<string, unknown>>();
+    const users = new Map<string, Record<string, unknown>>([
+      [
+        "user_first_pwd_1",
+        {
+          id: "user_first_pwd_1",
+          email: "student@axiom.demo",
+          firstName: "Student",
+          lastName: "One",
+          role: "student",
+          updatedAt: "2026-04-14T00:00:00.000Z",
+          passwordHash: null,
+        },
+      ],
+    ]);
+    const notifications: Array<{ template: string; payload: Record<string, unknown> }> = [];
+
+    const authRepository = {
+      findByIdWithCredential: async (userId: string) => users.get(userId) ?? null,
+      findIdentityCompletionByUserId: async (userId: string) =>
+        (lifecycle.get(userId) as Record<string, unknown> | undefined) ?? null,
+      upsertIdentityCompletion: async (payload: Record<string, unknown>) => {
+        lifecycle.set(String(payload.userId), {
+          userId: payload.userId,
+          identityVerifiedAt: payload.identityVerifiedAt ?? null,
+          accountFinalizedAt: payload.accountFinalizedAt ?? null,
+          firstPasswordSetAt: payload.firstPasswordSetAt ?? null,
+          completionState: payload.completionState,
+          completedAt: payload.completedAt ?? null,
+          source: payload.source ?? null,
+          createdAt: "2026-04-14T00:00:00.000Z",
+          updatedAt: "2026-04-14T00:00:00.000Z",
+        });
+      },
+      updatePasswordHash: async (userId: string, passwordHash: string) => {
+        const current = users.get(userId);
+        if (!current) return;
+        users.set(userId, {
+          ...current,
+          passwordHash,
+          updatedAt: "2026-04-14T00:10:00.000Z",
+        });
+      },
+    };
+
+    const service = new AuthService(
+      { execute: async () => undefined } as never,
+      authRepository as never,
+      {} as never,
+      {
+        enqueueAndDispatch: async (input: {
+          template: string;
+          payload: Record<string, unknown>;
+        }) => {
+          notifications.push({
+            template: input.template,
+            payload: input.payload,
+          });
+        },
+      } as never,
+      {} as never
+    );
+
+    await service.syncIdentityCompletionAfterPurchase({
+      userId: "user_first_pwd_1",
+      identityVerifiedHint: true,
+    });
+    const completed = await service.completeFirstPassword({
+      userId: "user_first_pwd_1",
+      newPassword: "VeryStrong123!",
+    });
+    const status = await service.getIdentityCompletionStatus("user_first_pwd_1");
+
+    assert.equal(completed.ok, true);
+    assert.equal(completed.completed, true);
+    assert.equal(completed.completionState, "completed");
+    assert.equal(status.firstPasswordRequired, false);
+    assert.equal(status.completionState, "completed");
+    assert.equal(status.hasPassword, true);
+    assert.equal(
+      notifications.some(
+        (item) =>
+          item.template === "password_changed" &&
+          String(item.payload.reason) === "first_password_set"
+      ),
+      true
+    );
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("identity completion: existing user with password stays completed", async () => {
+  const snapshot = { ...process.env };
+  try {
+    applyEnv();
+    const users = new Map<string, Record<string, unknown>>([
+      [
+        "user_existing_1",
+        {
+          id: "user_existing_1",
+          email: "existing@axiom.demo",
+          firstName: "Existing",
+          lastName: "User",
+          role: "student",
+          updatedAt: "2026-04-14T00:00:00.000Z",
+          passwordHash: "hashed",
+        },
+      ],
+    ]);
+
+    const authRepository = {
+      findByIdWithCredential: async (userId: string) => users.get(userId) ?? null,
+      findIdentityCompletionByUserId: async () => null,
+      upsertIdentityCompletion: async () => undefined,
+    };
+
+    const service = new AuthService(
+      { execute: async () => undefined } as never,
+      authRepository as never,
+      {} as never,
+      { enqueueAndDispatch: async () => undefined } as never,
+      {} as never
+    );
+
+    const status = await service.getIdentityCompletionStatus("user_existing_1");
+    assert.equal(status.identityVerified, true);
+    assert.equal(status.accountFinalized, true);
+    assert.equal(status.hasPassword, true);
+    assert.equal(status.firstPasswordRequired, false);
+    assert.equal(status.completionState, "completed");
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
