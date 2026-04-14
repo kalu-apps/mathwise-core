@@ -1274,7 +1274,11 @@ export class AuthService implements OnModuleInit {
       const vkHost = authUrl.hostname.toLowerCase();
       if (params.codeChallenge) {
         authUrl.searchParams.set("code_challenge", params.codeChallenge);
-        authUrl.searchParams.set("code_challenge_method", "S256");
+        // oauth.vk.ru currently rejects explicit code_challenge_method values.
+        // Keep PKCE challenge and rely on provider default handling.
+        if (vkHost === "oauth.vk.com") {
+          authUrl.searchParams.set("code_challenge_method", "S256");
+        }
       }
       // Legacy oauth.vk.com uses versioned API semantics, oauth.vk.ru does not.
       if (vkHost === "oauth.vk.com") {

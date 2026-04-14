@@ -451,7 +451,7 @@ test("oauth vk authorization url includes PKCE challenge when provided", async (
     }) as URL;
 
     assert.equal(authorizationUrl.searchParams.get("code_challenge"), "challenge-xyz");
-    assert.equal(authorizationUrl.searchParams.get("code_challenge_method"), "S256");
+    assert.equal(authorizationUrl.searchParams.get("code_challenge_method"), null);
     assert.equal(authorizationUrl.searchParams.get("v"), null);
     assert.equal(authorizationUrl.searchParams.get("display"), null);
   } finally {
@@ -499,7 +499,7 @@ test("vk oauth start persists state with PKCE verifier and returns challenge in 
     assert.equal(started.ok, true);
     const authorizeUrl = new URL(started.redirectUrl);
     assert.equal(authorizeUrl.origin, "https://oauth.vk.ru");
-    assert.equal(authorizeUrl.searchParams.get("code_challenge_method"), "S256");
+    assert.equal(authorizeUrl.searchParams.get("code_challenge_method"), null);
     assert.equal(
       (authorizeUrl.searchParams.get("code_challenge") ?? "").length > 10,
       true
