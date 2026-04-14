@@ -15,6 +15,7 @@ import { SessionStore } from "./session.store";
 import {
   OAUTH_STATE_PREFIX,
   SOCIAL_PROVIDERS,
+  type OauthProviderDiagnostics,
   type OauthProfileResult,
   type OauthStatePayload,
   buildAuthorizationUrl as buildOauthAuthorizationUrl,
@@ -167,6 +168,7 @@ export class AuthService implements OnModuleInit {
       };
     }
     if (!providerConfig.clientId || !providerConfig.clientSecret) {
+      this.logger.warn(`[oauth:start] provider=${provider} provider_misconfigured`);
       return {
         ok: false,
         errorCode: "provider_misconfigured",
@@ -287,6 +289,9 @@ export class AuthService implements OnModuleInit {
 
     const providerConfig = this.runtimeConfig.authOauthProviders[provider];
     if (!providerConfig?.enabled || !providerConfig.clientId || !providerConfig.clientSecret) {
+      this.logger.warn(
+        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} provider_misconfigured`
+      );
       return {
         ok: false,
         errorCode: "provider_misconfigured",
@@ -338,8 +343,9 @@ export class AuthService implements OnModuleInit {
       }
     );
     if (!profileResult.ok) {
+      const diagnosticsDetails = this.formatOauthDiagnostics(profileResult.diagnostics);
       this.logger.warn(
-        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} profile_result=${profileResult.errorCode}`
+        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} profile_result=${profileResult.errorCode}${diagnosticsDetails}`
       );
       return {
         ok: false,
@@ -1266,6 +1272,25 @@ export class AuthService implements OnModuleInit {
 
   private fingerprint(value: string): string {
     return fingerprintOauthState(value);
+  }
+
+  private formatOauthDiagnostics(diagnostics?: OauthProviderDiagnostics): string {
+    if (!diagnostics) return "";
+    const parts: string[] = [];
+    parts.push(`stage=${diagnostics.stage}`);
+    if (typeof diagnostics.httpStatus === "number") {
+      parts.push(`http_status=${diagnostics.httpStatus}`);
+    }
+    if (diagnostics.transport) {
+      parts.push(`transport=${diagnostics.transport}`);
+    }
+    if (diagnostics.providerError) {
+      parts.push(`provider_error=${diagnostics.providerError}`);
+    }
+    if (diagnostics.providerErrorDescription) {
+      parts.push(`provider_error_description=${diagnostics.providerErrorDescription}`);
+    }
+    return parts.length > 0 ? ` diagnostics(${parts.join(" ")})` : "";
   }
 
   async getSession(sessionId: string | null): Promise<AuthUserDto | null> {
