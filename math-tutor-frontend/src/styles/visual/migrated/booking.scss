@@ -431,3 +431,30 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* Aurora Graphite finalization */
+.booking-page {
+  &__hero,
+  &__benefit-card,
+  &__question,
+  &__onboarding,
+  .booking-calendar,
+  .booking-calendar__section {
+    background: var(--background-elevated) !important;
+    border-color: var(--border-subtle) !important;
+    box-shadow: var(--shadow-sm) !important;
+  }
+
+  &__hero h1,
+  &__hero h2 {
+    color: var(--text-primary) !important;
+    background: none !important;
+    -webkit-text-fill-color: currentColor !important;
+  }
+
+  .booking-calendar__summary {
+    background: color-mix(in srgb, var(--background-elevated) 84%, var(--accent-primary)) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, var(--border-subtle)) !important;
+  }
+}

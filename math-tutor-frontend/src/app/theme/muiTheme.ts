@@ -2,21 +2,101 @@ import { createTheme } from "@mui/material/styles";
 import type { ThemeMode } from "@/app/theme/themeModeContext";
 
 export function createMuiTheme(mode: ThemeMode) {
+  const isDark = mode === "dark";
+
   return createTheme({
     palette: {
       mode,
+      primary: {
+        main: isDark ? "#7d8eff" : "#4f64dc",
+      },
+      secondary: {
+        main: isDark ? "#49c7df" : "#238fb0",
+      },
+      success: {
+        main: isDark ? "#3fc19c" : "#1f9375",
+      },
+      warning: {
+        main: isDark ? "#e6a84e" : "#b77a1f",
+      },
+      error: {
+        main: isDark ? "#df6f86" : "#bb4960",
+      },
+      info: {
+        main: isDark ? "#57aee8" : "#2a74cb",
+      },
+      background: {
+        default: isDark ? "#0a101f" : "#eff4fb",
+        paper: isDark ? "#17223c" : "#ffffff",
+      },
+      text: {
+        primary: isDark ? "#eaf0ff" : "#1f2f4f",
+        secondary: isDark ? "#b7c4e6" : "#4b6088",
+      },
     },
     shape: {
-      borderRadius: 16,
+      borderRadius: 14,
     },
     typography: {
-      fontFamily: '"Manrope", "Inter", "SF Pro Display", "Segoe UI", -apple-system, sans-serif',
+      fontFamily: '"Manrope", "IBM Plex Sans", "Inter", "SF Pro Display", "Segoe UI", -apple-system, sans-serif',
+      h1: {
+        fontFamily: '"Manrope", "Space Grotesk", "IBM Plex Sans", sans-serif',
+        fontWeight: 780,
+        letterSpacing: "-0.024em",
+        lineHeight: 1.1,
+      },
+      h2: {
+        fontFamily: '"Manrope", "Space Grotesk", "IBM Plex Sans", sans-serif',
+        fontWeight: 760,
+        letterSpacing: "-0.02em",
+        lineHeight: 1.16,
+      },
+      h3: {
+        fontFamily: '"Manrope", "Space Grotesk", "IBM Plex Sans", sans-serif',
+        fontWeight: 740,
+        letterSpacing: "-0.015em",
+        lineHeight: 1.2,
+      },
+      body1: {
+        fontSize: "0.96rem",
+        lineHeight: 1.52,
+      },
+      body2: {
+        fontSize: "0.88rem",
+        lineHeight: 1.48,
+      },
+      caption: {
+        fontSize: "0.78rem",
+        lineHeight: 1.34,
+      },
       button: {
         textTransform: "none",
-        fontWeight: 650,
+        fontWeight: 680,
+        letterSpacing: "0.01em",
       },
     },
     components: {
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            backgroundImage: "none",
+          },
+        },
+      },
+      MuiButton: {
+        defaultProps: {
+          disableElevation: true,
+        },
+      },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: {
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderWidth: 1,
+            },
+          },
+        },
+      },
       MuiTabs: {
         styleOverrides: {
           indicator: {

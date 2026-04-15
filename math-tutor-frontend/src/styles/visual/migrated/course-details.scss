@@ -1946,3 +1946,40 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Aurora Graphite finalization */
+.course-details {
+  &__hero,
+  &__card,
+  &__block-card,
+  &__purchase,
+  &__roadmap,
+  &__checkout-summary,
+  &__payment-method,
+  &__offer {
+    background: var(--background-elevated) !important;
+    border-color: var(--border-subtle) !important;
+    box-shadow: var(--shadow-sm) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+
+  &__purchase,
+  &__checkout-summary {
+    border-color: var(--border-strong) !important;
+    box-shadow: var(--shadow-md) !important;
+  }
+
+  &__title,
+  &__title-premium {
+    color: var(--text-primary) !important;
+    background: none !important;
+    -webkit-text-fill-color: currentColor !important;
+  }
+
+  &__kicker,
+  &__new-badge {
+    background: color-mix(in srgb, var(--background-elevated) 86%, var(--accent-secondary)) !important;
+    border-color: color-mix(in srgb, var(--accent-secondary) 32%, var(--border-subtle)) !important;
+    color: var(--text-primary) !important;
+  }
+}

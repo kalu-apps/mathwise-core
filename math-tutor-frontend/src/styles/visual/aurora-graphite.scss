@@ -1,0 +1,467 @@
+/* Aurora Graphite Product Core (global visual rewrite layer) */
+
+:root {
+  --ag-surface-0: var(--background-surface);
+  --ag-surface-1: var(--background-elevated);
+  --ag-surface-2: color-mix(in srgb, var(--background-elevated) 88%, var(--accent-primary));
+  --ag-surface-hover: color-mix(in srgb, var(--background-elevated) 92%, var(--accent-primary));
+  --ag-border-subtle: var(--border-subtle);
+  --ag-border-strong: var(--border-strong);
+  --ag-shadow-1: 0 10px 24px rgba(7, 12, 28, 0.2);
+  --ag-shadow-2: 0 22px 46px rgba(5, 10, 24, 0.24);
+  --ag-shadow-focus: var(--focus-ring);
+}
+
+:root[data-theme="light"] {
+  --ag-shadow-1: 0 10px 26px rgba(35, 60, 106, 0.11);
+  --ag-shadow-2: 0 26px 48px rgba(40, 70, 120, 0.14);
+}
+
+/* Remove legacy decorative overload */
+body::before,
+body::after,
+.hero::before,
+.courses-preview::before,
+.cta::before,
+.courses-page::before,
+.course-details::before,
+.lesson-details::before,
+.booking-page::before,
+.student-profile::before,
+.teacher-dashboard::before,
+.teacher-student-profile::before,
+.about-teacher-page::before,
+.tp2::before,
+.booking-page__hero-shade,
+[class*="course-visual-bg__layer--glow"],
+[class*="course-visual-bg__layer--shimmer"] {
+  display: none !important;
+}
+
+[class*="course-visual-bg__layer--base"],
+[class*="course-visual-bg__layer--pattern"],
+[class*="course-visual-bg__layer--veil"],
+[class*="course-visual-bg__layer--readability"] {
+  opacity: 0.35 !important;
+  filter: saturate(0.7) contrast(0.95) !important;
+}
+
+/* Page shells */
+.hero,
+.courses-preview,
+.cta,
+.courses-page,
+.course-details,
+.lesson-details,
+.booking-page,
+.student-profile,
+.teacher-dashboard,
+.teacher-student-profile,
+.about-teacher-page,
+.invite-page,
+.chat-page,
+.purchase-details-page,
+.assessment-templates-page,
+.assessment-editor-page,
+.course-test-page {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+.hero,
+.courses-preview,
+.cta,
+.courses-page,
+.course-details,
+.lesson-details,
+.booking-page,
+.student-profile,
+.teacher-dashboard,
+.teacher-student-profile,
+.about-teacher-page,
+.invite-page,
+.chat-page,
+.purchase-details-page {
+  padding-top: clamp(22px, 2.7vw, 40px);
+  padding-bottom: clamp(26px, 2.8vw, 42px);
+}
+
+/* Typographic hierarchy */
+h1,
+h2,
+h3,
+.hero__title,
+.courses-page__title,
+.course-details__title,
+.student-profile__title,
+.teacher-dashboard__title,
+.teacher-student-profile__header h1,
+.booking-page__header h1,
+.purchase-details-page__header h1,
+.assessment-templates-page__header h1 {
+  color: var(--text-primary) !important;
+  background: none !important;
+  -webkit-text-fill-color: unset !important;
+  letter-spacing: -0.024em !important;
+  font-family: var(--font-display) !important;
+  font-weight: 780 !important;
+}
+
+.hero__title {
+  font-size: var(--type-display-size) !important;
+  line-height: var(--type-display-line-height) !important;
+}
+
+h1 {
+  font-size: var(--type-h1-size);
+  line-height: var(--type-h1-line-height);
+}
+
+h2 {
+  font-size: var(--type-h2-size);
+  line-height: var(--type-h2-line-height);
+}
+
+h3 {
+  font-size: var(--type-h3-size);
+  line-height: var(--type-h3-line-height);
+}
+
+p,
+small,
+span,
+label,
+[class*="__subtitle"],
+[class*="__description"],
+[class*="__meta"],
+[class*="__caption"] {
+  color: var(--text-secondary);
+}
+
+/* Unified surfaces */
+[class$="__card"],
+[class*="__card "],
+[class$="__panel"],
+[class*="__panel "],
+[class$="__shell"],
+[class*="__shell "],
+[class$="__section"],
+[class*="__section "],
+[class$="__dialog"],
+[class*="__dialog "],
+[class$="__modal"],
+[class*="__modal "],
+[class$="__widget"],
+[class*="__widget "],
+.ui-card,
+.ui-surface,
+.tp2-card,
+.student-card,
+.news-feed__item,
+.news-feed__composer,
+.course-details__hero,
+.booking-page__hero,
+.study-cabinet-panel__cover {
+  background: var(--ag-surface-1) !important;
+  border: 1px solid var(--ag-border-subtle) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--ag-shadow-1) !important;
+  backdrop-filter: blur(8px) saturate(1.03) !important;
+}
+
+[class$="__card"]:hover,
+[class*="__card "]:hover,
+[class$="__panel"]:hover,
+[class*="__panel "]:hover,
+.student-card:hover,
+.news-feed__item:hover {
+  border-color: var(--ag-border-strong) !important;
+  box-shadow: var(--ag-shadow-2) !important;
+}
+
+/* Priority/elevated blocks */
+.course-details__purchase,
+.course-details__roadmap,
+.course-details__checkout-summary,
+.booking-page__booking-card,
+.student-profile__profile-card,
+.student-profile__lessons-panel,
+.teacher-dashboard__profile-main,
+.teacher-dashboard__booking-card,
+.teacher-student-profile__booking-card,
+.chat-page__main,
+.chat-page__sidebar,
+.study-cabinet-panel__student-focus-main,
+.study-cabinet-panel__teacher-primary-card {
+  background: var(--ag-surface-2) !important;
+  border-color: var(--ag-border-strong) !important;
+  box-shadow: var(--ag-shadow-2) !important;
+}
+
+/* Buttons and CTA */
+button,
+.ui-btn,
+.MuiButton-root,
+[class*="__button"],
+[class*="__cta"],
+[class*="__action"] .MuiButton-root {
+  border-radius: var(--radius-sm) !important;
+  font-family: var(--font-ui) !important;
+  font-size: var(--type-button-size) !important;
+  font-weight: var(--type-button-weight) !important;
+  letter-spacing: 0.01em !important;
+}
+
+.MuiButton-contained,
+.MuiButton-containedPrimary,
+.ui-btn--primary,
+.course-details__card-button,
+.booking-page__actions .MuiButton-root:first-child,
+.chat-page__send-button {
+  background: var(--accent-gradient-soft) !important;
+  color: var(--text-on-accent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 52%, var(--ag-border-strong)) !important;
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--accent-primary) 24%, transparent) !important;
+}
+
+.MuiButton-contained:hover,
+.MuiButton-containedPrimary:hover,
+.ui-btn--primary:hover,
+.course-details__card-button:hover,
+.chat-page__send-button:hover {
+  background: var(--accent-gradient-strong) !important;
+  transform: translateY(-1px);
+}
+
+.MuiButton-outlined,
+.MuiButton-text,
+.ui-btn--secondary,
+.course-details__card-button--secondary {
+  background: color-mix(in srgb, var(--background-elevated) 90%, transparent) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--ag-border-subtle) !important;
+}
+
+.MuiButton-outlined:hover,
+.MuiButton-text:hover,
+.ui-btn--secondary:hover {
+  background: color-mix(in srgb, var(--background-elevated) 78%, var(--accent-primary)) !important;
+  border-color: var(--ag-border-strong) !important;
+}
+
+/* Inputs and controls */
+input,
+textarea,
+select,
+.ui-input,
+.MuiInputBase-root,
+.MuiOutlinedInput-root,
+.MuiFilledInput-root,
+.MuiAutocomplete-inputRoot,
+.courses-page__search,
+.student-profile__search,
+.teacher-dashboard__search,
+.teacher-dashboard__students-search,
+.teacher-student-profile__search,
+.assessment-template-select__search,
+.assessment-templates-page__filters,
+.chat-page__composer-input {
+  background: var(--control-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--control-border) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: none !important;
+}
+
+input:hover,
+textarea:hover,
+select:hover,
+.ui-input:hover,
+.MuiInputBase-root:hover,
+.MuiOutlinedInput-root:hover,
+.MuiFilledInput-root:hover,
+.MuiAutocomplete-inputRoot:hover {
+  background: var(--control-bg-hover) !important;
+  border-color: var(--ag-border-strong) !important;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+.ui-input:focus-visible,
+.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--accent-primary) !important;
+  box-shadow: var(--ag-shadow-focus) !important;
+}
+
+/* Tabs and segmented controls */
+.MuiTabs-root,
+.student-profile__tabs,
+.teacher-dashboard__tabs,
+.study-cabinet-panel__student-tabset,
+.study-cabinet-panel__teacher-tabset {
+  background: color-mix(in srgb, var(--background-surface) 94%, transparent) !important;
+  border: 1px solid var(--ag-border-subtle) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 4px !important;
+  box-shadow: none !important;
+}
+
+.MuiTab-root {
+  border-radius: calc(var(--radius-md) - 5px) !important;
+  color: var(--text-secondary) !important;
+}
+
+.MuiTab-root.Mui-selected,
+.student-profile__tab-label[aria-selected="true"],
+.teacher-dashboard__tab-label[aria-selected="true"] {
+  background: color-mix(in srgb, var(--accent-primary) 20%, var(--background-elevated)) !important;
+  color: var(--text-primary) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 28%, var(--ag-border-strong)) !important;
+}
+
+/* Alerts / empty / states */
+.MuiAlert-root,
+.ui-alert,
+[class*="__empty"],
+[class*="__state"] {
+  border-radius: var(--radius-sm) !important;
+}
+
+.MuiAlert-standardSuccess,
+.MuiAlert-filledSuccess,
+.MuiAlert-outlinedSuccess {
+  background: color-mix(in srgb, var(--success-bg) 88%, var(--background-surface)) !important;
+}
+
+.MuiAlert-standardWarning,
+.MuiAlert-filledWarning,
+.MuiAlert-outlinedWarning {
+  background: color-mix(in srgb, var(--warning-bg) 88%, var(--background-surface)) !important;
+}
+
+.MuiAlert-standardError,
+.MuiAlert-filledError,
+.MuiAlert-outlinedError {
+  background: color-mix(in srgb, var(--error-bg) 88%, var(--background-surface)) !important;
+}
+
+.MuiAlert-standardInfo,
+.MuiAlert-filledInfo,
+.MuiAlert-outlinedInfo {
+  background: color-mix(in srgb, var(--info-bg) 88%, var(--background-surface)) !important;
+}
+
+/* Chips / badges */
+.ui-chip,
+.ui-tag,
+.MuiChip-root,
+[class*="badge"],
+[class*="pill"],
+[class*="kicker"] {
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--background-elevated) 86%, var(--accent-secondary)) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-secondary) 34%, var(--ag-border-subtle)) !important;
+  color: var(--text-primary) !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Chat specific hierarchy */
+.chat-page__shell {
+  gap: clamp(14px, 2vw, 22px) !important;
+}
+
+.chat-page__messages {
+  background: color-mix(in srgb, var(--background-surface) 92%, transparent) !important;
+  border: 1px solid var(--ag-border-subtle) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+.chat-page__message-foot,
+.chat-page__thread-meta,
+.chat-page__read-state {
+  color: var(--text-muted) !important;
+}
+
+/* Planner / dashboard dense zones */
+.study-cabinet-panel__planner,
+.study-cabinet-panel__planner-body,
+.study-cabinet-panel__planner-slot,
+.study-cabinet-panel__planner-events,
+.teacher-dashboard__schedule-grid,
+.teacher-dashboard__slot,
+.student-profile__calendar-panel,
+.student-profile__calendar-summary {
+  background: color-mix(in srgb, var(--background-elevated) 94%, transparent) !important;
+  border-color: var(--ag-border-subtle) !important;
+}
+
+/* Progress visuals */
+[class*="progress"],
+[class*="metric"],
+[class*="stat"],
+.course-details__roadmap-progress-ring,
+.student-profile__progress-ring,
+.teacher-student-profile__progress-ring {
+  --progress-color: var(--chart-progress-primary);
+  --progress-glow: color-mix(in srgb, var(--chart-progress-primary) 30%, transparent);
+}
+
+/* Modal and overlay consistency */
+.MuiDialog-paper,
+.MuiDrawer-paper,
+.MuiPopover-paper,
+.MuiMenu-paper,
+.course-editor-dialog,
+.lesson-editor-dialog,
+.booking-dialog,
+.student-profile-dialog,
+.course-details-dialog {
+  background: var(--background-elevated) !important;
+  border: 1px solid var(--ag-border-strong) !important;
+  box-shadow: 0 28px 64px color-mix(in srgb, var(--background-base) 70%, transparent) !important;
+}
+
+.MuiBackdrop-root {
+  background: var(--overlay-backdrop) !important;
+  backdrop-filter: blur(3px);
+}
+
+/* Loading, disabled and interaction states */
+[disabled],
+.Mui-disabled {
+  opacity: 0.55 !important;
+  filter: saturate(0.72) !important;
+}
+
+.MuiSkeleton-root,
+.ui-loader--section,
+.ui-loader-list__item {
+  background: color-mix(in srgb, var(--background-elevated) 88%, var(--accent-secondary)) !important;
+}
+
+/* Responsive parity */
+@media (max-width: 900px) {
+  .hero,
+  .courses-preview,
+  .cta,
+  .courses-page,
+  .course-details,
+  .booking-page,
+  .student-profile,
+  .teacher-dashboard,
+  .teacher-student-profile,
+  .chat-page,
+  .purchase-details-page {
+    padding-top: 16px;
+    padding-bottom: 20px;
+  }
+
+  [class$="__card"],
+  [class*="__card "],
+  [class$="__panel"],
+  [class*="__panel "] {
+    border-radius: var(--radius-md) !important;
+  }
+}

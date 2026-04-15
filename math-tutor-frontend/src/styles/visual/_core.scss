@@ -47,8 +47,8 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--gradient-aurora);
-  opacity: 0.32;
+  background: none;
+  opacity: 0;
   pointer-events: none;
   z-index: 0;
 }
@@ -137,9 +137,9 @@ select,
 .tp2 h2,
 .tp2 h3 {
   margin: 0;
-  background: var(--gradient-brand);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
+  background: none;
+  -webkit-text-fill-color: currentColor;
   text-wrap: balance;
   letter-spacing: -0.03em;
 }
@@ -192,11 +192,11 @@ select,
 [class$="__card"],
 [class*="__tile "],
 [class$="__tile"] {
-  background: var(--surface-glass) !important;
+  background: var(--background-elevated) !important;
   border: 1px solid var(--border-subtle) !important;
   border-radius: var(--radius-lg) !important;
-  box-shadow: var(--shadow-md) !important;
-  backdrop-filter: blur(var(--blur-sm));
+  box-shadow: var(--shadow-sm) !important;
+  backdrop-filter: blur(var(--blur-xs));
 }
 
 /* Hero-like large blocks */
@@ -207,7 +207,7 @@ select,
 .news-feed__composer,
 .news-feed__item {
   border: 1px solid var(--border-strong) !important;
-  box-shadow: var(--shadow-lg) !important;
+  box-shadow: var(--shadow-md) !important;
 }
 
 /* Inputs and search bars */
@@ -453,11 +453,7 @@ select,
 [class*="status--unpaid"],
 [class*="booking-kind"],
 [class*="status-inprogress"] {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--brand-solid) 30%, transparent),
-    color-mix(in srgb, var(--feedback-info) 24%, transparent)
-  ) !important;
+  background: color-mix(in srgb, var(--surface-elevated) 84%, var(--brand-soft)) !important;
   color: var(--tag-text) !important;
   border-color: color-mix(in srgb, var(--brand-soft) 52%, var(--border-strong)) !important;
 }
@@ -465,11 +461,7 @@ select,
 [class*="status--completed"],
 [class*="status--paid"],
 [class*="status-completed"] {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--feedback-success) 30%, transparent),
-    color-mix(in srgb, var(--brand-mint) 22%, transparent)
-  ) !important;
+  background: color-mix(in srgb, var(--surface-elevated) 84%, var(--feedback-success)) !important;
   color: var(--tag-text) !important;
   border-color: color-mix(in srgb, var(--feedback-success) 40%, var(--border-strong)) !important;
 }
@@ -477,11 +469,7 @@ select,
 [class*="status--danger"],
 [class*="status--warning"],
 [class*="status--error"] {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--feedback-danger) 32%, transparent),
-    color-mix(in srgb, var(--feedback-warning) 22%, transparent)
-  ) !important;
+  background: color-mix(in srgb, var(--surface-elevated) 84%, var(--feedback-danger)) !important;
   color: var(--tag-text) !important;
   border-color: color-mix(in srgb, var(--feedback-danger) 40%, var(--border-strong)) !important;
 }
