@@ -123,7 +123,8 @@ export function CourseCard({
 
   return (
     <Paper
-      elevation={4}
+      className="course-card course-card--entity"
+      elevation={0}
       sx={{
         p: 2,
         borderRadius: 3,
@@ -134,10 +135,18 @@ export function CourseCard({
           : isPurchasedStudentCard
           ? { xs: "column", lg: "row" }
           : "column",
-        transition: "transform 0.3s, box-shadow 0.3s",
+        border: "1px solid var(--glass-tier-1-border)",
+        background: "var(--glass-tier-1-bg)",
+        boxShadow:
+          "var(--glass-tier-1-shadow), inset 0 1px 0 var(--glass-tier-1-edge)",
+        backdropFilter: "blur(var(--glass-tier-1-blur))",
+        transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
         "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: 8,
+          transform: "translateY(-2px)",
+          borderColor:
+            "color-mix(in srgb, var(--glass-tier-1-border) 84%, var(--accent-soft))",
+          boxShadow:
+            "var(--glass-tier-1-shadow), inset 0 1px 0 var(--glass-tier-1-edge)",
         },
         minHeight: 180,
         position: "relative",
@@ -235,10 +244,8 @@ export function CourseCard({
           <Typography
             variant="h6"
             sx={{
-              fontWeight: 700,
-              background: "var(--gradient-brand)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
+              fontWeight: 740,
+              color: "var(--text-primary)",
               mb: 1,
               display: "flex",
               width: "fit-content",
@@ -319,9 +326,8 @@ export function CourseCard({
                   variant="caption"
                   sx={{
                     fontSize: 11,
-                    letterSpacing: "0.04em",
-                    textTransform: "uppercase",
-                    fontWeight: 700,
+                    letterSpacing: "0.02em",
+                    fontWeight: 650,
                     color: "var(--price-title-color)",
                   }}
                 >
@@ -342,7 +348,7 @@ export function CourseCard({
                 component="strong"
                 sx={{
                   fontSize: { xs: 24, md: 26 },
-                  fontWeight: 900,
+                  fontWeight: 860,
                   lineHeight: 1,
                   letterSpacing: "-0.02em",
                   color: "var(--price-value-color)",
@@ -367,9 +373,8 @@ export function CourseCard({
                 variant="caption"
                 sx={{
                   fontSize: 11,
-                  letterSpacing: "0.04em",
-                  textTransform: "uppercase",
-                  fontWeight: 700,
+                  letterSpacing: "0.02em",
+                  fontWeight: 650,
                   color: "color-mix(in srgb, var(--text-secondary) 90%, var(--accent-soft))",
                 }}
               >
@@ -379,7 +384,7 @@ export function CourseCard({
                 component="span"
                 sx={{
                   fontSize: { xs: 18, md: 19 },
-                  fontWeight: 760,
+                  fontWeight: 700,
                   lineHeight: 1,
                   letterSpacing: "-0.01em",
                   color: "color-mix(in srgb, var(--text-primary) 92%, var(--accent-soft))",

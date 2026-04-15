@@ -1,20 +1,25 @@
 /* Aurora Graphite Product Core (global visual rewrite layer) */
 
 :root {
-  --ag-surface-0: var(--background-surface);
-  --ag-surface-1: var(--background-elevated);
-  --ag-surface-2: color-mix(in srgb, var(--background-elevated) 88%, var(--accent-primary));
-  --ag-surface-hover: color-mix(in srgb, var(--background-elevated) 92%, var(--accent-primary));
-  --ag-border-subtle: var(--border-subtle);
-  --ag-border-strong: var(--border-strong);
-  --ag-shadow-1: 0 10px 24px rgba(7, 12, 28, 0.2);
-  --ag-shadow-2: 0 22px 46px rgba(5, 10, 24, 0.24);
-  --ag-shadow-focus: var(--focus-ring);
-}
+  --ag-tier1-bg: var(--glass-tier-1-bg);
+  --ag-tier1-border: var(--glass-tier-1-border);
+  --ag-tier1-edge: var(--glass-tier-1-edge);
+  --ag-tier1-shadow: var(--glass-tier-1-shadow);
+  --ag-tier1-blur: var(--glass-tier-1-blur);
 
-:root[data-theme="light"] {
-  --ag-shadow-1: 0 10px 26px rgba(35, 60, 106, 0.11);
-  --ag-shadow-2: 0 26px 48px rgba(40, 70, 120, 0.14);
+  --ag-tier2-bg: var(--glass-tier-2-bg);
+  --ag-tier2-border: var(--glass-tier-2-border);
+  --ag-tier2-edge: var(--glass-tier-2-edge);
+  --ag-tier2-shadow: var(--glass-tier-2-shadow);
+  --ag-tier2-blur: var(--glass-tier-2-blur);
+
+  --ag-tier3-bg: var(--glass-tier-3-bg);
+  --ag-tier3-border: var(--glass-tier-3-border);
+  --ag-tier3-edge: var(--glass-tier-3-edge);
+  --ag-tier3-shadow: var(--glass-tier-3-shadow);
+  --ag-tier3-blur: var(--glass-tier-3-blur);
+
+  --ag-shadow-focus: var(--focus-ring);
 }
 
 /* Remove legacy decorative overload */
@@ -44,6 +49,13 @@ body::after,
 [class*="course-visual-bg__layer--readability"] {
   opacity: 0.35 !important;
   filter: saturate(0.7) contrast(0.95) !important;
+}
+
+.hero::before,
+.courses-preview::before,
+.cta::before {
+  display: block !important;
+  opacity: 0.22 !important;
 }
 
 /* Page shells */
@@ -102,9 +114,9 @@ h3,
   color: var(--text-primary) !important;
   background: none !important;
   -webkit-text-fill-color: unset !important;
-  letter-spacing: -0.024em !important;
+  letter-spacing: -0.02em !important;
   font-family: var(--font-display) !important;
-  font-weight: 780 !important;
+  font-weight: var(--type-emphasis-strong) !important;
 }
 
 .hero__title {
@@ -138,7 +150,19 @@ label,
   color: var(--text-secondary);
 }
 
-/* Unified surfaces */
+:where(
+  [class*="__meta"],
+  [class*="__caption"],
+  [class*="__note"],
+  [class*="__label"],
+  [class*="__kicker"]
+):not([class*="status"]):not([class*="chip"]):not([class*="badge"]) {
+  font-weight: var(--type-support-weight) !important;
+  letter-spacing: 0.006em !important;
+  text-transform: none !important;
+}
+
+/* Tier 2: matte glass default for medium-fit zones */
 [class$="__card"],
 [class*="__card "],
 [class$="__panel"],
@@ -159,14 +183,16 @@ label,
 .student-card,
 .news-feed__item,
 .news-feed__composer,
-.course-details__hero,
-.booking-page__hero,
-.study-cabinet-panel__cover {
-  background: var(--ag-surface-1) !important;
-  border: 1px solid var(--ag-border-subtle) !important;
+.study-cabinet-panel__cover,
+.teacher-dashboard__section,
+.teacher-dashboard__panel,
+.teacher-student-profile__panel,
+.student-profile__course-card {
+  background: var(--ag-tier2-bg) !important;
+  border: 1px solid var(--ag-tier2-border) !important;
   border-radius: var(--radius-lg) !important;
-  box-shadow: var(--ag-shadow-1) !important;
-  backdrop-filter: blur(8px) saturate(1.03) !important;
+  box-shadow: var(--ag-tier2-shadow), inset 0 1px 0 var(--ag-tier2-edge) !important;
+  backdrop-filter: blur(var(--ag-tier2-blur)) saturate(1.04) !important;
 }
 
 [class$="__card"]:hover,
@@ -175,27 +201,64 @@ label,
 [class*="__panel "]:hover,
 .student-card:hover,
 .news-feed__item:hover {
-  border-color: var(--ag-border-strong) !important;
-  box-shadow: var(--ag-shadow-2) !important;
+  border-color: color-mix(in srgb, var(--ag-tier2-border) 78%, var(--accent-soft)) !important;
+  box-shadow: var(--ag-tier2-shadow), inset 0 1px 0 var(--ag-tier2-edge) !important;
 }
 
-/* Priority/elevated blocks */
+/* Tier 1: near-solid for red zones */
+.auth-modal .MuiDialog-paper,
+.auth-modal__content,
+.auth-modal .MuiTextField-root .MuiOutlinedInput-root,
+.auth-modal .MuiFormControl-root .MuiOutlinedInput-root,
 .course-details__purchase,
-.course-details__roadmap,
 .course-details__checkout-summary,
-.booking-page__booking-card,
-.student-profile__profile-card,
-.student-profile__lessons-panel,
-.teacher-dashboard__profile-main,
-.teacher-dashboard__booking-card,
-.teacher-student-profile__booking-card,
-.chat-page__main,
-.chat-page__sidebar,
-.study-cabinet-panel__student-focus-main,
-.study-cabinet-panel__teacher-primary-card {
-  background: var(--ag-surface-2) !important;
-  border-color: var(--ag-border-strong) !important;
-  box-shadow: var(--ag-shadow-2) !important;
+.course-details__card,
+.course-details__payment-method,
+.courses-page__search .MuiOutlinedInput-root,
+.courses-page__search .MuiInputBase-root,
+.course-card,
+.course-card--entity,
+.booking-calendar__section,
+.booking-calendar__summary,
+.booking-page .MuiTextField-root .MuiOutlinedInput-root,
+.booking-page .MuiFormControl-root .MuiOutlinedInput-root,
+.booking-page .MuiButton-outlined,
+.booking-page .MuiButton-text,
+.chat-page__message,
+.chat-page__composer-input,
+.teacher-dashboard__slot,
+.teacher-dashboard__schedule-grid,
+.student-profile__calendar-panel,
+.student-profile__calendar-summary,
+.study-cabinet-panel__planner,
+.study-cabinet-panel__planner-body,
+.study-cabinet-panel__planner-slot,
+.study-cabinet-panel__planner-events,
+.MuiAlert-root,
+.ui-alert {
+  background: var(--ag-tier1-bg) !important;
+  border-color: var(--ag-tier1-border) !important;
+  box-shadow: var(--ag-tier1-shadow), inset 0 1px 0 var(--ag-tier1-edge) !important;
+  backdrop-filter: blur(var(--ag-tier1-blur)) !important;
+}
+
+/* Tier 3: expressive glass for green zones */
+.hero__container,
+.courses-preview__card,
+.cta__container,
+.invite-page__card,
+.about-teacher-page__header,
+.courses-preview__cta,
+.courses-preview__button,
+.cta__button,
+.benefits-section .card,
+.courses-preview .ui-card,
+.hero .ui-surface,
+[class*="__empty"] {
+  background: var(--ag-tier3-bg) !important;
+  border: 1px solid var(--ag-tier3-border) !important;
+  box-shadow: var(--ag-tier3-shadow), inset 0 1px 0 var(--ag-tier3-edge) !important;
+  backdrop-filter: blur(var(--ag-tier3-blur)) saturate(1.06) !important;
 }
 
 /* Buttons and CTA */
@@ -208,7 +271,7 @@ button,
   border-radius: var(--radius-sm) !important;
   font-family: var(--font-ui) !important;
   font-size: var(--type-button-size) !important;
-  font-weight: var(--type-button-weight) !important;
+  font-weight: var(--type-emphasis-medium) !important;
   letter-spacing: 0.01em !important;
 }
 
@@ -237,9 +300,10 @@ button,
 .MuiButton-text,
 .ui-btn--secondary,
 .course-details__card-button--secondary {
-  background: color-mix(in srgb, var(--background-elevated) 90%, transparent) !important;
+  background: var(--ag-tier2-bg) !important;
   color: var(--text-primary) !important;
-  border: 1px solid var(--ag-border-subtle) !important;
+  border: 1px solid var(--ag-tier2-border) !important;
+  box-shadow: inset 0 1px 0 var(--ag-tier2-edge) !important;
 }
 
 .MuiButton-outlined:hover,
@@ -266,11 +330,11 @@ select,
 .assessment-template-select__search,
 .assessment-templates-page__filters,
 .chat-page__composer-input {
-  background: var(--control-bg) !important;
+  background: var(--ag-tier1-bg) !important;
   color: var(--text-primary) !important;
-  border: 1px solid var(--control-border) !important;
+  border: 1px solid var(--ag-tier1-border) !important;
   border-radius: var(--radius-sm) !important;
-  box-shadow: none !important;
+  box-shadow: inset 0 1px 0 var(--ag-tier1-edge) !important;
 }
 
 input:hover,
@@ -281,8 +345,8 @@ select:hover,
 .MuiOutlinedInput-root:hover,
 .MuiFilledInput-root:hover,
 .MuiAutocomplete-inputRoot:hover {
-  background: var(--control-bg-hover) !important;
-  border-color: var(--ag-border-strong) !important;
+  background: color-mix(in srgb, var(--ag-tier1-bg) 84%, var(--accent-primary)) !important;
+  border-color: color-mix(in srgb, var(--ag-tier1-border) 78%, var(--accent-soft)) !important;
 }
 
 input:focus-visible,
@@ -300,11 +364,11 @@ select:focus-visible,
 .teacher-dashboard__tabs,
 .study-cabinet-panel__student-tabset,
 .study-cabinet-panel__teacher-tabset {
-  background: color-mix(in srgb, var(--background-surface) 94%, transparent) !important;
-  border: 1px solid var(--ag-border-subtle) !important;
+  background: var(--ag-tier2-bg) !important;
+  border: 1px solid var(--ag-tier2-border) !important;
   border-radius: var(--radius-md) !important;
   padding: 4px !important;
-  box-shadow: none !important;
+  box-shadow: inset 0 1px 0 var(--ag-tier2-edge) !important;
 }
 
 .MuiTab-root {
@@ -315,9 +379,9 @@ select:focus-visible,
 .MuiTab-root.Mui-selected,
 .student-profile__tab-label[aria-selected="true"],
 .teacher-dashboard__tab-label[aria-selected="true"] {
-  background: color-mix(in srgb, var(--accent-primary) 20%, var(--background-elevated)) !important;
+  background: color-mix(in srgb, var(--accent-primary) 16%, var(--ag-tier1-bg)) !important;
   color: var(--text-primary) !important;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 28%, var(--ag-border-strong)) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 28%, var(--ag-tier1-border)) !important;
 }
 
 /* Alerts / empty / states */
@@ -373,8 +437,8 @@ select:focus-visible,
 }
 
 .chat-page__messages {
-  background: color-mix(in srgb, var(--background-surface) 92%, transparent) !important;
-  border: 1px solid var(--ag-border-subtle) !important;
+  background: var(--ag-tier1-bg) !important;
+  border: 1px solid var(--ag-tier1-border) !important;
   border-radius: var(--radius-lg) !important;
 }
 
@@ -418,9 +482,10 @@ select:focus-visible,
 .booking-dialog,
 .student-profile-dialog,
 .course-details-dialog {
-  background: var(--background-elevated) !important;
-  border: 1px solid var(--ag-border-strong) !important;
-  box-shadow: 0 28px 64px color-mix(in srgb, var(--background-base) 70%, transparent) !important;
+  background: var(--ag-tier2-bg) !important;
+  border: 1px solid var(--ag-tier2-border) !important;
+  box-shadow: var(--ag-tier2-shadow), inset 0 1px 0 var(--ag-tier2-edge) !important;
+  backdrop-filter: blur(var(--ag-tier2-blur)) !important;
 }
 
 .MuiBackdrop-root {

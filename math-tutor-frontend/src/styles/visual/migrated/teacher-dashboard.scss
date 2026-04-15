@@ -1119,15 +1119,22 @@
 .teacher-dashboard {
   &__section,
   &__panel,
-  &__booking-card,
   &__invite-shell,
+  &__profile-news {
+    background: var(--glass-tier-2-bg) !important;
+    border-color: var(--glass-tier-2-border) !important;
+    box-shadow: var(--glass-tier-2-shadow), inset 0 1px 0 var(--glass-tier-2-edge) !important;
+    backdrop-filter: blur(var(--glass-tier-2-blur)) !important;
+  }
+
   &__availability,
   &__slot,
-  &__profile-main,
-  &__profile-news {
-    background: var(--background-elevated) !important;
-    border-color: var(--border-subtle) !important;
-    box-shadow: var(--shadow-sm) !important;
+  &__booking-card,
+  &__profile-main {
+    background: var(--glass-tier-1-bg) !important;
+    border-color: var(--glass-tier-1-border) !important;
+    box-shadow: var(--glass-tier-1-shadow), inset 0 1px 0 var(--glass-tier-1-edge) !important;
+    backdrop-filter: blur(var(--glass-tier-1-blur)) !important;
   }
 
   &__title {
@@ -1139,8 +1146,8 @@
   &__booking-kind,
   &__material-chip,
   &__reminder {
-    background: color-mix(in srgb, var(--background-elevated) 84%, var(--accent-primary)) !important;
-    border-color: color-mix(in srgb, var(--accent-primary) 30%, var(--border-subtle)) !important;
+    background: var(--glass-tier-2-bg) !important;
+    border-color: color-mix(in srgb, var(--glass-tier-2-border) 70%, var(--accent-primary)) !important;
     color: var(--text-primary) !important;
   }
 }

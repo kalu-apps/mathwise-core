@@ -365,3 +365,35 @@
     box-shadow: var(--shadow-md);
   }
 }
+
+/* Aurora glass-shift pass */
+.course-card {
+  background: var(--glass-tier-2-bg) !important;
+  border: 1px solid var(--glass-tier-2-border) !important;
+  box-shadow: var(--glass-tier-2-shadow), inset 0 1px 0 var(--glass-tier-2-edge) !important;
+  backdrop-filter: blur(var(--glass-tier-2-blur)) !important;
+}
+
+.course-card.gradient-0,
+.course-card.gradient-1,
+.course-card.gradient-2,
+.course-card.gradient-3 {
+  background: var(--glass-tier-2-bg) !important;
+}
+
+.course-card__body {
+  background: var(--glass-tier-1-bg) !important;
+  border-color: var(--glass-tier-1-border) !important;
+  box-shadow: inset 0 1px 0 var(--glass-tier-1-edge) !important;
+}
+
+.course-card__title {
+  color: var(--text-primary) !important;
+  background: none !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+.course-card__button {
+  border: 1px solid color-mix(in srgb, var(--glass-tier-1-border) 78%, var(--accent-soft)) !important;
+  box-shadow: var(--glass-tier-1-shadow) !important;
+}

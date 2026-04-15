@@ -227,9 +227,10 @@
 .auth-modal {
   .MuiDialog-paper,
   &__content {
-    background: var(--background-elevated) !important;
-    border: 1px solid var(--border-strong) !important;
-    box-shadow: var(--shadow-lg) !important;
+    background: var(--glass-tier-2-bg) !important;
+    border: 1px solid var(--glass-tier-2-border) !important;
+    box-shadow: var(--glass-tier-2-shadow), inset 0 1px 0 var(--glass-tier-2-edge) !important;
+    backdrop-filter: blur(var(--glass-tier-2-blur)) !important;
   }
 
   &__title {
@@ -246,7 +247,10 @@
 
   .MuiTextField-root .MuiOutlinedInput-root,
   .MuiFormControl-root .MuiOutlinedInput-root {
-    background: var(--control-bg) !important;
+    background: var(--glass-tier-1-bg) !important;
+    border: 1px solid var(--glass-tier-1-border) !important;
     border-radius: var(--radius-sm) !important;
+    box-shadow: inset 0 1px 0 var(--glass-tier-1-edge) !important;
+    backdrop-filter: blur(var(--glass-tier-1-blur)) !important;
   }
 }

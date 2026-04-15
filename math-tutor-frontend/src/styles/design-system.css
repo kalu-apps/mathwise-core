@@ -1636,6 +1636,9 @@ textarea {
   --type-button-weight: 680;
   --type-input-size: clamp(0.89rem, 0.86rem + 0.1vw, 0.95rem);
   --type-caption-size: clamp(0.71rem, 0.69rem + 0.08vw, 0.78rem);
+  --type-emphasis-strong: 760;
+  --type-emphasis-medium: 680;
+  --type-support-weight: 560;
 
   --background-base: #0a101f;
   --background-surface: #111a30;
@@ -1655,6 +1658,24 @@ textarea {
   --surface-marketing: color-mix(in srgb, var(--background-elevated) 80%, var(--accent-primary));
   --surface-tint-soft: color-mix(in srgb, var(--background-elevated) 86%, var(--accent-primary));
   --surface-tint-strong: color-mix(in srgb, var(--background-elevated) 80%, var(--accent-secondary));
+
+  --glass-tier-1-bg: color-mix(in srgb, var(--background-elevated) 97%, var(--background-base) 3%);
+  --glass-tier-1-border: color-mix(in srgb, var(--border-strong) 72%, var(--border-subtle));
+  --glass-tier-1-edge: color-mix(in srgb, rgba(255, 255, 255, 0.16) 68%, transparent);
+  --glass-tier-1-shadow: 0 12px 24px rgba(3, 8, 20, 0.2);
+  --glass-tier-1-blur: 0px;
+
+  --glass-tier-2-bg: color-mix(in srgb, var(--background-elevated) 90%, transparent);
+  --glass-tier-2-border: color-mix(in srgb, var(--border-subtle) 88%, rgba(201, 214, 245, 0.22));
+  --glass-tier-2-edge: color-mix(in srgb, rgba(255, 255, 255, 0.14) 54%, transparent);
+  --glass-tier-2-shadow: 0 16px 32px rgba(3, 7, 18, 0.26);
+  --glass-tier-2-blur: 7px;
+
+  --glass-tier-3-bg: color-mix(in srgb, var(--background-elevated) 78%, transparent);
+  --glass-tier-3-border: color-mix(in srgb, var(--accent-soft) 40%, var(--border-subtle));
+  --glass-tier-3-edge: color-mix(in srgb, rgba(208, 221, 255, 0.24) 58%, transparent);
+  --glass-tier-3-shadow: 0 26px 56px rgba(2, 6, 16, 0.34);
+  --glass-tier-3-blur: 12px;
 
   --text-primary: #eaf0ff;
   --text-secondary: #b7c4e6;
@@ -1789,6 +1810,24 @@ textarea {
   --surface-marketing: color-mix(in srgb, var(--background-elevated) 88%, var(--accent-primary));
   --surface-tint-soft: color-mix(in srgb, var(--background-elevated) 92%, var(--accent-primary));
   --surface-tint-strong: color-mix(in srgb, var(--background-elevated) 88%, var(--accent-secondary));
+
+  --glass-tier-1-bg: color-mix(in srgb, var(--background-elevated) 98%, #f7faff 2%);
+  --glass-tier-1-border: color-mix(in srgb, var(--border-strong) 68%, var(--border-subtle));
+  --glass-tier-1-edge: color-mix(in srgb, rgba(255, 255, 255, 0.9) 78%, transparent);
+  --glass-tier-1-shadow: 0 10px 22px rgba(31, 52, 94, 0.1);
+  --glass-tier-1-blur: 0px;
+
+  --glass-tier-2-bg: color-mix(in srgb, var(--background-elevated) 94%, transparent);
+  --glass-tier-2-border: color-mix(in srgb, var(--border-subtle) 92%, rgba(114, 137, 184, 0.24));
+  --glass-tier-2-edge: color-mix(in srgb, rgba(255, 255, 255, 0.9) 70%, transparent);
+  --glass-tier-2-shadow: 0 14px 30px rgba(29, 50, 94, 0.14);
+  --glass-tier-2-blur: 6px;
+
+  --glass-tier-3-bg: color-mix(in srgb, var(--background-elevated) 86%, transparent);
+  --glass-tier-3-border: color-mix(in srgb, var(--accent-soft) 34%, var(--border-subtle));
+  --glass-tier-3-edge: color-mix(in srgb, rgba(255, 255, 255, 0.94) 82%, transparent);
+  --glass-tier-3-shadow: 0 22px 46px rgba(24, 46, 91, 0.2);
+  --glass-tier-3-blur: 11px;
 
   --text-primary: #1f2f4f;
   --text-secondary: #4b6088;
