@@ -804,13 +804,19 @@ export default function StudentProfile() {
           <SpaceDashboardRoundedIcon />
           <span>Панель студента</span>
         </h1>
+      </div>
+      <div
+        className={
+          isNonDesktop
+            ? "student-profile__workspace"
+            : "student-profile__workspace student-profile__workspace--with-tabs"
+        }
+      >
         {!isNonDesktop ? (
           <Tabs
+            orientation="vertical"
             value={tab}
             onChange={(_, next) => setTabWithQuery(next, { replace: true })}
-            variant="scrollable"
-            scrollButtons="auto"
-            allowScrollButtonsMobile
             className="student-profile__tabs"
           >
             {studentTabItems.map((item) => (
@@ -834,42 +840,7 @@ export default function StudentProfile() {
             </Button>
           </div>
         )}
-      </div>
-      {isNonDesktop ? (
-        <Drawer
-          anchor={isMobile ? "bottom" : "left"}
-          open={tabMenuOpen}
-          onClose={() => setTabMenuOpen(false)}
-          PaperProps={{
-            className: isMobile
-              ? "student-profile__tabs-drawer student-profile__tabs-drawer--mobile"
-              : "student-profile__tabs-drawer",
-          }}
-        >
-          <div className="student-profile__tabs-drawer-head">
-            <h3>Разделы кабинета</h3>
-            <span>Выберите нужный раздел</span>
-          </div>
-          <div className="student-profile__tabs-drawer-grid">
-            {studentTabItems.map((item) => (
-              <button
-                key={item.index}
-                type="button"
-                className={`student-profile__tabs-drawer-item ${
-                  tab === item.index ? "is-active" : ""
-                }`}
-                onClick={() => {
-                  setTabWithQuery(item.index, { replace: true });
-                  setTabMenuOpen(false);
-                }}
-              >
-                <span className="student-profile__tabs-drawer-icon">{item.icon}</span>
-                <span className="student-profile__tabs-drawer-label">{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </Drawer>
-      ) : null}
+        <div className="student-profile__workspace-main">
 
       {tab === 1 && (
         <div className="student-profile__courses">
@@ -1811,7 +1782,44 @@ export default function StudentProfile() {
         />
       </div>
 
-      {tab === CHAT_TAB_INDEX && chatAccessAvailable && <ChatPage />}
+          {tab === CHAT_TAB_INDEX && chatAccessAvailable && <ChatPage />}
+        </div>
+      </div>
+      {isNonDesktop ? (
+        <Drawer
+          anchor={isMobile ? "bottom" : "left"}
+          open={tabMenuOpen}
+          onClose={() => setTabMenuOpen(false)}
+          PaperProps={{
+            className: isMobile
+              ? "student-profile__tabs-drawer student-profile__tabs-drawer--mobile"
+              : "student-profile__tabs-drawer",
+          }}
+        >
+          <div className="student-profile__tabs-drawer-head">
+            <h3>Разделы кабинета</h3>
+            <span>Выберите нужный раздел</span>
+          </div>
+          <div className="student-profile__tabs-drawer-grid">
+            {studentTabItems.map((item) => (
+              <button
+                key={item.index}
+                type="button"
+                className={`student-profile__tabs-drawer-item ${
+                  tab === item.index ? "is-active" : ""
+                }`}
+                onClick={() => {
+                  setTabWithQuery(item.index, { replace: true });
+                  setTabMenuOpen(false);
+                }}
+              >
+                <span className="student-profile__tabs-drawer-icon">{item.icon}</span>
+                <span className="student-profile__tabs-drawer-label">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </Drawer>
+      ) : null}
 
     </div>
   );

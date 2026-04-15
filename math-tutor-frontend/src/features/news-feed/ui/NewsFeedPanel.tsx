@@ -150,6 +150,21 @@ export function NewsFeedPanel({ user }: Props) {
     editDraft.content.trim().length > 0 &&
     !updatingId;
 
+  const createValidationHint = useMemo(() => {
+    if (saving) return "Публикация...";
+    if (!draft.title.trim()) return "Добавьте заголовок.";
+    if (!draft.content.trim()) return "Добавьте текст новости.";
+    return "Готово к публикации.";
+  }, [draft.content, draft.title, saving]);
+
+  const updateValidationHint = useMemo(() => {
+    if (updatingId) return "Сохранение...";
+    if (!editDraft) return "Нет данных для редактирования.";
+    if (!editDraft.title.trim()) return "Добавьте заголовок.";
+    if (!editDraft.content.trim()) return "Добавьте текст новости.";
+    return "Сохранить";
+  }, [editDraft, updatingId]);
+
   const feedTitle = useMemo(
     () => (isTeacher ? "Лента объявлений" : "Новости от преподавателя"),
     [isTeacher]
@@ -387,14 +402,24 @@ export function NewsFeedPanel({ user }: Props) {
                 })}
               >
                 <div className="news-feed__item-head">
-                  <div>
-                    <h3>{item.title}</h3>
-                    <div className="news-feed__meta">
-                      <span>{item.authorName}</span>
-                      <span>{formatDate(item.createdAt)}</span>
-                      <span>{toneLabels[item.tone]}</span>
+                  {isEditing ? (
+                    <div className="news-feed__item-edit-head">
+                      <h3>Редактирование объявления</h3>
+                      <div className="news-feed__meta">
+                        <span>Изменения станут видны после сохранения</span>
+                        <span>{formatDate(item.createdAt)}</span>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div>
+                      <h3>{item.title}</h3>
+                      <div className="news-feed__meta">
+                        <span>{item.authorName}</span>
+                        <span>{formatDate(item.createdAt)}</span>
+                        <span>{toneLabels[item.tone]}</span>
+                      </div>
+                    </div>
+                  )}
                   {isTeacher && (
                     <div className="news-feed__item-actions">
                       {!isEditing ? (
@@ -427,7 +452,7 @@ export function NewsFeedPanel({ user }: Props) {
                         </>
                       ) : (
                         <>
-                          <Tooltip title="Сохранить">
+                          <Tooltip title={updateValidationHint}>
                             <span>
                               <IconButton
                                 className="news-feed__save"
@@ -461,17 +486,22 @@ export function NewsFeedPanel({ user }: Props) {
                 {isEditing && editDraft ? (
                   <div className="news-feed__editor">
                     <TextField
-                      placeholder="Заголовок новости"
+                      label="Заголовок новости"
+                      placeholder="Введите заголовок"
                       value={editDraft.title}
                       onChange={(e) =>
                         setEditDraft((prev) =>
                           prev ? { ...prev, title: e.target.value } : prev
                         )
                       }
+                      required
+                      size="small"
                       fullWidth
                     />
                     <TextField
-                      placeholder="Текст новости"
+                      className="news-feed__compose-textarea"
+                      label="Текст новости"
+                      placeholder="Опишите обновление для студентов"
                       value={editDraft.content}
                       onChange={(e) =>
                         setEditDraft((prev) =>
@@ -479,11 +509,15 @@ export function NewsFeedPanel({ user }: Props) {
                         )
                       }
                       multiline
-                      minRows={3}
+                      minRows={4}
+                      maxRows={8}
+                      required
                       fullWidth
                     />
                     <TextField
-                      placeholder="Ссылка (необязательно)"
+                      className="news-feed__compose-link"
+                      label="Ссылка (необязательно)"
+                      placeholder="https://..."
                       value={editDraft.externalUrl}
                       onChange={(e) =>
                         setEditDraft((prev) =>
@@ -641,17 +675,20 @@ export function NewsFeedPanel({ user }: Props) {
           className="news-feed__create-dialog"
         >
           <DialogTitleWithClose
-            title="Создать новость"
+            title="Создать объявление"
             onClose={closeCreateModal}
           />
           <DialogContent className="news-feed__create-content">
             <div className="news-feed__compose-fields">
               <TextField
-                placeholder="Заголовок новости"
+                label="Заголовок новости"
+                placeholder="Введите заголовок"
                 value={draft.title}
                 onChange={(e) =>
                   setDraft((prev) => ({ ...prev, title: e.target.value }))
                 }
+                required
+                size="small"
                 fullWidth
                 InputProps={{
                   endAdornment: draft.title ? (
@@ -672,20 +709,23 @@ export function NewsFeedPanel({ user }: Props) {
 
               <TextField
                 className="news-feed__compose-textarea"
-                placeholder="Текст новости"
+                label="Текст новости"
+                placeholder="Опишите обновление для студентов"
                 value={draft.content}
                 onChange={(e) =>
                   setDraft((prev) => ({ ...prev, content: e.target.value }))
                 }
                 multiline
-                minRows={3}
-                maxRows={6}
+                minRows={4}
+                maxRows={8}
+                required
                 fullWidth
               />
 
               <TextField
                 className="news-feed__compose-link"
-                placeholder="Ссылка (необязательно)"
+                label="Ссылка (необязательно)"
+                placeholder="https://..."
                 value={draft.externalUrl}
                 onChange={(e) =>
                   setDraft((prev) => ({ ...prev, externalUrl: e.target.value }))
@@ -770,6 +810,9 @@ export function NewsFeedPanel({ user }: Props) {
             )}
           </DialogContent>
           <DialogActions className="news-feed__create-actions">
+            <span className="news-feed__create-hint" aria-live="polite">
+              {createValidationHint}
+            </span>
             <Button
               variant="text"
               onClick={closeCreateModal}

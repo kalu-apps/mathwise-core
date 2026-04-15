@@ -730,69 +730,50 @@
     }
   }
 
-  &__tabs {
-    margin-bottom: 14px;
+  &__workspace {
+    display: grid;
+    gap: 16px;
+    align-items: start;
+  }
+
+  &__workspace-main {
+    min-width: 0;
+    display: grid;
+    gap: 14px;
   }
 
   &__tabs {
-    --teacher-tabs-segment-height: 41px;
-    --teacher-tabs-shell-inset-y: 1px;
+    margin: 0;
 
     .MuiTabs-root {
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      box-sizing: border-box;
-      min-height: calc(
-        var(--teacher-tabs-segment-height) + (var(--teacher-tabs-shell-inset-y) * 2)
-      );
-      padding: var(--teacher-tabs-shell-inset-y) 5px;
-      background: color-mix(in srgb, var(--surface-soft) 90%, var(--surface-elevated));
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border-subtle) 92%, transparent);
+      min-height: 0;
+      padding: 0;
+      background: transparent;
+      box-shadow: none;
+      border-radius: 0;
     }
 
     .MuiTabs-scroller {
-      display: flex;
-      align-items: center;
-      width: 100%;
-      min-height: var(--teacher-tabs-segment-height);
-      max-width: 100%;
-      margin-inline: auto;
-      overflow-x: auto !important;
-      scrollbar-width: none;
-    }
-
-    .MuiTabs-scroller::-webkit-scrollbar {
-      display: none;
+      overflow: visible !important;
     }
 
     .MuiTabs-flexContainer {
-      flex-wrap: nowrap;
-      justify-content: center;
-      width: max-content;
-      min-width: 0;
-      min-height: var(--teacher-tabs-segment-height);
-      margin-inline: auto;
-      gap: 6px;
       align-items: stretch;
+      gap: 7px;
     }
 
     .MuiTab-root {
-      min-width: max-content;
-      max-width: none;
-      flex: 0 0 auto;
-      gap: 6px;
-      white-space: nowrap;
+      width: 100%;
+      justify-content: flex-start;
+      text-align: left;
+      min-height: 40px;
+      padding: 8px 12px;
       text-transform: none;
-      font-weight: 700;
-      min-height: var(--teacher-tabs-segment-height);
-      height: var(--teacher-tabs-segment-height);
-      border-radius: 11px;
-      padding: 7px 14px;
       font-size: 14px;
+      font-weight: 650;
       line-height: 1.2;
-      align-self: stretch;
-      color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary));
+      border-radius: 12px;
+      color: color-mix(in srgb, var(--text-secondary) 92%, var(--text-primary));
       border: 1px solid transparent;
       transition:
         color 0.16s ease,
@@ -800,24 +781,26 @@
         background-color 0.16s ease,
         box-shadow 0.16s ease;
 
+      .MuiTab-iconWrapper {
+        margin-right: 8px;
+      }
+
       .MuiSvgIcon-root {
         font-size: 19px;
       }
     }
 
     .MuiTab-root:hover {
-      background: color-mix(in srgb, var(--surface-elevated) 74%, var(--accent-primary));
-      border-color: color-mix(in srgb, var(--border-subtle) 78%, var(--accent-primary));
       color: var(--text-primary);
+      border-color: color-mix(in srgb, var(--border-subtle) 78%, var(--accent-primary));
+      background: color-mix(in srgb, var(--surface-soft) 74%, var(--accent-primary));
     }
 
     .MuiTab-root.Mui-selected {
-      align-self: stretch;
-      margin-bottom: 0;
-      background: color-mix(in srgb, var(--accent-primary) 18%, var(--surface-elevated));
-      border-color: color-mix(in srgb, var(--accent-primary) 32%, var(--border-subtle));
       color: var(--text-primary);
-      box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-tier-2-edge) 72%, transparent);
+      border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle));
+      background: color-mix(in srgb, var(--accent-primary) 15%, var(--surface-elevated));
+      box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-tier-2-edge) 70%, transparent);
     }
 
     .MuiTabs-indicator {
@@ -968,7 +951,7 @@
     display: block;
     min-width: 0;
     max-width: none;
-    white-space: nowrap;
+    white-space: normal;
     overflow: visible;
     text-overflow: clip;
   }
@@ -984,6 +967,19 @@
       transform: translateY(-1px);
       box-shadow: 0 8px 16px color-mix(in srgb, var(--brand-solid) 24%, transparent);
     }
+  }
+}
+
+@media (min-width: 721px) {
+  .teacher-dashboard__workspace--with-tabs {
+    grid-template-columns: 232px minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .teacher-dashboard__workspace--with-tabs .teacher-dashboard__tabs {
+    position: sticky;
+    top: 94px;
+    align-self: start;
   }
 }
 

@@ -162,15 +162,15 @@
 
 .news-feed__create-dialog {
   .MuiDialog-paper {
-    width: min(90vw, 360px);
-    max-width: 360px;
-    max-height: min(82vh, 560px);
-    border-radius: 18px;
+    width: min(92vw, 560px);
+    max-width: 560px;
+    max-height: min(86vh, 680px);
+    border-radius: 20px;
     border: 1px solid color-mix(in srgb, var(--brand-solid) 22%, var(--border-subtle));
     background: linear-gradient(
       180deg,
-      color-mix(in srgb, var(--surface-elevated) 95%, transparent),
-      color-mix(in srgb, var(--surface-soft) 92%, transparent)
+      color-mix(in srgb, var(--surface-elevated) 96%, transparent),
+      color-mix(in srgb, var(--surface-soft) 94%, transparent)
     );
     box-shadow: var(--shadow-lg);
     overflow: hidden;
@@ -179,16 +179,16 @@
 
 .news-feed__create-content {
   display: grid;
-  gap: 10px;
-  padding-top: 4px !important;
-  padding-bottom: 10px !important;
-  max-height: min(56vh, 420px);
+  gap: 12px;
+  padding-top: 8px !important;
+  padding-bottom: 12px !important;
+  max-height: min(62vh, 520px);
   overflow-y: auto;
 }
 
 .news-feed__compose-fields {
   display: grid;
-  gap: 9px;
+  gap: 10px;
 
   .MuiTextField-root {
     background: transparent;
@@ -198,13 +198,22 @@
     border-radius: 14px;
     background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
   }
+
+  .MuiFormLabel-root {
+    font-size: 13px;
+    color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary));
+  }
+
+  .MuiFormLabel-root.Mui-focused {
+    color: color-mix(in srgb, var(--accent-strong) 82%, var(--text-primary));
+  }
 }
 
 .news-feed__compose-link,
 .news-feed__compose-textarea {
   .MuiOutlinedInput-root {
     border-radius: 14px;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border-subtle) 80%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border-subtle) 76%, transparent);
   }
 
   .MuiOutlinedInput-notchedOutline {
@@ -217,7 +226,7 @@
       0
       0
       1px
-      color-mix(in srgb, var(--brand-solid) 18%, var(--border-subtle)) !important;
+      color-mix(in srgb, var(--brand-solid) 16%, var(--border-subtle)) !important;
   }
 
   .MuiOutlinedInput-root.Mui-focused {
@@ -226,7 +235,7 @@
       0
       0
       1px
-      color-mix(in srgb, var(--brand-solid) 34%, var(--border-subtle)) !important;
+      color-mix(in srgb, var(--brand-solid) 28%, var(--border-subtle)) !important;
   }
 
   .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
@@ -342,7 +351,7 @@
 }
 
 .news-feed__composer-actions--create {
-  gap: 6px;
+  gap: 8px;
   margin-top: 0;
 
   .MuiButton-root {
@@ -369,7 +378,11 @@
 }
 
 .news-feed__create-actions {
-  padding: 8px 20px 14px !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px 14px !important;
   border-top: 1px solid color-mix(in srgb, var(--border-subtle) 86%, transparent);
 
   .MuiButton-root {
@@ -378,6 +391,12 @@
     min-width: 104px;
     font-weight: 700;
   }
+}
+
+.news-feed__create-hint {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-secondary);
 }
 
 .news-feed__list {
@@ -590,6 +609,12 @@
   align-items: flex-start;
 }
 
+.news-feed__item-edit-head {
+  h3 {
+    font-size: 15px;
+  }
+}
+
 .news-feed__meta {
   margin-top: 5px;
   display: flex;
@@ -705,7 +730,8 @@
 
 .news-feed__editor {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  margin-top: 2px;
 
   .MuiTextField-root {
     background: var(--surface-elevated);
@@ -721,6 +747,15 @@
   .MuiInputBase-inputMultiline {
     padding-left: var(--field-inset-x) !important;
     padding-right: var(--field-inset-x) !important;
+  }
+
+  .MuiFormLabel-root {
+    font-size: 13px;
+    color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary));
+  }
+
+  .MuiFormLabel-root.Mui-focused {
+    color: color-mix(in srgb, var(--accent-strong) 82%, var(--text-primary));
   }
 }
 
@@ -764,10 +799,24 @@
     padding: 14px;
   }
 
+  .news-feed__create-dialog .MuiDialog-paper {
+    width: min(94vw, 560px);
+    max-height: 86vh;
+  }
+
   .news-feed__header {
     h2 {
       font-size: 16px;
     }
+  }
+
+  .news-feed__create-actions {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .news-feed__create-hint {
+    width: 100%;
   }
 
   .news-feed__composer-actions {

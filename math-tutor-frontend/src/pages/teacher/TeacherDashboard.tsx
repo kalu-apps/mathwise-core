@@ -1093,95 +1093,101 @@ export default function TeacherDashboard() {
         </h1>
       </div>
 
-      {!isNonDesktop ? (
-        <Tabs
-          value={tab}
-          onChange={(_, v) => {
-            setTab(v);
-            setSearchParams({ tab: TEACHER_TAB_KEYS[v] });
-          }}
-          variant="scrollable"
-          scrollButtons="auto"
-          allowScrollButtonsMobile
-          className="teacher-dashboard__tabs"
-        >
-          {teacherTabItems.map((item) => (
-            <Tab
-              key={item.index}
-              label={
-                <span className="teacher-dashboard__tab-label">{item.label}</span>
-              }
-              icon={item.icon}
-              iconPosition="start"
-            />
-          ))}
-        </Tabs>
-      ) : (
-        <div className="teacher-dashboard__tabs-mobile">
-          <Button
-            className="teacher-dashboard__tabs-mobile-trigger"
-            variant="outlined"
-            startIcon={<AppsRoundedIcon />}
-            onClick={() => setTabMenuOpen(true)}
+      <div
+        className={
+          isNonDesktop
+            ? "teacher-dashboard__workspace"
+            : "teacher-dashboard__workspace teacher-dashboard__workspace--with-tabs"
+        }
+      >
+        {!isNonDesktop ? (
+          <Tabs
+            orientation="vertical"
+            value={tab}
+            onChange={(_, v) => {
+              setTab(v);
+              setSearchParams({ tab: TEACHER_TAB_KEYS[v] });
+            }}
+            className="teacher-dashboard__tabs"
           >
-            Раздел: {activeTeacherTab.label}
-          </Button>
-        </div>
-      )}
-      {isNonDesktop ? (
-        <Drawer
-          anchor={isMobile ? "bottom" : "left"}
-          open={tabMenuOpen}
-          onClose={() => setTabMenuOpen(false)}
-          PaperProps={{
-            className: isMobile
-              ? "teacher-dashboard__tabs-drawer teacher-dashboard__tabs-drawer--mobile"
-              : "teacher-dashboard__tabs-drawer",
-          }}
-        >
-          <div className="teacher-dashboard__tabs-drawer-head">
-            <h3>Разделы кабинета</h3>
-            <span>Выберите нужный раздел</span>
-          </div>
-          <div className="teacher-dashboard__tabs-drawer-grid">
             {teacherTabItems.map((item) => (
-              <button
+              <Tab
                 key={item.index}
-                type="button"
-                className={`teacher-dashboard__tabs-drawer-item ${
-                  tab === item.index ? "is-active" : ""
-                }`}
-                onClick={() => {
-                  setTab(item.index);
-                  setSearchParams({ tab: TEACHER_TAB_KEYS[item.index] });
-                  setTabMenuOpen(false);
-                }}
-              >
-                <span className="teacher-dashboard__tabs-drawer-icon">
-                  {item.icon}
-                </span>
-                <span className="teacher-dashboard__tabs-drawer-label">
-                  {item.label}
-                </span>
-              </button>
+                label={
+                  <span className="teacher-dashboard__tab-label">{item.label}</span>
+                }
+                icon={item.icon}
+                iconPosition="start"
+              />
             ))}
+          </Tabs>
+        ) : (
+          <div className="teacher-dashboard__tabs-mobile">
+            <Button
+              className="teacher-dashboard__tabs-mobile-trigger"
+              variant="outlined"
+              startIcon={<AppsRoundedIcon />}
+              onClick={() => setTabMenuOpen(true)}
+            >
+              Раздел: {activeTeacherTab.label}
+            </Button>
           </div>
-        </Drawer>
-      ) : null}
-      {/* PROFILE */}
-      {tab === 0 && (
-        <div className="teacher-dashboard__profile-layout">
-          <div className="teacher-dashboard__profile-main">
-            <TeacherProfile user={user} />
-          </div>
-          <div className="teacher-dashboard__profile-news">
-            <NewsFeedPanel user={user} />
-          </div>
-        </div>
-      )}
-      {/* STUDENTS */}
-      {tab === 1 && (
-        <div className="teacher-dashboard__section">
+        )}
+        <div className="teacher-dashboard__workspace-main">
+          {isNonDesktop ? (
+            <Drawer
+              anchor={isMobile ? "bottom" : "left"}
+              open={tabMenuOpen}
+              onClose={() => setTabMenuOpen(false)}
+              PaperProps={{
+                className: isMobile
+                  ? "teacher-dashboard__tabs-drawer teacher-dashboard__tabs-drawer--mobile"
+                  : "teacher-dashboard__tabs-drawer",
+              }}
+            >
+              <div className="teacher-dashboard__tabs-drawer-head">
+                <h3>Разделы кабинета</h3>
+                <span>Выберите нужный раздел</span>
+              </div>
+              <div className="teacher-dashboard__tabs-drawer-grid">
+                {teacherTabItems.map((item) => (
+                  <button
+                    key={item.index}
+                    type="button"
+                    className={`teacher-dashboard__tabs-drawer-item ${
+                      tab === item.index ? "is-active" : ""
+                    }`}
+                    onClick={() => {
+                      setTab(item.index);
+                      setSearchParams({ tab: TEACHER_TAB_KEYS[item.index] });
+                      setTabMenuOpen(false);
+                    }}
+                  >
+                    <span className="teacher-dashboard__tabs-drawer-icon">
+                      {item.icon}
+                    </span>
+                    <span className="teacher-dashboard__tabs-drawer-label">
+                      {item.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </Drawer>
+          ) : null}
+          {/* PROFILE */}
+          {tab === 0 && (
+            <div className="teacher-dashboard__profile-layout">
+              <div className="teacher-dashboard__profile-main">
+                <TeacherProfile user={user} />
+              </div>
+              <div className="teacher-dashboard__profile-news">
+                <NewsFeedPanel user={user} />
+              </div>
+            </div>
+          )}
+          {/* STUDENTS */}
+          {tab === 1 && (
+            <div className="teacher-dashboard__section">
           <div className="teacher-dashboard__invite-shell">
             <div className="teacher-dashboard__invite-copy">
               <span>Teacher invite</span>
@@ -1331,12 +1337,12 @@ export default function TeacherDashboard() {
               onPageChange={setStudentsPage}
             />
           )}
-        </div>
-      )}
+            </div>
+          )}
 
       {/* COURSES */}
-      {tab === 2 && (
-        <div className="teacher-dashboard__section">
+          {tab === 2 && (
+            <div className="teacher-dashboard__section">
           <div className="teacher-dashboard__section-actions">
             <Button
               variant="contained"
@@ -1477,17 +1483,17 @@ export default function TeacherDashboard() {
               onPageChange={setCoursesPage}
             />
           )}
-        </div>
-      )}
+            </div>
+          )}
 
-      {tab === 3 && (
-        <div
-          className={`teacher-dashboard__sessions ${
-            bookingLoading || availabilityLoading || bookingSavingId
-              ? "is-loading"
-              : ""
-          }`}
-        >
+          {tab === 3 && (
+            <div
+              className={`teacher-dashboard__sessions ${
+                bookingLoading || availabilityLoading || bookingSavingId
+                  ? "is-loading"
+                  : ""
+              }`}
+            >
           <div
             className={`teacher-dashboard__slot-panel ${
               availabilityOpen ? "is-open" : "is-collapsed"
@@ -1795,52 +1801,54 @@ export default function TeacherDashboard() {
               )}
             </div>
           </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      <div style={{ display: tab === 4 ? "block" : "none" }} aria-hidden={tab !== 4}>
-        <StudyCabinetPanel
-          role="teacher"
-          userId={user.id}
-          bookings={bookings}
-          availability={availability}
-          notes={studyNotes}
-          onWorkbookClick={async () => {
-            const launch = await openExternalWhiteboard({
-              from: "/teacher/profile?tab=study",
-            });
-            if (!launch.ok) {
-              setDashboardError(
-                launch.error ??
-                  "Не удалось открыть рабочую тетрадь. Проверьте настройки запуска."
-              );
-            } else if (launch.code === "popup_blocked") {
-              setDashboardError(WORKBOOK_POPUP_BLOCKED_MESSAGE);
-            }
-          }}
-          onChatClick={() => {
-            setTab(5);
-            setSearchParams({ tab: TEACHER_TAB_KEYS[5] });
-          }}
-          activityDays={teacherStudyActivityDays}
-          chatUnreadCount={chatUnreadCount}
-          onOpenSchedule={handleTeacherOpenSchedule}
-          onOpenStudentChat={handleTeacherOpenStudentChat}
-          onCreateNote={handleTeacherCreateNote}
-          onUpdateNote={handleTeacherUpdateNote}
-          onDeleteNote={handleTeacherDeleteNote}
-        />
+          <div style={{ display: tab === 4 ? "block" : "none" }} aria-hidden={tab !== 4}>
+            <StudyCabinetPanel
+              role="teacher"
+              userId={user.id}
+              bookings={bookings}
+              availability={availability}
+              notes={studyNotes}
+              onWorkbookClick={async () => {
+                const launch = await openExternalWhiteboard({
+                  from: "/teacher/profile?tab=study",
+                });
+                if (!launch.ok) {
+                  setDashboardError(
+                    launch.error ??
+                      "Не удалось открыть рабочую тетрадь. Проверьте настройки запуска."
+                  );
+                } else if (launch.code === "popup_blocked") {
+                  setDashboardError(WORKBOOK_POPUP_BLOCKED_MESSAGE);
+                }
+              }}
+              onChatClick={() => {
+                setTab(5);
+                setSearchParams({ tab: TEACHER_TAB_KEYS[5] });
+              }}
+              activityDays={teacherStudyActivityDays}
+              chatUnreadCount={chatUnreadCount}
+              onOpenSchedule={handleTeacherOpenSchedule}
+              onOpenStudentChat={handleTeacherOpenStudentChat}
+              onCreateNote={handleTeacherCreateNote}
+              onUpdateNote={handleTeacherUpdateNote}
+              onDeleteNote={handleTeacherDeleteNote}
+            />
+          </div>
+
+          {tab === 5 && (
+            <ChatPage />
+          )}
+
+          {tab === 6 && (
+            <div className="teacher-dashboard__empty">
+              {t("teacherDashboard.statsSoon")}
+            </div>
+          )}
+        </div>
       </div>
-
-      {tab === 5 && (
-        <ChatPage />
-      )}
-
-      {tab === 6 && (
-        <div className="teacher-dashboard__empty">
-          {t("teacherDashboard.statsSoon")}
-        </div>
-      )}
 
       {/* EDITOR */}
       {(isEditorOpen || editingCourseId) && (

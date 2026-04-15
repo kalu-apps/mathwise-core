@@ -156,73 +156,86 @@
 
 .student-profile__header {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.student-profile__workspace {
+  display: grid;
   gap: 16px;
-  margin-bottom: 24px;
+  align-items: start;
+}
+
+.student-profile__workspace-main {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.student-profile__tabs {
+  margin: 0;
 
   .MuiTabs-root {
-    border-radius: 14px;
-    padding: 2px 5px 0;
-    background: var(--surface-soft);
-    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.15);
+    min-height: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .MuiTabs-scroller {
+    overflow: visible !important;
   }
 
   .MuiTabs-flexContainer {
     align-items: stretch;
+    gap: 7px;
   }
 
   .MuiTab-root {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
     text-transform: none;
-    font-weight: 700;
-    min-height: 41px;
-    border-radius: 11px;
-    padding: 7px 14px;
     font-size: 14px;
     line-height: 1.2;
-    align-self: stretch;
-  }
+    font-weight: 650;
+    min-height: 40px;
+    border-radius: 12px;
+    padding: 8px 12px;
+    color: color-mix(in srgb, var(--text-secondary) 92%, var(--text-primary));
+    border: 1px solid transparent;
+    transition:
+      color 0.16s ease,
+      border-color 0.16s ease,
+      background-color 0.16s ease,
+      box-shadow 0.16s ease;
 
-  .MuiTabs-indicator {
-    height: 0;
-  }
-
-  .Mui-selected {
-    background: var(--surface-elevated);
-    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
-    align-self: stretch;
-    margin-bottom: 0;
-  }
-}
-
-.student-profile__tabs {
-  .MuiTabs-scroller {
-    width: 100%;
-    overflow-x: auto !important;
-    scrollbar-width: none;
-  }
-
-  .MuiTabs-scroller::-webkit-scrollbar {
-    display: none;
-  }
-
-  .MuiTabs-flexContainer {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    width: max-content;
-    min-width: 100%;
-    gap: 6px;
-  }
-
-  .MuiTab-root {
-    min-width: max-content;
-    max-width: none;
-    flex: 0 0 auto;
-    gap: 6px;
-    white-space: nowrap;
+    .MuiTab-iconWrapper {
+      margin-right: 8px;
+    }
 
     .MuiSvgIcon-root {
       font-size: 19px;
     }
+  }
+
+  .MuiTab-root:hover {
+    color: var(--text-primary);
+    border-color: color-mix(in srgb, var(--border-subtle) 78%, var(--accent-primary));
+    background: color-mix(in srgb, var(--surface-soft) 74%, var(--accent-primary));
+  }
+
+  .MuiTab-root.Mui-selected {
+    color: var(--text-primary);
+    border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle));
+    background: color-mix(in srgb, var(--accent-primary) 15%, var(--surface-elevated));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-tier-2-edge) 70%, transparent);
+  }
+
+  .MuiTabs-indicator {
+    display: none;
   }
 }
 
@@ -331,9 +344,22 @@
   display: block;
   min-width: 0;
   max-width: none;
-  white-space: nowrap;
+  white-space: normal;
   overflow: visible;
   text-overflow: clip;
+}
+
+@media (min-width: 721px) {
+  .student-profile__workspace--with-tabs {
+    grid-template-columns: 232px minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .student-profile__workspace--with-tabs .student-profile__tabs {
+    position: sticky;
+    top: 94px;
+    align-self: start;
+  }
 }
 
 .student-profile__courses {
