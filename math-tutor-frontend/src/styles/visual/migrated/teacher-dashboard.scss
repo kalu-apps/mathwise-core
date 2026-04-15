@@ -747,8 +747,8 @@
         var(--teacher-tabs-segment-height) + (var(--teacher-tabs-shell-inset-y) * 2)
       );
       padding: var(--teacher-tabs-shell-inset-y) 5px;
-      background: var(--surface-soft);
-      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.15);
+      background: color-mix(in srgb, var(--surface-soft) 90%, var(--surface-elevated));
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border-subtle) 92%, transparent);
     }
 
     .MuiTabs-scroller {
@@ -792,15 +792,32 @@
       font-size: 14px;
       line-height: 1.2;
       align-self: stretch;
+      color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary));
+      border: 1px solid transparent;
+      transition:
+        color 0.16s ease,
+        border-color 0.16s ease,
+        background-color 0.16s ease,
+        box-shadow 0.16s ease;
 
       .MuiSvgIcon-root {
         font-size: 19px;
       }
     }
 
+    .MuiTab-root:hover {
+      background: color-mix(in srgb, var(--surface-elevated) 74%, var(--accent-primary));
+      border-color: color-mix(in srgb, var(--border-subtle) 78%, var(--accent-primary));
+      color: var(--text-primary);
+    }
+
     .MuiTab-root.Mui-selected {
       align-self: stretch;
       margin-bottom: 0;
+      background: color-mix(in srgb, var(--accent-primary) 18%, var(--surface-elevated));
+      border-color: color-mix(in srgb, var(--accent-primary) 32%, var(--border-subtle));
+      color: var(--text-primary);
+      box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-tier-2-edge) 72%, transparent);
     }
 
     .MuiTabs-indicator {

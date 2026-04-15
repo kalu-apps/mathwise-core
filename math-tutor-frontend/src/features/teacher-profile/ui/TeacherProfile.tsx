@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
-import { Avatar, IconButton, Skeleton, Tooltip } from "@mui/material";
+import { Alert, Avatar, IconButton, Skeleton, Tooltip } from "@mui/material";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -129,6 +129,7 @@ export function TeacherProfile({ user, readOnly = false }: Props) {
   const [viewer, setViewer] = useState<DiplomaFile | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const editing = !readOnly && draft !== null;
   const data = draft ?? profile;
@@ -172,10 +173,12 @@ export function TeacherProfile({ user, readOnly = false }: Props) {
 
   const startEdit = () => {
     if (readOnly) return;
+    setSaveError(null);
     setDraft({ ...profile });
     setPhoneDraft(displayPhone);
   };
   const cancelEdit = () => {
+    setSaveError(null);
     setDraft(null);
     setPhoneDraft(displayPhone);
   };
@@ -184,21 +187,30 @@ export function TeacherProfile({ user, readOnly = false }: Props) {
     if (!draft) return;
     const next = normalizeProfile(user, draft);
     const normalizedPhone = toRuPhoneStorage(phoneDraft);
-    setProfile(next);
+    setSaveError(null);
     try {
-      await saveProfile(user.id, next);
+      let nextUser = authUser;
       if (!readOnly) {
-        const updatedUser = await updateUserProfile(user.id, {
+        nextUser = await updateUserProfile(user.id, {
           firstName: next.firstName,
           lastName: next.lastName,
           phone: normalizedPhone,
           photo: next.photo,
         });
-        updateUser(updatedUser);
-        setPhoneDraft(updatedUser.phone ?? normalizedPhone);
+      }
+      await saveProfile(user.id, next);
+      setProfile(next);
+      if (!readOnly && nextUser) {
+        updateUser(nextUser);
+        setPhoneDraft(nextUser.phone ?? normalizedPhone);
       }
       setDraft(null);
-    } catch {
+    } catch (error) {
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : "Не удалось сохранить профиль. Повторите попытку."
+      );
       // keep draft to allow retry
     }
   };
@@ -211,6 +223,17 @@ export function TeacherProfile({ user, readOnly = false }: Props) {
     if (!editing) return;
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setSaveError("Загрузите изображение в формате PNG, JPG или WEBP.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setSaveError("Слишком большой файл аватара. Максимальный размер — 2 МБ.");
+      e.target.value = "";
+      return;
+    }
+    setSaveError(null);
     const dataUrl = await fileToDataUrl(file);
     updateDraft({ photo: dataUrl });
     e.target.value = "";
@@ -398,6 +421,7 @@ export function TeacherProfile({ user, readOnly = false }: Props) {
                   )}
                 </div>
               )}
+              {saveError ? <Alert severity="error">{saveError}</Alert> : null}
               <div className="tp2-profile-main">
                 <div className="tp2-avatar">
                   <Avatar

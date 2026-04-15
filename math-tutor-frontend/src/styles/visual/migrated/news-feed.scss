@@ -82,7 +82,7 @@
   p {
     margin: 6px 0 0;
     font-size: 13px;
-    color: var(--text-secondary);
+    color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary));
   }
 }
 
@@ -105,14 +105,24 @@
 }
 
 .news-feed__add {
+  min-height: 38px;
+  padding-inline: 14px !important;
+  text-transform: none !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  color: var(--text-primary) !important;
+  border: 1px solid color-mix(in srgb, var(--brand-solid) 38%, var(--border-subtle)) !important;
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--brand-solid) 18%, transparent),
-    color-mix(in srgb, var(--feedback-info) 14%, transparent)
+    color-mix(in srgb, var(--brand-solid) 20%, transparent),
+    color-mix(in srgb, var(--feedback-info) 16%, transparent)
   ) !important;
-  border: 1px solid color-mix(in srgb, var(--brand-solid) 34%, var(--border-subtle));
-  color: var(--accent-text) !important;
-  border-radius: 14px;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--brand-solid) 18%, transparent);
+}
+
+.news-feed__add--compact {
+  min-width: 40px;
+  padding-inline: 10px !important;
 }
 
 .news-feed__composer {
@@ -586,7 +596,7 @@
   flex-wrap: wrap;
   gap: 8px;
   font-size: 11px;
-  color: var(--text-secondary);
+  color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary));
   align-items: center;
 }
 
@@ -665,6 +675,11 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+
+  .MuiIconButton-root {
+    width: 34px;
+    height: 34px;
+  }
 }
 
 .news-feed__edit {

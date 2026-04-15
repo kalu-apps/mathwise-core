@@ -1,4 +1,4 @@
-import { api, isRecoverableApiError } from "@/shared/api/client";
+import { ApiError, api, isRecoverableApiError } from "@/shared/api/client";
 import { readStorage, writeStorage } from "@/shared/lib/localDb";
 import { generateId } from "@/shared/lib/id";
 import { buildIdempotencyHeaders } from "@/shared/lib/idempotency";
@@ -138,6 +138,20 @@ const executeEntry = async (entry: OutboxEntry) => {
   });
 };
 
+const shouldRetryRecoverableOutboxError = (entry: OutboxEntry, error: unknown) => {
+  if (!(error instanceof ApiError)) return true;
+  // Profile update failures with 5xx are usually payload/backend validation issues
+  // and should not be auto-retried endlessly via outbox.
+  if (
+    entry.method === "PUT" &&
+    entry.path === "/profile/me" &&
+    error.code === "server_unavailable"
+  ) {
+    return false;
+  }
+  return true;
+};
+
 export const subscribeOutbox = (listener: () => void) => {
   listeners.add(listener);
   return () => {
@@ -218,7 +232,10 @@ export const flushOutboxQueue = async () => {
         persistQueue();
         emit();
       } catch (error) {
-        if (isRecoverableApiError(error)) {
+        if (
+          isRecoverableApiError(error) &&
+          shouldRetryRecoverableOutboxError(current, error)
+        ) {
           lastError = error instanceof Error ? error.message : "recoverable_error";
           recoverableFailureCount += 1;
           nextRetryAtMs = Date.now() + getRetryBackoffMs(recoverableFailureCount);

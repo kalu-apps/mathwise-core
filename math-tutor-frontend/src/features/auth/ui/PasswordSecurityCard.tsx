@@ -120,6 +120,8 @@ export function PasswordSecurityCard({ className }: PasswordSecurityCardProps) {
     return "Пароль пока не задан";
   }, [status]);
 
+  const hasPassword = Boolean(status?.hasPassword);
+
   const resetFormState = () => {
     setCurrentPassword("");
     setNextPassword("");
@@ -245,22 +247,17 @@ export function PasswordSecurityCard({ className }: PasswordSecurityCardProps) {
           <div className="password-security__quick-actions">
             <Button
               variant="outlined"
-              startIcon={<KeyRoundedIcon fontSize="small" />}
+              startIcon={
+                hasPassword ? (
+                  <SyncLockRoundedIcon fontSize="small" />
+                ) : (
+                  <KeyRoundedIcon fontSize="small" />
+                )
+              }
               className="password-security__quick-btn"
-              onClick={openCreatePanel}
-              disabled={Boolean(status?.hasPassword)}
+              onClick={hasPassword ? openChangePanel : openCreatePanel}
             >
-              Создать пароль
-            </Button>
-
-            <Button
-              variant="outlined"
-              startIcon={<SyncLockRoundedIcon fontSize="small" />}
-              className="password-security__quick-btn"
-              onClick={openChangePanel}
-              disabled={!status?.hasPassword}
-            >
-              Сменить пароль
+              {hasPassword ? "Сменить пароль" : "Создать пароль"}
             </Button>
           </div>
 

@@ -10,6 +10,7 @@ import {
   InputAdornment,
   Skeleton,
   TextField,
+  Tooltip,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -316,16 +317,20 @@ export function NewsFeedPanel({ user }: Props) {
           </p>
         </div>
         {isTeacher && (
-          <IconButton
-            className="news-feed__add"
+          <Button
+            className={cn("news-feed__add", {
+              "news-feed__add--compact": isMobile,
+            })}
+            variant={isMobile ? "outlined" : "contained"}
+            startIcon={<AddRoundedIcon fontSize="small" />}
             onClick={() => {
               setCreateOpen(true);
               resetEditor();
             }}
             aria-label="Создать новость"
           >
-            <AddRoundedIcon />
-          </IconButton>
+            {isMobile ? "Создать" : "Создать объявление"}
+          </Button>
         )}
       </div>
 
@@ -394,47 +399,59 @@ export function NewsFeedPanel({ user }: Props) {
                     <div className="news-feed__item-actions">
                       {!isEditing ? (
                         <>
-                          <IconButton
-                            className="news-feed__edit"
-                            onClick={() => startEdit(item)}
-                            aria-label="Редактировать новость"
-                          >
-                            <EditRoundedIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            className="news-feed__delete"
-                            onClick={() => setDeleteConfirmId(item.id)}
-                            aria-label="Удалить новость"
-                            disabled={deletingId === item.id}
-                          >
-                            {deletingId === item.id ? (
-                              <CircularProgress size={16} />
-                            ) : (
-                              <DeleteOutlineRoundedIcon fontSize="small" />
-                            )}
-                          </IconButton>
+                          <Tooltip title="Редактировать">
+                            <IconButton
+                              className="news-feed__edit"
+                              onClick={() => startEdit(item)}
+                              aria-label="Редактировать новость"
+                            >
+                              <EditRoundedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Удалить">
+                            <span>
+                              <IconButton
+                                className="news-feed__delete"
+                                onClick={() => setDeleteConfirmId(item.id)}
+                                aria-label="Удалить новость"
+                                disabled={deletingId === item.id}
+                              >
+                                {deletingId === item.id ? (
+                                  <CircularProgress size={16} />
+                                ) : (
+                                  <DeleteOutlineRoundedIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </span>
+                          </Tooltip>
                         </>
                       ) : (
                         <>
-                          <IconButton
-                            className="news-feed__save"
-                            onClick={() => void handleUpdate()}
-                            aria-label="Сохранить новость"
-                            disabled={!canUpdate}
-                          >
-                            {updatingId === item.id ? (
-                              <CircularProgress size={16} />
-                            ) : (
-                              <SaveRoundedIcon fontSize="small" />
-                            )}
-                          </IconButton>
-                          <IconButton
-                            className="news-feed__cancel"
-                            onClick={resetEditor}
-                            aria-label="Отменить редактирование"
-                          >
-                            <CloseRoundedIcon fontSize="small" />
-                          </IconButton>
+                          <Tooltip title="Сохранить">
+                            <span>
+                              <IconButton
+                                className="news-feed__save"
+                                onClick={() => void handleUpdate()}
+                                aria-label="Сохранить новость"
+                                disabled={!canUpdate}
+                              >
+                                {updatingId === item.id ? (
+                                  <CircularProgress size={16} />
+                                ) : (
+                                  <SaveRoundedIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                          <Tooltip title="Отменить">
+                            <IconButton
+                              className="news-feed__cancel"
+                              onClick={resetEditor}
+                              aria-label="Отменить редактирование"
+                            >
+                              <CloseRoundedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         </>
                       )}
                     </div>

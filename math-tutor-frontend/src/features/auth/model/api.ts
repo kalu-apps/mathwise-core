@@ -285,6 +285,14 @@ export async function selfHealAccess(params?: {
 
 export type UpdateUserPayload = Partial<Pick<User, "firstName" | "lastName" | "phone" | "photo">>;
 
+const shouldEnqueueRecoverableProfileUpdate = (error: unknown) => {
+  if (!isRecoverableApiError(error)) return false;
+  if (error instanceof ApiError && error.code === "server_unavailable") {
+    return false;
+  }
+  return true;
+};
+
 export async function updateUserProfile(
   userId: string,
   data: UpdateUserPayload
@@ -296,7 +304,7 @@ export async function updateUserProfile(
   try {
     return await api.put<User>("/profile/me", data);
   } catch (error) {
-    if (isRecoverableApiError(error)) {
+    if (shouldEnqueueRecoverableProfileUpdate(error)) {
       enqueueOutboxRequest({
         title: t("common.retryUserProfileSaveAction"),
         method: "PUT",
