@@ -167,10 +167,6 @@ label,
 [class*="__card "],
 [class$="__panel"],
 [class*="__panel "],
-[class$="__shell"],
-[class*="__shell "],
-[class$="__section"],
-[class*="__section "],
 [class$="__dialog"],
 [class*="__dialog "],
 [class$="__modal"],
@@ -184,7 +180,6 @@ label,
 .news-feed__item,
 .news-feed__composer,
 .study-cabinet-panel__cover,
-.teacher-dashboard__section,
 .teacher-dashboard__panel,
 .teacher-student-profile__panel,
 .student-profile__course-card {
@@ -203,6 +198,17 @@ label,
 .news-feed__item:hover {
   border-color: color-mix(in srgb, var(--ag-tier2-border) 78%, var(--accent-soft)) !important;
   box-shadow: var(--ag-tier2-shadow), inset 0 1px 0 var(--ag-tier2-edge) !important;
+}
+
+/* Layout wrappers should stay neutral when inner sections already carry structure */
+.teacher-dashboard__section,
+.teacher-dashboard__profile-main,
+.teacher-dashboard__profile-news,
+.chat-page__shell {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
 }
 
 /* Tier 1: near-solid for red zones */

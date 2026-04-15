@@ -1117,10 +1117,8 @@
 
 /* Aurora Graphite finalization */
 .teacher-dashboard {
-  &__section,
   &__panel,
-  &__invite-shell,
-  &__profile-news {
+  &__invite-shell {
     background: var(--glass-tier-2-bg) !important;
     border-color: var(--glass-tier-2-border) !important;
     box-shadow: var(--glass-tier-2-shadow), inset 0 1px 0 var(--glass-tier-2-edge) !important;
@@ -1129,12 +1127,20 @@
 
   &__availability,
   &__slot,
-  &__booking-card,
-  &__profile-main {
+  &__booking-card {
     background: var(--glass-tier-1-bg) !important;
     border-color: var(--glass-tier-1-border) !important;
     box-shadow: var(--glass-tier-1-shadow), inset 0 1px 0 var(--glass-tier-1-edge) !important;
     backdrop-filter: blur(var(--glass-tier-1-blur)) !important;
+  }
+
+  &__section,
+  &__profile-main,
+  &__profile-news {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
   }
 
   &__title {

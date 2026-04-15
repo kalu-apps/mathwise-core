@@ -1083,7 +1083,6 @@
 
 /* Aurora Graphite finalization */
 .chat-page {
-  &__shell,
   &__sidebar,
   &__main,
   &__composer,
@@ -1092,6 +1091,13 @@
     border-color: var(--glass-tier-2-border) !important;
     box-shadow: var(--glass-tier-2-shadow), inset 0 1px 0 var(--glass-tier-2-edge) !important;
     backdrop-filter: blur(var(--glass-tier-2-blur)) !important;
+  }
+
+  &__shell {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
   }
 
   &__messages,
