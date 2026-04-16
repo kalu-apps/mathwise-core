@@ -4,7 +4,6 @@ import {
   useRef,
   useState,
   type ReactNode,
-  type CSSProperties,
 } from "react";
 import {
   Alert,
@@ -20,6 +19,7 @@ import {
   FormControlLabel,
   IconButton,
   InputAdornment,
+  LinearProgress,
   Snackbar,
   Tab,
   Tabs,
@@ -35,6 +35,7 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DiamondRoundedIcon from "@mui/icons-material/DiamondRounded";
 import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import SpaceDashboardRoundedIcon from "@mui/icons-material/SpaceDashboardRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import EditCalendarRoundedIcon from "@mui/icons-material/EditCalendarRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
@@ -66,7 +67,6 @@ import type { StudentStudyCabinetCourseItem } from "@/features/study-cabinet/stu
 import { useStudentProfileData } from "@/pages/profile/hooks/useStudentProfileData";
 import {
   buildBnplReminderItems,
-  buildStudentProgressVisual,
   countScheduledBookings,
   filterStudentCoursesByQuery,
   formatBookingReminderDate,
@@ -88,7 +88,6 @@ import type { TeacherChatEligibility } from "@/features/chat/model/types";
 import ChatPage from "@/pages/chat/ChatPage";
 import {
   PHONE_MASK_TEMPLATE,
-  formatRuPhoneDisplay,
   formatRuPhoneInput,
   toRuPhoneStorage,
 } from "@/shared/lib/phone";
@@ -741,7 +740,6 @@ export default function StudentProfile() {
   if (!user) return null;
   const roleLabel = user.role === "teacher" ? "Преподаватель" : "Студент";
   const identityName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
-  const identityPhone = formatRuPhoneDisplay(user.phone ?? "") || "Телефон не указан";
   const identityInitial = getUserAvatarInitial(user) || "С";
 
   const openProfileEditDialog = () => {
@@ -806,13 +804,12 @@ export default function StudentProfile() {
       </Snackbar>
       {unpaidCompletedBooking && (
         <div className="student-profile__reminder student-profile__reminder--priority">
-          Внимание: занятие от {formatBookingReminderDate(unpaidCompletedBooking)} пока не
-          отмечено как оплачено. Свяжитесь с преподавателем для подтверждения.
+          {`Оплата занятия ${formatBookingReminderDate(unpaidCompletedBooking)} не подтверждена.`}
         </div>
       )}
       {upcomingBooking && (
         <div className="student-profile__reminder">
-          Напоминание: занятие назначено на {formatBookingReminderDate(upcomingBooking)}
+          {`Ближайшее занятие: ${formatBookingReminderDate(upcomingBooking)}`}
         </div>
       )}
       {accessNoticeState && (
@@ -857,6 +854,14 @@ export default function StudentProfile() {
         {!isNonDesktop ? (
           <div className="student-profile__nav-shell">
             <section className="student-profile__identity-card">
+              <IconButton
+                className="student-profile__identity-edit-icon"
+                onClick={openProfileEditDialog}
+                aria-label="Редактировать профиль"
+                size="small"
+              >
+                <EditRoundedIcon fontSize="small" />
+              </IconButton>
               <div className="student-profile__identity-main">
                 <Avatar
                   className="student-profile__identity-avatar"
@@ -867,18 +872,8 @@ export default function StudentProfile() {
                 <div className="student-profile__identity-copy">
                   <h3>{identityName || "Профиль студента"}</h3>
                   <span className="student-profile__identity-role">{roleLabel}</span>
-                  <span>{user.email}</span>
-                  <span>{identityPhone}</span>
                 </div>
               </div>
-              <Button
-                className="student-profile__identity-edit"
-                variant="outlined"
-                startIcon={<EditRoundedIcon />}
-                onClick={openProfileEditDialog}
-              >
-                Редактировать
-              </Button>
             </section>
             <Tabs
               orientation="vertical"
@@ -911,6 +906,14 @@ export default function StudentProfile() {
         <div className="student-profile__workspace-main">
           {isNonDesktop ? (
             <section className="student-profile__identity-card student-profile__identity-card--mobile">
+              <IconButton
+                className="student-profile__identity-edit-icon"
+                onClick={openProfileEditDialog}
+                aria-label="Редактировать профиль"
+                size="small"
+              >
+                <EditRoundedIcon fontSize="small" />
+              </IconButton>
               <div className="student-profile__identity-main">
                 <Avatar
                   className="student-profile__identity-avatar"
@@ -921,23 +924,19 @@ export default function StudentProfile() {
                 <div className="student-profile__identity-copy">
                   <h3>{identityName || "Профиль студента"}</h3>
                   <span className="student-profile__identity-role">{roleLabel}</span>
-                  <span>{user.email}</span>
-                  <span>{identityPhone}</span>
                 </div>
               </div>
-              <Button
-                className="student-profile__identity-edit"
-                variant="outlined"
-                startIcon={<EditRoundedIcon />}
-                onClick={openProfileEditDialog}
-              >
-                Редактировать
-              </Button>
             </section>
           ) : null}
 
       {tab === 1 && (
         <div className="student-profile__courses">
+          <div className="student-profile__page-head">
+            <div>
+              <h2>Мои курсы</h2>
+              <p>Откройте курс и продолжите обучение.</p>
+            </div>
+          </div>
           {coursesError ? (
             <RecoverableErrorAlert
               error={coursesError}
@@ -957,6 +956,11 @@ export default function StudentProfile() {
               fullWidth
               inputProps={{ "aria-label": "Поиск курса" }}
               InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
                 endAdornment: courseQuery ? (
                   <InputAdornment position="end">
                     <IconButton
@@ -983,8 +987,10 @@ export default function StudentProfile() {
             />
           )}
           {!coursesLoading && items.length === 0 && (
-            <div className="student-profile__empty">
-              Пока нет купленных курсов
+            <div className="student-profile__empty student-profile__empty--feature">
+              <MenuBookRoundedIcon fontSize="small" />
+              <strong>Курсы пока не добавлены</strong>
+              <span>После покупки курс появится в этом разделе.</span>
             </div>
           )}
           {pagedCourseItems.map(
@@ -1015,33 +1021,31 @@ export default function StudentProfile() {
                   : "ui-status-chip--paid";
               const bnplStatusLabel =
                 financialView.financialStatus === "ok"
-                  ? "Платежи в норме"
+                  ? "Норма"
                   : financialView.financialStatus === "upcoming"
-                  ? "Скоро платеж"
+                  ? "Платёж скоро"
                   : financialView.financialStatus === "grace"
                   ? "Льготный период"
                   : financialView.financialStatus === "restricted"
-                  ? "Ограничен новый контент"
+                  ? "Нужна оплата"
                   : "Доступ приостановлен";
-              const learningVisual = buildStudentProgressVisual(progress);
-              const knowledgeVisual = buildStudentProgressVisual(testsKnowledgePercent);
-              const learningRingStyle = {
-                "--progress-color": learningVisual.color,
-                "--progress-glow": learningVisual.glow,
-              } as CSSProperties;
-              const knowledgeRingStyle = {
-                "--progress-color": knowledgeVisual.color,
-                "--progress-glow": knowledgeVisual.glow,
-              } as CSSProperties;
               const profileCoursesFrom = "/student/profile?tab=courses";
               const isCourseCompleted =
                 viewedCount >= totalLessons &&
                 (totalTests === 0 ||
                   (completedTests >= totalTests && testsKnowledgePercent > 0));
               const courseCtaLabel = isCourseCompleted
-                ? "Рестарт"
-                : "Открыть";
+                ? "Открыть курс"
+                : "Продолжить";
               const paymentActionLabel = "Оплата";
+              const learningPercent = Math.max(0, Math.min(100, Math.round(progress)));
+              const testsPercent = Math.max(
+                0,
+                Math.min(100, Math.round(testsKnowledgePercent))
+              );
+              const showPaymentAction =
+                financialView.paymentMethod === "bnpl" &&
+                financialView.financialStatus !== "ok";
               return (
                 <div key={course.id} className="student-profile__course-card">
                   <div className="student-profile__course-main">
@@ -1072,23 +1076,18 @@ export default function StudentProfile() {
                     <div className="student-profile__course-payment">
                       {financialView.paymentMethod === "bnpl" ? (
                         <>
-                          {nextDateLabel && (
-                            <span className="student-profile__course-payment-line student-profile__course-payment-line--accent student-profile__course-payment-line--next-payment">
-                              Следующий платеж: {nextDateLabel}
-                            </span>
-                          )}
-                          {!nextDateLabel ? (
-                            <span className="student-profile__course-payment-line student-profile__course-payment-line--accent">
-                              Оплата частями активна
-                            </span>
-                          ) : null}
+                          <span className="student-profile__course-payment-line student-profile__course-payment-line--accent">
+                            {nextDateLabel
+                              ? `Следующий платёж: ${nextDateLabel}`
+                              : "Оплата частями"}
+                          </span>
                           <span className={`ui-status-chip ${bnplStatusClass}`}>
                             {bnplStatusLabel}
                           </span>
                         </>
                       ) : (
-                        <span className="ui-status-chip ui-status-chip--paid">
-                          Оплачено полностью
+                        <span className="student-profile__course-payment-line student-profile__course-payment-line--accent">
+                          Оплачен
                         </span>
                       )}
                     </div>
@@ -1107,20 +1106,22 @@ export default function StudentProfile() {
                         />
                         {courseCtaLabel}
                       </button>
-                      <button
-                        className="student-profile__course-link student-profile__course-link--ghost"
-                        onClick={() =>
-                          navigate(`/profile/purchases/${purchase.id}`, {
-                            state: { from: profileCoursesFrom },
-                          })
-                        }
-                      >
-                        <CreditCardRoundedIcon
-                          fontSize="inherit"
-                          className="student-profile__course-link-icon"
-                        />
-                        {paymentActionLabel}
-                      </button>
+                      {showPaymentAction ? (
+                        <button
+                          className="student-profile__course-link student-profile__course-link--ghost"
+                          onClick={() =>
+                            navigate(`/profile/purchases/${purchase.id}`, {
+                              state: { from: profileCoursesFrom },
+                            })
+                          }
+                        >
+                          <CreditCardRoundedIcon
+                            fontSize="inherit"
+                            className="student-profile__course-link-icon"
+                          />
+                          {paymentActionLabel}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
 
@@ -1136,49 +1137,31 @@ export default function StudentProfile() {
                           : "ui-status-chip--inprogress"
                       }`}
                     >
-                      {progress >= 100 ? "Завершен" : "В процессе изучения"}
+                      {progress >= 100 ? "Завершён" : "В процессе"}
                     </span>
-                    <div
-                      className={`student-profile__course-progress-rings ${
-                        totalTests > 0 ? "is-double" : "is-single"
-                      }`}
-                    >
-                      <div
-                        className="student-profile__progress-ring-card"
-                        style={learningRingStyle}
-                      >
-                        <div className="student-profile__progress-ring">
-                          <CircularProgress
-                            variant="determinate"
-                            value={learningVisual.percent}
-                            size={66}
-                            thickness={4.2}
-                            sx={{ color: learningVisual.color }}
-                          />
-                          <span>{learningVisual.percent}%</span>
+                    <div className="student-profile__course-progress-lines">
+                      <div className="student-profile__course-progress-line">
+                        <div className="student-profile__course-progress-line-head">
+                          <span>Контент</span>
+                          <strong>{learningPercent}%</strong>
                         </div>
-                        <span className="student-profile__progress-label">
-                          Изучено
-                        </span>
+                        <LinearProgress
+                          variant="determinate"
+                          value={learningPercent}
+                          className="student-profile__course-progress-bar"
+                        />
                       </div>
                       {totalTests > 0 ? (
-                        <div
-                          className="student-profile__progress-ring-card"
-                          style={knowledgeRingStyle}
-                        >
-                          <div className="student-profile__progress-ring">
-                            <CircularProgress
-                              variant="determinate"
-                              value={knowledgeVisual.percent}
-                              size={66}
-                              thickness={4.2}
-                              sx={{ color: knowledgeVisual.color }}
-                            />
-                            <span>{knowledgeVisual.percent}%</span>
+                        <div className="student-profile__course-progress-line">
+                          <div className="student-profile__course-progress-line-head">
+                            <span>Тесты</span>
+                            <strong>{testsPercent}%</strong>
                           </div>
-                          <span className="student-profile__progress-label">
-                            Сдано
-                          </span>
+                          <LinearProgress
+                            variant="determinate"
+                            value={testsPercent}
+                            className="student-profile__course-progress-bar"
+                          />
                         </div>
                       ) : null}
                     </div>
@@ -1203,6 +1186,12 @@ export default function StudentProfile() {
 
       {tab === 2 && (
         <div className="student-profile__lessons">
+          <div className="student-profile__page-head">
+            <div>
+              <h2>Индивидуальные занятия</h2>
+              <p>Запись и история встреч.</p>
+            </div>
+          </div>
           {scheduleError ? (
             <RecoverableErrorAlert
               error={scheduleError}
@@ -1232,13 +1221,15 @@ export default function StudentProfile() {
               <h3 className="student-profile__lessons-title">
                 Запись на индивидуальное занятие
               </h3>
-              <span>Выберите дату и диапазон времени</span>
+              <span>Выберите дату и время.</span>
             </div>
             {scheduleLoading ? (
               <SectionLoader className="student-profile__skeletons" rows={2} showRing />
             ) : availability.length === 0 ? (
-              <div className="student-profile__empty student-profile__empty--inner">
-                Свободных слотов пока нет.
+              <div className="student-profile__empty student-profile__empty--inner student-profile__empty--feature">
+                <EventAvailableRoundedIcon fontSize="small" />
+                <strong>Свободных слотов пока нет</strong>
+                <span>Новые даты появятся в этом блоке.</span>
               </div>
             ) : (
               <>
@@ -1285,7 +1276,7 @@ export default function StudentProfile() {
                   </div>
                   {createDateSlots.length === 0 ? (
                     <div className="student-profile__empty student-profile__empty--inner">
-                      На выбранную дату свободных слотов нет.
+                      На выбранную дату свободных слотов нет
                     </div>
                   ) : (
                     <div className="student-profile__calendar-times">
@@ -1382,8 +1373,10 @@ export default function StudentProfile() {
               itemHeight={140}
             />
           ) : bookings.length === 0 ? (
-            <div className="student-profile__empty">
-              Записей на индивидуальные занятия пока нет.
+            <div className="student-profile__empty student-profile__empty--feature">
+              <EventAvailableRoundedIcon fontSize="small" />
+              <strong>Пока нет записей</strong>
+              <span>Ваши занятия появятся здесь после бронирования.</span>
             </div>
           ) : (
             <div className="student-profile__lessons-layout">
@@ -1393,7 +1386,7 @@ export default function StudentProfile() {
                 </h3>
                 {scheduledBookings.length === 0 ? (
                   <div className="student-profile__empty student-profile__empty--inner">
-                    Запланированных занятий нет
+                    Запланированных занятий пока нет
                   </div>
                 ) : (
                   <>
@@ -1414,7 +1407,7 @@ export default function StudentProfile() {
                 </h3>
                 {completedBookings.length === 0 ? (
                   <div className="student-profile__empty student-profile__empty--inner">
-                    Завершенных занятий нет
+                    Завершённых занятий пока нет
                   </div>
                 ) : (
                   <>
@@ -1630,7 +1623,7 @@ export default function StudentProfile() {
         <DialogContent className="student-profile__profile-edit-content">
           <div className="student-profile__profile-edit-head">
             <h3>Личные данные</h3>
-            <span>Изменения применяются к вашему аккаунту.</span>
+            <span>Изменения применятся к аккаунту.</span>
           </div>
           {profileError ? <Alert severity="error">{profileError}</Alert> : null}
           <div className="student-profile__profile-edit-avatar">
@@ -1739,10 +1732,8 @@ export default function StudentProfile() {
             <section className="student-profile__profile-shell">
               <div className="student-profile__profile-shell-copy">
                 <span>Профиль</span>
-                <h3>Личные данные и безопасность входа</h3>
-                <p>
-                  Изменяйте имя, телефон, фото и пароль в одном компактном окне.
-                </p>
+                <h3>Личные данные</h3>
+                <p>Измените имя, телефон, фото и пароль в одном окне.</p>
               </div>
               <div className="student-profile__profile-shell-actions">
                 <Button
@@ -1750,7 +1741,7 @@ export default function StudentProfile() {
                   startIcon={<EditRoundedIcon />}
                   onClick={openProfileEditDialog}
                 >
-                  Редактировать профиль
+                  Редактировать
                 </Button>
               </div>
             </section>

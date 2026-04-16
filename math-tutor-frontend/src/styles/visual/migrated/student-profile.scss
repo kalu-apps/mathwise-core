@@ -1,98 +1,83 @@
 .student-profile {
-  max-width: 1040px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 28px 24px 40px;
+  padding: 24px clamp(14px, 2vw, 24px) 40px;
   color: var(--text-primary);
-  font-family: var(--font-ui);
 }
 
 .student-profile .MuiAlert-root {
-  margin: 10px 0 16px;
+  margin: 0;
+}
+
+.student-profile__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
 }
 
 .student-profile__title {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 26px;
-  font-weight: 700;
-  margin: 0 0 20px;
-  letter-spacing: -0.02em;
+  margin: 0;
+  font-size: clamp(26px, 1.5vw + 20px, 34px);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
   color: var(--text-primary);
+}
 
-  span {
-    background: linear-gradient(90deg, var(--text-primary), var(--accent-strong));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  svg {
-    color: var(--accent-strong);
-    font-size: 26px;
-    filter: drop-shadow(
-      0 6px 12px color-mix(in srgb, var(--brand-solid) 30%, transparent)
-    );
-  }
+.student-profile__title svg {
+  font-size: 25px;
+  color: var(--accent-strong);
 }
 
 .student-profile__reminder {
-  margin-bottom: 16px;
-  padding: 12px 16px;
-  border-radius: 16px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--feedback-warning) 88%, var(--feedback-danger)),
-    color-mix(in srgb, var(--feedback-danger) 88%, var(--accent-strong))
-  );
-  color: var(--text-on-overlay);
-  font-weight: 600;
-  text-align: center;
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--feedback-warning) 42%, transparent);
-  position: sticky;
-  top: 76px;
-  z-index: 35;
+  margin-bottom: 12px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--feedback-warning) 34%, var(--border-subtle));
+  background: color-mix(in srgb, var(--feedback-warning) 12%, var(--background-elevated));
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .student-profile__reminder--priority {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--feedback-danger) 92%, var(--accent-strong)),
-    color-mix(in srgb, var(--feedback-danger) 78%, black)
-  );
-  box-shadow: 0 14px 30px color-mix(in srgb, var(--feedback-danger) 44%, transparent);
+  border-color: color-mix(in srgb, var(--feedback-danger) 34%, var(--border-subtle));
+  background: color-mix(in srgb, var(--feedback-danger) 11%, var(--background-elevated));
 }
 
 .bnpl-reminder-feed {
   display: grid;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .bnpl-reminder-feed__head {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 10px;
+}
 
-  h2 {
-    margin: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 15px;
-    font-weight: 700;
-  }
+.bnpl-reminder-feed__head h2 {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
 
-  span {
-    font-size: 12px;
-    color: var(--text-secondary);
-    text-align: right;
-  }
+.bnpl-reminder-feed__head span {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .bnpl-reminder-feed__list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .bnpl-reminder-feed__item {
@@ -100,43 +85,39 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-radius: 14px;
-  padding: 12px;
-  border: 1px solid var(--card-border);
-  background: var(--surface-elevated);
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--background-elevated);
+}
 
-  &.is-info {
-    border-color: color-mix(in srgb, var(--accent-primary) 48%, var(--card-border));
-    background: color-mix(in srgb, var(--accent-primary) 10%, var(--surface-elevated));
-  }
+.bnpl-reminder-feed__item.is-info {
+  border-color: color-mix(in srgb, var(--feedback-info) 34%, var(--border-subtle));
+}
 
-  &.is-warning {
-    border-color: color-mix(in srgb, var(--feedback-warning) 52%, var(--card-border));
-    background: color-mix(in srgb, var(--feedback-warning) 11%, var(--surface-elevated));
-  }
+.bnpl-reminder-feed__item.is-warning {
+  border-color: color-mix(in srgb, var(--feedback-warning) 36%, var(--border-subtle));
+}
 
-  &.is-danger {
-    border-color: color-mix(in srgb, var(--feedback-danger) 58%, var(--card-border));
-    background: color-mix(in srgb, var(--feedback-danger) 11%, var(--surface-elevated));
-  }
+.bnpl-reminder-feed__item.is-danger {
+  border-color: color-mix(in srgb, var(--feedback-danger) 34%, var(--border-subtle));
 }
 
 .bnpl-reminder-feed__copy {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
+}
 
-  strong {
-    font-size: 13px;
-    line-height: 1.2;
-  }
+.bnpl-reminder-feed__copy strong {
+  font-size: 13px;
+  line-height: 1.2;
+}
 
-  p {
-    margin: 0;
-    font-size: 12px;
-    color: var(--text-secondary);
-    line-height: 1.35;
-  }
+.bnpl-reminder-feed__copy p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .bnpl-reminder-feed__actions {
@@ -145,58 +126,59 @@
   gap: 6px;
   flex-wrap: wrap;
   justify-content: flex-end;
-
-  .MuiButton-root {
-    min-height: 30px;
-    border-radius: 10px;
-    text-transform: none;
-    white-space: nowrap;
-  }
 }
 
-.student-profile__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
+.bnpl-reminder-feed__actions .MuiButton-root {
+  min-height: 30px;
+  border-radius: 10px;
+  text-transform: none;
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .student-profile__workspace {
   display: grid;
-  gap: 16px;
+  gap: 22px;
   align-items: start;
 }
 
 .student-profile__workspace-main {
   min-width: 0;
   display: grid;
-  gap: 14px;
+  gap: 20px;
+}
+
+@media (min-width: 1025px) {
+  .student-profile__workspace--with-tabs {
+    grid-template-columns: minmax(240px, 3fr) minmax(0, 9fr);
+    gap: 24px;
+  }
+
+  .student-profile__workspace--with-tabs .student-profile__nav-shell {
+    position: sticky;
+    top: 92px;
+  }
 }
 
 .student-profile__nav-shell {
   display: grid;
   gap: 12px;
-  min-width: 0;
 }
 
-.student-profile__identity-card {
-  border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--card-border) 86%, #ffffff 14%);
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--surface-elevated) 96%, transparent),
-      color-mix(in srgb, var(--surface-soft) 88%, transparent)
-    ),
-    radial-gradient(
-      circle at 90% 8%,
-      color-mix(in srgb, var(--accent-primary) 18%, transparent),
-      transparent 58%
-    );
-  box-shadow: var(--shadow-sm);
-  padding: 12px;
+.student-profile .student-profile__identity-card {
+  position: relative;
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px !important;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent) !important;
+  background: color-mix(in srgb, var(--background-elevated) 94%, transparent) !important;
+  box-shadow: 0 8px 20px color-mix(in srgb, #111827 8%, transparent) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.student-profile .student-profile__identity-card--mobile {
+  margin-bottom: 2px;
 }
 
 .student-profile__identity-main {
@@ -207,129 +189,125 @@
 }
 
 .student-profile__identity-avatar {
-  width: 56px !important;
-  height: 56px !important;
-  font-size: 19px !important;
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 16px !important;
+  font-size: 21px !important;
   font-weight: 700 !important;
-  border-radius: 14px !important;
-  box-shadow:
-    0 8px 18px rgba(15, 23, 42, 0.22),
-    0 0 0 1px color-mix(in srgb, var(--border-subtle) 86%, transparent);
+  color: var(--text-on-brand) !important;
+  background: color-mix(in srgb, var(--accent-primary) 72%, var(--accent-strong)) !important;
 }
 
 .student-profile__identity-copy {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: 3px;
+}
 
-  h3 {
-    margin: 0;
-    font-size: 17px;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
-    color: var(--text-primary);
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
-
-  span {
-    font-size: 12px;
-    color: var(--text-secondary);
-    line-height: 1.35;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
+.student-profile__identity-copy h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.16;
+  letter-spacing: -0.014em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .student-profile__identity-role {
   width: fit-content;
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 4px 8px;
-  font-size: 10px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-text) !important;
-  background: color-mix(in srgb, var(--accent-primary) 16%, transparent);
+  margin-top: 1px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
 }
 
-.student-profile__identity-edit {
+.student-profile__identity-edit-icon {
+  position: absolute !important;
+  top: 10px;
+  right: 10px;
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 9px !important;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent) !important;
+  background: color-mix(in srgb, var(--background-elevated) 96%, transparent) !important;
+  color: var(--text-secondary) !important;
+}
+
+.student-profile__identity-edit-icon:hover {
+  color: var(--text-primary) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 30%, var(--border-subtle)) !important;
+  background: color-mix(in srgb, var(--background-soft) 90%, var(--accent-primary)) !important;
+}
+
+.student-profile .student-profile__tabs {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.student-profile .student-profile__tabs .MuiTabs-root {
+  min-height: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.student-profile .student-profile__tabs .MuiTabs-scroller {
+  overflow: visible !important;
+}
+
+.student-profile .student-profile__tabs .MuiTabs-flexContainer {
+  gap: 6px;
+}
+
+.student-profile .student-profile__tabs .MuiTab-root {
+  justify-content: flex-start;
+  min-height: 40px;
   width: 100%;
-  min-height: 34px;
-  text-transform: none !important;
-  font-size: 13px !important;
-  font-weight: 700 !important;
-  border-radius: 10px !important;
+  text-transform: none;
+  border-radius: 12px;
+  padding: 8px 11px;
+  border: 1px solid transparent;
+  color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary));
+  font-size: 13px;
+  font-weight: 620;
+  transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
 }
 
-.student-profile__tabs {
-  margin: 0;
+.student-profile .student-profile__tabs .MuiTab-root .MuiTab-iconWrapper {
+  margin-right: 8px;
+}
 
-  .MuiTabs-root {
-    min-height: 0;
-    padding: 0;
-    background: transparent;
-    box-shadow: none;
-    border-radius: 0;
-  }
+.student-profile .student-profile__tabs .MuiTab-root .MuiSvgIcon-root {
+  font-size: 18px;
+}
 
-  .MuiTabs-scroller {
-    overflow: visible !important;
-  }
+.student-profile .student-profile__tabs .MuiTab-root:hover {
+  border-color: color-mix(in srgb, var(--border-subtle) 88%, var(--accent-primary));
+  background: color-mix(in srgb, var(--background-soft) 85%, var(--accent-primary));
+  color: var(--text-primary);
+}
 
-  .MuiTabs-flexContainer {
-    align-items: stretch;
-    gap: 7px;
-  }
+.student-profile .student-profile__tabs .MuiTab-root.Mui-selected {
+  border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle));
+  background: color-mix(in srgb, var(--accent-primary) 14%, var(--background-elevated));
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 20%, transparent);
+}
 
-  .MuiTab-root {
-    width: 100%;
-    justify-content: flex-start;
-    text-align: left;
-    text-transform: none;
-    font-size: 14px;
-    line-height: 1.2;
-    font-weight: 650;
-    min-height: 40px;
-    border-radius: 12px;
-    padding: 8px 12px;
-    color: color-mix(in srgb, var(--text-secondary) 92%, var(--text-primary));
-    border: 1px solid transparent;
-    transition:
-      color 0.16s ease,
-      border-color 0.16s ease,
-      background-color 0.16s ease,
-      box-shadow 0.16s ease;
+.student-profile .student-profile__tabs .MuiTabs-indicator {
+  display: none;
+}
 
-    .MuiTab-iconWrapper {
-      margin-right: 8px;
-    }
-
-    .MuiSvgIcon-root {
-      font-size: 19px;
-    }
-  }
-
-  .MuiTab-root:hover {
-    color: var(--text-primary);
-    border-color: color-mix(in srgb, var(--border-subtle) 78%, var(--accent-primary));
-    background: color-mix(in srgb, var(--surface-soft) 74%, var(--accent-primary));
-  }
-
-  .MuiTab-root.Mui-selected {
-    color: var(--text-primary);
-    border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle));
-    background: color-mix(in srgb, var(--accent-primary) 15%, var(--surface-elevated));
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass-tier-2-edge) 70%, transparent);
-  }
-
-  .MuiTabs-indicator {
-    display: none;
-  }
+.student-profile__tab-label {
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.2;
+  text-align: left;
 }
 
 .student-profile__tabs-mobile {
@@ -337,155 +315,382 @@
 }
 
 .student-profile__tabs-mobile-trigger {
-  min-height: 36px;
-  border-radius: 10px !important;
+  min-height: 40px !important;
+  border-radius: 12px !important;
   text-transform: none !important;
-  font-weight: 700 !important;
   font-size: 13px !important;
-  padding: 6px 12px !important;
-  border-color: color-mix(in srgb, var(--brand-solid) 52%, var(--card-border)) !important;
+  font-weight: 650 !important;
   color: var(--text-primary) !important;
-  background: color-mix(in srgb, var(--surface-soft) 86%, transparent) !important;
+  border-color: color-mix(in srgb, var(--border-subtle) 90%, var(--accent-primary)) !important;
+  background: color-mix(in srgb, var(--background-elevated) 94%, transparent) !important;
 }
 
 .student-profile__tabs-drawer {
-  width: min(360px, 90vw);
-  border-top-right-radius: 18px;
-  border-bottom-right-radius: 18px;
-  border: 1px solid var(--card-border);
-  background: color-mix(in srgb, var(--surface-elevated) 96%, transparent);
+  width: min(360px, 92vw);
   padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle);
+  background: var(--background-elevated);
   display: grid;
   gap: 12px;
 }
 
 .student-profile__tabs-drawer--mobile {
-  width: min(100%, 100vw);
-  max-height: min(78vh, 560px);
-  border-radius: 18px 18px 0 0;
-  border-bottom: none;
+  width: 100%;
+  border-radius: 16px 16px 0 0;
+  border-bottom: 0;
 }
 
 .student-profile__tabs-drawer-head {
   display: grid;
   gap: 2px;
+}
 
-  h3 {
-    margin: 0;
-    font-size: 15px;
-    line-height: 1.2;
-  }
+.student-profile__tabs-drawer-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
 
-  span {
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
+.student-profile__tabs-drawer-head span {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .student-profile__tabs-drawer-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .student-profile__tabs-drawer-item {
-  border: 1px solid var(--card-border);
-  background: var(--surface-soft);
-  border-radius: 14px;
-  min-height: 74px;
+  min-height: 70px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--background-soft);
   padding: 10px;
   display: grid;
   gap: 6px;
   align-content: center;
   justify-items: start;
   text-align: left;
-  cursor: pointer;
   color: var(--text-primary);
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    border-color: color-mix(in srgb, var(--brand-solid) 58%, var(--border-strong));
-    box-shadow: 0 8px 18px color-mix(in srgb, var(--brand-solid) 18%, transparent);
-  }
-
-  &.is-active {
-    border-color: color-mix(in srgb, var(--brand-solid) 74%, var(--border-strong));
-    background: color-mix(in srgb, var(--brand-solid) 14%, var(--surface-soft));
-    color: var(--accent-text);
-  }
+  transition: border-color 0.18s ease, background-color 0.18s ease;
 }
 
-.student-profile__tabs-drawer-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
+.student-profile__tabs-drawer-item.is-active {
+  border-color: color-mix(in srgb, var(--accent-primary) 35%, var(--border-subtle));
+  background: color-mix(in srgb, var(--accent-primary) 12%, var(--background-soft));
+}
 
-  .MuiSvgIcon-root {
-    font-size: 20px;
-  }
+.student-profile__tabs-drawer-icon .MuiSvgIcon-root {
+  font-size: 19px;
 }
 
 .student-profile__tabs-drawer-label {
   font-size: 12px;
-  font-weight: 700;
-  line-height: 1.25;
+  font-weight: 650;
+  line-height: 1.28;
 }
 
-.student-profile__tab-label {
-  display: block;
-  min-width: 0;
-  max-width: none;
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
+.student-profile__page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: -4px;
 }
 
-@media (min-width: 721px) {
-  .student-profile__workspace--with-tabs {
-    grid-template-columns: 232px minmax(0, 1fr);
-    gap: 20px;
-  }
+.student-profile__page-head h2 {
+  margin: 0;
+  font-size: clamp(22px, 1vw + 18px, 29px);
+  letter-spacing: -0.02em;
+}
 
-  .student-profile__workspace--with-tabs .student-profile__nav-shell {
-    position: sticky;
-    top: 94px;
-    align-self: start;
-  }
-
-  .student-profile__workspace--with-tabs .student-profile__tabs {
-    position: static;
-    top: auto;
-  }
+.student-profile__page-head p {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .student-profile__courses {
   display: grid;
-  gap: 18px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
+.student-profile__courses > .student-profile__page-head,
 .student-profile__courses > .student-profile__search,
 .student-profile__courses > .student-profile__skeletons,
 .student-profile__courses > .student-profile__empty,
-.student-profile__courses > .student-profile__loading {
+.student-profile__courses > .student-profile__loading,
+.student-profile__courses > .list-pagination,
+.student-profile__courses > .recoverable-error-alert {
   grid-column: 1 / -1;
 }
 
-.student-profile__courses > .list-pagination {
-  grid-column: 1 / -1;
+.student-profile .student-profile__search {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.student-profile .student-profile__search .MuiTextField-root {
+  background: transparent;
+}
+
+.student-profile .student-profile__search .MuiOutlinedInput-root {
+  min-height: 44px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--background-elevated) 95%, transparent);
+}
+
+.student-profile .student-profile__search .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
+  border-color: var(--border-subtle);
+}
+
+.student-profile .student-profile__search .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: color-mix(in srgb, var(--accent-primary) 24%, var(--border-subtle));
+}
+
+.student-profile .student-profile__search .MuiOutlinedInput-root.Mui-focused {
+  box-shadow: none;
+}
+
+.student-profile .student-profile__search .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle));
+  border-width: 1px;
+}
+
+.student-profile .student-profile__search .MuiInputBase-input:focus,
+.student-profile .student-profile__search .MuiInputBase-input:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .student-profile__skeletons {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .student-profile__loading {
   display: flex;
   justify-content: center;
-  padding-top: 8px;
+  padding-top: 6px;
+}
+
+.student-profile__empty {
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  background: color-mix(in srgb, var(--background-soft) 88%, transparent);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.42;
+  text-align: center;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.student-profile__empty strong {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.student-profile__empty--inner {
+  border-style: dashed;
+  padding: 14px;
+}
+
+.student-profile__empty--feature svg {
+  font-size: 20px;
+  color: var(--text-secondary);
+}
+
+.student-profile .student-profile__course-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 0.42fr);
+  gap: 18px;
+  align-items: start;
+  border-radius: 16px !important;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent) !important;
+  background: color-mix(in srgb, var(--background-elevated) 96%, transparent) !important;
+  box-shadow: 0 12px 24px color-mix(in srgb, #111827 8%, transparent) !important;
+  padding: 16px 18px;
+}
+
+.student-profile__course-main h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.student-profile__course-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.student-profile__course-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.student-profile__course-title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-profile__premium {
+  font-size: 17px !important;
+  color: color-mix(in srgb, var(--feedback-warning) 88%, var(--accent-primary));
+}
+
+.student-profile__course-meta {
+  margin-top: 8px;
+  display: grid;
+  gap: 3px;
+}
+
+.student-profile__course-meta-level,
+.student-profile__course-meta-progress {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.student-profile__course-meta-progress {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.student-profile__course-payment {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.student-profile__course-payment-line {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.student-profile__course-payment-line--accent {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.student-profile__course-actions {
+  margin-top: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.student-profile__course-link {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 18%, var(--background-elevated));
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.student-profile__course-link--ghost {
+  border-color: var(--border-subtle);
+  background: var(--background-soft);
+  color: var(--text-secondary);
+}
+
+.student-profile__course-link-icon {
+  font-size: 16px !important;
+}
+
+.student-profile__course-progress {
+  display: grid;
+  justify-items: stretch;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.student-profile__course-status {
+  width: fit-content;
+  justify-self: end;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.student-profile__course-status--active {
+  color: color-mix(in srgb, var(--accent-primary) 84%, var(--text-primary));
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+}
+
+.student-profile__course-status--completed {
+  color: color-mix(in srgb, var(--feedback-success) 88%, var(--text-primary));
+  background: color-mix(in srgb, var(--feedback-success) 14%, transparent);
+}
+
+.student-profile__course-progress-lines {
+  display: grid;
+  gap: 9px;
+  width: 100%;
+}
+
+.student-profile__course-progress-line {
+  display: grid;
+  gap: 6px;
+}
+
+.student-profile__course-progress-line-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.student-profile__course-progress-line-head span {
+  color: var(--text-secondary);
+}
+
+.student-profile__course-progress-line-head strong {
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.student-profile .student-profile__course-progress-bar {
+  height: 7px !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--background-soft) 92%, transparent) !important;
+}
+
+.student-profile .student-profile__course-progress-bar .MuiLinearProgress-bar {
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent-primary) 74%, #5ec7ff),
+    color-mix(in srgb, var(--accent-strong) 70%, #8d92ff)
+  );
 }
 
 .student-profile__lessons {
@@ -494,10 +699,9 @@
 }
 
 .student-profile__calendar-panel {
-  background: var(--surface-elevated);
-  border: 1px solid var(--card-border);
-  border-radius: 18px;
-  box-shadow: var(--shadow-sm);
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle);
+  background: var(--background-elevated);
   padding: 16px;
   display: grid;
   gap: 12px;
@@ -505,12 +709,12 @@
 
 .student-profile__calendar-head {
   display: grid;
-  gap: 4px;
+  gap: 3px;
+}
 
-  span {
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
+.student-profile__calendar-head span {
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
 .student-profile__calendar-days {
@@ -518,52 +722,38 @@
   gap: 8px;
   overflow-x: auto;
   padding-bottom: 2px;
-  scrollbar-width: thin;
 }
 
 .student-profile__calendar-day {
-  min-width: 92px;
-  border: 1px solid var(--card-border);
-  background: var(--surface-soft);
-  border-radius: 14px;
+  min-width: 88px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--background-soft);
   padding: 8px 10px;
   display: grid;
   gap: 2px;
-  justify-items: start;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
+  text-align: left;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
 
-  &.is-available {
-    border-color: color-mix(in srgb, var(--brand-solid) 74%, var(--border-strong));
-    background: linear-gradient(
-      140deg,
-      color-mix(in srgb, var(--brand-solid) 24%, transparent),
-      color-mix(in srgb, var(--accent-violet) 16%, transparent)
-    );
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-solid) 28%, transparent);
-  }
+.student-profile__calendar-day.is-available {
+  border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-subtle));
+}
 
-  &.is-muted {
-    opacity: 0.55;
-  }
+.student-profile__calendar-day.is-muted {
+  opacity: 0.54;
+}
 
-  &.is-active {
-    border-color: color-mix(in srgb, var(--brand-solid) 74%, var(--border-strong));
-    background: color-mix(in srgb, var(--brand-solid) 14%, transparent);
-    box-shadow: 0 8px 20px color-mix(in srgb, var(--brand-solid) 24%, transparent);
-  }
-
-  &.is-weekend:not(.is-active) {
-    background: color-mix(in srgb, var(--surface-elevated) 72%, transparent);
-  }
+.student-profile__calendar-day.is-active {
+  border-color: color-mix(in srgb, var(--accent-primary) 38%, var(--border-subtle));
+  background: color-mix(in srgb, var(--accent-primary) 12%, var(--background-soft));
 }
 
 .student-profile__calendar-weekday {
   font-size: 10px;
-  color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
 }
 
 .student-profile__calendar-daynum {
@@ -574,247 +764,170 @@
 
 .student-profile__calendar-today {
   font-size: 9px;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 700;
-  color: var(--accent-strong);
-}
-
-.student-profile__calendar-title {
-  font-size: 13px;
-  color: var(--text-secondary);
-  font-weight: 600;
+  color: var(--accent-primary);
 }
 
 .student-profile__calendar-collapsible {
   display: grid;
   gap: 10px;
-  overflow: hidden;
-  transition: max-height 0.28s ease, opacity 0.2s ease;
   max-height: 520px;
   opacity: 1;
+  overflow: hidden;
+  transition: max-height 0.25s ease, opacity 0.18s ease;
+}
 
-  &.is-collapsed {
-    max-height: 0;
-    opacity: 0;
-    pointer-events: none;
-    margin-top: -4px;
-  }
+.student-profile__calendar-collapsible.is-collapsed {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.student-profile__calendar-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .student-profile__calendar-times {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .student-profile__calendar-time {
-  border: 1px solid var(--card-border);
-  background: var(--surface-soft);
-  border-radius: 14px;
-  padding: 9px 11px;
+  min-height: 38px;
+  border-radius: 11px;
+  border: 1px solid var(--border-subtle);
+  background: var(--background-soft);
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary);
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.2s ease;
+  padding: 8px 10px;
+  text-align: left;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
 
-  strong {
-    color: var(--text-secondary);
-    font-size: 12px;
-  }
-
-  &.is-active {
-    border-color: color-mix(in srgb, var(--brand-solid) 70%, var(--border-strong));
-    background: color-mix(in srgb, var(--brand-solid) 14%, transparent);
-    color: var(--accent-text);
-    box-shadow: 0 8px 20px color-mix(in srgb, var(--brand-solid) 22%, transparent);
-  }
+.student-profile__calendar-time.is-active {
+  border-color: color-mix(in srgb, var(--accent-primary) 38%, var(--border-subtle));
+  background: color-mix(in srgb, var(--accent-primary) 14%, var(--background-soft));
 }
 
 .student-profile__calendar-summary {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 26%, var(--border-subtle));
+  background: color-mix(in srgb, var(--accent-primary) 10%, var(--background-elevated));
   padding: 10px 12px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--brand-solid) 12%, transparent);
-  color: var(--accent-text);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13px;
 }
 
 .student-profile__calendar-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  display: grid;
   gap: 10px;
-  justify-content: flex-end;
-
-  .MuiButton-root {
-    border-radius: 14px;
-    text-transform: none;
-    font-weight: 700;
-  }
 }
 
 .student-profile__consent-group {
-  align-self: stretch;
   display: grid;
-  gap: 4px;
+  gap: 2px;
+}
 
-  .MuiFormControlLabel-root {
-    margin: 0;
-    align-items: flex-start;
-  }
+.student-profile__consent-group .MuiFormControlLabel-root {
+  margin: 0;
+}
 
-  .MuiFormControlLabel-label {
-    font-size: 12px;
-    line-height: 1.35;
-    color: var(--text-secondary);
-  }
+.student-profile__consent-group .MuiFormControlLabel-label {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.student-profile__calendar-actions .MuiButton-root {
+  min-height: 42px;
+  border-radius: 12px;
+  text-transform: none;
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .student-profile__calendar-toggle {
-  border: 1px solid color-mix(in srgb, var(--brand-solid) 30%, var(--border-subtle));
-  background: color-mix(in srgb, var(--brand-solid) 10%, transparent);
-  color: var(--accent-text);
-  border-radius: 14px;
   min-height: 36px;
+  width: fit-content;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--background-soft);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 620;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 18px color-mix(in srgb, var(--brand-solid) 24%, transparent);
-  }
-}
-
-.student-profile__dialog-content {
-  display: grid;
-  gap: 12px;
-  padding-top: 6px !important;
-}
-
-.student-profile__payment-details {
-  display: grid;
-  gap: 10px;
-}
-
-.student-profile__payment-summary {
-  font-size: 14px;
-  color: var(--text-primary);
-  line-height: 1.45;
-}
-
-.student-profile__payment-schedule {
-  display: grid;
-  gap: 8px;
-}
-
-.student-profile__payment-installment {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 10px;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--card-border);
-  background: var(--surface-soft);
-
-  span {
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-
-  strong {
-    font-size: 13px;
-    color: var(--text-primary);
-  }
-
-  em {
-    font-style: normal;
-    font-size: 11px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
+  gap: 6px;
 }
 
 .student-profile__lessons-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
-  gap: 18px;
-  align-items: start;
+  gap: 16px;
+}
+
+.student-profile__lessons-divider {
+  background: color-mix(in srgb, var(--border-subtle) 84%, transparent);
 }
 
 .student-profile__lessons-panel {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .student-profile__lessons-title {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.student-profile__lessons-divider {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--border-subtle) 44%, transparent),
-    color-mix(in srgb, var(--border-subtle) 100%, transparent),
-    color-mix(in srgb, var(--border-subtle) 44%, transparent)
-  );
-  border-radius: 999px;
 }
 
 .student-profile__lesson-card {
-  background: var(--surface-elevated);
-  border-radius: 18px;
-  padding: 18px;
-  border: 1px solid var(--card-border);
-  box-shadow: var(--shadow-sm);
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle);
+  background: var(--background-elevated);
+  padding: 12px;
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .student-profile__lesson-card--scheduled {
-  border-color: color-mix(in srgb, var(--brand-solid) 50%, var(--border-strong));
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--brand-solid) 16%, transparent),
-    var(--surface-elevated)
-  );
-  box-shadow: 0 16px 34px color-mix(in srgb, var(--brand-solid) 24%, transparent);
-}
-
-.student-profile__lesson-card--completed {
-  background: var(--surface-elevated);
+  border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-subtle));
 }
 
 .student-profile__lesson-head {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
-  background: transparent;
-  border-radius: 0;
-  padding: 0;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.student-profile__lesson-time {
+  display: grid;
+  gap: 4px;
+}
+
+.student-profile__lesson-date {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+
+.student-profile__lesson-range {
+  font-size: 16px;
+  line-height: 1.1;
+  color: var(--text-primary);
 }
 
 .student-profile__lesson-meta {
-  margin-left: auto;
   display: grid;
   gap: 8px;
   justify-items: end;
@@ -823,575 +936,193 @@
 .student-profile__lesson-tags {
   display: inline-flex;
   flex-wrap: wrap;
-  align-items: center;
   justify-content: flex-end;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--brand-soft) 12%, transparent);
-  border: 1px solid var(--card-border);
+  gap: 6px;
+}
+
+.student-profile__lesson-status,
+.student-profile__lesson-kind,
+.student-profile__lesson-payment {
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.student-profile__lesson-status--scheduled {
+  color: color-mix(in srgb, var(--accent-primary) 84%, var(--text-primary));
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+}
+
+.student-profile__lesson-status--completed {
+  color: color-mix(in srgb, var(--feedback-success) 88%, var(--text-primary));
+  background: color-mix(in srgb, var(--feedback-success) 14%, transparent);
+}
+
+.student-profile__lesson-kind {
+  color: color-mix(in srgb, var(--accent-violet) 80%, var(--text-primary));
+  background: color-mix(in srgb, var(--accent-violet) 14%, transparent);
+}
+
+.student-profile__lesson-payment--paid {
+  color: color-mix(in srgb, var(--feedback-success) 88%, var(--text-primary));
+  background: color-mix(in srgb, var(--feedback-success) 14%, transparent);
+}
+
+.student-profile__lesson-payment--unpaid {
+  color: color-mix(in srgb, var(--feedback-danger) 84%, var(--text-primary));
+  background: color-mix(in srgb, var(--feedback-danger) 13%, transparent);
 }
 
 .student-profile__lesson-head-actions {
   display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
   gap: 6px;
+}
+
+.student-profile__lesson-edit,
+.student-profile__lesson-delete {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 9px !important;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--background-elevated) 96%, transparent) !important;
+  color: var(--text-secondary) !important;
 }
 
 .student-profile__lesson-delete {
-  background: color-mix(in srgb, var(--feedback-danger) 12%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--feedback-danger) 24%, var(--border-subtle));
-  color: var(--feedback-danger) !important;
+  color: color-mix(in srgb, var(--feedback-danger) 84%, var(--text-secondary)) !important;
 }
 
-.student-profile__lesson-edit {
-  background: color-mix(in srgb, var(--brand-solid) 12%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--brand-solid) 28%, var(--border-subtle));
-  color: var(--accent-text) !important;
-}
-
-.student-profile__lesson-kind {
-  padding: 6px 11px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  line-height: 1.15;
-  white-space: nowrap;
-  color: var(--accent-violet);
-  background: color-mix(in srgb, var(--accent-violet) 20%, transparent);
-}
-
-.student-profile__lesson-payment {
-  padding: 6px 11px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  line-height: 1.15;
-  white-space: nowrap;
-}
-
-.student-profile__lesson-payment--paid {
-  color: var(--feedback-success);
-  background: color-mix(in srgb, var(--feedback-success) 20%, transparent);
-}
-
-.student-profile__lesson-payment--unpaid {
-  color: var(--feedback-danger);
-  background: color-mix(in srgb, var(--feedback-danger) 24%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--feedback-danger) 28%, transparent) inset;
-}
-
-.student-profile__lesson-time {
-  display: grid;
-  gap: 6px;
-}
-
-.student-profile__lesson-date {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  font-weight: 700;
-}
-
-.student-profile__lesson-range {
-  font-size: 16px;
-  color: var(--accent-text);
-  line-height: 1.15;
-  white-space: nowrap;
-}
-
-.student-profile__lesson-price {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.student-profile__lesson-status {
-  padding: 6px 11px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  line-height: 1.15;
-  white-space: nowrap;
-
-  &--scheduled {
-    color: var(--accent-text);
-    background: color-mix(in srgb, var(--brand-solid) 20%, transparent);
-  }
-
-  &--completed {
-    color: var(--feedback-success);
-    background: color-mix(in srgb, var(--feedback-success) 20%, transparent);
-  }
+.student-profile__lesson-links,
+.student-profile__lesson-materials {
+  font-size: 12px;
 }
 
 .student-profile__lesson-links {
-  font-size: 13px;
   color: var(--text-secondary);
+}
 
-  a {
-    color: var(--accent-strong);
-    font-weight: 600;
-  }
+.student-profile__lesson-links a {
+  color: var(--accent-primary);
+  text-decoration: none;
 }
 
 .student-profile__lesson-materials {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-
-  a {
-    padding: 6px 10px;
-    border-radius: 14px;
-    background: var(--surface-soft);
-    border: 1px solid var(--card-border);
-    font-size: 12px;
-    color: var(--accent-strong);
-  }
-}
-
-.student-profile__search {
-  width: 100%;
-  padding: 0;
-  border: 0;
-  box-shadow: none;
-  background: transparent;
-
-  .MuiTextField-root {
-    background: transparent;
-    border-radius: 0;
-
-    .MuiOutlinedInput-root {
-      border-radius: 14px;
-      box-shadow: none;
-
-      .MuiOutlinedInput-notchedOutline {
-        border-color: var(--card-border);
-      }
-    }
-
-    .MuiOutlinedInput-root.Mui-focused {
-      box-shadow: none;
-    }
-
-    .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-      border-color: var(--card-border);
-      border-width: 1px;
-    }
-
-    .MuiInputBase-input:focus,
-    .MuiInputBase-input:focus-visible {
-      outline: none;
-      box-shadow: none;
-    }
-  }
-}
-
-.student-profile__empty {
-  padding: 24px;
-  border-radius: 18px;
-  background: var(--surface-soft);
-  color: var(--text-secondary);
-  text-align: center;
-  box-shadow: var(--shadow-xs);
-}
-
-.student-profile__empty--inner {
-  padding: 14px;
-  border-radius: 14px;
-  box-shadow: none;
-}
-
-.student-profile__course-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 24px;
-  padding: 20px 22px;
-  background: var(--surface-elevated);
-  border-radius: 20px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--card-border);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-  }
-}
-
-.student-profile__course-main {
-  flex: 1;
-  min-width: 0;
-
-  h3 {
-    margin: 0 0 8px;
-    font-size: 18px;
-    font-weight: 600;
-    display: block;
-    width: 100%;
-  }
-
-  .student-profile__course-title-row {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 12px;
-    width: 100%;
-  }
-
-  .student-profile__course-title {
-    min-width: 0;
-    display: inline-flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: 6px;
-    max-width: 100%;
-  }
-
-  .student-profile__course-title-text {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .student-profile__course-meta {
-    display: grid;
-    gap: 4px;
-    margin-top: 8px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    font-weight: 600;
-  }
-
-  .student-profile__course-meta-level {
-    color: var(--text-secondary);
-  }
-
-  .student-profile__course-meta-progress {
-    color: var(--text-primary);
-    font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .student-profile__course-payment {
-    display: grid;
-    gap: 6px;
-    margin-top: 10px;
-  }
-
-  .student-profile__course-payment-line {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    line-height: 1.4;
-  }
-
-  .student-profile__course-payment-line--accent {
-    color: var(--accent-text);
-    font-weight: 700;
-  }
-
-  .student-profile__course-payment-line--next-payment {
-    color: var(--surface-elevated);
-    background: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--brand-solid) 86%, #78d0ff),
-      color-mix(in srgb, var(--brand-mint) 80%, #7af8cd)
-    );
-    border: 1px solid color-mix(in srgb, var(--brand-soft) 68%, var(--border-strong));
-    border-radius: 10px;
-    padding: 4px 8px;
-    width: fit-content;
-    box-shadow: 0 8px 18px color-mix(in srgb, var(--brand-solid) 34%, transparent);
-  }
-
-  .student-profile__course-actions {
-    margin-top: 12px;
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
-    gap: 8px;
-  }
-
-  .student-profile__course-link {
-    border: none;
-    padding: 8px 16px;
-    border-radius: 14px;
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--surface-elevated);
-    background: var(--gradient-brand);
-    cursor: pointer;
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-glow);
-    }
-  }
-
-  .student-profile__course-link-icon {
-    font-size: 16px !important;
-  }
-
-  .student-profile__course-link--ghost {
-    color: var(--text-primary);
-    background: var(--surface-soft);
-    border: 1px solid var(--card-border);
-    box-shadow: var(--shadow-xs);
-  }
-}
-
-.student-profile__premium {
-  color: var(--feedback-warning);
-  font-size: 20px !important;
-}
-
-.student-profile__course-status {
-  display: inline-flex;
-  margin-bottom: 0;
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.student-profile__course-status--corner {
-  margin-bottom: 0;
-  align-self: flex-end;
-}
-
-.student-profile__course-status--active {
-  color: var(--accent-text);
-  background: color-mix(in srgb, var(--brand-solid) 16%, transparent);
-}
-
-.student-profile__course-status--completed {
-  color: var(--feedback-success);
-  background: color-mix(in srgb, var(--feedback-success) 18%, transparent);
-}
-
-.student-profile__course-progress {
-  display: grid;
-  justify-items: end;
-  gap: 8px;
-  min-width: 0;
-  width: max-content;
-  max-width: 100%;
-}
-
-.student-profile__course-progress-rings {
-  display: grid;
-  gap: 8px;
-  justify-items: stretch;
-  width: min(188px, 100%);
-}
-
-.student-profile__course-progress-rings.is-double {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.student-profile__course-progress-rings.is-single {
-  grid-template-columns: 1fr;
-  width: min(94px, 100%);
-}
-
-.student-profile__progress-ring-card {
-  --progress-color: var(--accent-strong);
-  --progress-glow: color-mix(in srgb, var(--accent-strong) 30%, transparent);
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 6px;
-  min-width: 0;
-  padding: 8px;
-  border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--progress-color) 44%, var(--card-border));
-  background:
-    linear-gradient(
-      142deg,
-      color-mix(in srgb, var(--surface-elevated) 82%, var(--progress-color)),
-      color-mix(in srgb, var(--surface-soft) 88%, var(--progress-color))
-    ),
-    radial-gradient(
-      circle at 14% 18%,
-      color-mix(in srgb, var(--progress-color) 30%, transparent),
-      transparent 56%
-    ),
-    radial-gradient(
-      circle at 86% 84%,
-      color-mix(in srgb, var(--progress-color) 24%, transparent),
-      transparent 62%
-    ),
-    color-mix(in srgb, var(--surface-soft) 90%, transparent);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--progress-color) 24%, transparent),
-    0 12px 24px var(--progress-glow);
-  overflow: hidden;
 }
 
-.student-profile__progress-ring-card::after {
-  content: "";
-  position: absolute;
-  inset: -20% -30% auto auto;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    color-mix(in srgb, var(--progress-color) 24%, transparent),
-    transparent 72%
-  );
-  pointer-events: none;
+.student-profile__lesson-materials a {
+  padding: 5px 8px;
+  border-radius: 9px;
+  border: 1px solid var(--border-subtle);
+  background: var(--background-soft);
+  color: var(--text-secondary);
+  text-decoration: none;
 }
 
-.student-profile__progress-ring {
-  position: relative;
-  width: 66px;
-  height: 66px;
+.student-profile__dialog-content {
   display: grid;
-  place-items: center;
-
-  span {
-    position: absolute;
-    font-weight: 700;
-    font-size: 14px;
-    color: color-mix(in srgb, var(--progress-color) 72%, var(--text-primary));
-  }
-}
-
-.student-profile__progress-label {
-  font-size: 12px;
-  color: color-mix(in srgb, var(--progress-color) 68%, var(--text-secondary));
-  font-weight: 700;
-}
-
-.student-profile__profile-card {
-  display: grid;
-  gap: 16px;
-  padding: 18px;
-  background: var(--surface-elevated);
-  border-radius: 24px;
-  border: 1px solid var(--card-border);
-  box-shadow: var(--shadow-sm);
+  gap: 10px;
+  padding-top: 8px !important;
 }
 
 .student-profile__profile-layout {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 16px;
   align-items: start;
 }
 
-.student-profile__profile-main-shell {
+.student-profile__profile-main-shell,
+.student-profile__profile-news {
   min-width: 0;
 }
 
-.student-profile__profile-shell {
-  border: 1px solid color-mix(in srgb, var(--card-border) 86%, #ffffff 14%);
-  border-radius: 18px;
-  padding: 14px;
-  background:
-    linear-gradient(140deg, var(--surface-elevated), var(--surface-soft)),
-    radial-gradient(
-      circle at 96% 6%,
-      color-mix(in srgb, var(--brand-soft) 16%, transparent),
-      transparent 52%
-    );
-  box-shadow: var(--shadow-sm);
+.student-profile__profile-news {
+  position: sticky;
+  top: 92px;
+}
+
+.student-profile .student-profile__profile-shell {
+  border-radius: 16px !important;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent) !important;
+  background: color-mix(in srgb, var(--background-elevated) 95%, transparent) !important;
+  box-shadow: 0 10px 24px color-mix(in srgb, #111827 7%, transparent) !important;
+  padding: 16px;
   display: grid;
-  gap: 12px;
-  min-height: 180px;
+  gap: 14px;
 }
 
 .student-profile__profile-shell-copy {
   display: grid;
-  gap: 6px;
+  gap: 5px;
+}
 
-  span {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-muted);
-    font-weight: 700;
-  }
+.student-profile__profile-shell-copy span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
 
-  h3 {
-    margin: 0;
-    font-size: 18px;
-    letter-spacing: -0.01em;
-  }
+.student-profile__profile-shell-copy h3 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
 
-  p {
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: 13px;
-    line-height: 1.45;
-  }
+.student-profile__profile-shell-copy p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.45;
 }
 
 .student-profile__profile-shell-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
-
-  .MuiButton-root {
-    min-width: 176px;
-  }
+  justify-content: flex-start;
 }
 
-.student-profile__profile-news {
-  min-width: 0;
-  position: sticky;
-  top: 96px;
-  align-self: start;
+.student-profile__profile-shell-actions .MuiButton-root {
+  min-height: 42px;
+  border-radius: 12px;
+  text-transform: none;
+  font-size: 13px;
+  font-weight: 650;
 }
 
-.student-profile__profile-edit-modal {
-  .MuiDialog-paper {
-    border-radius: 18px;
-  }
+.student-profile__profile-edit-modal .MuiDialog-paper {
+  width: min(92vw, 700px) !important;
+  max-width: 700px !important;
+  border-radius: 16px !important;
+  border: 1px solid var(--border-subtle) !important;
+  background: color-mix(in srgb, var(--background-elevated) 96%, transparent) !important;
+  box-shadow: 0 26px 52px color-mix(in srgb, #020617 24%, transparent) !important;
 }
 
 .student-profile__profile-edit-content {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .student-profile__profile-edit-head {
   display: grid;
-  gap: 2px;
+  gap: 3px;
+}
 
-  h3 {
-    margin: 0;
-    font-size: 18px;
-    letter-spacing: -0.01em;
-  }
+.student-profile__profile-edit-head h3 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
 
-  span {
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
+.student-profile__profile-edit-head span {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .student-profile__profile-edit-avatar {
@@ -1403,303 +1134,87 @@
 .student-profile__profile-edit-avatar-media {
   width: 64px !important;
   height: 64px !important;
-  font-size: 24px !important;
   border-radius: 16px !important;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
 }
 
 .student-profile__profile-edit-avatar-button {
-  border-radius: 12px !important;
+  min-height: 38px !important;
+  border-radius: 11px !important;
   text-transform: none !important;
-  font-weight: 600 !important;
+  font-size: 13px !important;
+  font-weight: 620 !important;
 }
 
 .student-profile__profile-edit-grid {
   display: grid;
-  gap: 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
 
-  > * {
-    min-width: 0;
-  }
+.student-profile__profile-edit-grid .MuiTextField-root {
+  min-width: 0;
+}
+
+.student-profile__profile-edit-grid .MuiFormLabel-root {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.student-profile__profile-edit-grid .MuiFormLabel-root.Mui-focused {
+  color: var(--text-secondary);
+}
+
+.student-profile__profile-edit-grid .MuiOutlinedInput-root {
+  min-height: 44px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--background-soft) 88%, transparent);
+}
+
+.student-profile__profile-edit-grid .MuiOutlinedInput-notchedOutline {
+  border-color: color-mix(in srgb, var(--border-subtle) 92%, transparent) !important;
+}
+
+.student-profile__profile-edit-grid .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: color-mix(in srgb, var(--border-subtle) 92%, transparent) !important;
+}
+
+.student-profile__profile-edit-grid .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: color-mix(in srgb, var(--accent-primary) 30%, var(--border-subtle)) !important;
+  border-width: 1px;
+}
+
+.student-profile__profile-edit-grid .MuiInputBase-input {
+  box-shadow: none !important;
 }
 
 .student-profile__profile-edit-security {
   margin-top: 2px;
-  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
   padding-top: 12px;
 }
 
 .student-profile__profile-edit-actions {
-  justify-content: flex-end;
+  padding: 0 20px 18px !important;
+  justify-content: space-between !important;
 }
 
-.student-profile__profile-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.student-profile__profile-head-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-.student-profile__profile-head-action {
-  width: 34px !important;
-  height: 34px !important;
-  border-radius: 10px !important;
-  border: 1px solid color-mix(in srgb, var(--brand-soft) 38%, var(--card-border)) !important;
-  background: color-mix(in srgb, var(--surface-elevated) 92%, transparent) !important;
-  color: var(--accent-text) !important;
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
-}
-
-.student-profile__profile-head-action:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 16px color-mix(in srgb, var(--brand-solid) 20%, transparent);
-}
-
-.student-profile__profile-head-action--save {
-  color: var(--feedback-success) !important;
-  border-color: color-mix(in srgb, var(--feedback-success) 35%, var(--card-border)) !important;
-}
-
-.student-profile__profile-head-main {
-  display: grid;
-  gap: 4px;
-
-  h2 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-
-  span {
-    color: var(--text-secondary);
-    font-size: 13px;
-  }
-}
-
-.student-profile__chat-button {
-  align-self: flex-start;
-  border-radius: 12px;
-  min-height: 38px;
-  padding: 0 12px;
-  gap: 7px;
+.student-profile__profile-edit-actions .MuiButton-root {
+  min-height: 40px;
+  border-radius: 11px;
   text-transform: none;
-  font-weight: 700;
-  white-space: nowrap;
-  color: var(--text-on-overlay);
-  position: relative;
-
-  &.is-locked {
-    svg:first-child {
-      color: color-mix(in srgb, #ffd979 92%, #f6b400);
-      filter: drop-shadow(0 0 6px rgba(255, 189, 42, 0.45));
-    }
-  }
+  font-size: 13px;
+  font-weight: 650;
 }
 
-:root[data-theme="light"] .student-profile__chat-button {
-  color: #ffffff;
+.student-profile__profile-edit-actions .MuiButton-colorInherit {
+  color: var(--text-secondary);
 }
 
-.student-profile__profile-main {
-  display: grid;
-  grid-template-columns: minmax(160px, 210px) 1fr;
-  gap: 16px;
-  align-items: start;
+.student-profile__profile-edit-actions .MuiButton-contained {
+  min-width: 152px;
 }
 
-.student-profile__profile-main:not(.is-editing) {
-  grid-template-columns: minmax(180px, 240px);
-}
-
-.student-profile__profile-main.has-bot {
-  grid-template-columns: minmax(180px, 240px) minmax(220px, 1fr);
-}
-
-.student-profile__profile-main.is-editing {
-  grid-template-columns: 1fr;
-  gap: 14px;
-}
-
-.student-profile__profile-main.is-editing .student-profile__profile-avatar {
-  align-items: flex-start;
-}
-
-.student-profile__profile-main.is-editing .student-profile__profile-fields {
-  grid-template-columns: 1fr;
-}
-
-.student-profile__profile-main.is-editing .student-profile__profile-actions {
-  justify-content: flex-start;
-}
-
-.student-profile__profile-avatar {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.student-profile__avatar-verified {
-  position: absolute;
-  right: 4px;
-  top: 66px;
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--surface-elevated) 80%, transparent);
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--feedback-info) 82%, #5bbcff),
-    color-mix(in srgb, var(--feedback-success) 76%, #21b78a)
-  );
-  color: #ffffff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  box-shadow: 0 6px 14px rgba(17, 24, 39, 0.2);
-}
-
-.student-profile__avatar {
-  width: 96px;
-  height: 96px;
-  font-size: 36px;
-  border-radius: 20px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-}
-
-.student-profile__identity-cloud {
-  display: grid;
-  gap: 8px;
-  width: 100%;
-}
-
-.student-profile__identity-pill {
-  border-radius: 999px;
-  padding: 7px 10px;
-  font-size: 12px;
-  font-weight: 700;
-  text-align: center;
-  border: 1px solid transparent;
-  line-height: 1.3;
-}
-
-.student-profile__identity-pill--name {
-  background: var(--surface-tint-strong);
-  color: var(--text-primary);
-}
-
-.student-profile__identity-pill--status {
-  background: linear-gradient(
-    135deg,
-    rgba(36, 196, 147, 0.22),
-    rgba(74, 231, 198, 0.14)
-  );
-  color: var(--feedback-success);
-}
-
-.student-profile__identity-pill--mail {
-  background: var(--surface-tint-soft);
-  color: var(--text-primary);
-}
-
-.student-profile__identity-pill--phone {
-  background: linear-gradient(
-    135deg,
-    rgba(42, 186, 132, 0.24),
-    rgba(90, 219, 192, 0.14)
-  );
-  color: var(--feedback-success);
-}
-
-.student-profile__avatar-button {
-  border-radius: 14px;
-  text-transform: none !important;
-  font-weight: 600 !important;
-}
-
-.student-profile__profile-bot-wrap {
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-}
-
-.student-profile__profile-bot {
-  width: min(100%, 360px);
-  margin-left: auto;
-}
-
-.student-profile__profile-fields {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-
-  .MuiTextField-root {
-    background: var(--surface-soft);
-    border-radius: 14px;
-
-    .MuiOutlinedInput-root {
-      border-radius: 14px;
-      background: var(--surface-soft);
-    }
-  }
-}
-
-.student-profile__profile-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  grid-column: 1 / -1;
-
-  .MuiButton-root {
-    border-radius: 14px;
-    text-transform: none;
-    font-weight: 600;
-  }
-}
-
-.student-profile__profile-showcase {
-  border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.08), var(--surface-elevated));
-  padding: 16px;
-  display: grid;
-  gap: 10px;
-  min-height: 100%;
-
-  p {
-    margin: 0;
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
-}
-
-.student-profile__showcase-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  padding: 6px 10px;
-  background: linear-gradient(135deg, var(--accent-strong), #b18bff);
-  color: var(--surface-elevated);
-  font-size: 11px;
-  font-weight: 700;
-  width: fit-content;
-}
-
-@media (max-width: 1120px) and (min-width: 721px) {
+@media (max-width: 1120px) {
   .student-profile__profile-layout {
     grid-template-columns: 1fr;
   }
@@ -1707,38 +1222,37 @@
   .student-profile__profile-news {
     position: static;
   }
+}
 
-  .student-profile__profile-main:not(.is-editing),
-  .student-profile__profile-main.has-bot {
-    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+@media (max-width: 900px) {
+  .student-profile {
+    padding: 18px 14px 28px;
   }
 
-  .student-profile__course-card {
+  .student-profile__courses {
     grid-template-columns: 1fr;
-    gap: 12px;
   }
 
-  .student-profile__course-progress {
-    justify-self: stretch;
+  .student-profile .student-profile__course-card {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .student-profile__course-status {
+    justify-self: start;
+  }
+
+  .student-profile__lessons-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .student-profile__lessons-divider {
     width: 100%;
-    justify-items: start;
-  }
-
-  .student-profile__course-progress-rings {
-    width: min(208px, 100%);
+    height: 1px;
   }
 }
 
 @media (max-width: 720px) {
-  .bnpl-reminder-feed__head {
-    align-items: flex-start;
-    flex-direction: column;
-
-    span {
-      text-align: left;
-    }
-  }
-
   .bnpl-reminder-feed__item {
     flex-direction: column;
     align-items: flex-start;
@@ -1749,204 +1263,34 @@
     justify-content: flex-start;
   }
 
-  .student-profile__courses {
-    grid-template-columns: 1fr;
+  .student-profile__title {
+    font-size: 25px;
   }
 
-  .student-profile__course-card {
-    display: grid;
-    grid-template-columns: 1fr;
-    align-items: start;
-    gap: 10px;
-  }
-
-  .student-profile__course-progress {
-    justify-self: stretch;
-    align-self: start;
-    min-width: 0;
-    justify-items: start;
-    width: 100%;
-  }
-
-  .student-profile__course-status--corner {
-    align-self: auto;
-  }
-
-  .student-profile__course-progress-rings {
-    justify-content: flex-start;
-    width: min(188px, 100%);
-  }
-
-  .student-profile__course-main .student-profile__course-title-row {
-    align-items: center;
-    gap: 6px;
-  }
-
-  .student-profile__progress-ring {
-    width: 54px;
-    height: 54px;
-  }
-
-  .student-profile__course-actions {
-    flex-wrap: wrap;
-  }
-
-  .student-profile__payment-installment {
-    grid-template-columns: 1fr;
-    justify-items: start;
-    gap: 2px;
-  }
-
-  .student-profile__profile-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .student-profile__profile-news {
-    position: static;
-  }
-
-  .student-profile__identity-card {
-    padding: 10px;
-    gap: 8px;
-  }
-
-  .student-profile__identity-card--mobile {
-    margin-bottom: 8px;
-  }
-
-  .student-profile__identity-main {
-    gap: 8px;
+  .student-profile .student-profile__identity-card {
+    padding: 12px;
   }
 
   .student-profile__identity-avatar {
-    width: 48px !important;
-    height: 48px !important;
-    font-size: 17px !important;
+    width: 52px !important;
+    height: 52px !important;
+    font-size: 18px !important;
   }
 
   .student-profile__identity-copy h3 {
     font-size: 16px;
   }
 
-  .student-profile__profile-shell-actions {
-    width: 100%;
-
-    .MuiButton-root {
-      width: 100%;
-      min-width: 0;
-    }
-  }
-
-  .student-profile__profile-edit-avatar {
-    justify-content: flex-start;
-  }
-
-  .student-profile__profile-edit-grid {
+  .student-profile__tabs-drawer-grid {
     grid-template-columns: 1fr;
-  }
-
-  .student-profile__chat-button {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .student-profile__profile-main {
-    grid-template-columns: 1fr;
-  }
-
-  .student-profile__profile-main.has-bot {
-    grid-template-columns: 1fr;
-  }
-
-  .student-profile__profile-main:not(.is-editing) {
-    grid-template-columns: 1fr;
-  }
-
-  .student-profile__avatar {
-    width: 64px;
-    height: 64px;
-    font-size: 28px;
-  }
-
-  .student-profile__avatar-verified {
-    top: 40px;
-    right: calc(50% - 42px);
-    width: 20px;
-    height: 20px;
-    font-size: 13px;
-  }
-
-  .student-profile__profile-avatar {
-    align-items: center;
-  }
-
-  .student-profile__profile-fields {
-    grid-template-columns: 1fr;
-  }
-
-  .student-profile__profile-bot-wrap {
-    justify-content: center;
-  }
-
-  .student-profile__profile-bot {
-    margin-left: 0;
-    width: min(100%, 420px);
-  }
-
-  .student-profile__identity-cloud {
-    width: 100%;
-  }
-
-  .student-profile__tabs {
-    .MuiTabs-root {
-      padding: 2px 4px 0;
-    }
-
-    .MuiTab-root {
-      min-width: 0;
-      flex: 1;
-      min-height: 34px;
-      padding: 5px 8px;
-      font-size: 13px;
-    }
-
-    .MuiTab-root .MuiTab-iconWrapper {
-      margin: 0;
-    }
-
-    .MuiTab-root .MuiSvgIcon-root {
-      font-size: 18px;
-    }
-
-    .student-profile__tab-label {
-      display: none;
-    }
-  }
-
-  .student-profile__profile-actions {
-    justify-content: center;
-    grid-column: auto;
-  }
-
-  .student-profile__lessons-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .student-profile__lessons-divider {
-    height: 1px;
-    width: 100%;
   }
 
   .student-profile__calendar-day {
-    min-width: 84px;
+    min-width: 82px;
   }
 
-  .student-profile__calendar-actions {
-    justify-content: stretch;
-
-    .MuiButton-root {
-      width: 100%;
-    }
+  .student-profile__calendar-actions .MuiButton-root {
+    width: 100%;
   }
 
   .student-profile__lesson-head {
@@ -1955,56 +1299,57 @@
   }
 
   .student-profile__lesson-meta {
-    margin-left: 0;
     justify-items: start;
-    width: 100%;
   }
 
   .student-profile__lesson-tags {
     justify-content: flex-start;
+  }
+
+  .student-profile__profile-shell-actions {
     width: 100%;
   }
 
-  .student-profile__lesson-head-actions {
-    justify-content: flex-start;
+  .student-profile__profile-shell-actions .MuiButton-root {
+    width: 100%;
+  }
+
+  .student-profile__profile-edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-profile__profile-edit-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .student-profile__profile-edit-actions .MuiButton-root {
+    width: 100%;
   }
 }
 
-/* Aurora Graphite finalization */
-.student-profile {
-  &__identity-card,
-  &__profile-shell,
-  &__profile-card,
-  &__course-card,
-  &__booking-card,
-  &__lessons-panel {
-    background: var(--glass-tier-2-bg) !important;
-    border-color: var(--glass-tier-2-border) !important;
-    box-shadow: var(--glass-tier-2-shadow), inset 0 1px 0 var(--glass-tier-2-edge) !important;
-    backdrop-filter: blur(var(--glass-tier-2-blur)) !important;
-  }
+/* Make student redesign survive global Aurora overrides loaded later. */
+.student-profile .student-profile__course-card,
+.student-profile .student-profile__calendar-panel,
+.student-profile .student-profile__calendar-summary,
+.student-profile .student-profile__profile-shell,
+.student-profile .student-profile__identity-card,
+.student-profile .student-profile__lesson-card,
+.student-profile .student-profile__profile-edit-modal .MuiDialog-paper {
+  border-color: color-mix(in srgb, var(--border-subtle) 92%, transparent) !important;
+  background: color-mix(in srgb, var(--background-elevated) 95%, transparent) !important;
+  backdrop-filter: blur(10px) !important;
+}
 
-  &__calendar-panel,
-  &__calendar-summary,
-  &__password-card {
-    background: var(--glass-tier-1-bg) !important;
-    border-color: var(--glass-tier-1-border) !important;
-    box-shadow: var(--glass-tier-1-shadow), inset 0 1px 0 var(--glass-tier-1-edge) !important;
-    backdrop-filter: blur(var(--glass-tier-1-blur)) !important;
-  }
+.student-profile .student-profile__tabs,
+.student-profile .student-profile__tabs .MuiTabs-root {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
 
-  &__title {
-    color: var(--text-primary) !important;
-    background: none !important;
-    -webkit-text-fill-color: currentColor !important;
-  }
-
-  &__identity-role,
-  &__identity-pill,
-  &__premium,
-  &__reminder {
-    background: var(--glass-tier-2-bg) !important;
-    border-color: color-mix(in srgb, var(--glass-tier-2-border) 70%, var(--accent-secondary)) !important;
-    color: var(--text-primary) !important;
-  }
+.student-profile .student-profile__search,
+.student-profile .student-profile__search .MuiOutlinedInput-root,
+.student-profile .student-profile__profile-edit-grid .MuiOutlinedInput-root {
+  box-shadow: none !important;
 }

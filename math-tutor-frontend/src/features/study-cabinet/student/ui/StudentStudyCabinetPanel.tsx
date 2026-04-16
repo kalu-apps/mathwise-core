@@ -1110,7 +1110,7 @@ export function StudentStudyCabinetPanel({
                 <span className="study-cabinet-panel__kicker">Учебный кабинет</span>
               </div>
               <h2>Здесь появится ваш маршрут обучения</h2>
-              <p>Как только у вас будет курс, кабинет начнёт подсказывать следующий шаг, ритм обучения и задачи на неделю.</p>
+              <p>После покупки курса здесь появятся следующие шаги и задачи.</p>
               <div className="study-cabinet-panel__hero-nav">
                 <Button className="study-cabinet-panel__hero-btn" variant="contained" onClick={onBrowseCourses}>
                   Выбрать курс
@@ -1229,7 +1229,7 @@ export function StudentStudyCabinetPanel({
                   ) : (
                     <>
                       <strong>Выберите комфортный темп</strong>
-                      <p>Все материалы доступны без блокировок. Можно открыть любой урок, тест или занятие в удобный момент.</p>
+                      <p>Откройте любой урок, тест или занятие в удобный момент.</p>
                       <div className="study-cabinet-panel__student-next-actions">
                         <Button variant="contained" onClick={() => setChooseAnotherOpen(true)}>Выбрать действие</Button>
                       </div>
@@ -1299,11 +1299,11 @@ export function StudentStudyCabinetPanel({
                         <div className="study-cabinet-panel__student-metric-pill-row">
                           <span className="study-cabinet-panel__student-rhythm-frame">
                             {bestRhythmDayLabel
-                              ? `В кабинете за 7 дней: ${formatDuration(cabinetTimeSeconds)} · Самый продуктивный день: ${bestRhythmDayLabel}`
-                              : `В кабинете за 7 дней: ${formatDuration(cabinetTimeSeconds)}`}
+                              ? `За 7 дней: ${formatDuration(cabinetTimeSeconds)} · Пик: ${bestRhythmDayLabel}`
+                              : `За 7 дней: ${formatDuration(cabinetTimeSeconds)}`}
                           </span>
                         </div>
-                        <p>Учитываем только активность в авторизованном состоянии за последнюю неделю.</p>
+                        <p>Учитывается активность за последние 7 дней.</p>
                       </div>
                     </div>
                   </article>
@@ -1412,7 +1412,7 @@ export function StudentStudyCabinetPanel({
                   ) : (
                     <div className="study-cabinet-panel__empty">
                       {activeReminderTab === "now"
-                        ? "Срочных задач сейчас нет. Можно двигаться в своём темпе."
+                        ? "Срочных задач нет."
                         : "Отложенных задач пока нет."}
                     </div>
                   )}
@@ -1529,13 +1529,13 @@ export function StudentStudyCabinetPanel({
           <div className="study-cabinet-panel__student-rhythm-head">
             <div className="study-cabinet-panel__student-rhythm-title">
               <span className="study-cabinet-panel__kicker">Ритм обучения</span>
-              <p>Показываем только реальные минуты в кабинете за последнюю неделю.</p>
+              <p>Показываем активность за последние 7 дней.</p>
             </div>
             <div className="study-cabinet-panel__student-rhythm-stats">
               <span>
                 {bestRhythmDayLabel
-                  ? `В кабинете за 7 дней: ${formatDuration(cabinetTimeSeconds)} · Самый продуктивный день: ${bestRhythmDayLabel}`
-                  : `В кабинете за 7 дней: ${formatDuration(cabinetTimeSeconds)}`}
+                  ? `За 7 дней: ${formatDuration(cabinetTimeSeconds)} · Пик: ${bestRhythmDayLabel}`
+                  : `За 7 дней: ${formatDuration(cabinetTimeSeconds)}`}
               </span>
             </div>
           </div>

@@ -166,11 +166,11 @@ export function NewsFeedPanel({ user }: Props) {
   }, [editDraft, updatingId]);
 
   const feedTitle = useMemo(
-    () => (isTeacher ? "Лента объявлений" : "Новости от преподавателя"),
+    () => (isTeacher ? "Лента объявлений" : "Объявления"),
     [isTeacher]
   );
   const feedKicker = useMemo(
-    () => (isTeacher ? "Коммуникации" : "Обновления"),
+    () => (isTeacher ? "Лента" : "Обновления"),
     [isTeacher]
   );
   const composerToneOptions = useMemo(
@@ -327,8 +327,8 @@ export function NewsFeedPanel({ user }: Props) {
           <h2>{feedTitle}</h2>
           <p>
             {isTeacher
-              ? "Публикуйте важные обновления для всех студентов."
-              : "Следите за обновлениями расписания и обучающими объявлениями."}
+              ? "Публикуйте обновления для студентов."
+              : "Новые материалы и важные сообщения преподавателя."}
           </p>
         </div>
         {isTeacher && (
@@ -370,7 +370,7 @@ export function NewsFeedPanel({ user }: Props) {
           <div className="news-feed__empty news-feed__empty--error" role="status">
             <div className="news-feed__empty-title">{feedLoadError}</div>
             <div className="news-feed__empty-caption">
-              Проверьте соединение и повторите попытку.
+              Проверьте соединение и попробуйте снова.
             </div>
             <Button
               variant="outlined"
@@ -386,7 +386,7 @@ export function NewsFeedPanel({ user }: Props) {
           <div className="news-feed__empty news-feed__empty--plain">
             <div className="news-feed__empty-title">Пока нет объявлений.</div>
             <div className="news-feed__empty-caption">
-              Здесь будут появляться новости и сообщения преподавателя.
+              Здесь будут новые объявления преподавателя.
             </div>
           </div>
         ) : (
@@ -406,7 +406,7 @@ export function NewsFeedPanel({ user }: Props) {
                     <div className="news-feed__item-edit-head">
                       <h3>Редактирование объявления</h3>
                       <div className="news-feed__meta">
-                        <span>Изменения станут видны после сохранения</span>
+                        <span>Изменения применятся после сохранения</span>
                         <span>{formatDate(item.createdAt)}</span>
                       </div>
                     </div>

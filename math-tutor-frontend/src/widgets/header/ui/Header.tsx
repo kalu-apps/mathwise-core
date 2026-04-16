@@ -79,62 +79,71 @@ export function Header() {
         </div>
 
         <div className="header__right">
-          <Tooltip
-            title={
-              mode === "dark"
-                ? t("header.switchLightTheme")
-                : t("header.switchDarkTheme")
-            }
-          >
-            <IconButton
-              onClick={toggleMode}
-              size="small"
-              aria-label={
+          <div className="header__utility-cluster">
+            <Tooltip
+              title={
                 mode === "dark"
                   ? t("header.switchLightTheme")
                   : t("header.switchDarkTheme")
               }
-              className="header__theme-toggle"
             >
-              {mode === "dark" ? (
-                <LightModeRoundedIcon fontSize="small" />
-              ) : (
-                <DarkModeRoundedIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
-          {user ? (
-            <>
-              <Tooltip title={t("header.profile")}>
-                <Button
-                  onClick={() =>
-                    navigate(
-                      user.role === "student"
-                        ? "/student/profile"
-                        : "/teacher/profile"
-                    )
-                  }
-                  className="header__profile-btn"
-                  color="inherit"
-                >
-                  <div className="header__avatar">{userAvatarInitial}</div>
-                  <span className="header__profile-name">{userDisplayName}</span>
-                </Button>
-              </Tooltip>
-
-              <Tooltip title={t("header.logout")}>
-                <IconButton onClick={handleLogout} size="small">
-                  <LogoutIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </>
-          ) : (
-            <Tooltip title={t("header.login")}>
-              <IconButton onClick={() => openAuthModal()}>
-                <LoginIcon />
+              <IconButton
+                onClick={toggleMode}
+                size="small"
+                aria-label={
+                  mode === "dark"
+                    ? t("header.switchLightTheme")
+                    : t("header.switchDarkTheme")
+                }
+                className="header__theme-toggle"
+              >
+                {mode === "dark" ? (
+                  <LightModeRoundedIcon fontSize="small" />
+                ) : (
+                  <DarkModeRoundedIcon fontSize="small" />
+                )}
               </IconButton>
             </Tooltip>
-          )}
+            {user ? (
+              <div className="header__user-cluster">
+                <Tooltip title={t("header.profile")}>
+                  <Button
+                    onClick={() =>
+                      navigate(
+                        user.role === "student"
+                          ? "/student/profile"
+                          : "/teacher/profile"
+                      )
+                    }
+                    className="header__profile-btn"
+                    color="inherit"
+                  >
+                    <div className="header__avatar">{userAvatarInitial}</div>
+                    <span className="header__profile-name">{userDisplayName}</span>
+                  </Button>
+                </Tooltip>
+
+                <Tooltip title={t("header.logout")}>
+                  <IconButton
+                    onClick={handleLogout}
+                    size="small"
+                    className="header__logout-btn"
+                  >
+                    <LogoutIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </div>
+            ) : (
+              <Tooltip title={t("header.login")}>
+                <IconButton
+                  onClick={() => openAuthModal()}
+                  className="header__login-btn"
+                >
+                  <LoginIcon />
+                </IconButton>
+              </Tooltip>
+            )}
+          </div>
         </div>
       </div>
 
