@@ -21,9 +21,9 @@ export function GuidedPathCards({ paths, onSelectPath }: GuidedPathCardsProps) {
   return (
     <section className="home-first-screen__paths" aria-label="Маршруты старта">
       <div className="home-first-screen__paths-head">
-        <h2>Выберите стартовый сценарий</h2>
+        <h2>Выберите сценарий старта</h2>
         <p>
-          Один рекомендуемый маршрут и два быстрых варианта под задачу.
+          Один рекомендуемый маршрут и два быстрых варианта.
         </p>
       </div>
 
@@ -41,7 +41,7 @@ export function GuidedPathCards({ paths, onSelectPath }: GuidedPathCardsProps) {
               <div className="home-first-screen__path-topline">
                 <span className="home-first-screen__path-icon">{iconByPath[path.icon]}</span>
                 <span className="home-first-screen__path-kicker">
-                  {isPrimary ? "Рекомендуем" : "Дополнительно"}
+                  {isPrimary ? "Рекомендуем" : "Опция"}
                 </span>
               </div>
 

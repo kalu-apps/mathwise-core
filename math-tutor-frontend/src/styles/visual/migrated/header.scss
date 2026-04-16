@@ -87,26 +87,28 @@
     justify-self: start;
     display: inline-flex;
     align-items: center;
-    gap: 18px;
+    gap: 14px;
   }
 
   &__tablist {
     min-width: 0;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     padding: 2px 0;
     position: relative;
   }
 
   &__tab {
-    min-height: 34px !important;
+    min-height: 33px !important;
     border: 0 !important;
-    border-radius: 7px !important;
+    outline: 0 !important;
+    border-radius: 6px !important;
     background: transparent !important;
-    padding: 0 9px !important;
+    box-shadow: none !important;
+    padding: 0 8px !important;
     text-transform: none !important;
-    font-size: 12.5px !important;
+    font-size: 12.25px !important;
     font-weight: 595 !important;
     color: color-mix(in srgb, var(--text-secondary) 76%, var(--text-primary)) !important;
     white-space: nowrap;
@@ -125,10 +127,10 @@
     &::after {
       content: "";
       position: absolute;
-      left: 10px;
-      right: 10px;
-      bottom: 3px;
-      height: 2px;
+      left: 9px;
+      right: 9px;
+      bottom: 4px;
+      height: 1.5px;
       border-radius: 999px;
       opacity: 0;
       transform: scaleX(0.5);
@@ -157,7 +159,8 @@
     }
 
     &:focus-visible {
-      box-shadow: none;
+      box-shadow: none !important;
+      outline: 0 !important;
     }
   }
 
@@ -165,28 +168,38 @@
     min-width: 0;
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    margin-left: 2px;
+    gap: 3px;
+    margin-left: 18px;
     padding: 0;
     border-radius: 0;
     background: transparent;
   }
 
   &__action-icon {
-    width: 34px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     border-radius: 8px !important;
     border: 0 !important;
     background: transparent !important;
     color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary)) !important;
+    transition:
+      color 0.18s ease,
+      background-color 0.18s ease,
+      transform 0.18s ease;
 
     .MuiSvgIcon-root {
-      font-size: 21px;
+      font-size: 23px;
+      transition: transform 0.18s ease;
     }
 
     &:hover {
       color: var(--text-primary) !important;
-      background: color-mix(in srgb, var(--accent-primary) 11%, transparent) !important;
+      background: color-mix(in srgb, var(--accent-primary) 8%, transparent) !important;
+      transform: translateY(-1px);
+    }
+
+    &:hover .MuiSvgIcon-root {
+      transform: scale(1.08);
     }
 
     &:focus-visible {
@@ -209,8 +222,10 @@
     gap: 0;
     padding: 2px;
     border-radius: 10px;
-    background: transparent;
-    border: 0;
+    background: transparent !important;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
   }
 
   &__account-control--guest {
@@ -223,8 +238,10 @@
     max-width: min(260px, 28vw);
     min-width: 0;
     border: 0 !important;
+    outline: 0 !important;
     background: transparent !important;
     border-radius: 8px !important;
+    box-shadow: none !important;
     padding: 0 8px 0 4px !important;
     text-transform: none !important;
     color: var(--text-primary) !important;
@@ -240,7 +257,8 @@
     }
 
     &:focus-visible {
-      box-shadow: none;
+      box-shadow: none !important;
+      outline: 0 !important;
     }
   }
 
@@ -307,6 +325,8 @@
     border-radius: 8px !important;
     border: 0 !important;
     background: transparent !important;
+    outline: 0 !important;
+    box-shadow: none !important;
     color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary)) !important;
     position: relative;
 
@@ -324,15 +344,18 @@
     }
 
     &:focus-visible {
-      box-shadow: none;
+      box-shadow: none !important;
+      outline: 0 !important;
     }
   }
 
   &__account-login {
     min-height: 34px !important;
     border: 0 !important;
+    outline: 0 !important;
     border-radius: 8px !important;
     background: transparent !important;
+    box-shadow: none !important;
     color: var(--text-primary) !important;
     padding: 0 11px !important;
     text-transform: none !important;

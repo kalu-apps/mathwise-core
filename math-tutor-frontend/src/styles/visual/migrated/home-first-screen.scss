@@ -1,5 +1,5 @@
 .home-first-screen {
-  padding: clamp(24px, 3vw, 42px) var(--layout-gutter) clamp(30px, 4.2vw, 56px);
+  padding: clamp(22px, 2.8vw, 40px) var(--layout-gutter) clamp(28px, 4vw, 52px);
   background: transparent;
 }
 
@@ -7,29 +7,15 @@
   position: relative;
   width: min(100%, var(--layout-content-max));
   margin: 0 auto;
-  border-radius: 34px;
+  border-radius: 32px;
   overflow: hidden;
   isolation: isolate;
   background:
-    radial-gradient(
-      136% 98% at -4% -14%,
-      color-mix(in srgb, #6a84ff 38%, transparent) 0%,
-      transparent 58%
-    ),
-    radial-gradient(
-      132% 98% at 109% 118%,
-      color-mix(in srgb, #4fd4ff 28%, transparent) 0%,
-      transparent 64%
-    ),
-    linear-gradient(
-      153deg,
-      color-mix(in srgb, #1a2440 66%, var(--surface-elevated)) 0%,
-      color-mix(in srgb, #131f3a 62%, var(--surface-soft)) 54%,
-      color-mix(in srgb, #0c1731 74%, var(--background-elevated)) 100%
-    );
+    radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, #15295a 26%, transparent), transparent 62%),
+    linear-gradient(145deg, #0b1530 0%, #0a1433 52%, #081126 100%);
   box-shadow:
-    0 42px 78px color-mix(in srgb, #050a18 34%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 11%, transparent);
+    0 26px 58px color-mix(in srgb, #050a18 32%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 9%, transparent);
 }
 
 .home-first-screen__scene::before {
@@ -39,16 +25,8 @@
   z-index: 1;
   pointer-events: none;
   background:
-    radial-gradient(
-      56% 50% at 16% 30%,
-      color-mix(in srgb, #6f7fff 22%, transparent),
-      transparent 72%
-    ),
-    radial-gradient(
-      44% 40% at 70% 22%,
-      color-mix(in srgb, #7ee6ff 14%, transparent),
-      transparent 74%
-    );
+    radial-gradient(76% 66% at 92% 8%, color-mix(in srgb, #4f66d6 18%, transparent), transparent 76%),
+    radial-gradient(140% 130% at 50% 100%, color-mix(in srgb, #000000 22%, transparent), transparent 64%);
 }
 
 .home-first-screen__environment {
@@ -68,21 +46,8 @@
 
 .home-first-screen__environment-fallback {
   background:
-    radial-gradient(
-      86% 90% at 20% 30%,
-      color-mix(in srgb, #697eff 34%, transparent),
-      transparent 74%
-    ),
-    radial-gradient(
-      78% 88% at 84% 68%,
-      color-mix(in srgb, #5ad6ff 28%, transparent),
-      transparent 74%
-    ),
-    radial-gradient(
-      52% 44% at 62% 20%,
-      color-mix(in srgb, #9a77ff 16%, transparent),
-      transparent 78%
-    );
+    radial-gradient(42% 38% at 74% 26%, color-mix(in srgb, #5b79ff 20%, transparent), transparent 72%),
+    radial-gradient(28% 24% at 70% 72%, color-mix(in srgb, #57bfff 16%, transparent), transparent 74%);
 }
 
 .home-first-screen__ambient-veil {
@@ -91,194 +56,147 @@
   z-index: 2;
   pointer-events: none;
   background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, #070f21 16%, transparent) 0%,
-      transparent 20%,
-      transparent 78%,
-      color-mix(in srgb, #071126 22%, transparent) 100%
-    ),
-    radial-gradient(
-      70% 66% at 58% 36%,
-      color-mix(in srgb, #8f88ff 16%, transparent),
-      transparent 74%
-    );
-}
-
-.home-first-screen__ribbon-bridge {
-  position: absolute;
-  z-index: 2;
-  pointer-events: none;
-  right: 26%;
-  top: 11%;
-  width: clamp(220px, 28vw, 360px);
-  aspect-ratio: 1 / 1;
-  border-radius: 50%;
-  transform: rotate(26deg);
-  background:
-    conic-gradient(
-      from 18deg,
-      color-mix(in srgb, #8390ff 6%, transparent) 0deg,
-      color-mix(in srgb, #7ad4ff 34%, transparent) 82deg,
-      color-mix(in srgb, #8f72ff 12%, transparent) 162deg,
-      color-mix(in srgb, #8390ff 3%, transparent) 360deg
-    );
-  mask:
-    radial-gradient(circle at 50% 50%, transparent 0 29%, #000 41% 63%, transparent 76%),
-    linear-gradient(#000, #000);
-  -webkit-mask:
-    radial-gradient(circle at 50% 50%, transparent 0 29%, #000 41% 63%, transparent 76%),
-    linear-gradient(#000, #000);
-  filter: blur(0.2px) saturate(118%);
-  opacity: 0.72;
+    radial-gradient(34% 30% at 72% 24%, color-mix(in srgb, #6a7dff 14%, transparent), transparent 76%),
+    radial-gradient(26% 24% at 66% 76%, color-mix(in srgb, #5ec2ff 10%, transparent), transparent 78%);
 }
 
 .home-first-screen__layout {
   position: relative;
   z-index: 3;
-  padding: clamp(24px, 3vw, 42px);
+  padding: clamp(22px, 2.8vw, 36px);
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.16fr) minmax(0, 1fr);
+  gap: clamp(14px, 1.8vw, 22px);
   align-items: start;
-  gap: clamp(18px, 2vw, 26px);
 }
 
 .home-first-screen__hero-command {
   position: relative;
-  padding: clamp(18px, 2.3vw, 28px) clamp(16px, 2vw, 24px);
-  border-radius: 24px;
-  background:
-    linear-gradient(
-      162deg,
-      color-mix(in srgb, #151f36 28%, transparent) 0%,
-      color-mix(in srgb, #121f3a 18%, transparent) 58%,
-      color-mix(in srgb, #121f3a 10%, transparent) 100%
-    );
-  border: 1px solid color-mix(in srgb, #deebff 22%, transparent);
-  backdrop-filter: blur(20px) saturate(155%) brightness(1.06);
-  -webkit-backdrop-filter: blur(20px) saturate(155%) brightness(1.06);
+  padding: clamp(18px, 2.1vw, 24px) clamp(16px, 1.8vw, 22px);
+  border-radius: 22px;
+  background: linear-gradient(
+    154deg,
+    rgba(18, 28, 58, 0.58) 0%,
+    rgba(28, 40, 84, 0.46) 100%
+  );
+  border: 1px solid color-mix(in srgb, #dbe7ff 18%, transparent);
+  backdrop-filter: blur(14px) saturate(122%);
+  -webkit-backdrop-filter: blur(14px) saturate(122%);
   box-shadow:
-    20px 26px 42px color-mix(in srgb, #050b19 22%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 34%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, #9fbaff 12%, transparent);
+    0 16px 30px color-mix(in srgb, #050a16 24%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 24%, transparent);
 }
 
 .home-first-screen__hero-command::before {
   content: "";
   position: absolute;
-  pointer-events: none;
   inset: 1px;
-  border-radius: 22px;
+  border-radius: 20px;
+  pointer-events: none;
   background: radial-gradient(
-    120% 66% at 12% 0%,
-    color-mix(in srgb, #c8d7ff 13%, transparent) 0%,
-    transparent 62%
+    84% 58% at 14% 0%,
+    color-mix(in srgb, #c8d7ff 12%, transparent),
+    transparent 70%
   );
-  opacity: 0.76;
 }
 
 .home-first-screen__eyebrow {
   margin: 0;
   font-size: 11px;
-  line-height: 1.35;
-  letter-spacing: 0.08em;
+  line-height: 1.32;
+  letter-spacing: 0.075em;
   text-transform: uppercase;
   font-weight: 620;
-  color: color-mix(in srgb, var(--text-secondary) 76%, #cfdaff);
+  color: color-mix(in srgb, var(--text-secondary) 78%, #d0dcff);
 }
 
 .home-first-screen__title {
-  margin: 14px 0 0;
-  max-width: 18ch;
-  font-size: clamp(34px, 4.8vw, 62px);
-  line-height: 0.98;
-  letter-spacing: -0.034em;
-  color: color-mix(in srgb, var(--text-primary) 94%, #edf2ff);
-  text-wrap: pretty;
-  text-shadow: 0 12px 30px color-mix(in srgb, #6e85ff 24%, transparent);
+  margin: 12px 0 0;
+  max-width: 20ch;
+  font-size: clamp(30px, 4.1vw, 54px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: color-mix(in srgb, var(--text-primary) 96%, #edf3ff);
+  text-wrap: balance;
 }
 
 .home-first-screen__subtitle {
-  margin: 16px 0 0;
-  max-width: 60ch;
-  font-size: clamp(15px, 1.34vw, 18px);
-  line-height: 1.55;
-  color: color-mix(in srgb, var(--text-secondary) 88%, #e2ebff);
-  text-shadow: 0 1px 0 color-mix(in srgb, #0c1429 36%, transparent);
+  margin: 14px 0 0;
+  max-width: 56ch;
+  font-size: clamp(14px, 1.2vw, 17px);
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--text-secondary) 90%, #dce6ff);
 }
 
 .home-first-screen__actions {
-  margin-top: 24px;
+  margin-top: 20px;
   display: flex;
-  gap: 10px;
   align-items: center;
   flex-wrap: wrap;
+  gap: 10px;
 }
 
 .home-first-screen .MuiButton-root.home-first-screen__primary-action {
-  min-height: 48px;
+  min-height: 46px;
   border: 0 !important;
-  border-radius: 13px !important;
-  padding: 0 24px !important;
-  line-height: 1.15 !important;
+  border-radius: 12px !important;
+  padding: 0 22px !important;
+  line-height: 1.2 !important;
   text-transform: none !important;
   font-size: 15px !important;
   font-weight: 650 !important;
   letter-spacing: 0.01em !important;
   color: var(--text-on-accent) !important;
   background: linear-gradient(
-    136deg,
-    color-mix(in srgb, #8391ff 74%, #69ecf2) 0%,
-    color-mix(in srgb, #5ec9ff 62%, #ab78ff) 100%
+    134deg,
+    color-mix(in srgb, #6f84ff 74%, #63d3ff) 0%,
+    color-mix(in srgb, #5d79f4 70%, #7bc8ff) 100%
   ) !important;
-  box-shadow: 0 16px 28px color-mix(in srgb, #728bff 34%, transparent) !important;
+  box-shadow: 0 12px 22px color-mix(in srgb, #5f79ff 30%, transparent) !important;
 }
 
 .home-first-screen .MuiButton-root.home-first-screen__primary-action:hover {
   transform: translateY(-1px);
-  box-shadow: 0 20px 32px color-mix(in srgb, #728bff 44%, transparent) !important;
+  box-shadow: 0 16px 24px color-mix(in srgb, #5f79ff 36%, transparent) !important;
 }
 
 .home-first-screen .MuiButton-root.home-first-screen__secondary-action {
-  min-height: 46px;
+  min-height: 44px;
   border: 0 !important;
-  border-radius: 13px !important;
-  padding: 0 18px !important;
-  line-height: 1.15 !important;
+  border-radius: 11px !important;
+  padding: 0 16px !important;
+  line-height: 1.2 !important;
   text-transform: none !important;
   font-size: 14px !important;
   font-weight: 620 !important;
-  letter-spacing: 0.006em !important;
-  color: color-mix(in srgb, var(--text-primary) 92%, #e5ecff) !important;
-  background: color-mix(in srgb, #dce4ff 12%, transparent) !important;
+  letter-spacing: 0.004em !important;
+  color: color-mix(in srgb, var(--text-primary) 92%, #e6edff) !important;
+  background: color-mix(in srgb, #dbe6ff 10%, transparent) !important;
 }
 
 .home-first-screen .MuiButton-root.home-first-screen__secondary-action:hover {
-  background: color-mix(in srgb, #dce4ff 20%, transparent) !important;
+  background: color-mix(in srgb, #dbe6ff 16%, transparent) !important;
 }
 
 .home-first-screen__proof-stream {
-  margin: 20px 0 0;
+  margin: 18px 0 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 7px;
 }
 
 .home-first-screen__proof-chip {
   margin: 0;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 30px;
-  padding: 6px 10px;
-  border-radius: 11px;
-  background: color-mix(in srgb, #cdd8ff 10%, transparent);
-  border: 1px solid color-mix(in srgb, #e0e9ff 20%, transparent);
-  backdrop-filter: blur(11px) saturate(138%);
-  -webkit-backdrop-filter: blur(11px) saturate(138%);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 28%, transparent),
-    0 8px 16px color-mix(in srgb, #060d1d 14%, transparent);
+  gap: 7px;
+  min-height: 28px;
+  padding: 5px 9px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #ccdbff 10%, transparent);
+  border: 1px solid color-mix(in srgb, #dce7ff 16%, transparent);
+  backdrop-filter: blur(7px) saturate(115%);
+  -webkit-backdrop-filter: blur(7px) saturate(115%);
 }
 
 .home-first-screen__proof-chip dt {
@@ -286,126 +204,77 @@
   line-height: 1;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  font-weight: 700;
-  color: color-mix(in srgb, var(--text-secondary) 84%, #c5cff4);
+  font-weight: 680;
+  color: color-mix(in srgb, var(--text-secondary) 84%, #c8d5ff);
 }
 
 .home-first-screen__proof-chip dd {
   margin: 0;
   font-size: 12px;
-  line-height: 1.25;
-  color: color-mix(in srgb, var(--text-primary) 90%, #e3ebff);
+  line-height: 1.22;
+  color: color-mix(in srgb, var(--text-primary) 90%, #e1ebff);
 }
 
 .home-first-screen__paths {
   display: grid;
-  gap: 11px;
+  gap: 10px;
   align-content: start;
 }
 
 .home-first-screen__paths-head {
-  padding-inline: 2px;
+  padding-inline: 1px;
 }
 
 .home-first-screen__paths-head h2 {
   margin: 0;
-  font-size: clamp(20px, 2.3vw, 30px);
-  line-height: 1.06;
-  letter-spacing: -0.02em;
+  font-size: clamp(20px, 2.1vw, 28px);
+  line-height: 1.08;
+  letter-spacing: -0.018em;
   color: color-mix(in srgb, var(--text-primary) 94%, #e8efff);
 }
 
 .home-first-screen__paths-head p {
-  margin: 8px 0 0;
-  font-size: 14px;
-  line-height: 1.48;
-  color: color-mix(in srgb, var(--text-secondary) 88%, #d9e2ff);
+  margin: 7px 0 0;
+  font-size: 13px;
+  line-height: 1.42;
+  color: color-mix(in srgb, var(--text-secondary) 88%, #d6e1ff);
 }
 
 .home-first-screen__paths-list {
   display: grid;
-  gap: 10px;
+  gap: 9px;
 }
 
 .home-first-screen__path-item {
   position: relative;
-  padding: 14px 14px 13px;
-  border-radius: 17px;
-  background:
-    linear-gradient(
-      160deg,
-      color-mix(in srgb, #d8e2ff 10%, transparent),
-      color-mix(in srgb, #c6d4ff 4%, transparent)
-    );
-  border: 1px solid color-mix(in srgb, #dbe8ff 18%, transparent);
-  backdrop-filter: blur(18px) saturate(146%) brightness(1.04);
-  -webkit-backdrop-filter: blur(18px) saturate(146%) brightness(1.04);
+  padding: 13px 13px 12px;
+  border-radius: 16px;
+  background: linear-gradient(
+    156deg,
+    color-mix(in srgb, #d6e3ff 8%, transparent) 0%,
+    color-mix(in srgb, #c3d2ff 5%, transparent) 100%
+  );
+  border: 1px solid color-mix(in srgb, #dce8ff 15%, transparent);
+  backdrop-filter: blur(10px) saturate(116%);
+  -webkit-backdrop-filter: blur(10px) saturate(116%);
   box-shadow:
-    12px 14px 24px color-mix(in srgb, #050a16 15%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 26%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, #89a8ff 10%, transparent);
+    0 10px 20px color-mix(in srgb, #050a16 16%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 20%, transparent);
 }
 
 .home-first-screen__path-item--primary {
-  padding: 18px 18px 16px;
-  background:
-    linear-gradient(
-      156deg,
-      color-mix(in srgb, #97a5ff 24%, transparent),
-      color-mix(in srgb, #69d8ff 16%, transparent)
-    );
-  border-color: color-mix(in srgb, #dbe7ff 24%, transparent);
-  backdrop-filter: blur(19px) saturate(152%) brightness(1.06);
-  -webkit-backdrop-filter: blur(19px) saturate(152%) brightness(1.06);
-  box-shadow:
-    17px 20px 34px color-mix(in srgb, #050a16 20%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 30%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, #75bfff 14%, transparent);
-  overflow: hidden;
-}
-
-.home-first-screen__path-item--primary::before {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-  right: -120px;
-  top: -96px;
-  width: 280px;
-  aspect-ratio: 1 / 1;
-  border-radius: 50%;
-  opacity: 0.74;
-  transform: rotate(30deg);
-  background: conic-gradient(
-    from 32deg,
-    color-mix(in srgb, #8290ff 3%, transparent) 0deg,
-    color-mix(in srgb, #77d7ff 32%, transparent) 98deg,
-    color-mix(in srgb, #9f7bff 15%, transparent) 188deg,
-    color-mix(in srgb, #8290ff 3%, transparent) 360deg
+  padding: 16px 16px 14px;
+  background: linear-gradient(
+    154deg,
+    color-mix(in srgb, #8ea0ff 18%, transparent) 0%,
+    color-mix(in srgb, #65c9ff 14%, transparent) 100%
   );
-  mask:
-    radial-gradient(circle at 50% 50%, transparent 0 30%, #000 42% 62%, transparent 74%),
-    linear-gradient(#000, #000);
-  -webkit-mask:
-    radial-gradient(circle at 50% 50%, transparent 0 30%, #000 42% 62%, transparent 74%),
-    linear-gradient(#000, #000);
-}
-
-.home-first-screen__path-item--primary::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-  right: -32px;
-  top: -20px;
-  width: 132px;
-  height: 132px;
-  border-radius: 50%;
-  background:
-    radial-gradient(
-      circle at 36% 42%,
-      color-mix(in srgb, #cbe0ff 22%, transparent) 0%,
-      color-mix(in srgb, #7ccfff 16%, transparent) 44%,
-      transparent 74%
-    );
+  border-color: color-mix(in srgb, #d9e5ff 22%, transparent);
+  backdrop-filter: blur(11px) saturate(120%);
+  -webkit-backdrop-filter: blur(11px) saturate(120%);
+  box-shadow:
+    0 14px 24px color-mix(in srgb, #050a16 18%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 26%, transparent);
 }
 
 .home-first-screen__path-topline {
@@ -417,18 +286,13 @@
 .home-first-screen__path-icon {
   width: 30px;
   height: 30px;
-  border-radius: 11px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: color-mix(in srgb, #a0adff 78%, #72dfff);
-  background: color-mix(in srgb, #d4dcff 12%, transparent);
-  border: 1px solid color-mix(in srgb, #e5edff 22%, transparent);
-  backdrop-filter: blur(10px) saturate(132%);
-  -webkit-backdrop-filter: blur(10px) saturate(132%);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 36%, transparent),
-    0 8px 14px color-mix(in srgb, #071021 14%, transparent);
+  color: color-mix(in srgb, #9fb0ff 76%, #69d3ff);
+  background: color-mix(in srgb, #d6e2ff 10%, transparent);
+  border: 1px solid color-mix(in srgb, #e5eeff 16%, transparent);
 }
 
 .home-first-screen__path-kicker {
@@ -436,61 +300,60 @@
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-secondary) 82%, #d3dbff);
+  color: color-mix(in srgb, var(--text-secondary) 82%, #d0ddff);
 }
 
 .home-first-screen__path-item h3 {
-  margin: 10px 0 0;
-  font-size: clamp(19px, 2vw, 26px);
+  margin: 9px 0 0;
+  font-size: clamp(18px, 1.9vw, 24px);
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.018em;
   color: color-mix(in srgb, var(--text-primary) 94%, #e8efff);
 }
 
 .home-first-screen__path-summary {
-  margin: 8px 0 0;
+  margin: 7px 0 0;
   font-size: 14px;
-  line-height: 1.45;
-  color: color-mix(in srgb, var(--text-primary) 86%, #dfe7ff);
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--text-primary) 86%, #dde8ff);
 }
 
 .home-first-screen__path-detail {
-  margin: 8px 0 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: color-mix(in srgb, var(--text-secondary) 88%, #d3dcff);
+  margin: 7px 0 0;
+  font-size: 12.5px;
+  line-height: 1.42;
+  color: color-mix(in srgb, var(--text-secondary) 86%, #cfdcff);
 }
 
 .home-first-screen .MuiButton-root.home-first-screen__path-action {
-  margin-top: 12px;
-  min-height: 38px;
+  margin-top: 10px;
+  min-height: 36px;
   border: 0 !important;
   border-radius: 10px !important;
   text-transform: none !important;
   justify-content: flex-start !important;
   padding: 0 2px !important;
-  line-height: 1.24 !important;
-  font-size: 14px !important;
+  line-height: 1.2 !important;
+  font-size: 13.5px !important;
   font-weight: 620 !important;
-  letter-spacing: 0.004em !important;
-  color: color-mix(in srgb, var(--text-primary) 92%, #deebff) !important;
+  color: color-mix(in srgb, var(--text-primary) 92%, #e0ebff) !important;
   background: transparent !important;
 }
 
 .home-first-screen .MuiButton-root.home-first-screen__path-action--primary {
-  margin-top: 14px;
-  min-height: 44px;
+  margin-top: 12px;
+  min-height: 42px;
   justify-content: center !important;
-  padding: 0 18px !important;
+  padding: 0 16px !important;
   line-height: 1.2 !important;
   letter-spacing: 0.006em !important;
   color: var(--text-on-accent) !important;
   background: linear-gradient(
     136deg,
-    color-mix(in srgb, #8091ff 74%, #74ddff),
-    color-mix(in srgb, #5fc8ff 60%, #b27dff)
+    color-mix(in srgb, #7e91ff 72%, #75d8ff),
+    color-mix(in srgb, #5e79f0 66%, #8fc2ff)
   ) !important;
-  box-shadow: 0 14px 24px color-mix(in srgb, #7a90ff 30%, transparent) !important;
+  box-shadow: 0 10px 20px color-mix(in srgb, #6f86ff 28%, transparent) !important;
 }
 
 .home-first-screen .MuiButton-root.home-first-screen__path-action--primary:hover {
@@ -499,151 +362,127 @@
 
 :root[data-theme="light"] .home-first-screen__scene {
   background:
-    radial-gradient(
-      132% 100% at -4% -12%,
-      color-mix(in srgb, #7f8fff 32%, transparent) 0%,
-      transparent 58%
-    ),
-    radial-gradient(
-      130% 104% at 108% 116%,
-      color-mix(in srgb, #52d4ff 30%, transparent) 0%,
-      transparent 66%
-    ),
-    linear-gradient(
-      151deg,
-      color-mix(in srgb, #f4f8ff 72%, #d6e4ff) 0%,
-      color-mix(in srgb, #e8f1ff 66%, #cde2ff) 58%,
-      color-mix(in srgb, #dcecff 72%, #cadfff) 100%
-    );
+    radial-gradient(122% 98% at 0% 0%, color-mix(in srgb, #cddafe 24%, transparent), transparent 66%),
+    linear-gradient(145deg, #f4f7ff 0%, #eef4ff 52%, #e8f1ff 100%);
   box-shadow:
-    0 30px 56px color-mix(in srgb, #8ea3d9 20%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 80%, transparent);
+    0 24px 44px color-mix(in srgb, #a8bce5 20%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 86%, transparent);
+}
+
+:root[data-theme="light"] .home-first-screen__scene::before {
+  background:
+    radial-gradient(76% 66% at 92% 8%, color-mix(in srgb, #9eb0ff 22%, transparent), transparent 76%),
+    radial-gradient(140% 130% at 50% 100%, color-mix(in srgb, #b8caf0 20%, transparent), transparent 64%);
+}
+
+:root[data-theme="light"] .home-first-screen__environment-fallback {
+  background:
+    radial-gradient(42% 38% at 74% 26%, color-mix(in srgb, #8ea4ff 26%, transparent), transparent 72%),
+    radial-gradient(28% 24% at 70% 72%, color-mix(in srgb, #83c9ff 18%, transparent), transparent 74%);
 }
 
 :root[data-theme="light"] .home-first-screen__ambient-veil {
   background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, #dbe6ff 20%, transparent) 0%,
-      transparent 24%,
-      transparent 78%,
-      color-mix(in srgb, #dbe6ff 18%, transparent) 100%
-    ),
-    radial-gradient(
-      72% 68% at 56% 34%,
-      color-mix(in srgb, #8c7dff 12%, transparent),
-      transparent 76%
-    );
+    radial-gradient(34% 30% at 72% 24%, color-mix(in srgb, #95a7ff 14%, transparent), transparent 76%),
+    radial-gradient(26% 24% at 66% 76%, color-mix(in srgb, #8ccfff 12%, transparent), transparent 78%);
 }
 
 :root[data-theme="light"] .home-first-screen__hero-command {
-  background:
-    linear-gradient(
-      162deg,
-      color-mix(in srgb, #ffffff 50%, transparent) 0%,
-      color-mix(in srgb, #f5f9ff 40%, transparent) 54%,
-      color-mix(in srgb, #eef5ff 30%, transparent) 100%
-    );
-  border: 1px solid color-mix(in srgb, #ceddff 66%, transparent);
-  backdrop-filter: blur(18px) saturate(150%) brightness(1.04);
-  -webkit-backdrop-filter: blur(18px) saturate(150%) brightness(1.04);
+  background: linear-gradient(
+    154deg,
+    rgba(248, 251, 255, 0.54) 0%,
+    rgba(232, 242, 255, 0.46) 100%
+  );
+  border-color: color-mix(in srgb, #cad8ff 60%, transparent);
+  backdrop-filter: blur(12px) saturate(116%);
+  -webkit-backdrop-filter: blur(12px) saturate(116%);
   box-shadow:
-    0 18px 34px color-mix(in srgb, #9bb0de 16%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 96%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, #a2b7eb 28%, transparent);
+    0 14px 24px color-mix(in srgb, #a8bde6 16%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 94%, transparent);
 }
 
 :root[data-theme="light"] .home-first-screen__title {
-  color: color-mix(in srgb, #1b2448 92%, #2f3e73);
-  text-shadow: 0 10px 22px color-mix(in srgb, #95abff 20%, transparent);
+  color: color-mix(in srgb, #1f2c52 92%, #33456f);
 }
 
 :root[data-theme="light"] .home-first-screen__subtitle {
-  color: color-mix(in srgb, #3f507f 86%, #6171a1);
+  color: color-mix(in srgb, #475a86 86%, #5f74a7);
+}
+
+:root[data-theme="light"] .home-first-screen .MuiButton-root.home-first-screen__secondary-action {
+  background: color-mix(in srgb, #dde8ff 38%, transparent) !important;
+  color: color-mix(in srgb, #2b3e68 90%, #3b4f7c) !important;
 }
 
 :root[data-theme="light"] .home-first-screen__proof-chip {
-  background: color-mix(in srgb, #d7e2ff 34%, transparent);
-  border-color: color-mix(in srgb, #c8d8ff 62%, transparent);
+  background: color-mix(in srgb, #dbe7ff 34%, transparent);
+  border-color: color-mix(in srgb, #c8d8ff 58%, transparent);
 }
 
 :root[data-theme="light"] .home-first-screen__proof-chip dt {
-  color: color-mix(in srgb, #6678b0 88%, #7a8ec7);
+  color: color-mix(in srgb, #677cb3 88%, #7e93c8);
 }
 
 :root[data-theme="light"] .home-first-screen__proof-chip dd {
-  color: color-mix(in srgb, #2e3f71 92%, #45558a);
+  color: color-mix(in srgb, #324877 90%, #475c8f);
 }
 
 :root[data-theme="light"] .home-first-screen__paths-head h2 {
-  color: color-mix(in srgb, #1e2a4f 92%, #32467a);
+  color: color-mix(in srgb, #1f2d53 92%, #344976);
 }
 
 :root[data-theme="light"] .home-first-screen__paths-head p,
 :root[data-theme="light"] .home-first-screen__path-detail {
-  color: color-mix(in srgb, #4f5f8d 86%, #6074a6);
+  color: color-mix(in srgb, #51638f 86%, #657aac);
 }
 
 :root[data-theme="light"] .home-first-screen__path-item {
-  background:
-    linear-gradient(
-      160deg,
-      color-mix(in srgb, #f7faff 44%, transparent),
-      color-mix(in srgb, #edf4ff 38%, transparent)
-    );
-  border-color: color-mix(in srgb, #c8d9ff 64%, transparent);
-  backdrop-filter: blur(17px) saturate(142%) brightness(1.03);
-  -webkit-backdrop-filter: blur(17px) saturate(142%) brightness(1.03);
+  background: linear-gradient(
+    154deg,
+    color-mix(in srgb, #f8fbff 54%, transparent) 0%,
+    color-mix(in srgb, #edf5ff 46%, transparent) 100%
+  );
+  border-color: color-mix(in srgb, #c9d9ff 56%, transparent);
+  backdrop-filter: blur(8px) saturate(112%);
+  -webkit-backdrop-filter: blur(8px) saturate(112%);
   box-shadow:
-    0 14px 24px color-mix(in srgb, #a0b5df 15%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 96%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, #adc2ef 28%, transparent);
+    0 10px 18px color-mix(in srgb, #adc1e6 14%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 96%, transparent);
 }
 
 :root[data-theme="light"] .home-first-screen__path-item--primary {
-  background:
-    linear-gradient(
-      156deg,
-      color-mix(in srgb, #dce8ff 52%, transparent),
-      color-mix(in srgb, #d0ebff 46%, transparent)
-    );
-  border-color: color-mix(in srgb, #bfd4ff 70%, transparent);
-  backdrop-filter: blur(18px) saturate(148%) brightness(1.05);
-  -webkit-backdrop-filter: blur(18px) saturate(148%) brightness(1.05);
-  box-shadow:
-    0 18px 30px color-mix(in srgb, #9fb4de 17%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 96%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, #9db8ef 34%, transparent);
+  background: linear-gradient(
+    154deg,
+    color-mix(in srgb, #e5edff 58%, transparent) 0%,
+    color-mix(in srgb, #d9ecff 50%, transparent) 100%
+  );
+  border-color: color-mix(in srgb, #bfd3ff 62%, transparent);
+  backdrop-filter: blur(9px) saturate(114%);
+  -webkit-backdrop-filter: blur(9px) saturate(114%);
 }
 
 :root[data-theme="light"] .home-first-screen__path-item h3 {
-  color: color-mix(in srgb, #1d2a4f 90%, #36497d);
+  color: color-mix(in srgb, #203057 90%, #375085);
 }
 
 :root[data-theme="light"] .home-first-screen__path-summary {
-  color: color-mix(in srgb, #304170 88%, #44588d);
+  color: color-mix(in srgb, #344b7a 88%, #476095);
 }
 
 :root[data-theme="light"] .home-first-screen__path-icon {
-  background: color-mix(in srgb, #e1ebff 64%, transparent);
-  border-color: color-mix(in srgb, #c0d2ff 74%, transparent);
-  color: color-mix(in srgb, #5d78d0 88%, #33aede);
+  background: color-mix(in srgb, #e3ecff 54%, transparent);
+  border-color: color-mix(in srgb, #c3d4ff 62%, transparent);
+  color: color-mix(in srgb, #5c7fd8 88%, #39aee2);
 }
 
 @media (max-width: 1080px) {
   .home-first-screen__layout {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
   }
 
   .home-first-screen__hero-command {
     max-width: 100%;
-  }
-
-  .home-first-screen__ribbon-bridge {
-    right: 10%;
-    top: 4%;
-    width: clamp(200px, 32vw, 320px);
   }
 }
 
@@ -653,16 +492,16 @@
   }
 
   .home-first-screen__scene {
-    border-radius: 24px;
+    border-radius: 22px;
   }
 
   .home-first-screen__layout {
-    padding: 16px;
+    padding: 15px;
   }
 
   .home-first-screen__hero-command {
-    border-radius: 18px;
-    padding: 16px 14px;
+    border-radius: 16px;
+    padding: 15px 13px;
   }
 
   .home-first-screen__actions {
@@ -676,12 +515,5 @@
 
   .home-first-screen__proof-chip {
     width: 100%;
-  }
-
-  .home-first-screen__ribbon-bridge {
-    width: 220px;
-    right: -10px;
-    top: 26%;
-    opacity: 0.56;
   }
 }
