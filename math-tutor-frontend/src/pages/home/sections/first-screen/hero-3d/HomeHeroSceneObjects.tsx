@@ -349,7 +349,7 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
         />
       </mesh>
 
-      <mesh geometry={knotGeometry} position={[-0.08, -0.1, -0.34]} rotation={[0.24, 0.2, 0.36]}>
+      <mesh geometry={knotGeometry} position={[-2.92, -1.16, -0.52]} rotation={[0.32, -0.26, 0.44]}>
         <meshPhysicalMaterial
           vertexColors
           roughness={0.22}
@@ -381,7 +381,7 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
         />
       </mesh>
 
-      <mesh geometry={rodGeometry} position={[0.34, -0.58, 0.24]} rotation={[-0.34, 0.2, 0.72]}>
+      <mesh geometry={rodGeometry} position={[-3.06, 1.16, 0.18]} rotation={[-0.28, 0.34, 0.9]}>
         <meshPhysicalMaterial
           vertexColors
           roughness={0.22}
@@ -391,7 +391,7 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
         />
       </mesh>
 
-      <mesh geometry={accentGeometry} position={[-0.02, 0.66, 0.02]}>
+      <mesh geometry={accentGeometry} position={[-3.25, -0.92, 0.08]}>
         <meshPhysicalMaterial
           vertexColors
           roughness={0.16}
@@ -403,7 +403,7 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
         />
       </mesh>
 
-      <mesh geometry={accentGeometry} position={[1.08, -0.2, -0.28]} scale={0.74}>
+      <mesh geometry={accentGeometry} position={[-2.48, -1.28, -0.38]} scale={0.74}>
         <meshPhysicalMaterial
           vertexColors
           roughness={0.18}
@@ -421,66 +421,66 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
 function paletteByMode(mode: SceneMode): ScenePalette {
   if (mode === "dark") {
     return {
-      ambient: "#99aefe",
-      key: "#f5f8ff",
-      fill: "#5dc8ff",
-      rim: "#8f86ff",
+      ambient: "#f1a8ff",
+      key: "#fff6ff",
+      fill: "#ff6fa6",
+      rim: "#8c7bff",
       planeSurfaceNear: "#1f2f61",
       planeSurfaceFar: "#101e43",
-      gridMajorA: "#4f7bff",
-      gridMajorB: "#d162ff",
-      gridMinor: "#56d5ff",
-      loopA: "#3343d8",
-      loopB: "#8557ff",
-      loopC: "#37dbff",
-      loopGlow: "#8ea6ff",
-      knotA: "#4c7cff",
-      knotB: "#cf5fff",
-      knotC: "#60ebff",
-      orbA: "#3d69ff",
-      orbB: "#7f67ff",
-      orbC: "#5be1ff",
-      rodA: "#6b69ff",
-      rodB: "#ff71cc",
-      rodC: "#4cc7ff",
-      solidA: "#607dff",
-      solidB: "#8f66ff",
-      solidC: "#4ddfff",
-      accentA: "#5f79ff",
-      accentB: "#ec6be8",
-      accentC: "#6fdfff",
+      gridMajorA: "#5f7dff",
+      gridMajorB: "#ff67c8",
+      gridMinor: "#72e4ff",
+      loopA: "#4b3cff",
+      loopB: "#ff4f9f",
+      loopC: "#ff8b5f",
+      loopGlow: "#ff8ad8",
+      knotA: "#6a52ff",
+      knotB: "#ff5fbe",
+      knotC: "#ff9961",
+      orbA: "#5a4fff",
+      orbB: "#ff5fa8",
+      orbC: "#ffb46a",
+      rodA: "#7d5bff",
+      rodB: "#ff5f93",
+      rodC: "#ff9b73",
+      solidA: "#5f55ff",
+      solidB: "#ff6cbc",
+      solidC: "#ffad6e",
+      accentA: "#7b66ff",
+      accentB: "#ff61b2",
+      accentC: "#ffb46f",
     };
   }
 
   return {
-    ambient: "#9ca9e8",
+    ambient: "#f3b5ff",
     key: "#ffffff",
-    fill: "#76ccff",
-    rim: "#9b89ff",
+    fill: "#ff9ab3",
+    rim: "#b29cff",
     planeSurfaceNear: "#9ab0ff",
     planeSurfaceFar: "#7f9af0",
-    gridMajorA: "#6f8eff",
-    gridMajorB: "#cf7aff",
-    gridMinor: "#82dfff",
-    loopA: "#8a93ff",
-    loopB: "#ae8dff",
-    loopC: "#84ddff",
-    loopGlow: "#b3bcff",
-    knotA: "#89a0ff",
-    knotB: "#c08cff",
-    knotC: "#83e4ff",
-    orbA: "#8a9eff",
-    orbB: "#b09bff",
-    orbC: "#94e7ff",
-    rodA: "#a89dff",
-    rodB: "#f59cda",
-    rodC: "#8dd6ff",
-    solidA: "#95a6ff",
-    solidB: "#b295ff",
-    solidC: "#8be7ff",
-    accentA: "#93a1ff",
-    accentB: "#df9bf0",
-    accentC: "#94e6ff",
+    gridMajorA: "#7d95ff",
+    gridMajorB: "#ff8dcf",
+    gridMinor: "#8ee3ff",
+    loopA: "#8f82ff",
+    loopB: "#ff8cc8",
+    loopC: "#ffb188",
+    loopGlow: "#ffc0e7",
+    knotA: "#9d8fff",
+    knotB: "#ff8fc9",
+    knotC: "#ffbf8f",
+    orbA: "#9a90ff",
+    orbB: "#ff93bf",
+    orbC: "#ffc999",
+    rodA: "#ac97ff",
+    rodB: "#ff97b9",
+    rodC: "#ffbf98",
+    solidA: "#9c92ff",
+    solidB: "#ff9bd0",
+    solidC: "#ffc997",
+    accentA: "#ad98ff",
+    accentB: "#ffa1d4",
+    accentC: "#ffd0a8",
   };
 }
 

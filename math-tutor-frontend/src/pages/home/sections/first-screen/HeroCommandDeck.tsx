@@ -14,10 +14,6 @@ export function HeroCommandDeck({
 }: HeroCommandDeckProps) {
   return (
     <div className="home-first-screen__hero-command">
-      <p className="home-first-screen__eyebrow">
-        Mathwise · персональная траектория
-      </p>
-
       <h1 className="home-first-screen__title" id="home-first-screen-title">
         Соберите маршрут и держите математику в фокусе
       </h1>

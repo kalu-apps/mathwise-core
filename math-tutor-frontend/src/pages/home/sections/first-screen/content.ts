@@ -21,7 +21,7 @@ export const HOME_PROOF_POINTS: HomeProofPoint[] = [
   },
   {
     label: "Фокус",
-    value: "ЕГЭ, ОГЭ и школа без перегруза",
+    value: "ЕГЭ, ОГЭ, школьная программа",
   },
   {
     label: "Поддержка",
