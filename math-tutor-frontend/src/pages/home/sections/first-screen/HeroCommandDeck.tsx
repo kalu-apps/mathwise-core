@@ -15,16 +15,16 @@ export function HeroCommandDeck({
   return (
     <div className="home-first-screen__hero-command">
       <p className="home-first-screen__eyebrow">
-        Mathwise · персональная инженерия прогресса по математике
+        Mathwise · персональная система прогресса
       </p>
 
       <h1 className="home-first-screen__title" id="home-first-screen-title">
-        Управляйте подготовкой как системой и выходите на устойчивый результат
+        Соберите маршрут подготовки и держите математику под контролем
       </h1>
 
       <p className="home-first-screen__subtitle">
-        Каталог, практика и индивидуальные занятия объединены в единый маршрут:
-        вы всегда видите следующий шаг и двигаетесь к цели без хаоса.
+        Курсы, практика и разборы собраны в одном контуре. Вы всегда видите
+        следующий шаг и быстрее выходите на стабильный результат.
       </p>
 
       <div className="home-first-screen__actions">
@@ -33,7 +33,7 @@ export function HeroCommandDeck({
           className="home-first-screen__primary-action"
           onClick={onPrimaryAction}
         >
-          Построить маршрут
+          Собрать маршрут
         </Button>
 
         <Button
@@ -41,7 +41,7 @@ export function HeroCommandDeck({
           className="home-first-screen__secondary-action"
           onClick={onSecondaryAction}
         >
-          Индивидуальное занятие
+          Персональный разбор
         </Button>
       </div>
 

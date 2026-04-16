@@ -12,6 +12,7 @@ export function HomeFirstScreen() {
       <div className="home-first-screen__scene">
         <HomeHeroEnvironment />
         <span className="home-first-screen__ambient-veil" aria-hidden="true" />
+        <span className="home-first-screen__ribbon-bridge" aria-hidden="true" />
 
         <div className="home-first-screen__layout">
           <HeroCommandDeck

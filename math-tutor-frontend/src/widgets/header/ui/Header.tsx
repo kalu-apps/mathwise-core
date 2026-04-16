@@ -100,26 +100,26 @@ export function Header() {
             </div>
           </div>
 
-          <nav className="header__tablist" aria-label={t("header.openNavigation")}>
-            {menuItems.map((item) => {
-              const isActive = isItemActive(item.path);
+          <div className="header__nav-rail">
+            <nav className="header__tablist" aria-label={t("header.openNavigation")}>
+              {menuItems.map((item) => {
+                const isActive = isItemActive(item.path);
 
-              return (
-                <Button
-                  key={item.label}
-                  color="inherit"
-                  className={`header__tab ${isActive ? "is-active" : ""}`}
-                  onClick={() => navigate(item.path)}
-                  startIcon={item.icon}
-                  aria-current={isActive ? "page" : undefined}
-                >
-                  {item.label}
-                </Button>
-              );
-            })}
-          </nav>
+                return (
+                  <Button
+                    key={item.label}
+                    color="inherit"
+                    className={`header__tab ${isActive ? "is-active" : ""}`}
+                    onClick={() => navigate(item.path)}
+                    startIcon={item.icon}
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    {item.label}
+                  </Button>
+                );
+              })}
+            </nav>
 
-          <div className="header__right-rail">
             <div className="header__action-bar" role="toolbar">
               <Tooltip title={t("header.navContact")}>
                 <IconButton
@@ -166,7 +166,9 @@ export function Header() {
                 </IconButton>
               </Tooltip>
             </div>
+          </div>
 
+          <div className="header__account-zone">
             {user ? (
               <div className="header__account-control">
                 <Tooltip title={t("header.profile")}>

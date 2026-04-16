@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
+import { useThemeMode } from "@/app/theme/themeModeContext";
 import { HomeHeroSceneObjects } from "./hero-3d/HomeHeroSceneObjects";
+import { ensureThreeClockCompat } from "./hero-3d/ensureThreeClockCompat";
 
 function isWebGlAvailable() {
   if (typeof window === "undefined") return false;
@@ -11,7 +13,11 @@ function isWebGlAvailable() {
 }
 
 export function HomeHeroEnvironment() {
-  const webGlReady = useMemo(() => isWebGlAvailable(), []);
+  const webGlReady = useMemo(() => {
+    ensureThreeClockCompat();
+    return isWebGlAvailable();
+  }, []);
+  const { mode } = useThemeMode();
 
   return (
     <div className="home-first-screen__environment" aria-hidden="true">
@@ -19,18 +25,20 @@ export function HomeHeroEnvironment() {
         <Canvas
           className="home-first-screen__environment-canvas"
           camera={{ position: [0, 0.08, 6], fov: 38 }}
-          dpr={[1, 1.5]}
+          dpr={[1, 1.2]}
           frameloop="demand"
+          performance={{ min: 0.7 }}
           gl={{
-            antialias: true,
+            antialias: false,
             alpha: true,
             powerPreference: "low-power",
+            failIfMajorPerformanceCaveat: true,
           }}
           onCreated={({ gl }) => {
             gl.setClearColor(0x000000, 0);
           }}
         >
-          <HomeHeroSceneObjects />
+          <HomeHeroSceneObjects mode={mode} />
         </Canvas>
       ) : (
         <div className="home-first-screen__environment-fallback" />

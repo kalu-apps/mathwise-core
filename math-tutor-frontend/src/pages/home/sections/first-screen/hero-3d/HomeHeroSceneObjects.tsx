@@ -1,15 +1,34 @@
 import { useEffect, useMemo } from "react";
-import type { BufferAttribute, PlaneGeometry } from "three";
+import type { BufferAttribute, BufferGeometry, PlaneGeometry, TubeGeometry } from "three";
 import * as THREE from "three";
 
-function buildCurvedPlane(): PlaneGeometry {
-  const geometry = new THREE.PlaneGeometry(9.4, 4.6, 34, 24);
+type SceneMode = "light" | "dark";
+
+type HomeHeroSceneObjectsProps = {
+  mode: SceneMode;
+};
+
+const TAU = Math.PI * 2;
+
+function useDisposableGeometry<TGeometry extends BufferGeometry>(factory: () => TGeometry): TGeometry {
+  const geometry = useMemo(() => factory(), [factory]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  return geometry;
+}
+
+function buildWaveGridSurface(): PlaneGeometry {
+  const geometry = new THREE.PlaneGeometry(10.2, 5.4, 34, 22);
   const position = geometry.attributes.position as BufferAttribute;
 
   for (let i = 0; i < position.count; i += 1) {
     const x = position.getX(i);
     const y = position.getY(i);
-    const z = Math.sin(x * 1.02) * 0.09 + Math.cos(y * 1.84) * 0.08;
+    const z =
+      Math.sin(x * 0.84) * 0.09 +
+      Math.cos(y * 1.34) * 0.12 +
+      Math.sin((x + y) * 1.12) * 0.05;
 
     position.setZ(i, z);
   }
@@ -20,85 +39,223 @@ function buildCurvedPlane(): PlaneGeometry {
   return geometry;
 }
 
-function HeroMathSurface() {
-  const geometry = useMemo(() => buildCurvedPlane(), []);
+function buildMobiusRibbon(): PlaneGeometry {
+  const radius = 1.74;
+  const halfWidth = 0.26;
+  const geometry = new THREE.PlaneGeometry(1, 1, 120, 14);
+  const position = geometry.attributes.position as BufferAttribute;
 
-  useEffect(() => () => geometry.dispose(), [geometry]);
+  for (let i = 0; i < position.count; i += 1) {
+    const u = ((position.getX(i) + 0.5) * TAU) % TAU;
+    const v = position.getY(i) * halfWidth * 2;
+    const edgeDrift = Math.sin(u * 2.1) * 0.04;
+
+    const radial = radius + (v + edgeDrift) * Math.cos(u * 0.5);
+    const x = radial * Math.cos(u);
+    const y = (v + edgeDrift) * Math.sin(u * 0.5) + Math.sin(u * 1.7) * 0.09;
+    const z = radial * Math.sin(u) * 0.62;
+
+    position.setXYZ(i, x, y, z);
+  }
+
+  position.needsUpdate = true;
+  geometry.computeVertexNormals();
+
+  return geometry;
+}
+
+function buildLemniscateTube(): TubeGeometry {
+  const points: THREE.Vector3[] = [];
+  const segments = 150;
+
+  for (let i = 0; i <= segments; i += 1) {
+    const t = (i / segments) * TAU;
+    const sinT = Math.sin(t);
+    const denom = 1 + sinT * sinT;
+
+    const x = (1.44 * Math.cos(t)) / denom;
+    const y = (0.54 * Math.sin(2 * t)) / denom;
+    const z = 0.42 * sinT + 0.1 * Math.sin(t * 3.2);
+
+    points.push(new THREE.Vector3(x, y, z));
+  }
+
+  const curve = new THREE.CatmullRomCurve3(points, true, "centripetal", 0.6);
+
+  return new THREE.TubeGeometry(curve, 180, 0.08, 18, true);
+}
+
+function buildHyperCrystal(): THREE.IcosahedronGeometry {
+  const geometry = new THREE.IcosahedronGeometry(0.8, 2);
+  const position = geometry.attributes.position as BufferAttribute;
+
+  for (let i = 0; i < position.count; i += 1) {
+    const x = position.getX(i);
+    const y = position.getY(i);
+    const z = position.getZ(i);
+
+    const radius = Math.sqrt(x * x + y * y + z * z);
+    const pulse =
+      1 +
+      0.14 * Math.sin(x * 4.2) * Math.cos(y * 3.5) +
+      0.1 * Math.sin(z * 5.1);
+
+    const factor = (radius > 0 ? pulse / radius : 1) * 0.8;
+    position.setXYZ(i, x * factor, y * factor, z * factor);
+  }
+
+  position.needsUpdate = true;
+  geometry.computeVertexNormals();
+
+  return geometry;
+}
+
+function HeroWaveGrid({ color }: { color: string }) {
+  const geometry = useDisposableGeometry(buildWaveGridSurface);
 
   return (
     <mesh
       geometry={geometry}
-      position={[0.38, -1.12, -1.62]}
-      rotation={[-1.16, 0.3, -0.08]}
+      position={[0.38, -1.16, -1.84]}
+      rotation={[-1.14, 0.3, -0.08]}
     >
       <meshStandardMaterial
-        color="#86a0ff"
-        roughness={0.68}
-        metalness={0.14}
+        color={color}
+        roughness={0.72}
+        metalness={0.1}
         transparent
-        opacity={0.22}
+        opacity={0.21}
         wireframe
       />
     </mesh>
   );
 }
 
-export function HomeHeroSceneObjects() {
+function HeroMobiusRibbon({ color, glow }: { color: string; glow: string }) {
+  const geometry = useDisposableGeometry(buildMobiusRibbon);
+
+  return (
+    <mesh geometry={geometry} position={[1.46, 0.06, -0.08]} rotation={[-0.32, 0.84, 0.26]}>
+      <meshPhysicalMaterial
+        color={color}
+        emissive={glow}
+        emissiveIntensity={0.14}
+        roughness={0.36}
+        metalness={0.24}
+        clearcoat={0.88}
+        clearcoatRoughness={0.2}
+        transmission={0.18}
+        transparent
+        opacity={0.82}
+      />
+    </mesh>
+  );
+}
+
+function HeroLemniscateLoop({ color }: { color: string }) {
+  const geometry = useDisposableGeometry(buildLemniscateTube);
+
+  return (
+    <mesh geometry={geometry} position={[-1.52, 0.12, -0.58]} rotation={[0.36, -0.42, 0.18]}>
+      <meshStandardMaterial
+        color={color}
+        roughness={0.3}
+        metalness={0.42}
+        transparent
+        opacity={0.72}
+      />
+    </mesh>
+  );
+}
+
+function HeroHyperCrystal({ bodyColor, edgeColor }: { bodyColor: string; edgeColor: string }) {
+  const geometry = useDisposableGeometry(buildHyperCrystal);
+
+  return (
+    <group position={[-2.68, -0.56, -0.3]} rotation={[0.34, 0.32, 0.12]}>
+      <mesh geometry={geometry}>
+        <meshPhysicalMaterial
+          color={bodyColor}
+          roughness={0.42}
+          metalness={0.14}
+          transmission={0.18}
+          transparent
+          opacity={0.66}
+          clearcoat={0.74}
+          clearcoatRoughness={0.26}
+        />
+      </mesh>
+      <mesh geometry={geometry}>
+        <meshBasicMaterial color={edgeColor} wireframe transparent opacity={0.16} />
+      </mesh>
+    </group>
+  );
+}
+
+function HeroKnotAccent({ color }: { color: string }) {
+  return (
+    <mesh position={[2.9, 0.88, -0.72]} rotation={[0.54, -0.24, 0.62]}>
+      <torusKnotGeometry args={[0.54, 0.12, 120, 20, 2, 5]} />
+      <meshPhysicalMaterial
+        color={color}
+        roughness={0.34}
+        metalness={0.38}
+        clearcoat={0.74}
+        clearcoatRoughness={0.22}
+        transparent
+        opacity={0.74}
+      />
+    </mesh>
+  );
+}
+
+export function HomeHeroSceneObjects({ mode }: HomeHeroSceneObjectsProps) {
+  const palette =
+    mode === "dark"
+      ? {
+          ambient: "#8ea6ff",
+          key: "#e3ecff",
+          cyan: "#74dfff",
+          violet: "#b995ff",
+          warm: "#ffb39d",
+          mobius: "#9da8ff",
+          mobiusGlow: "#8cc8ff",
+          loop: "#77e8ff",
+          knot: "#b28dff",
+          crystalBody: "#9eb6ff",
+          crystalEdge: "#f8b5b2",
+          grid: "#8fa8ff",
+        }
+      : {
+          ambient: "#6d81e4",
+          key: "#ffffff",
+          cyan: "#2fb5ff",
+          violet: "#7a63dd",
+          warm: "#ff8d73",
+          mobius: "#6f7cf0",
+          mobiusGlow: "#58c9ff",
+          loop: "#2ea7ea",
+          knot: "#7a66db",
+          crystalBody: "#7f9ff0",
+          crystalEdge: "#ff9b89",
+          grid: "#6f88e3",
+        };
+
+  const lightIntensity = mode === "dark" ? 0.84 : 0.92;
+
   return (
     <group>
-      <ambientLight intensity={0.74} color="#9bb0ff" />
-      <directionalLight intensity={0.84} color="#dae2ff" position={[4.2, 5.4, 4.8]} />
-      <pointLight intensity={0.48} color="#71d7ff" position={[-3.6, 1.4, 3.2]} />
-      <pointLight intensity={0.52} color="#be98ff" position={[3.4, -1.2, 2.5]} />
+      <ambientLight intensity={lightIntensity} color={palette.ambient} />
+      <directionalLight intensity={0.9} color={palette.key} position={[4.3, 5.2, 4.9]} />
+      <pointLight intensity={0.58} color={palette.cyan} position={[-3.2, 1.8, 2.9]} />
+      <pointLight intensity={0.56} color={palette.violet} position={[2.8, -1.2, 2.4]} />
+      <pointLight intensity={0.38} color={palette.warm} position={[0.4, 1.2, 2.6]} />
 
-      <mesh position={[-2.44, 0.88, -0.38]}>
-        <sphereGeometry args={[0.98, 58, 58]} />
-        <meshPhysicalMaterial
-          color="#a3b2ff"
-          roughness={0.34}
-          metalness={0.12}
-          clearcoat={0.74}
-          clearcoatRoughness={0.28}
-          transmission={0.16}
-          transparent
-          opacity={0.64}
-        />
-      </mesh>
-
-      <mesh position={[2.72, 0.44, -0.24]} rotation={[1.2, 0.56, 0.14]}>
-        <torusGeometry args={[1.22, 0.16, 46, 180, Math.PI * 1.46]} />
-        <meshStandardMaterial
-          color="#87a4ff"
-          roughness={0.44}
-          metalness={0.36}
-          transparent
-          opacity={0.76}
-        />
-      </mesh>
-
-      <mesh position={[1.72, -0.98, -0.56]} rotation={[0.22, -0.48, 0.12]}>
-        <icosahedronGeometry args={[0.62, 1]} />
-        <meshStandardMaterial
-          color="#7be4e4"
-          roughness={0.46}
-          metalness={0.24}
-          transparent
-          opacity={0.72}
-        />
-      </mesh>
-
-      <mesh position={[-0.92, 0.18, -1.18]} rotation={[0.34, 0.42, 0]}>
-        <torusGeometry args={[0.72, 0.08, 30, 110]} />
-        <meshStandardMaterial
-          color="#c39cff"
-          roughness={0.52}
-          metalness={0.24}
-          transparent
-          opacity={0.58}
-        />
-      </mesh>
-
-      <HeroMathSurface />
+      <HeroMobiusRibbon color={palette.mobius} glow={palette.mobiusGlow} />
+      <HeroLemniscateLoop color={palette.loop} />
+      <HeroKnotAccent color={palette.knot} />
+      <HeroHyperCrystal bodyColor={palette.crystalBody} edgeColor={palette.crystalEdge} />
+      <HeroWaveGrid color={palette.grid} />
     </group>
   );
 }

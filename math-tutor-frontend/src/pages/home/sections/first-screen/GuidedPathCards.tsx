@@ -21,9 +21,9 @@ export function GuidedPathCards({ paths, onSelectPath }: GuidedPathCardsProps) {
   return (
     <section className="home-first-screen__paths" aria-label="Маршруты старта">
       <div className="home-first-screen__paths-head">
-        <h2>Выберите удобный путь старта</h2>
+        <h2>Выберите стартовый сценарий</h2>
         <p>
-          Один основной путь и два быстрых сценария под конкретную задачу.
+          Один рекомендуемый маршрут и два быстрых варианта под задачу.
         </p>
       </div>
 
