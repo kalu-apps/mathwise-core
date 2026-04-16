@@ -19,16 +19,15 @@ const iconByPath: Record<HomeGuidedPath["icon"], ReactElement> = {
 
 export function GuidedPathCards({ paths, onSelectPath }: GuidedPathCardsProps) {
   return (
-    <section className="home-first-screen__paths-shell" aria-label="Маршруты старта">
+    <section className="home-first-screen__paths" aria-label="Маршруты старта">
       <div className="home-first-screen__paths-head">
         <h2>Выберите удобный путь старта</h2>
         <p>
-          Начните с рекомендуемого маршрута или сразу перейдите к индивидуальному
-          формату.
+          Один основной путь и два быстрых сценария под конкретную задачу.
         </p>
       </div>
 
-      <div className="home-first-screen__paths-grid">
+      <div className="home-first-screen__paths-list">
         {paths.map((path) => {
           const isPrimary = path.tone === "primary";
 

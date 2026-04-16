@@ -9,8 +9,9 @@ export function HomeFirstScreen() {
 
   return (
     <section className="home-first-screen" aria-labelledby="home-first-screen-title">
-      <div className="home-first-screen__stage">
+      <div className="home-first-screen__scene">
         <HomeHeroEnvironment />
+        <span className="home-first-screen__ambient-veil" aria-hidden="true" />
 
         <div className="home-first-screen__layout">
           <HeroCommandDeck
