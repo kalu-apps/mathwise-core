@@ -4,8 +4,8 @@
   z-index: 100;
   padding: 10px var(--layout-gutter);
   color: var(--text-primary);
-  background: color-mix(in srgb, var(--surface-elevated) 86%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 82%, transparent);
   backdrop-filter: blur(10px) saturate(112%);
   -webkit-backdrop-filter: blur(10px) saturate(112%);
 
@@ -16,133 +16,90 @@
   }
 
   &__shell {
-    min-height: 56px;
-    display: flex;
+    min-height: 58px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    padding: 6px 10px;
-    border-radius: 16px;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
-    background: color-mix(in srgb, var(--surface-soft) 80%, transparent);
-    box-shadow: 0 4px 14px color-mix(in srgb, #111827 9%, transparent);
+    column-gap: 18px;
+    padding: 4px 0;
   }
 
-  &__left {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    min-width: 0;
-    flex: 1 1 auto;
-  }
-
-  &__brand-anchor {
-    position: relative;
+  &__brand-zone {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding-right: 12px;
+    min-width: 0;
     flex: 0 0 auto;
+  }
 
-    &::after {
-      content: "";
-      position: absolute;
-      right: 0;
-      top: 50%;
-      width: 1px;
-      height: 22px;
-      transform: translateY(-50%);
-      background: linear-gradient(
-        180deg,
-        transparent 0%,
-        color-mix(in srgb, var(--border-subtle) 86%, var(--accent-primary)) 30%,
-        color-mix(in srgb, var(--border-subtle) 86%, var(--accent-primary)) 70%,
-        transparent 100%
-      );
+  &__brand-trigger {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 11px !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: var(--text-primary) !important;
+
+    &:hover {
+      background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+    }
+
+    &:focus-visible {
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 26%, transparent);
     }
   }
 
-  &__logo {
-    width: 36px !important;
-    height: 36px !important;
-    color: var(--text-primary) !important;
-    background: transparent !important;
-    border: 0 !important;
-    border-radius: 10px !important;
+  &__brand-icon {
+    font-size: 31px !important;
+    color: color-mix(in srgb, var(--accent-strong) 86%, var(--accent-primary));
+    transition: transform 0.2s ease, color 0.2s ease;
 
-    .header__logo-icon {
-      font-size: 30px;
-      color: var(--accent-strong);
-      transition: transform 0.2s ease, color 0.2s ease;
-    }
-
-    .header__logo-icon.is-open {
+    &.is-open {
       transform: rotate(180deg);
     }
   }
 
-  &__logo:hover .header__logo-icon {
-    color: color-mix(in srgb, var(--accent-strong) 84%, var(--accent-primary));
-  }
-
-  &__brand-text {
-    font-size: 13px;
-    font-weight: 730;
-    letter-spacing: 0.01em;
+  &__brand-wordmark {
+    font-size: 14px;
+    font-weight: 720;
+    letter-spacing: 0.015em;
     color: color-mix(in srgb, var(--text-primary) 94%, var(--accent-primary));
+    white-space: nowrap;
   }
 
-  &__menu-desktop {
-    display: flex;
-    align-items: center;
-    gap: 0;
+  &__nav-desktop {
     min-width: 0;
-    flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-self: start;
+    gap: 0;
+    padding: 2px 0;
+  }
 
-    .header__link {
-      position: relative;
-      min-height: 38px;
-      border-radius: 10px;
-      border: 0;
-      padding: 0 14px;
-      text-transform: none;
-      font-size: 13px;
-      font-weight: 620;
-      color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary));
-      background: transparent;
-      white-space: nowrap;
-      transition: color 0.18s ease, background-color 0.18s ease;
+  &__nav-item {
+    position: relative;
+    min-height: 38px;
+    border-radius: 10px;
+    border: 0 !important;
+    background: transparent !important;
+    padding: 0 13px !important;
+    text-transform: none !important;
+    font-size: 13px !important;
+    font-weight: 610 !important;
+    color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary)) !important;
+    white-space: nowrap;
+    transition: color 0.16s ease, background-color 0.16s ease;
 
-      .MuiButton-startIcon {
-        margin-left: 0;
-        margin-right: 7px;
+    .MuiButton-startIcon {
+      margin-left: 0;
+      margin-right: 7px;
 
-        .MuiSvgIcon-root {
-          font-size: 17px;
-        }
-      }
-
-      &::after {
-        content: "";
-        position: absolute;
-        left: 14px;
-        right: 14px;
-        bottom: 4px;
-        height: 1px;
-        background: linear-gradient(
-          90deg,
-          color-mix(in srgb, var(--accent-primary) 10%, transparent) 0%,
-          color-mix(in srgb, var(--accent-primary) 48%, var(--accent-strong)) 50%,
-          color-mix(in srgb, var(--accent-primary) 10%, transparent) 100%
-        );
-        transform: scaleX(0.25);
-        transform-origin: center;
-        opacity: 0;
-        transition: opacity 0.18s ease, transform 0.18s ease;
+      .MuiSvgIcon-root {
+        font-size: 17px;
       }
     }
 
-    .header__link + .header__link::before {
+    &:not(:first-of-type)::before {
       content: "";
       position: absolute;
       left: 0;
@@ -153,193 +110,225 @@
       background: linear-gradient(
         180deg,
         transparent 0%,
-        color-mix(in srgb, var(--border-subtle) 84%, var(--accent-primary)) 30%,
-        color-mix(in srgb, var(--border-subtle) 84%, var(--accent-primary)) 70%,
+        color-mix(in srgb, var(--border-subtle) 76%, var(--accent-primary)) 28%,
+        color-mix(in srgb, var(--border-subtle) 76%, var(--accent-primary)) 72%,
         transparent 100%
       );
-      opacity: 0.9;
+      opacity: 0.75;
       pointer-events: none;
     }
 
-    .header__link:hover,
-    .header__link.is-active {
-      color: var(--text-primary);
-      background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+    &:after {
+      content: "";
+      position: absolute;
+      left: 13px;
+      right: 13px;
+      bottom: 5px;
+      height: 1px;
+      opacity: 0;
+      transform: scaleX(0.45);
+      transform-origin: center;
+      background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--accent-primary) 12%, transparent) 0%,
+        color-mix(in srgb, var(--accent-primary) 44%, var(--accent-strong)) 50%,
+        color-mix(in srgb, var(--accent-primary) 12%, transparent) 100%
+      );
+      transition: opacity 0.16s ease, transform 0.16s ease;
     }
 
-    .header__link:hover::after,
-    .header__link.is-active::after {
+    &:hover {
+      color: var(--text-primary) !important;
+      background: color-mix(in srgb, var(--accent-primary) 9%, transparent) !important;
+    }
+
+    &.is-active {
+      color: var(--text-primary) !important;
+      background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+    }
+
+    &:hover::after,
+    &.is-active::after {
       opacity: 1;
       transform: scaleX(1);
     }
 
-    .header__link:focus-visible {
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 32%, transparent);
-      color: var(--text-primary);
+    &:focus-visible {
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 26%, transparent);
     }
   }
 
-  &__right {
-    display: flex;
+  &__controls-zone {
+    min-width: 0;
+    justify-self: end;
+    display: inline-flex;
     align-items: center;
     gap: 10px;
-    min-width: 0;
-    flex: 0 0 auto;
   }
 
-  &__utility-cluster {
+  &__utilities-cluster {
     display: inline-flex;
     align-items: center;
     gap: 2px;
-    padding: 3px;
-    border-radius: 12px;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 86%, transparent);
-    background: color-mix(in srgb, var(--surface-elevated) 90%, transparent);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--border-subtle) 34%, transparent);
+    padding: 2px;
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--surface-soft) 76%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 52%, transparent);
   }
 
-  &__utility-icon {
-    width: 32px;
-    height: 32px;
+  &__utility-button {
+    width: 34px;
+    height: 34px;
     border-radius: 9px !important;
     border: 0 !important;
-    color: var(--text-primary) !important;
     background: transparent !important;
+    color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary)) !important;
+
+    .MuiSvgIcon-root {
+      font-size: 18px;
+    }
 
     &:hover {
-      background: color-mix(in srgb, var(--accent-primary) 14%, transparent) !important;
-      color: color-mix(in srgb, var(--text-primary) 90%, var(--accent-primary)) !important;
+      color: var(--text-primary) !important;
+      background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+    }
+
+    &:focus-visible {
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 24%, transparent);
     }
   }
 
   &__account-cluster {
     display: inline-flex;
     align-items: center;
-    gap: 0;
-    padding: 3px 4px;
-    border-radius: 13px;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 86%, transparent);
-    background: color-mix(in srgb, var(--surface-elevated) 90%, transparent);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--border-subtle) 30%, transparent);
-  }
-
-  &__account-cluster > * + * {
-    position: relative;
-    margin-left: 8px;
-    padding-left: 8px;
-  }
-
-  &__account-cluster > * + *::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 50%;
-    width: 1px;
-    height: 15px;
-    transform: translateY(-50%);
-    background: color-mix(in srgb, var(--border-subtle) 82%, var(--accent-primary));
-    opacity: 0.9;
-    pointer-events: none;
+    gap: 6px;
+    min-width: 0;
   }
 
   &__account-cluster--guest {
-    padding: 2px;
+    gap: 0;
   }
 
-  &__profile-btn {
-    min-height: 36px;
-    max-width: min(250px, 28vw);
-    border-radius: 10px !important;
-    padding: 0 8px !important;
-    border: 0 !important;
-    background: transparent !important;
+  &__account-chip {
+    min-height: 38px !important;
+    max-width: min(260px, 31vw);
+    border-radius: 11px !important;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 50%, transparent) !important;
+    background: color-mix(in srgb, var(--surface-soft) 78%, transparent) !important;
+    padding: 4px 9px 4px 5px !important;
     text-transform: none !important;
     color: var(--text-primary) !important;
     font-size: 13px !important;
-    font-weight: 650 !important;
-    gap: 8px;
+    font-weight: 620 !important;
+    display: inline-flex;
+    align-items: center;
     justify-content: flex-start;
+    gap: 8px;
     min-width: 0;
 
     &:hover {
-      background: color-mix(in srgb, var(--accent-primary) 13%, transparent) !important;
+      background: color-mix(in srgb, var(--accent-primary) 10%, var(--surface-soft)) !important;
+      border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--border-subtle)) !important;
+    }
+
+    &:focus-visible {
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 26%, transparent);
     }
   }
 
-  &__avatar {
-    width: 26px;
-    height: 26px;
+  &__account-avatar {
+    width: 28px;
+    height: 28px;
     border-radius: 9px;
-    background: color-mix(in srgb, var(--accent-primary) 62%, var(--accent-strong));
-    color: var(--text-on-brand);
+    flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    color: var(--text-on-brand);
     font-size: 12px;
     font-weight: 700;
-    flex: 0 0 auto;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-primary) 78%, var(--accent-strong)) 0%,
+      color-mix(in srgb, var(--accent-strong) 76%, var(--accent-primary)) 100%
+    );
   }
 
-  &__profile-meta {
+  &__account-copy {
     min-width: 0;
     display: grid;
     gap: 0;
     text-align: left;
-    line-height: 1.1;
+    line-height: 1.08;
   }
 
-  &__profile-name {
+  &__account-name {
     display: block;
     min-width: 0;
-    max-width: 148px;
+    max-width: 154px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 13px;
-    font-weight: 650;
+    font-weight: 640;
     color: var(--text-primary);
   }
 
-  &__profile-role {
+  &__account-role {
     display: block;
     min-width: 0;
-    max-width: 148px;
+    max-width: 154px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 10px;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: color-mix(in srgb, var(--text-secondary) 86%, var(--text-primary));
+    color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary));
   }
 
-  &__account-action {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px !important;
-    border: 0 !important;
-    color: var(--text-primary) !important;
-    background: transparent !important;
+  &__account-chevron {
+    margin-left: 2px;
+    color: color-mix(in srgb, var(--text-secondary) 76%, var(--text-primary));
+  }
+
+  &__account-logout {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px !important;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 42%, transparent) !important;
+    background: color-mix(in srgb, var(--surface-soft) 72%, transparent) !important;
+    color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary)) !important;
+
+    .MuiSvgIcon-root {
+      font-size: 18px;
+    }
 
     &:hover {
-      background: color-mix(in srgb, var(--accent-primary) 14%, transparent) !important;
-      color: color-mix(in srgb, var(--text-primary) 88%, var(--accent-primary)) !important;
+      color: var(--text-primary) !important;
+      background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+      border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle)) !important;
+    }
+
+    &:focus-visible {
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 24%, transparent);
     }
   }
 
-  &__login-btn {
-    min-height: 34px !important;
+  &__login-button {
+    min-height: 36px !important;
     border-radius: 10px !important;
-    border: 0 !important;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 46%, transparent) !important;
+    background: color-mix(in srgb, var(--surface-soft) 78%, transparent) !important;
+    color: var(--text-primary) !important;
+    padding: 0 12px !important;
     text-transform: none !important;
     font-size: 13px !important;
-    font-weight: 650 !important;
-    color: var(--text-primary) !important;
-    padding: 0 10px !important;
-    background: color-mix(in srgb, var(--accent-primary) 14%, transparent) !important;
+    font-weight: 620 !important;
 
     &:hover {
-      background: color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+      background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+      border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle)) !important;
     }
   }
 
@@ -349,21 +338,28 @@
     z-index: 121;
     margin-top: 8px;
     padding: 10px;
-    border-radius: 14px;
+    border-radius: 12px;
     flex-direction: column;
     gap: 8px;
     background: color-mix(in srgb, var(--surface-elevated) 94%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
-    box-shadow: var(--shadow-sm);
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 68%, transparent);
+    box-shadow: 0 10px 24px color-mix(in srgb, #111827 20%, transparent);
+  }
 
-    .header__mobile-item {
-      justify-content: flex-start;
-      text-transform: none;
-      font-weight: 620;
-      border-radius: 10px;
-      color: var(--text-primary);
-      border: 1px solid color-mix(in srgb, var(--border-subtle) 86%, transparent);
-      background: color-mix(in srgb, var(--surface-soft) 88%, transparent);
+  &__mobile-item {
+    justify-content: flex-start !important;
+    min-height: 38px !important;
+    text-transform: none !important;
+    font-size: 13px !important;
+    font-weight: 620 !important;
+    border-radius: 10px !important;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 64%, transparent) !important;
+    background: color-mix(in srgb, var(--surface-soft) 88%, transparent) !important;
+    color: var(--text-primary) !important;
+
+    &:hover {
+      background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+      border-color: color-mix(in srgb, var(--accent-primary) 32%, var(--border-subtle)) !important;
     }
   }
 
@@ -378,22 +374,17 @@
   }
 
   @media (max-width: 1240px) {
-    &__brand-text {
+    &__brand-wordmark {
       display: none;
-    }
-
-    &__brand-anchor {
-      padding-right: 8px;
     }
   }
 
-  @media (max-width: 1024px) {
+  @media (max-width: 1080px) {
     &__shell {
-      gap: 10px;
-      padding: 6px 8px;
+      column-gap: 10px;
     }
 
-    &__menu-desktop {
+    &__nav-desktop {
       display: none;
     }
 
@@ -401,40 +392,25 @@
       display: flex;
     }
 
-    &__brand-anchor {
-      padding-right: 0;
-
-      &::after {
-        display: none;
-      }
-    }
-
-    &__profile-role {
-      display: none;
-    }
-
     &__mobile-backdrop {
       inset: 58px 0 0;
     }
   }
 
-  @media (max-width: 760px) {
-    &__right {
+  @media (max-width: 860px) {
+    &__controls-zone {
       gap: 7px;
     }
 
-    &__profile-name {
+    &__account-role,
+    &__account-name {
       display: none;
     }
 
-    &__profile-btn {
+    &__account-chip {
       max-width: none;
-      padding: 0 6px !important;
-    }
-
-    &__account-cluster > * + * {
-      margin-left: 6px;
-      padding-left: 6px;
+      padding: 4px 7px 4px 5px !important;
+      gap: 6px;
     }
   }
 }

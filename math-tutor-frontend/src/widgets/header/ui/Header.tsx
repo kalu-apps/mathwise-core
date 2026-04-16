@@ -4,12 +4,13 @@ import CalculateIcon from "@mui/icons-material/Calculate";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
-import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
-import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
-import LogoutIcon from "@mui/icons-material/Logout";
-import LoginIcon from "@mui/icons-material/Login";
 import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
 import SupportAgentRoundedIcon from "@mui/icons-material/SupportAgentRounded";
+import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
+import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import LogoutIcon from "@mui/icons-material/Logout";
+import LoginIcon from "@mui/icons-material/Login";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { useThemeMode } from "@/app/theme/themeModeContext";
 import { t } from "@/shared/i18n";
@@ -44,6 +45,7 @@ export function Header() {
       icon: <EventAvailableRoundedIcon fontSize="small" />,
     },
   ];
+
   const mobileMenuItems = [
     ...menuItems,
     {
@@ -61,8 +63,8 @@ export function Header() {
     }
   };
 
-  const handleLogout = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation();
+  const handleLogout = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
     logout();
     navigate("/", { replace: true });
   };
@@ -80,45 +82,43 @@ export function Header() {
     <header className="header">
       <div className="header__container">
         <div className="header__shell">
-          <div className="header__left">
-            <div className="header__brand-anchor">
-              <IconButton
-                className="header__logo"
-                onClick={handleLogoClick}
-                size="large"
-                aria-expanded={mobileOpen}
-                aria-label={t("header.openNavigation")}
-              >
-                <CalculateIcon
-                  className={`header__logo-icon ${mobileOpen ? "is-open" : ""}`}
-                />
-              </IconButton>
-              <span className="header__brand-text">Mathwise</span>
-            </div>
-
-            <nav className="header__menu-desktop">
-              {menuItems.map((item) => (
-                <Button
-                  key={item.label}
-                  color="inherit"
-                  className={`header__link ${isItemActive(item.path) ? "is-active" : ""}`}
-                  onClick={() => navigate(item.path)}
-                  startIcon={item.icon}
-                >
-                  {item.label}
-                </Button>
-              ))}
-            </nav>
+          <div className="header__brand-zone">
+            <IconButton
+              className="header__brand-trigger"
+              onClick={handleLogoClick}
+              size="large"
+              aria-expanded={mobileOpen}
+              aria-label={t("header.openNavigation")}
+            >
+              <CalculateIcon
+                className={`header__brand-icon ${mobileOpen ? "is-open" : ""}`}
+              />
+            </IconButton>
+            <span className="header__brand-wordmark">Mathwise</span>
           </div>
 
-          <div className="header__right">
-            <div className="header__utility-cluster">
+          <nav className="header__nav-desktop">
+            {menuItems.map((item) => (
+              <Button
+                key={item.label}
+                color="inherit"
+                className={`header__nav-item ${isItemActive(item.path) ? "is-active" : ""}`}
+                onClick={() => navigate(item.path)}
+                startIcon={item.icon}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </nav>
+
+          <div className="header__controls-zone">
+            <div className="header__utilities-cluster">
               <Tooltip title={t("header.navContact")}>
                 <IconButton
                   onClick={() => navigate("/contact")}
                   size="small"
                   aria-label={t("header.navContact")}
-                  className="header__utility-icon"
+                  className="header__utility-button"
                 >
                   <QuizRoundedIcon fontSize="small" />
                 </IconButton>
@@ -128,7 +128,7 @@ export function Header() {
                   onClick={() => navigate("/contact")}
                   size="small"
                   aria-label={t("header.techSupport")}
-                  className="header__utility-icon"
+                  className="header__utility-button"
                 >
                   <SupportAgentRoundedIcon fontSize="small" />
                 </IconButton>
@@ -148,7 +148,7 @@ export function Header() {
                       ? t("header.switchLightTheme")
                       : t("header.switchDarkTheme")
                   }
-                  className="header__utility-icon"
+                  className="header__utility-button"
                 >
                   {mode === "dark" ? (
                     <LightModeRoundedIcon fontSize="small" />
@@ -158,6 +158,7 @@ export function Header() {
                 </IconButton>
               </Tooltip>
             </div>
+
             {user ? (
               <div className="header__account-cluster">
                 <Tooltip title={t("header.profile")}>
@@ -169,14 +170,18 @@ export function Header() {
                           : "/teacher/profile"
                       )
                     }
-                    className="header__profile-btn"
+                    className="header__account-chip"
                     color="inherit"
                   >
-                    <div className="header__avatar">{userAvatarInitial}</div>
-                    <span className="header__profile-meta">
-                      <span className="header__profile-name">{userDisplayName}</span>
-                      <span className="header__profile-role">{userRoleLabel}</span>
+                    <span className="header__account-avatar">{userAvatarInitial}</span>
+                    <span className="header__account-copy">
+                      <span className="header__account-name">{userDisplayName}</span>
+                      <span className="header__account-role">{userRoleLabel}</span>
                     </span>
+                    <ExpandMoreRoundedIcon
+                      fontSize="small"
+                      className="header__account-chevron"
+                    />
                   </Button>
                 </Tooltip>
 
@@ -184,7 +189,7 @@ export function Header() {
                   <IconButton
                     onClick={handleLogout}
                     size="small"
-                    className="header__account-action"
+                    className="header__account-logout"
                   >
                     <LogoutIcon fontSize="small" />
                   </IconButton>
@@ -193,7 +198,7 @@ export function Header() {
             ) : (
               <div className="header__account-cluster header__account-cluster--guest">
                 <Button
-                  className="header__login-btn"
+                  className="header__login-button"
                   onClick={() => openAuthModal()}
                   startIcon={<LoginIcon fontSize="small" />}
                 >
