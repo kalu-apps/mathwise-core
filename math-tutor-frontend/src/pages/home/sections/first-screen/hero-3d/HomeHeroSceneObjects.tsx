@@ -1,5 +1,14 @@
 import { useEffect, useMemo } from "react";
-import type { BufferAttribute, BufferGeometry, ColorRepresentation, PlaneGeometry, TorusGeometry } from "three";
+import type {
+  BufferAttribute,
+  BufferGeometry,
+  ColorRepresentation,
+  PlaneGeometry,
+  SphereGeometry,
+  TorusGeometry,
+  TorusKnotGeometry,
+  CapsuleGeometry,
+} from "three";
 import * as THREE from "three";
 
 type SceneMode = "light" | "dark";
@@ -18,35 +27,39 @@ type ScenePalette = {
   gridMajorA: string;
   gridMajorB: string;
   gridMinor: string;
-  ribbonA: string;
-  ribbonB: string;
-  ribbonC: string;
-  ribbonGlow: string;
+  loopA: string;
+  loopB: string;
+  loopC: string;
+  loopGlow: string;
   knotA: string;
   knotB: string;
   knotC: string;
-  polyA: string;
-  polyB: string;
-  polyC: string;
-  polyGlow: string;
-  accent: string;
+  orbA: string;
+  orbB: string;
+  orbC: string;
+  rodA: string;
+  rodB: string;
+  rodC: string;
+  solidA: string;
+  solidB: string;
+  solidC: string;
+  accentA: string;
+  accentB: string;
+  accentC: string;
 };
-
-const TAU = Math.PI * 2;
 
 function useDisposableGeometry<TGeometry extends BufferGeometry>(geometry: TGeometry): TGeometry {
   useEffect(() => () => geometry.dispose(), [geometry]);
-
   return geometry;
 }
 
 function sampleFieldHeight(x: number, z: number) {
-  const dome = Math.exp(-(x * x * 0.07 + z * z * 0.04)) * 0.22;
-  const saddle = (x * x - z * z) * 0.0045;
-  const ripple = Math.sin(x * 0.45 + z * 0.2) * 0.026 + Math.cos(z * 0.34) * 0.018;
-  const perspectiveTilt = z * 0.015;
+  const dome = Math.exp(-(x * x * 0.062 + z * z * 0.05)) * 0.19;
+  const sweep = Math.sin(x * 0.52 + z * 0.22) * 0.026 + Math.cos(z * 0.32 - x * 0.18) * 0.02;
+  const fold = (x * x - z * z) * 0.0041;
+  const perspectiveTilt = z * 0.014;
 
-  return dome + saddle + ripple - perspectiveTilt;
+  return dome + sweep + fold - perspectiveTilt;
 }
 
 function applyTriGradient(
@@ -58,7 +71,6 @@ function applyTriGradient(
 ) {
   const position = geometry.getAttribute("position") as BufferAttribute;
   const values = new Float32Array(position.count);
-
   let min = Number.POSITIVE_INFINITY;
   let max = Number.NEGATIVE_INFINITY;
 
@@ -74,7 +86,7 @@ function applyTriGradient(
   const c2 = new THREE.Color(middle);
   const c3 = new THREE.Color(last);
   const mixed = new THREE.Color();
-  const shimmered = new THREE.Color();
+  const luminance = new THREE.Color();
   const colors = new Float32Array(position.count * 3);
 
   for (let i = 0; i < position.count; i += 1) {
@@ -86,19 +98,18 @@ function applyTriGradient(
       mixed.lerpColors(c2, c3, (t - 0.5) / 0.5);
     }
 
-    const sparkle = 0.05 + 0.04 * Math.sin(position.getX(i) * 1.22 + position.getZ(i) * 0.84);
-    shimmered.copy(mixed).offsetHSL(0, 0, sparkle);
-
-    colors[i * 3] = shimmered.r;
-    colors[i * 3 + 1] = shimmered.g;
-    colors[i * 3 + 2] = shimmered.b;
+    const polish = 0.038 * Math.sin(position.getX(i) * 1.2 + position.getY(i) * 1.8 + position.getZ(i) * 0.9);
+    luminance.copy(mixed).offsetHSL(0, 0, polish);
+    colors[i * 3] = luminance.r;
+    colors[i * 3 + 1] = luminance.g;
+    colors[i * 3 + 2] = luminance.b;
   }
 
   geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
 }
 
 function buildCoordinatePlaneSurface(mode: SceneMode, palette: ScenePalette): PlaneGeometry {
-  const geometry = new THREE.PlaneGeometry(9.6, 5.7, 32, 20);
+  const geometry = new THREE.PlaneGeometry(9.8, 5.95, 38, 24);
   const position = geometry.attributes.position as BufferAttribute;
 
   for (let i = 0; i < position.count; i += 1) {
@@ -113,9 +124,9 @@ function buildCoordinatePlaneSurface(mode: SceneMode, palette: ScenePalette): Pl
   applyTriGradient(
     geometry,
     palette.planeSurfaceNear,
-    mode === "dark" ? "#253f83" : "#90a5ff",
+    mode === "dark" ? "#273c87" : "#9eaef8",
     palette.planeSurfaceFar,
-    (x, y, z) => y * 0.72 - z * 0.34 + x * 0.1
+    (x, y, z) => y * 0.7 - z * 0.3 + x * 0.08
   );
 
   return geometry;
@@ -133,7 +144,6 @@ function buildCoordinateLineGeometry(
   if (axis === "x" || axis === "both") {
     for (let i = 0; i <= divisions; i += 1) {
       const x = -half + (size * i) / divisions;
-
       for (let step = 0; step < slicesPerLine; step += 1) {
         const zA = -half + (size * step) / slicesPerLine;
         const zB = -half + (size * (step + 1)) / slicesPerLine;
@@ -146,7 +156,6 @@ function buildCoordinateLineGeometry(
   if (axis === "z" || axis === "both") {
     for (let i = 0; i <= divisions; i += 1) {
       const z = -half + (size * i) / divisions;
-
       for (let step = 0; step < slicesPerLine; step += 1) {
         const xA = -half + (size * step) / slicesPerLine;
         const xB = -half + (size * (step + 1)) / slicesPerLine;
@@ -158,70 +167,82 @@ function buildCoordinateLineGeometry(
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-
   return geometry;
 }
 
-function buildMobiusRibbonGeometry(palette: ScenePalette) {
-  const radius = 1.72;
-  const width = 0.34;
-  const geometry = new THREE.PlaneGeometry(1, 1, 96, 14);
-  const position = geometry.attributes.position as BufferAttribute;
-
-  for (let i = 0; i < position.count; i += 1) {
-    const u = ((position.getX(i) + 0.5) * TAU) % TAU;
-    const v = position.getY(i) * width;
-
-    const radial = radius + v * Math.cos(u * 0.5);
-    const x = radial * Math.cos(u);
-    const y = radial * Math.sin(u) * 0.62;
-    const z = v * Math.sin(u * 0.5) + Math.sin(u * 1.18) * 0.05;
-
-    position.setXYZ(i, x, y, z);
-  }
-
-  position.needsUpdate = true;
-  geometry.computeVertexNormals();
+function buildMainLoopGeometry(palette: ScenePalette): TorusGeometry {
+  const geometry = new THREE.TorusGeometry(1.04, 0.2, 46, 170, Math.PI * 1.72);
 
   applyTriGradient(
     geometry,
-    palette.ribbonA,
-    palette.ribbonB,
-    palette.ribbonC,
-    (x, y, z) => x * 0.46 + y * 0.2 + z * 0.4
+    palette.loopA,
+    palette.loopB,
+    palette.loopC,
+    (x, y, z) => x * 0.42 + y * 0.22 - z * 0.34
   );
 
   return geometry;
 }
 
-function buildTorusKnotGeometry(palette: ScenePalette) {
-  const geometry = new THREE.TorusKnotGeometry(0.52, 0.115, 96, 16, 2, 3);
+function buildKnotGeometry(palette: ScenePalette): TorusKnotGeometry {
+  const geometry = new THREE.TorusKnotGeometry(0.5, 0.11, 170, 26, 2, 5);
 
   applyTriGradient(
     geometry,
     palette.knotA,
     palette.knotB,
     palette.knotC,
-    (x, y, z) => y * 0.56 - x * 0.18 + z * 0.26
+    (x, y, z) => y * 0.58 + z * 0.2 - x * 0.24
   );
 
   return geometry;
 }
 
-function buildPolyhedronGeometry(palette: ScenePalette) {
-  const geometry = new THREE.IcosahedronGeometry(0.62, 1);
+function buildOrbGeometry(palette: ScenePalette): SphereGeometry {
+  const geometry = new THREE.SphereGeometry(0.36, 52, 52);
+
+  applyTriGradient(
+    geometry,
+    palette.orbA,
+    palette.orbB,
+    palette.orbC,
+    (x, y, z) => y * 0.58 + x * 0.16 + z * 0.26
+  );
+
+  return geometry;
+}
+
+function buildRodGeometry(palette: ScenePalette): CapsuleGeometry {
+  const geometry = new THREE.CapsuleGeometry(0.115, 0.84, 14, 28);
+
+  applyTriGradient(
+    geometry,
+    palette.rodA,
+    palette.rodB,
+    palette.rodC,
+    (x, y, z) => y * 0.76 + z * 0.22 - x * 0.1
+  );
+
+  return geometry;
+}
+
+function buildRoundedSolidGeometry(palette: ScenePalette): SphereGeometry {
+  const geometry = new THREE.SphereGeometry(0.46, 48, 48);
   const position = geometry.attributes.position as BufferAttribute;
 
   for (let i = 0; i < position.count; i += 1) {
     const x = position.getX(i);
     const y = position.getY(i);
     const z = position.getZ(i);
-
-    const radius = Math.sqrt(x * x + y * y + z * z) || 1;
-    const pulse = 1 + 0.07 * Math.sin(x * 2.9 + z * 2.2) + 0.06 * Math.cos(y * 3.2 - x * 1.6);
-    const factor = pulse / radius;
-
-    position.setXYZ(i, x * factor * 0.62, y * factor * 0.62, z * factor * 0.62);
+    const nx = x / 0.46;
+    const ny = y / 0.46;
+    const nz = z / 0.46;
+    const exponent = 0.68;
+    const sx = Math.sign(nx) * Math.pow(Math.abs(nx), exponent);
+    const sy = Math.sign(ny) * Math.pow(Math.abs(ny), exponent);
+    const sz = Math.sign(nz) * Math.pow(Math.abs(nz), exponent);
+    const length = Math.sqrt(sx * sx + sy * sy + sz * sz) || 1;
+    position.setXYZ(i, (sx * 0.54) / length, (sy * 0.5) / length, (sz * 0.56) / length);
   }
 
   position.needsUpdate = true;
@@ -229,38 +250,48 @@ function buildPolyhedronGeometry(palette: ScenePalette) {
 
   applyTriGradient(
     geometry,
-    palette.polyA,
-    palette.polyB,
-    palette.polyC,
-    (x, y, z) => z * 0.54 + y * 0.28 + x * 0.18
+    palette.solidA,
+    palette.solidB,
+    palette.solidC,
+    (x, y, z) => z * 0.5 + y * 0.2 - x * 0.25
   );
 
   return geometry;
 }
 
-function buildDistantArcGeometry(): TorusGeometry {
-  return new THREE.TorusGeometry(1.18, 0.035, 10, 54, Math.PI * 1.16);
+function buildAccentOrbGeometry(palette: ScenePalette): SphereGeometry {
+  const geometry = new THREE.SphereGeometry(0.18, 40, 40);
+
+  applyTriGradient(
+    geometry,
+    palette.accentA,
+    palette.accentB,
+    palette.accentC,
+    (x, y, z) => x * 0.38 + y * 0.32 + z * 0.22
+  );
+
+  return geometry;
 }
 
 function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePalette }) {
   const surfaceGeometry = useDisposableGeometry(
     useMemo(() => buildCoordinatePlaneSurface(mode, palette), [mode, palette])
   );
-  const minorGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.5, 18, 16, "both"), []));
-  const majorXGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.5, 12, 20, "x"), []));
-  const majorZGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.5, 10, 20, "z"), []));
+  const minorGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 18, 18, "both"), []));
+  const majorXGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 10, 22, "x"), []));
+  const majorZGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 10, 22, "z"), []));
 
   return (
-    <group position={[0.1, -1.24, -2.24]} rotation={[-0.93, 0.16, -0.03]}>
+    <group position={[0.08, -1.2, -2.34]} rotation={[-0.9, 0.14, -0.02]}>
       <mesh geometry={surfaceGeometry}>
         <meshPhysicalMaterial
           vertexColors
-          roughness={0.46}
-          metalness={0.08}
-          clearcoat={0.32}
+          roughness={0.44}
+          metalness={0.09}
+          clearcoat={0.28}
           clearcoatRoughness={0.28}
           transparent
-          opacity={mode === "dark" ? 0.34 : 0.3}
+          opacity={mode === "dark" ? 0.35 : 0.28}
         />
       </mesh>
 
@@ -287,7 +318,7 @@ function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePal
         <lineBasicMaterial
           color={palette.gridMajorB}
           transparent
-          opacity={mode === "dark" ? 0.18 : 0.14}
+          opacity={mode === "dark" ? 0.2 : 0.16}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
@@ -296,135 +327,160 @@ function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePal
   );
 }
 
-function PrimaryRibbon({ mode, palette }: { mode: SceneMode; palette: ScenePalette }) {
-  const geometry = useDisposableGeometry(useMemo(() => buildMobiusRibbonGeometry(palette), [palette]));
+function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: ScenePalette }) {
+  const loopGeometry = useDisposableGeometry(useMemo(() => buildMainLoopGeometry(palette), [palette]));
+  const knotGeometry = useDisposableGeometry(useMemo(() => buildKnotGeometry(palette), [palette]));
+  const orbGeometry = useDisposableGeometry(useMemo(() => buildOrbGeometry(palette), [palette]));
+  const rodGeometry = useDisposableGeometry(useMemo(() => buildRodGeometry(palette), [palette]));
+  const solidGeometry = useDisposableGeometry(useMemo(() => buildRoundedSolidGeometry(palette), [palette]));
+  const accentGeometry = useDisposableGeometry(useMemo(() => buildAccentOrbGeometry(palette), [palette]));
 
   return (
-    <mesh geometry={geometry} position={[1.88, 0.22, -0.24]} rotation={[-0.14, 0.5, 0.27]}>
-      <meshPhysicalMaterial
-        vertexColors
-        emissive={palette.ribbonGlow}
-        emissiveIntensity={mode === "dark" ? 0.13 : 0.11}
-        roughness={0.2}
-        metalness={0.2}
-        clearcoat={0.88}
-        clearcoatRoughness={0.1}
-        iridescence={mode === "dark" ? 0.4 : 0.3}
-        iridescenceIOR={1.2}
-        iridescenceThicknessRange={[110, 250]}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
-  );
-}
+    <group position={[1.7, 0.06, -1.22]} rotation={[0.04, -0.24, 0.03]}>
+      <mesh geometry={loopGeometry} position={[0.28, 0.16, -0.06]} rotation={[0.64, -0.5, 0.86]}>
+        <meshPhysicalMaterial
+          vertexColors
+          roughness={0.2}
+          metalness={0.2}
+          clearcoat={0.92}
+          clearcoatRoughness={0.11}
+          emissive={palette.loopGlow}
+          emissiveIntensity={mode === "dark" ? 0.16 : 0.12}
+        />
+      </mesh>
 
-function SecondaryKnot({ mode, palette }: { mode: SceneMode; palette: ScenePalette }) {
-  const geometry = useDisposableGeometry(useMemo(() => buildTorusKnotGeometry(palette), [palette]));
+      <mesh geometry={knotGeometry} position={[-0.08, -0.1, -0.34]} rotation={[0.24, 0.2, 0.36]}>
+        <meshPhysicalMaterial
+          vertexColors
+          roughness={0.22}
+          metalness={0.16}
+          clearcoat={0.82}
+          clearcoatRoughness={0.14}
+        />
+      </mesh>
 
-  return (
-    <mesh geometry={geometry} position={[0.58, 0.78, -1.74]} rotation={[0.34, -0.22, 0.18]}>
-      <meshPhysicalMaterial
-        vertexColors
-        roughness={0.24}
-        metalness={0.18}
-        clearcoat={0.76}
-        clearcoatRoughness={0.14}
-        emissive={palette.knotB}
-        emissiveIntensity={mode === "dark" ? 0.08 : 0.07}
-      />
-    </mesh>
-  );
-}
+      <mesh geometry={orbGeometry} position={[0.85, 0.38, 0.16]}>
+        <meshPhysicalMaterial
+          vertexColors
+          roughness={0.16}
+          metalness={0.14}
+          clearcoat={1}
+          clearcoatRoughness={0.08}
+          emissive={palette.orbB}
+          emissiveIntensity={mode === "dark" ? 0.08 : 0.06}
+        />
+      </mesh>
 
-function SecondaryPolyhedron({ mode, palette }: { mode: SceneMode; palette: ScenePalette }) {
-  const geometry = useDisposableGeometry(useMemo(() => buildPolyhedronGeometry(palette), [palette]));
-
-  return (
-    <group position={[-2.14, -0.72, -1.52]} rotation={[0.36, 0.24, -0.18]}>
-      <mesh geometry={geometry}>
+      <mesh geometry={solidGeometry} position={[-0.58, -0.02, 0.08]} rotation={[0.22, -0.28, 0.1]}>
         <meshPhysicalMaterial
           vertexColors
           roughness={0.24}
-          metalness={0.15}
-          clearcoat={0.76}
+          metalness={0.18}
+          clearcoat={0.78}
           clearcoatRoughness={0.16}
+        />
+      </mesh>
+
+      <mesh geometry={rodGeometry} position={[0.34, -0.58, 0.24]} rotation={[-0.34, 0.2, 0.72]}>
+        <meshPhysicalMaterial
+          vertexColors
+          roughness={0.22}
+          metalness={0.2}
+          clearcoat={0.9}
+          clearcoatRoughness={0.14}
+        />
+      </mesh>
+
+      <mesh geometry={accentGeometry} position={[-0.02, 0.66, 0.02]}>
+        <meshPhysicalMaterial
+          vertexColors
+          roughness={0.16}
+          metalness={0.14}
+          clearcoat={0.98}
+          clearcoatRoughness={0.12}
           transparent
-          opacity={mode === "dark" ? 0.9 : 0.88}
-          emissive={palette.polyGlow}
-          emissiveIntensity={mode === "dark" ? 0.12 : 0.1}
+          opacity={mode === "dark" ? 0.92 : 0.88}
+        />
+      </mesh>
+
+      <mesh geometry={accentGeometry} position={[1.08, -0.2, -0.28]} scale={0.74}>
+        <meshPhysicalMaterial
+          vertexColors
+          roughness={0.18}
+          metalness={0.12}
+          clearcoat={0.94}
+          clearcoatRoughness={0.12}
+          transparent
+          opacity={mode === "dark" ? 0.82 : 0.78}
         />
       </mesh>
     </group>
   );
 }
 
-function DistantAccent({ palette }: { palette: ScenePalette }) {
-  const geometry = useDisposableGeometry(useMemo(() => buildDistantArcGeometry(), []));
-
-  return (
-    <mesh geometry={geometry} position={[2.82, 1.08, -2.82]} rotation={[0.22, 0.56, 0.2]}>
-      <meshPhysicalMaterial
-        color={palette.accent}
-        roughness={0.34}
-        metalness={0.12}
-        clearcoat={0.44}
-        clearcoatRoughness={0.24}
-        transparent
-        opacity={0.24}
-      />
-    </mesh>
-  );
-}
-
 function paletteByMode(mode: SceneMode): ScenePalette {
   if (mode === "dark") {
     return {
-      ambient: "#90a9ff",
-      key: "#f5f7ff",
-      fill: "#4cb0ff",
-      rim: "#6ee7ff",
-      planeSurfaceNear: "#203568",
-      planeSurfaceFar: "#121f45",
-      gridMajorA: "#3f63ff",
-      gridMajorB: "#cf59ff",
-      gridMinor: "#55cbff",
-      ribbonA: "#2c2f9c",
-      ribbonB: "#7a47ff",
-      ribbonC: "#4ce1ff",
-      ribbonGlow: "#8aa2ff",
-      knotA: "#3158e6",
-      knotB: "#9c4dff",
-      knotC: "#4df2ff",
-      polyA: "#3ea8ff",
-      polyB: "#6acfff",
-      polyC: "#ff7bcd",
-      polyGlow: "#75ccff",
-      accent: "#6b76ff",
+      ambient: "#99aefe",
+      key: "#f5f8ff",
+      fill: "#5dc8ff",
+      rim: "#8f86ff",
+      planeSurfaceNear: "#1f2f61",
+      planeSurfaceFar: "#101e43",
+      gridMajorA: "#4f7bff",
+      gridMajorB: "#d162ff",
+      gridMinor: "#56d5ff",
+      loopA: "#3343d8",
+      loopB: "#8557ff",
+      loopC: "#37dbff",
+      loopGlow: "#8ea6ff",
+      knotA: "#4c7cff",
+      knotB: "#cf5fff",
+      knotC: "#60ebff",
+      orbA: "#3d69ff",
+      orbB: "#7f67ff",
+      orbC: "#5be1ff",
+      rodA: "#6b69ff",
+      rodB: "#ff71cc",
+      rodC: "#4cc7ff",
+      solidA: "#607dff",
+      solidB: "#8f66ff",
+      solidC: "#4ddfff",
+      accentA: "#5f79ff",
+      accentB: "#ec6be8",
+      accentC: "#6fdfff",
     };
   }
 
   return {
-    ambient: "#93a6ed",
+    ambient: "#9ca9e8",
     key: "#ffffff",
-    fill: "#6bc8ff",
-    rim: "#75dcff",
-    planeSurfaceNear: "#93acff",
-    planeSurfaceFar: "#7895ef",
-    gridMajorA: "#6d89ff",
-    gridMajorB: "#c87dff",
-    gridMinor: "#8fd7ff",
-    ribbonA: "#8797ff",
-    ribbonB: "#b08eff",
-    ribbonC: "#98e8ff",
-    ribbonGlow: "#b2b6ff",
-    knotA: "#6e92ff",
-    knotB: "#c188ff",
-    knotC: "#90eaff",
-    polyA: "#7ec1ff",
-    polyB: "#a8ddff",
-    polyC: "#ff9fd8",
-    polyGlow: "#b0e2ff",
-    accent: "#9eaef3",
+    fill: "#76ccff",
+    rim: "#9b89ff",
+    planeSurfaceNear: "#9ab0ff",
+    planeSurfaceFar: "#7f9af0",
+    gridMajorA: "#6f8eff",
+    gridMajorB: "#cf7aff",
+    gridMinor: "#82dfff",
+    loopA: "#8a93ff",
+    loopB: "#ae8dff",
+    loopC: "#84ddff",
+    loopGlow: "#b3bcff",
+    knotA: "#89a0ff",
+    knotB: "#c08cff",
+    knotC: "#83e4ff",
+    orbA: "#8a9eff",
+    orbB: "#b09bff",
+    orbC: "#94e7ff",
+    rodA: "#a89dff",
+    rodB: "#f59cda",
+    rodC: "#8dd6ff",
+    solidA: "#95a6ff",
+    solidB: "#b295ff",
+    solidC: "#8be7ff",
+    accentA: "#93a1ff",
+    accentB: "#df9bf0",
+    accentC: "#94e6ff",
   };
 }
 
@@ -433,16 +489,13 @@ export function HomeHeroSceneObjects({ mode }: HomeHeroSceneObjectsProps) {
 
   return (
     <group>
-      <ambientLight intensity={0.56} color={palette.ambient} />
-      <directionalLight intensity={0.94} color={palette.key} position={[4.2, 5.4, 4.7]} />
-      <pointLight intensity={0.24} color={palette.fill} position={[1.8, 1.1, 2.5]} />
-      <pointLight intensity={0.2} color={palette.rim} position={[-1.6, -0.6, 2.1]} />
+      <ambientLight intensity={0.54} color={palette.ambient} />
+      <directionalLight intensity={0.96} color={palette.key} position={[4.2, 5.2, 4.9]} />
+      <pointLight intensity={0.24} color={palette.fill} position={[2.1, 1.2, 2.4]} />
+      <pointLight intensity={0.21} color={palette.rim} position={[-1.4, -0.8, 2.2]} />
 
       <CoordinatePlane mode={mode} palette={palette} />
-      <PrimaryRibbon mode={mode} palette={palette} />
-      <SecondaryKnot mode={mode} palette={palette} />
-      <SecondaryPolyhedron mode={mode} palette={palette} />
-      <DistantAccent palette={palette} />
+      <MuseumGeometryCluster mode={mode} palette={palette} />
     </group>
   );
 }

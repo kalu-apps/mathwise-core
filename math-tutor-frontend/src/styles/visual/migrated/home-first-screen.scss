@@ -305,7 +305,7 @@
 .home-first-screen__path-topline {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
 }
 
 .home-first-screen__path-icon {
@@ -318,14 +318,6 @@
   color: color-mix(in srgb, #9fb0ff 76%, #69d3ff);
   background: color-mix(in srgb, #d6e2ff 10%, transparent);
   border: 1px solid color-mix(in srgb, #e5eeff 16%, transparent);
-}
-
-.home-first-screen__path-kicker {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-secondary) 82%, #d0ddff);
 }
 
 .home-first-screen__path-item h3 {
@@ -352,17 +344,28 @@
 
 .home-first-screen .MuiButton-root.home-first-screen__path-action {
   margin-top: 10px;
-  min-height: 36px;
+  min-height: 40px;
   border: 0 !important;
   border-radius: 10px !important;
   text-transform: none !important;
   justify-content: flex-start !important;
-  padding: 0 2px !important;
-  line-height: 1.2 !important;
-  font-size: 13.5px !important;
+  align-self: flex-start;
+  text-align: left;
+  padding: 2px 10px !important;
+  line-height: 1.26 !important;
+  font-size: 14px !important;
   font-weight: 620 !important;
   color: color-mix(in srgb, var(--text-primary) 92%, #e0ebff) !important;
   background: transparent !important;
+}
+
+.home-first-screen .MuiButton-root.home-first-screen__path-action .MuiButton-endIcon {
+  margin-left: 8px;
+  margin-right: 0;
+}
+
+.home-first-screen .MuiButton-root.home-first-screen__path-action .MuiButton-endIcon .MuiSvgIcon-root {
+  font-size: 18px;
 }
 
 .home-first-screen .MuiButton-root.home-first-screen__path-action--primary {

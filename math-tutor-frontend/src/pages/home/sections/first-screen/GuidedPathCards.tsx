@@ -40,9 +40,6 @@ export function GuidedPathCards({ paths, onSelectPath }: GuidedPathCardsProps) {
             >
               <div className="home-first-screen__path-topline">
                 <span className="home-first-screen__path-icon">{iconByPath[path.icon]}</span>
-                <span className="home-first-screen__path-kicker">
-                  {isPrimary ? "Рекомендуем" : "Опция"}
-                </span>
               </div>
 
               <h3>{path.title}</h3>
