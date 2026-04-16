@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
 import { STAGE_RUNTIME_MARKER } from "./config/runtime.governance";
 import { getApiRuntimeConfig } from "./config/runtime.config";
@@ -45,7 +46,7 @@ const logStartupDiagnostics = (runtimeConfig: ReturnType<typeof getApiRuntimeCon
 
 async function bootstrap() {
   const runtimeConfig = getApiRuntimeConfig();
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ["error", "warn", "log"],
   });
 
@@ -53,6 +54,8 @@ async function bootstrap() {
     origin: runtimeConfig.corsOrigin,
     credentials: runtimeConfig.corsOrigin !== "*",
   });
+  app.useBodyParser("json", { limit: "6mb" });
+  app.useBodyParser("urlencoded", { limit: "6mb", extended: true });
 
   logStartupDiagnostics(runtimeConfig);
   await app.listen(runtimeConfig.port, runtimeConfig.host);

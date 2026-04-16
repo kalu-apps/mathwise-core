@@ -113,6 +113,8 @@ import {
 } from "@/shared/lib/studyCabinet";
 import { getUserAvatarInitial } from "@/shared/lib/userDisplayName";
 
+const PROFILE_AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+
 export default function StudentProfile() {
   const CHAT_TAB_INDEX = 4;
   const { user, updateUser, openAuthModal, openRecoverModal } = useAuth();
@@ -1653,6 +1655,17 @@ export default function StudentProfile() {
               onChange={async (event) => {
                 const file = event.target.files?.[0];
                 if (!file) return;
+                if (!file.type.startsWith("image/")) {
+                  setProfileError("Загрузите изображение в формате PNG, JPG или WEBP.");
+                  event.target.value = "";
+                  return;
+                }
+                if (file.size > PROFILE_AVATAR_MAX_BYTES) {
+                  setProfileError("Слишком большой файл аватара. Максимальный размер — 2 МБ.");
+                  event.target.value = "";
+                  return;
+                }
+                setProfileError(null);
                 const dataUrl = await fileToDataUrl(file);
                 setProfileDraft((prev) => ({ ...prev, photo: dataUrl }));
                 event.target.value = "";
