@@ -1030,119 +1030,100 @@
   padding-top: 8px !important;
 }
 
-.student-profile__profile-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.student-profile__profile-main-shell,
-.student-profile__profile-news {
+.student-profile__profile-feed {
   min-width: 0;
-}
-
-.student-profile__profile-news {
-  position: sticky;
-  top: 92px;
-}
-
-.student-profile .student-profile__profile-shell {
-  border-radius: 16px !important;
-  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent) !important;
-  background: color-mix(in srgb, var(--background-elevated) 95%, transparent) !important;
-  box-shadow: 0 10px 24px color-mix(in srgb, #111827 7%, transparent) !important;
-  padding: 16px;
   display: grid;
-  gap: 14px;
-}
-
-.student-profile__profile-shell-copy {
-  display: grid;
-  gap: 5px;
-}
-
-.student-profile__profile-shell-copy span {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-}
-
-.student-profile__profile-shell-copy h3 {
-  margin: 0;
-  font-size: 22px;
-  letter-spacing: -0.02em;
-}
-
-.student-profile__profile-shell-copy p {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.45;
-}
-
-.student-profile__profile-shell-actions {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.student-profile__profile-shell-actions .MuiButton-root {
-  min-height: 42px;
-  border-radius: 12px;
-  text-transform: none;
-  font-size: 13px;
-  font-weight: 650;
+  gap: 12px;
 }
 
 .student-profile__profile-edit-modal .MuiDialog-paper {
-  width: min(92vw, 700px) !important;
-  max-width: 700px !important;
-  border-radius: 16px !important;
-  border: 1px solid var(--border-subtle) !important;
-  background: color-mix(in srgb, var(--background-elevated) 96%, transparent) !important;
-  box-shadow: 0 26px 52px color-mix(in srgb, #020617 24%, transparent) !important;
+  width: min(92vw, 680px) !important;
+  max-width: 680px !important;
+  border-radius: 18px !important;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent) !important;
+  background: color-mix(in srgb, var(--background-elevated) 97%, transparent) !important;
+  box-shadow: 0 24px 48px color-mix(in srgb, #020617 20%, transparent) !important;
 }
 
 .student-profile__profile-edit-content {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
-.student-profile__profile-edit-head {
-  display: grid;
-  gap: 3px;
-}
-
-.student-profile__profile-edit-head h3 {
+.student-profile__profile-edit-subtitle {
   margin: 0;
-  font-size: 20px;
-  letter-spacing: -0.02em;
-}
-
-.student-profile__profile-edit-head span {
   font-size: 12px;
   color: var(--text-secondary);
 }
 
-.student-profile__profile-edit-avatar {
+.student-profile__profile-edit-avatar-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+}
+
+.student-profile__profile-edit-avatar-control {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+  background: color-mix(in srgb, var(--background-soft) 88%, transparent);
+  padding: 0;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
+}
+
+.student-profile__profile-edit-avatar-control:hover {
+  border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle));
+  background: color-mix(in srgb, var(--accent-primary) 12%, var(--background-soft));
+}
+
+.student-profile__profile-edit-avatar-control:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent-primary) 42%, var(--border-subtle));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 14%, transparent);
 }
 
 .student-profile__profile-edit-avatar-media {
-  width: 64px !important;
-  height: 64px !important;
+  width: 72px !important;
+  height: 72px !important;
   border-radius: 16px !important;
 }
 
-.student-profile__profile-edit-avatar-button {
-  min-height: 38px !important;
-  border-radius: 11px !important;
-  text-transform: none !important;
-  font-size: 13px !important;
-  font-weight: 620 !important;
+.student-profile__profile-edit-avatar-icon {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
+  background: color-mix(in srgb, var(--background-elevated) 97%, transparent);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.student-profile__profile-edit-avatar-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.student-profile__profile-edit-avatar-copy strong {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.student-profile__profile-edit-avatar-copy span {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .student-profile__profile-edit-grid {
@@ -1165,9 +1146,9 @@
 }
 
 .student-profile__profile-edit-grid .MuiOutlinedInput-root {
-  min-height: 44px;
+  min-height: 42px;
   border-radius: 11px;
-  background: color-mix(in srgb, var(--background-soft) 88%, transparent);
+  background: color-mix(in srgb, var(--background-soft) 92%, transparent);
 }
 
 .student-profile__profile-edit-grid .MuiOutlinedInput-notchedOutline {
@@ -1179,7 +1160,7 @@
 }
 
 .student-profile__profile-edit-grid .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: color-mix(in srgb, var(--accent-primary) 30%, var(--border-subtle)) !important;
+  border-color: color-mix(in srgb, var(--accent-primary) 24%, var(--border-subtle)) !important;
   border-width: 1px;
 }
 
@@ -1187,14 +1168,18 @@
   box-shadow: none !important;
 }
 
+.student-profile__profile-edit-grid .MuiOutlinedInput-root.Mui-focused {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 10%, transparent);
+}
+
 .student-profile__profile-edit-security {
-  margin-top: 2px;
+  margin-top: 4px;
   border-top: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
-  padding-top: 12px;
+  padding-top: 10px;
 }
 
 .student-profile__profile-edit-actions {
-  padding: 0 20px 18px !important;
+  padding: 0 20px 16px !important;
   justify-content: space-between !important;
 }
 
@@ -1215,12 +1200,8 @@
 }
 
 @media (max-width: 1120px) {
-  .student-profile__profile-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .student-profile__profile-news {
-    position: static;
+  .student-profile__profile-feed {
+    gap: 10px;
   }
 }
 
@@ -1306,12 +1287,8 @@
     justify-content: flex-start;
   }
 
-  .student-profile__profile-shell-actions {
-    width: 100%;
-  }
-
-  .student-profile__profile-shell-actions .MuiButton-root {
-    width: 100%;
+  .student-profile__profile-edit-avatar-row {
+    align-items: flex-start;
   }
 
   .student-profile__profile-edit-grid {
@@ -1332,7 +1309,6 @@
 .student-profile .student-profile__course-card,
 .student-profile .student-profile__calendar-panel,
 .student-profile .student-profile__calendar-summary,
-.student-profile .student-profile__profile-shell,
 .student-profile .student-profile__identity-card,
 .student-profile .student-profile__lesson-card,
 .student-profile .student-profile__profile-edit-modal .MuiDialog-paper {

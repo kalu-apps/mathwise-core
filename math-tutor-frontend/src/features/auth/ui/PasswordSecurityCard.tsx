@@ -3,6 +3,9 @@ import {
   Alert,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
   IconButton,
   InputAdornment,
   TextField,
@@ -15,6 +18,7 @@ import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import { cn } from "@/shared/lib/cn";
 import { useAuth } from "@/features/auth/model/AuthContext";
+import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import {
   changePassword,
   getPasswordStatus,
@@ -23,6 +27,8 @@ import {
 
 type PasswordSecurityCardProps = {
   className?: string;
+  presentation?: "card" | "row";
+  title?: string;
 };
 
 type PanelMode = "closed" | "create" | "change";
@@ -56,7 +62,11 @@ const validateStrongPassword = (password: string): string | null => {
   return null;
 };
 
-export function PasswordSecurityCard({ className }: PasswordSecurityCardProps) {
+export function PasswordSecurityCard({
+  className,
+  presentation = "card",
+  title = "Безопасность входа",
+}: PasswordSecurityCardProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -121,6 +131,7 @@ export function PasswordSecurityCard({ className }: PasswordSecurityCardProps) {
   }, [status]);
 
   const hasPassword = Boolean(status?.hasPassword);
+  const isRowPresentation = presentation === "row";
 
   const resetFormState = () => {
     setCurrentPassword("");
@@ -150,6 +161,18 @@ export function PasswordSecurityCard({ className }: PasswordSecurityCardProps) {
     setError(null);
     resetFormState();
   };
+
+  const modeActionLabel =
+    mode === "change"
+      ? "Сменить пароль"
+      : "Сохранить пароль";
+
+  const panelTitle =
+    mode === "change"
+      ? "Смена пароля"
+      : hasPassword
+      ? "Новый пароль"
+      : "Создание пароля";
 
   const passwordInputType = (visible: boolean) => (visible ? "text" : "password");
 
@@ -227,10 +250,74 @@ export function PasswordSecurityCard({ className }: PasswordSecurityCardProps) {
 
   if (!user) return null;
 
+  const formFields = (
+    <div className="password-security__form">
+      {mode === "change" && (
+        <TextField
+          type={passwordInputType(showCurrentPassword)}
+          label="Текущий пароль"
+          value={currentPassword}
+          onChange={(event) => setCurrentPassword(event.target.value)}
+          fullWidth
+          InputLabelProps={{ shrink: true }}
+          InputProps={{
+            endAdornment: getPasswordAdornment(
+              showCurrentPassword,
+              () => setShowCurrentPassword((prev) => !prev),
+              "Показать или скрыть текущий пароль"
+            ),
+          }}
+        />
+      )}
+
+      <TextField
+        type={passwordInputType(showNextPassword)}
+        label={mode === "change" ? "Новый пароль" : "Задайте пароль"}
+        value={nextPassword}
+        onChange={(event) => setNextPassword(event.target.value)}
+        fullWidth
+        InputLabelProps={{ shrink: true }}
+        InputProps={{
+          endAdornment: getPasswordAdornment(
+            showNextPassword,
+            () => setShowNextPassword((prev) => !prev),
+            "Показать или скрыть новый пароль"
+          ),
+        }}
+      />
+
+      <TextField
+        type={passwordInputType(showConfirmPassword)}
+        label="Повторите пароль"
+        value={confirmPassword}
+        onChange={(event) => setConfirmPassword(event.target.value)}
+        fullWidth
+        InputLabelProps={{ shrink: true }}
+        InputProps={{
+          endAdornment: getPasswordAdornment(
+            showConfirmPassword,
+            () => setShowConfirmPassword((prev) => !prev),
+            "Показать или скрыть подтверждение пароля"
+          ),
+        }}
+      />
+
+      <p className="password-security__hint">
+        10-64 символа: латиница, верхний и нижний регистр, цифра и спецсимвол.
+      </p>
+    </div>
+  );
+
   return (
-    <section className={cn("password-security", className)}>
+    <section
+      className={cn(
+        "password-security",
+        { "password-security--row": isRowPresentation },
+        className
+      )}
+    >
       <div className="password-security__head">
-        <h3>Безопасность входа</h3>
+        <h3>{title}</h3>
         <span>{statusText}</span>
       </div>
 
@@ -246,77 +333,24 @@ export function PasswordSecurityCard({ className }: PasswordSecurityCardProps) {
 
           <div className="password-security__quick-actions">
             <Button
-              variant="outlined"
+              variant={isRowPresentation ? "text" : "outlined"}
               startIcon={
-                hasPassword ? (
-                  <SyncLockRoundedIcon fontSize="small" />
-                ) : (
-                  <KeyRoundedIcon fontSize="small" />
-                )
+                isRowPresentation
+                  ? undefined
+                  : hasPassword
+                  ? <SyncLockRoundedIcon fontSize="small" />
+                  : <KeyRoundedIcon fontSize="small" />
               }
               className="password-security__quick-btn"
               onClick={hasPassword ? openChangePanel : openCreatePanel}
             >
-              {hasPassword ? "Сменить пароль" : "Создать пароль"}
+              {hasPassword ? "Изменить пароль" : "Создать пароль"}
             </Button>
           </div>
 
-          {mode !== "closed" && (
-            <div className="password-security__form">
-              {mode === "change" && (
-                <TextField
-                  type={passwordInputType(showCurrentPassword)}
-                  label="Текущий пароль"
-                  value={currentPassword}
-                  onChange={(event) => setCurrentPassword(event.target.value)}
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                  InputProps={{
-                    endAdornment: getPasswordAdornment(
-                      showCurrentPassword,
-                      () => setShowCurrentPassword((prev) => !prev),
-                      "Показать или скрыть текущий пароль"
-                    ),
-                  }}
-                />
-              )}
-
-              <TextField
-                type={passwordInputType(showNextPassword)}
-                label={mode === "change" ? "Новый пароль" : "Задайте пароль"}
-                value={nextPassword}
-                onChange={(event) => setNextPassword(event.target.value)}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                InputProps={{
-                  endAdornment: getPasswordAdornment(
-                    showNextPassword,
-                    () => setShowNextPassword((prev) => !prev),
-                    "Показать или скрыть новый пароль"
-                  ),
-                }}
-              />
-
-              <TextField
-                type={passwordInputType(showConfirmPassword)}
-                label="Повторите пароль"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                InputProps={{
-                  endAdornment: getPasswordAdornment(
-                    showConfirmPassword,
-                    () => setShowConfirmPassword((prev) => !prev),
-                    "Показать или скрыть подтверждение пароля"
-                  ),
-                }}
-              />
-
-              <p className="password-security__hint">
-                Сложный пароль: 10-64 символа, только латиница, заглавная и строчная буквы, цифра, спецсимвол, без пробелов.
-              </p>
-
+          {!isRowPresentation && mode !== "closed" ? (
+            <>
+              {formFields}
               <div className="password-security__actions">
                 <Button
                   variant="outlined"
@@ -324,7 +358,7 @@ export function PasswordSecurityCard({ className }: PasswordSecurityCardProps) {
                   onClick={closePanel}
                   disabled={saving}
                 >
-                  Свернуть
+                  Отмена
                 </Button>
                 <Button
                   variant="contained"
@@ -332,14 +366,46 @@ export function PasswordSecurityCard({ className }: PasswordSecurityCardProps) {
                   disabled={saving}
                   onClick={() => void handleSavePassword()}
                 >
-                  {saving
-                    ? "Сохраняем…"
-                    : mode === "change"
-                    ? "Сменить пароль"
-                    : "Сохранить пароль"}
+                  {saving ? "Сохраняем…" : modeActionLabel}
                 </Button>
               </div>
-            </div>
+            </>
+          ) : null}
+
+          {isRowPresentation && (
+            <Dialog
+              open={mode !== "closed"}
+              onClose={closePanel}
+              fullWidth
+              maxWidth="sm"
+              className="password-security__dialog"
+            >
+              <DialogTitleWithClose
+                title={panelTitle}
+                onClose={closePanel}
+                closeAriaLabel="Закрыть окно изменения пароля"
+              />
+              <DialogContent className="password-security__dialog-content">
+                {formFields}
+              </DialogContent>
+              <DialogActions className="password-security__actions password-security__actions--dialog">
+                <Button
+                  variant="outlined"
+                  onClick={closePanel}
+                  disabled={saving}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<SaveRoundedIcon fontSize="small" />}
+                  disabled={saving}
+                  onClick={() => void handleSavePassword()}
+                >
+                  {saving ? "Сохраняем…" : modeActionLabel}
+                </Button>
+              </DialogActions>
+            </Dialog>
           )}
         </>
       )}

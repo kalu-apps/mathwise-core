@@ -40,6 +40,7 @@ import EditCalendarRoundedIcon from "@mui/icons-material/EditCalendarRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import CreditCardRoundedIcon from "@mui/icons-material/CreditCardRounded";
@@ -1621,25 +1622,31 @@ export default function StudentProfile() {
           closeAriaLabel="Закрыть окно редактирования профиля"
         />
         <DialogContent className="student-profile__profile-edit-content">
-          <div className="student-profile__profile-edit-head">
-            <h3>Личные данные</h3>
-            <span>Изменения применятся к аккаунту.</span>
-          </div>
+          <p className="student-profile__profile-edit-subtitle">
+            Изменения применятся к аккаунту.
+          </p>
           {profileError ? <Alert severity="error">{profileError}</Alert> : null}
-          <div className="student-profile__profile-edit-avatar">
-            <Avatar
-              src={profileDraft.photo || undefined}
-              className="student-profile__profile-edit-avatar-media"
-            >
-              {identityInitial}
-            </Avatar>
-            <Button
-              variant="outlined"
+          <div className="student-profile__profile-edit-avatar-row">
+            <button
+              type="button"
+              className="student-profile__profile-edit-avatar-control"
               onClick={() => avatarInputRef.current?.click()}
-              className="student-profile__profile-edit-avatar-button"
+              aria-label="Изменить фото профиля"
             >
-              Загрузить фото
-            </Button>
+              <Avatar
+                src={profileDraft.photo || undefined}
+                className="student-profile__profile-edit-avatar-media"
+              >
+                {identityInitial}
+              </Avatar>
+              <span className="student-profile__profile-edit-avatar-icon" aria-hidden>
+                <PhotoCameraRoundedIcon fontSize="inherit" />
+              </span>
+            </button>
+            <div className="student-profile__profile-edit-avatar-copy">
+              <strong>Фото профиля</strong>
+              <span>PNG, JPG или WEBP до 2 МБ</span>
+            </div>
             <input
               type="file"
               accept="image/*"
@@ -1710,7 +1717,11 @@ export default function StudentProfile() {
               InputProps={{ readOnly: true }}
             />
           </div>
-          <PasswordSecurityCard className="student-profile__profile-edit-security" />
+          <PasswordSecurityCard
+            className="student-profile__profile-edit-security"
+            presentation="row"
+            title="Пароль"
+          />
         </DialogContent>
         <DialogActions className="student-profile__profile-edit-actions">
           <Button color="inherit" onClick={closeProfileEditDialog} disabled={saving}>
@@ -1727,28 +1738,8 @@ export default function StudentProfile() {
       </Dialog>
 
       {tab === 0 && (
-        <div className="student-profile__profile-layout">
-          <div className="student-profile__profile-main-shell">
-            <section className="student-profile__profile-shell">
-              <div className="student-profile__profile-shell-copy">
-                <span>Профиль</span>
-                <h3>Личные данные</h3>
-                <p>Измените имя, телефон, фото и пароль в одном окне.</p>
-              </div>
-              <div className="student-profile__profile-shell-actions">
-                <Button
-                  variant="contained"
-                  startIcon={<EditRoundedIcon />}
-                  onClick={openProfileEditDialog}
-                >
-                  Редактировать
-                </Button>
-              </div>
-            </section>
-          </div>
-          <div className="student-profile__profile-news">
-            <NewsFeedPanel user={user} />
-          </div>
+        <div className="student-profile__profile-feed">
+          <NewsFeedPanel user={user} />
         </div>
       )}
 
