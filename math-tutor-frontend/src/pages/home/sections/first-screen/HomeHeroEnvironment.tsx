@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import * as THREE from "three";
+import { ACESFilmicToneMapping, SRGBColorSpace, setConsoleFunction } from "three";
 import { useThemeMode } from "@/app/theme/themeModeContext";
 import { HomeHeroSceneObjects } from "./hero-3d/HomeHeroSceneObjects";
 
@@ -15,10 +15,10 @@ function isWebGlAvailable() {
 let threeConsolePatched = false;
 
 function patchThreeConsoleWarnings() {
-  if (threeConsolePatched || typeof THREE.setConsoleFunction !== "function") return;
+  if (threeConsolePatched || typeof setConsoleFunction !== "function") return;
 
   threeConsolePatched = true;
-  THREE.setConsoleFunction((level, message, ...args) => {
+  setConsoleFunction((level, message, ...args) => {
     if (level === "warn" && typeof message === "string" && message.includes("Clock: This module has been deprecated")) {
       return;
     }
@@ -48,23 +48,24 @@ export function HomeHeroEnvironment() {
       {webGlReady ? (
         <Canvas
           className="home-first-screen__environment-canvas"
-          camera={{ position: [0, 0.04, 6.1], fov: 37 }}
-          dpr={[0.8, 1]}
+          camera={{ position: [0, 0.02, 6.05], fov: 36.5 }}
+          dpr={[0.75, 0.95]}
           frameloop="demand"
-          performance={{ min: 0.6 }}
+          performance={{ min: 0.52, max: 0.95, debounce: 280 }}
           gl={{
-            antialias: false,
+            antialias: true,
             alpha: true,
             powerPreference: "low-power",
             failIfMajorPerformanceCaveat: true,
             precision: "mediump",
             stencil: false,
+            depth: true,
           }}
           onCreated={({ gl }) => {
             gl.setClearColor(0x000000, 0);
-            gl.toneMapping = THREE.ACESFilmicToneMapping;
+            gl.toneMapping = ACESFilmicToneMapping;
             gl.toneMappingExposure = mode === "dark" ? 1 : 1.02;
-            gl.outputColorSpace = THREE.SRGBColorSpace;
+            gl.outputColorSpace = SRGBColorSpace;
           }}
         >
           <HomeHeroSceneObjects mode={mode} />

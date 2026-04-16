@@ -112,6 +112,8 @@ export function Header() {
                     className={`header__tab ${isActive ? "is-active" : ""}`}
                     onClick={() => navigate(item.path)}
                     startIcon={item.icon}
+                    disableRipple
+                    disableTouchRipple
                     aria-current={isActive ? "page" : undefined}
                   >
                     {item.label}
@@ -127,6 +129,8 @@ export function Header() {
                   size="small"
                   aria-label={t("header.navContact")}
                   className="header__action-icon"
+                  disableRipple
+                  disableTouchRipple
                 >
                   <QuizRoundedIcon fontSize="small" />
                 </IconButton>
@@ -137,6 +141,8 @@ export function Header() {
                   size="small"
                   aria-label={t("header.techSupport")}
                   className="header__action-icon"
+                  disableRipple
+                  disableTouchRipple
                 >
                   <SupportAgentRoundedIcon fontSize="small" />
                 </IconButton>
@@ -157,6 +163,8 @@ export function Header() {
                       : t("header.switchDarkTheme")
                   }
                   className="header__action-icon"
+                  disableRipple
+                  disableTouchRipple
                 >
                   {mode === "dark" ? (
                     <LightModeRoundedIcon fontSize="small" />
@@ -182,6 +190,8 @@ export function Header() {
                     }
                     className="header__account-main"
                     color="inherit"
+                    disableRipple
+                    disableTouchRipple
                   >
                     <span className="header__account-avatar">{userAvatarInitial}</span>
                     <span className="header__account-copy">
@@ -200,6 +210,8 @@ export function Header() {
                     onClick={handleLogout}
                     size="small"
                     className="header__account-trailing"
+                    disableRipple
+                    disableTouchRipple
                   >
                     <LogoutIcon fontSize="small" />
                   </IconButton>
@@ -211,6 +223,8 @@ export function Header() {
                   className="header__account-login"
                   onClick={() => openAuthModal()}
                   startIcon={<LoginIcon fontSize="small" />}
+                  disableRipple
+                  disableTouchRipple
                 >
                   {t("header.login")}
                 </Button>
