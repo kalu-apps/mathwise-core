@@ -164,6 +164,99 @@
     align-items: start;
   }
 
+  &__nav-shell {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  &__identity-card {
+    border-radius: 16px;
+    border: 1px solid color-mix(in srgb, var(--card-border) 86%, #ffffff 14%);
+    background:
+      linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--surface-elevated) 96%, transparent),
+        color-mix(in srgb, var(--surface-soft) 88%, transparent)
+      ),
+      radial-gradient(
+        circle at 90% 8%,
+        color-mix(in srgb, var(--accent-primary) 18%, transparent),
+        transparent 58%
+      );
+    box-shadow: var(--shadow-sm);
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+  }
+
+  &__identity-main {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+  }
+
+  &__identity-avatar {
+    width: 56px !important;
+    height: 56px !important;
+    font-size: 19px !important;
+    font-weight: 700 !important;
+    border-radius: 14px !important;
+    box-shadow:
+      0 8px 18px rgba(15, 23, 42, 0.22),
+      0 0 0 1px color-mix(in srgb, var(--border-subtle) 86%, transparent);
+  }
+
+  &__identity-copy {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+
+    h3 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    span {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.35;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+  }
+
+  &__identity-role {
+    width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-text) !important;
+    background: color-mix(in srgb, var(--accent-primary) 16%, transparent);
+  }
+
+  &__identity-edit {
+    width: 100%;
+    min-height: 34px;
+    text-transform: none !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+  }
+
   &__profile-main {
     min-width: 0;
 
@@ -195,11 +288,62 @@
     }
   }
 
+  &__profile-shell {
+    min-height: 180px;
+  }
+
   &__profile-news {
     min-width: 0;
     position: sticky;
     top: 96px;
     align-self: start;
+  }
+
+  &__profile-edit-modal {
+    .MuiDialog-paper {
+      border-radius: 18px;
+    }
+  }
+
+  &__profile-edit-content {
+    display: grid;
+    gap: 12px;
+  }
+
+  &__profile-edit-head {
+    display: grid;
+    gap: 2px;
+
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    span {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+  }
+
+  &__profile-edit-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    > * {
+      min-width: 0;
+    }
+  }
+
+  &__profile-edit-security {
+    margin-top: 2px;
+    border-top: 1px solid color-mix(in srgb, var(--border-subtle) 85%, transparent);
+    padding-top: 12px;
+  }
+
+  &__profile-edit-actions {
+    justify-content: flex-end;
   }
 
   &__skeletons {
@@ -976,10 +1120,15 @@
     gap: 20px;
   }
 
-  .teacher-dashboard__workspace--with-tabs .teacher-dashboard__tabs {
+  .teacher-dashboard__workspace--with-tabs .teacher-dashboard__nav-shell {
     position: sticky;
     top: 94px;
     align-self: start;
+  }
+
+  .teacher-dashboard__workspace--with-tabs .teacher-dashboard__tabs {
+    position: static;
+    top: auto;
   }
 }
 
@@ -1032,6 +1181,33 @@
 
   .teacher-dashboard__profile-news {
     position: static;
+  }
+
+  .teacher-dashboard__identity-card {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .teacher-dashboard__identity-card--mobile {
+    margin-bottom: 8px;
+  }
+
+  .teacher-dashboard__identity-main {
+    gap: 8px;
+  }
+
+  .teacher-dashboard__identity-avatar {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 17px !important;
+  }
+
+  .teacher-dashboard__identity-copy h3 {
+    font-size: 16px;
+  }
+
+  .teacher-dashboard__profile-edit-grid {
+    grid-template-columns: 1fr;
   }
 
   .teacher-dashboard__tabs {

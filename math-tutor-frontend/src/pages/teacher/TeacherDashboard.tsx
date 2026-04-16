@@ -5,6 +5,9 @@ import {
   Tabs,
   Tab,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
   Drawer,
   TextField,
   MenuItem,
@@ -38,10 +41,11 @@ import { StudentCard } from "@/entities/student/ui/StudentCard";
 import { CourseCard } from "@/entities/course/ui/CourseCard";
 import { CourseWithLessonsEditor } from "@/features/course-editor/ui/CourseWithLessonsEditor";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
-import { TeacherProfile } from "@/features/teacher-profile/ui/TeacherProfile";
 import { NewsFeedPanel } from "@/features/news-feed/ui/NewsFeedPanel";
 import { ListPagination } from "@/shared/ui/ListPagination";
 import { StudyCabinetPanel } from "@/shared/ui/StudyCabinetPanel";
+import { PasswordSecurityCard } from "@/features/auth/ui/PasswordSecurityCard";
+import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import {
   openExternalWhiteboard,
   WORKBOOK_POPUP_BLOCKED_MESSAGE,
@@ -51,6 +55,7 @@ import { ListSkeleton } from "@/shared/ui/loading";
 import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
 
 import { useAuth } from "@/features/auth/model/AuthContext";
+import { updateUserProfile } from "@/features/auth/model/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import ChatPage from "@/pages/chat/ChatPage";
 import {
@@ -108,7 +113,7 @@ import {
 } from "@/features/booking/lib/schedule";
 import { fileToDataUrl } from "@/shared/lib/files";
 import { generateId } from "@/shared/lib/id";
-import { formatRuPhoneDisplay } from "@/shared/lib/phone";
+import { formatRuPhoneDisplay, formatRuPhoneInput, toRuPhoneStorage } from "@/shared/lib/phone";
 import { t } from "@/shared/i18n";
 import { createNewsPost } from "@/entities/news/model/storage";
 import {
@@ -122,7 +127,7 @@ import {
 import type { Course } from "@/entities/course/model/types";
 
 export default function TeacherDashboard() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isNonDesktop = useMediaQuery(theme.breakpoints.down("lg"));
@@ -207,6 +212,14 @@ export default function TeacherDashboard() {
     danger?: boolean;
     onConfirm: () => void;
   } | null>(null);
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileDraft, setProfileDraft] = useState({
+    firstName: user?.firstName ?? "",
+    lastName: user?.lastName ?? "",
+    phone: user?.phone ?? "",
+  });
   const slotDateInputRef = useRef<HTMLInputElement | null>(null);
 
   const userId = user?.id;
@@ -226,6 +239,58 @@ export default function TeacherDashboard() {
       setTabMenuOpen(false);
     }
   }, [isNonDesktop, setTabMenuOpen, tabMenuOpen]);
+
+  useEffect(() => {
+    if (!user) return;
+    setProfileDraft({
+      firstName: user.firstName ?? "",
+      lastName: user.lastName ?? "",
+      phone: user.phone ?? "",
+    });
+  }, [user?.id, user?.firstName, user?.lastName, user?.phone]);
+
+  const openProfileEditDialog = useCallback(() => {
+    if (!user) return;
+    setProfileDraft({
+      firstName: user.firstName ?? "",
+      lastName: user.lastName ?? "",
+      phone: user.phone ?? "",
+    });
+    setProfileError(null);
+    setProfileEditOpen(true);
+  }, [user]);
+
+  const closeProfileEditDialog = useCallback(() => {
+    setProfileEditOpen(false);
+    setProfileError(null);
+  }, []);
+
+  const saveProfileDraft = useCallback(async () => {
+    if (!user) return;
+    const firstName = profileDraft.firstName.trim();
+    const lastName = profileDraft.lastName.trim();
+    if (!firstName || !lastName) {
+      setProfileError("Введите имя и фамилию.");
+      return;
+    }
+    try {
+      setProfileSaving(true);
+      setProfileError(null);
+      const updated = await updateUserProfile(user.id, {
+        firstName,
+        lastName,
+        phone: toRuPhoneStorage(profileDraft.phone),
+      });
+      updateUser(updated);
+      setProfileEditOpen(false);
+    } catch (error) {
+      setProfileError(
+        error instanceof Error ? error.message : "Не удалось сохранить личные данные."
+      );
+    } finally {
+      setProfileSaving(false);
+    }
+  }, [profileDraft.firstName, profileDraft.lastName, profileDraft.phone, updateUser, user]);
 
   const { refreshAll, retryDashboardData, syncStudyNotes } = useTeacherDashboardData({
     userId,
@@ -1076,6 +1141,9 @@ export default function TeacherDashboard() {
 
   const activeTeacherTab =
     teacherTabItems.find((item) => item.index === tab) ?? teacherTabItems[0];
+  const identityName = `${user.firstName} ${user.lastName}`.trim();
+  const identityInitials = `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase();
+  const identityPhone = formatRuPhoneDisplay(user.phone ?? "") || "Телефон не указан";
 
   return (
     <div className="teacher-dashboard">
@@ -1101,26 +1169,54 @@ export default function TeacherDashboard() {
         }
       >
         {!isNonDesktop ? (
-          <Tabs
-            orientation="vertical"
-            value={tab}
-            onChange={(_, v) => {
-              setTab(v);
-              setSearchParams({ tab: TEACHER_TAB_KEYS[v] });
-            }}
-            className="teacher-dashboard__tabs"
-          >
-            {teacherTabItems.map((item) => (
-              <Tab
-                key={item.index}
-                label={
-                  <span className="teacher-dashboard__tab-label">{item.label}</span>
-                }
-                icon={item.icon}
-                iconPosition="start"
-              />
-            ))}
-          </Tabs>
+          <div className="teacher-dashboard__nav-shell">
+            <section className="teacher-dashboard__identity-card">
+              <div className="teacher-dashboard__identity-main">
+                <Avatar
+                  className="teacher-dashboard__identity-avatar"
+                  src={user.photo || undefined}
+                >
+                  {identityInitials || "П"}
+                </Avatar>
+                <div className="teacher-dashboard__identity-copy">
+                  <h3>{identityName}</h3>
+                  <span className="teacher-dashboard__identity-role">
+                    {user.role === "teacher" ? "Преподаватель" : "Студент"}
+                  </span>
+                  <span>{user.email}</span>
+                  <span>{identityPhone}</span>
+                </div>
+              </div>
+              <Button
+                className="teacher-dashboard__identity-edit"
+                variant="outlined"
+                startIcon={<EditRoundedIcon />}
+                onClick={openProfileEditDialog}
+              >
+                Редактировать
+              </Button>
+            </section>
+            <Tabs
+              orientation="vertical"
+              value={tab}
+              onChange={(_, v) => {
+                setTab(v);
+                setSearchParams({ tab: TEACHER_TAB_KEYS[v] });
+              }}
+              className="teacher-dashboard__tabs"
+            >
+              {teacherTabItems.map((item) => (
+                <Tab
+                  key={item.index}
+                  label={
+                    <span className="teacher-dashboard__tab-label">{item.label}</span>
+                  }
+                  icon={item.icon}
+                  iconPosition="start"
+                />
+              ))}
+            </Tabs>
+          </div>
         ) : (
           <div className="teacher-dashboard__tabs-mobile">
             <Button
@@ -1174,11 +1270,57 @@ export default function TeacherDashboard() {
               </div>
             </Drawer>
           ) : null}
+          {isNonDesktop ? (
+            <section className="teacher-dashboard__identity-card teacher-dashboard__identity-card--mobile">
+              <div className="teacher-dashboard__identity-main">
+                <Avatar
+                  className="teacher-dashboard__identity-avatar"
+                  src={user.photo || undefined}
+                >
+                  {identityInitials || "П"}
+                </Avatar>
+                <div className="teacher-dashboard__identity-copy">
+                  <h3>{identityName}</h3>
+                  <span className="teacher-dashboard__identity-role">
+                    {user.role === "teacher" ? "Преподаватель" : "Студент"}
+                  </span>
+                  <span>{user.email}</span>
+                  <span>{identityPhone}</span>
+                </div>
+              </div>
+              <Button
+                className="teacher-dashboard__identity-edit"
+                variant="outlined"
+                startIcon={<EditRoundedIcon />}
+                onClick={openProfileEditDialog}
+              >
+                Редактировать
+              </Button>
+            </section>
+          ) : null}
           {/* PROFILE */}
           {tab === 0 && (
             <div className="teacher-dashboard__profile-layout">
               <div className="teacher-dashboard__profile-main">
-                <TeacherProfile user={user} />
+                <section className="teacher-dashboard__invite-shell teacher-dashboard__profile-shell">
+                  <div className="teacher-dashboard__invite-copy">
+                    <span>Профиль</span>
+                    <h3>Личные данные и безопасность входа</h3>
+                    <p>
+                      Управляйте именем, фамилией, телефоном и паролем в одном
+                      компактном окне.
+                    </p>
+                  </div>
+                  <div className="teacher-dashboard__section-actions">
+                    <Button
+                      variant="contained"
+                      startIcon={<EditRoundedIcon />}
+                      onClick={openProfileEditDialog}
+                    >
+                      Редактировать профиль
+                    </Button>
+                  </div>
+                </section>
               </div>
               <div className="teacher-dashboard__profile-news">
                 <NewsFeedPanel user={user} />
@@ -1849,6 +1991,88 @@ export default function TeacherDashboard() {
           )}
         </div>
       </div>
+
+      <Dialog
+        open={profileEditOpen}
+        onClose={closeProfileEditDialog}
+        fullWidth
+        maxWidth="sm"
+        className="ui-dialog ui-dialog--compact teacher-dashboard__profile-edit-modal"
+      >
+        <DialogTitleWithClose
+          title="Редактирование профиля"
+          onClose={closeProfileEditDialog}
+          closeAriaLabel="Закрыть окно редактирования профиля"
+        />
+        <DialogContent className="teacher-dashboard__profile-edit-content">
+          <div className="teacher-dashboard__profile-edit-head">
+            <h3>Личные данные</h3>
+            <span>Изменения применяются к аккаунту преподавателя.</span>
+          </div>
+          {profileError ? <Alert severity="error">{profileError}</Alert> : null}
+          <div className="teacher-dashboard__profile-edit-grid">
+            <TextField
+              label="Имя"
+              value={profileDraft.firstName}
+              onChange={(event) =>
+                setProfileDraft((prev) => ({
+                  ...prev,
+                  firstName: event.target.value,
+                }))
+              }
+              fullWidth
+              autoComplete="given-name"
+            />
+            <TextField
+              label="Фамилия"
+              value={profileDraft.lastName}
+              onChange={(event) =>
+                setProfileDraft((prev) => ({
+                  ...prev,
+                  lastName: event.target.value,
+                }))
+              }
+              fullWidth
+              autoComplete="family-name"
+            />
+            <TextField
+              label="Телефон"
+              value={formatRuPhoneInput(profileDraft.phone)}
+              onChange={(event) =>
+                setProfileDraft((prev) => ({
+                  ...prev,
+                  phone: formatRuPhoneInput(event.target.value),
+                }))
+              }
+              fullWidth
+              inputProps={{ inputMode: "tel" }}
+            />
+            <TextField
+              label="Email"
+              value={user.email}
+              fullWidth
+              InputProps={{ readOnly: true }}
+            />
+          </div>
+          <PasswordSecurityCard className="teacher-dashboard__profile-edit-security" />
+        </DialogContent>
+        <DialogActions className="teacher-dashboard__profile-edit-actions">
+          <Button
+            color="inherit"
+            onClick={closeProfileEditDialog}
+            disabled={profileSaving}
+          >
+            Отмена
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => void saveProfileDraft()}
+            disabled={profileSaving}
+          >
+            {profileSaving ? "Сохраняем..." : "Сохранить изменения"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* EDITOR */}
       {(isEditorOpen || editingCourseId) && (

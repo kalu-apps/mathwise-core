@@ -48,13 +48,13 @@
     width: 34px;
     height: 34px;
     border-radius: 10px !important;
-    border: 1px solid color-mix(in srgb, var(--glass-tier-1-border) 85%, transparent) !important;
-    background: color-mix(in srgb, var(--glass-tier-1-bg) 82%, transparent) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
     color: var(--text-secondary) !important;
 
     &:hover {
-      background: color-mix(in srgb, var(--glass-tier-1-bg) 92%, var(--accent-soft)) !important;
-      border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--glass-tier-1-border)) !important;
+      background: color-mix(in srgb, var(--glass-tier-1-bg) 68%, transparent) !important;
       color: var(--text-primary) !important;
     }
   }
@@ -114,13 +114,28 @@
   }
 
   &__link-btn {
-    align-self: center;
+    align-self: flex-start;
     min-height: 34px;
-    border-radius: 10px;
+    border-radius: 10px !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
     text-transform: none;
     font-size: 13px;
     font-weight: 600;
+    padding-inline: 2px !important;
     color: color-mix(in srgb, var(--text-primary) 80%, var(--accent-primary)) !important;
+
+    &:hover {
+      border: 0 !important;
+      box-shadow: none !important;
+      background: color-mix(in srgb, var(--glass-tier-1-bg) 56%, transparent) !important;
+    }
+  }
+
+  &__forgot-btn {
+    align-self: flex-end;
+    margin-inline-start: auto;
   }
 
   &__divider-row {
@@ -168,16 +183,20 @@
   }
 
   &__social-badge {
-    width: 20px;
-    min-width: 20px;
-    height: 20px;
-    border-radius: 999px;
+    width: 22px;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
+    overflow: hidden;
+
+    svg {
+      width: 22px;
+      height: 22px;
+      display: block;
+    }
   }
 
   &__social-label {
@@ -190,22 +209,6 @@
     top: 5px;
     font-size: 10px;
     color: var(--text-secondary);
-  }
-
-  &__social-btn--vk .auth-modal__social-badge {
-    background: linear-gradient(135deg, #2787f5 0%, #1c6ad4 100%);
-    color: #fff;
-  }
-
-  &__social-btn--yandex .auth-modal__social-badge {
-    background: linear-gradient(135deg, #ff5a3d 0%, #ff2f2f 100%);
-    color: #fff;
-  }
-
-  &__social-btn--google .auth-modal__social-badge {
-    background: #fff;
-    border: 1px solid color-mix(in srgb, var(--glass-tier-1-border) 85%, transparent);
-    color: #111827;
   }
 
   &__recover-progress {
@@ -260,26 +263,26 @@
     .MuiOutlinedInput-root {
       min-height: 48px;
       border-radius: 12px !important;
-      background: color-mix(in srgb, var(--glass-tier-1-bg) 80%, #0b1220 20%) !important;
+      background: var(--glass-tier-1-bg) !important;
       border: 0 !important;
       box-shadow: none !important;
-      transition: box-shadow 160ms ease;
+      transition: border-color 120ms ease;
 
       .MuiOutlinedInput-notchedOutline {
-        border: 1px solid color-mix(in srgb, var(--glass-tier-1-border) 88%, transparent);
+        border: 1px solid color-mix(in srgb, var(--glass-tier-1-border) 90%, transparent);
       }
 
       &:hover .MuiOutlinedInput-notchedOutline {
-        border-color: color-mix(in srgb, var(--ag-border-strong) 82%, var(--accent-primary));
+        border-color: color-mix(in srgb, var(--glass-tier-1-border) 90%, transparent);
       }
 
       &.Mui-focused {
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+        box-shadow: none !important;
       }
 
       &.Mui-focused .MuiOutlinedInput-notchedOutline {
         border-width: 1px;
-        border-color: color-mix(in srgb, var(--accent-primary) 62%, #ffffff 38%);
+        border-color: color-mix(in srgb, var(--glass-tier-1-border) 94%, transparent);
       }
     }
 
@@ -288,6 +291,15 @@
       line-height: 1.35;
       color: var(--text-primary);
       padding-block: 13px;
+      text-shadow: none !important;
+
+      &:-webkit-autofill,
+      &:-webkit-autofill:hover,
+      &:-webkit-autofill:focus {
+        -webkit-text-fill-color: var(--text-primary);
+        box-shadow: 0 0 0 1000px var(--glass-tier-1-bg) inset;
+        transition: background-color 9999s ease-out 0s;
+      }
     }
 
     .MuiInputLabel-root {
@@ -296,7 +308,7 @@
       letter-spacing: 0.005em;
 
       &.Mui-focused {
-        color: color-mix(in srgb, var(--text-secondary) 70%, var(--accent-primary));
+        color: var(--text-secondary);
       }
     }
   }
@@ -305,10 +317,13 @@
     width: 30px;
     height: 30px;
     border-radius: 8px !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
     color: var(--text-secondary) !important;
 
     &:hover {
-      background: color-mix(in srgb, var(--glass-tier-1-bg) 86%, var(--accent-soft)) !important;
+      background: color-mix(in srgb, var(--glass-tier-1-bg) 68%, transparent) !important;
       color: var(--text-primary) !important;
     }
   }

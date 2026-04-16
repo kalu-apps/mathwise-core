@@ -87,25 +87,55 @@ const mapSocialButton = (provider: SocialProvider) => {
   if (provider === "vk") {
     return {
       label: t("auth.socialVk"),
-      compactLabel: "VK",
-      badge: "VK",
+      compactLabel: "VK ID",
       className: "auth-modal__social-btn--vk",
     };
   }
   if (provider === "yandex") {
     return {
       label: t("auth.socialYandex"),
-      compactLabel: "Яндекс",
-      badge: "Я",
+      compactLabel: "Яндекс ID",
       className: "auth-modal__social-btn--yandex",
     };
   }
   return {
     label: t("auth.socialGoogle"),
     compactLabel: "Google",
-    badge: "G",
     className: "auth-modal__social-btn--google",
   };
+};
+
+const SocialProviderMark = ({ provider }: { provider: SocialProvider }) => {
+  if (provider === "google") {
+    return <GoogleIcon fontSize="small" />;
+  }
+  if (provider === "vk") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <rect x="1" y="1" width="22" height="22" rx="6" fill="#2787F5" />
+        <path
+          d="M7.2 7.4h2.3c.2 0 .4.1.5.2l2.1 3c.2.2.4.2.5 0l2.1-3c.1-.1.3-.2.5-.2h2.2l-3.3 4.6 3.5 4.8h-2.3c-.2 0-.3-.1-.5-.2l-2.3-3.2c-.1-.2-.4-.2-.5 0l-2.4 3.2c-.1.1-.2.2-.4.2H6.8l3.5-4.8-3.1-4.6z"
+          fill="#fff"
+        />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <rect x="1" y="1" width="22" height="22" rx="6" fill="#FC3F1D" />
+      <text
+        x="12"
+        y="16"
+        textAnchor="middle"
+        fontSize="11"
+        fontWeight="700"
+        fontFamily="Arial, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+        fill="#fff"
+      >
+        Я
+      </text>
+    </svg>
+  );
 };
 
 const parseRecoveryCode = (value: string) => value.replace(/\D+/g, "").slice(0, 6);
@@ -113,7 +143,7 @@ const parseRecoveryCode = (value: string) => value.replace(/\D+/g, "").slice(0, 
 const flowMetaByContext: Record<AuthModalContext, FlowMeta> = {
   general: {
     loginTitle: "Вход в аккаунт",
-    loginSubtitle: "Продолжите в Mathwise.",
+    loginSubtitle: "",
     recoverTitle: "Восстановление пароля",
   },
   course: {
@@ -189,6 +219,7 @@ export function AuthModal({
   const socialProviders: SocialProvider[] = ["vk", "yandex", "google"];
   const flowMeta = flowMetaByContext[context];
   const recoverStage = recoveryStageMeta[recoverStep];
+  const subtitleText = viewMode === "login" ? flowMeta.loginSubtitle : recoverStage.subtitle;
 
   useEffect(() => {
     if (!open) return;
@@ -440,7 +471,7 @@ export function AuthModal({
         aria-label={social.label}
       >
         <span className="auth-modal__social-badge" aria-hidden="true">
-          {provider === "google" ? <GoogleIcon fontSize="small" /> : social.badge}
+          <SocialProviderMark provider={provider} />
         </span>
         <span className="auth-modal__social-label">{social.compactLabel}</span>
         {socialLoadingProvider === provider ? (
@@ -502,9 +533,7 @@ export function AuthModal({
             <h2 className="auth-modal__title">
               {viewMode === "login" ? flowMeta.loginTitle : flowMeta.recoverTitle}
             </h2>
-            <p className="auth-modal__subtitle">
-              {viewMode === "login" ? flowMeta.loginSubtitle : recoverStage.subtitle}
-            </p>
+            {subtitleText ? <p className="auth-modal__subtitle">{subtitleText}</p> : null}
           </div>
         </header>
 
@@ -556,7 +585,7 @@ export function AuthModal({
             </Button>
 
             <Button
-              className="auth-modal__link-btn"
+              className="auth-modal__link-btn auth-modal__forgot-btn"
               variant="text"
               onClick={openRecovery}
               disabled={submitLoading || Boolean(socialLoadingProvider)}

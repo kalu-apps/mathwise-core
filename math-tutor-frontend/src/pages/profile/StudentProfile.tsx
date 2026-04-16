@@ -39,7 +39,6 @@ import EditCalendarRoundedIcon from "@mui/icons-material/EditCalendarRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
-import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import CreditCardRoundedIcon from "@mui/icons-material/CreditCardRounded";
@@ -682,11 +681,6 @@ export default function StudentProfile() {
         flex: "0 0 auto",
       }
     : undefined;
-  const avatarResponsiveSx = {
-    width: { xs: 64, md: 96 },
-    height: { xs: 64, md: 96 },
-    fontSize: { xs: 28, md: 36 },
-  } as const;
 
   const studentTabItems = useMemo(
     () =>
@@ -744,6 +738,52 @@ export default function StudentProfile() {
 
   if (!user) return null;
   const roleLabel = user.role === "teacher" ? "Преподаватель" : "Студент";
+  const identityName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
+  const identityPhone = formatRuPhoneDisplay(user.phone ?? "") || "Телефон не указан";
+  const identityInitial = getUserAvatarInitial(user) || "С";
+
+  const openProfileEditDialog = () => {
+    setProfileDraft({
+      firstName: user.firstName ?? "",
+      lastName: user.lastName ?? "",
+      phone: user.phone ?? "",
+      photo: user.photo ?? "",
+    });
+    setProfileError(null);
+    setProfileEditing(true);
+  };
+
+  const closeProfileEditDialog = () => {
+    setProfileDraft({
+      firstName: user.firstName ?? "",
+      lastName: user.lastName ?? "",
+      phone: user.phone ?? "",
+      photo: user.photo ?? "",
+    });
+    setProfileError(null);
+    setProfileEditing(false);
+  };
+
+  const saveProfileDraft = async () => {
+    setSaving(true);
+    setProfileError(null);
+    try {
+      const updated = await updateUserProfile(user.id, {
+        firstName: profileDraft.firstName.trim(),
+        lastName: profileDraft.lastName.trim(),
+        phone: toRuPhoneStorage(profileDraft.phone),
+        photo: profileDraft.photo,
+      });
+      updateUser(updated);
+      setProfileEditing(false);
+    } catch (error) {
+      setProfileError(
+        error instanceof Error ? error.message : "Не удалось сохранить профиль."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="student-profile">
@@ -787,7 +827,7 @@ export default function StudentProfile() {
           }
           onCompleteProfile={() => {
             setTabWithQuery(0, { replace: true });
-            setProfileEditing(true);
+            openProfileEditDialog();
           }}
         />
       )}
@@ -813,21 +853,47 @@ export default function StudentProfile() {
         }
       >
         {!isNonDesktop ? (
-          <Tabs
-            orientation="vertical"
-            value={tab}
-            onChange={(_, next) => setTabWithQuery(next, { replace: true })}
-            className="student-profile__tabs"
-          >
-            {studentTabItems.map((item) => (
-              <Tab
-                key={item.index}
-                label={<span className="student-profile__tab-label">{item.label}</span>}
-                icon={item.icon}
-                iconPosition="start"
-              />
-            ))}
-          </Tabs>
+          <div className="student-profile__nav-shell">
+            <section className="student-profile__identity-card">
+              <div className="student-profile__identity-main">
+                <Avatar
+                  className="student-profile__identity-avatar"
+                  src={user.photo || undefined}
+                >
+                  {identityInitial}
+                </Avatar>
+                <div className="student-profile__identity-copy">
+                  <h3>{identityName || "Профиль студента"}</h3>
+                  <span className="student-profile__identity-role">{roleLabel}</span>
+                  <span>{user.email}</span>
+                  <span>{identityPhone}</span>
+                </div>
+              </div>
+              <Button
+                className="student-profile__identity-edit"
+                variant="outlined"
+                startIcon={<EditRoundedIcon />}
+                onClick={openProfileEditDialog}
+              >
+                Редактировать
+              </Button>
+            </section>
+            <Tabs
+              orientation="vertical"
+              value={tab}
+              onChange={(_, next) => setTabWithQuery(next, { replace: true })}
+              className="student-profile__tabs"
+            >
+              {studentTabItems.map((item) => (
+                <Tab
+                  key={item.index}
+                  label={<span className="student-profile__tab-label">{item.label}</span>}
+                  icon={item.icon}
+                  iconPosition="start"
+                />
+              ))}
+            </Tabs>
+          </div>
         ) : (
           <div className="student-profile__tabs-mobile">
             <Button
@@ -841,6 +907,32 @@ export default function StudentProfile() {
           </div>
         )}
         <div className="student-profile__workspace-main">
+          {isNonDesktop ? (
+            <section className="student-profile__identity-card student-profile__identity-card--mobile">
+              <div className="student-profile__identity-main">
+                <Avatar
+                  className="student-profile__identity-avatar"
+                  src={user.photo || undefined}
+                >
+                  {identityInitial}
+                </Avatar>
+                <div className="student-profile__identity-copy">
+                  <h3>{identityName || "Профиль студента"}</h3>
+                  <span className="student-profile__identity-role">{roleLabel}</span>
+                  <span>{user.email}</span>
+                  <span>{identityPhone}</span>
+                </div>
+              </div>
+              <Button
+                className="student-profile__identity-edit"
+                variant="outlined"
+                startIcon={<EditRoundedIcon />}
+                onClick={openProfileEditDialog}
+              >
+                Редактировать
+              </Button>
+            </section>
+          ) : null}
 
       {tab === 1 && (
         <div className="student-profile__courses">
@@ -1521,211 +1613,138 @@ export default function StudentProfile() {
         </DialogActions>
       </Dialog>
 
+      <Dialog
+        open={profileEditing}
+        onClose={closeProfileEditDialog}
+        fullWidth
+        maxWidth="sm"
+        className="ui-dialog ui-dialog--compact student-profile__profile-edit-modal"
+      >
+        <DialogTitleWithClose
+          title="Редактирование профиля"
+          onClose={closeProfileEditDialog}
+          closeAriaLabel="Закрыть окно редактирования профиля"
+        />
+        <DialogContent className="student-profile__profile-edit-content">
+          <div className="student-profile__profile-edit-head">
+            <h3>Личные данные</h3>
+            <span>Изменения применяются к вашему аккаунту.</span>
+          </div>
+          {profileError ? <Alert severity="error">{profileError}</Alert> : null}
+          <div className="student-profile__profile-edit-avatar">
+            <Avatar
+              src={profileDraft.photo || undefined}
+              className="student-profile__profile-edit-avatar-media"
+            >
+              {identityInitial}
+            </Avatar>
+            <Button
+              variant="outlined"
+              onClick={() => avatarInputRef.current?.click()}
+              className="student-profile__profile-edit-avatar-button"
+            >
+              Загрузить фото
+            </Button>
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              ref={avatarInputRef}
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                const dataUrl = await fileToDataUrl(file);
+                setProfileDraft((prev) => ({ ...prev, photo: dataUrl }));
+                event.target.value = "";
+              }}
+            />
+          </div>
+          <div className="student-profile__profile-edit-grid">
+            <TextField
+              label="Имя"
+              value={profileDraft.firstName}
+              onChange={(event) =>
+                setProfileDraft((prev) => ({
+                  ...prev,
+                  firstName: event.target.value,
+                }))
+              }
+              fullWidth
+              autoComplete="given-name"
+            />
+            <TextField
+              label="Фамилия"
+              value={profileDraft.lastName}
+              onChange={(event) =>
+                setProfileDraft((prev) => ({
+                  ...prev,
+                  lastName: event.target.value,
+                }))
+              }
+              fullWidth
+              autoComplete="family-name"
+            />
+            <TextField
+              label="Телефон"
+              value={formatRuPhoneInput(profileDraft.phone)}
+              onChange={(event) =>
+                setProfileDraft((prev) => ({
+                  ...prev,
+                  phone: formatRuPhoneInput(event.target.value),
+                }))
+              }
+              placeholder={PHONE_MASK_TEMPLATE}
+              inputProps={{ inputMode: "tel" }}
+              fullWidth
+            />
+            <TextField
+              label="Email"
+              value={user.email}
+              fullWidth
+              InputProps={{ readOnly: true }}
+            />
+          </div>
+          <PasswordSecurityCard className="student-profile__profile-edit-security" />
+        </DialogContent>
+        <DialogActions className="student-profile__profile-edit-actions">
+          <Button color="inherit" onClick={closeProfileEditDialog} disabled={saving}>
+            Отмена
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => void saveProfileDraft()}
+            disabled={saving}
+          >
+            {saving ? "Сохраняем..." : "Сохранить изменения"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {tab === 0 && (
         <div className="student-profile__profile-layout">
-          <div className="student-profile__profile-card">
-            <div className="student-profile__profile-head">
-              <div className="student-profile__profile-head-main">
-                <h2>Личные данные</h2>
-                <span>Изменения сохраняются в вашем аккаунте</span>
+          <div className="student-profile__profile-main-shell">
+            <section className="student-profile__profile-shell">
+              <div className="student-profile__profile-shell-copy">
+                <span>Профиль</span>
+                <h3>Личные данные и безопасность входа</h3>
+                <p>
+                  Изменяйте имя, телефон, фото и пароль в одном компактном окне.
+                </p>
               </div>
-              <div className="student-profile__profile-head-actions">
-                {profileEditing ? (
-                  <>
-                    <IconButton
-                      className="student-profile__profile-head-action student-profile__profile-head-action--save"
-                      onClick={async () => {
-                        if (!user) return;
-                        setSaving(true);
-                        setProfileError(null);
-                        try {
-                          const updated = await updateUserProfile(user.id, {
-                            firstName: profileDraft.firstName.trim(),
-                            lastName: profileDraft.lastName.trim(),
-                            phone: toRuPhoneStorage(profileDraft.phone),
-                            photo: profileDraft.photo,
-                          });
-                          updateUser(updated);
-                          setProfileEditing(false);
-                        } catch (error) {
-                          setProfileError(
-                            error instanceof Error
-                              ? error.message
-                              : "Не удалось сохранить профиль."
-                          );
-                        } finally {
-                          setSaving(false);
-                        }
-                      }}
-                      disabled={saving}
-                      aria-label="Сохранить изменения профиля"
-                    >
-                      {saving ? (
-                        <CircularProgress size={18} color="inherit" />
-                      ) : (
-                        <SaveRoundedIcon fontSize="small" />
-                      )}
-                    </IconButton>
-                    <IconButton
-                      className="student-profile__profile-head-action"
-                      onClick={() => {
-                        setProfileDraft({
-                          firstName: user.firstName ?? "",
-                          lastName: user.lastName ?? "",
-                          phone: user.phone ?? "",
-                          photo: user.photo ?? "",
-                        });
-                        setProfileEditing(false);
-                      }}
-                      disabled={saving}
-                      aria-label="Отменить изменения профиля"
-                    >
-                      <CloseRoundedIcon fontSize="small" />
-                    </IconButton>
-                  </>
-                ) : (
-                  <IconButton
-                    className="student-profile__profile-head-action"
-                    onClick={() => {
-                      setProfileDraft({
-                        firstName: user.firstName ?? "",
-                        lastName: user.lastName ?? "",
-                        phone: user.phone ?? "",
-                        photo: user.photo ?? "",
-                      });
-                      setProfileEditing(true);
-                    }}
-                    aria-label="Редактировать профиль"
-                  >
-                    <EditRoundedIcon fontSize="small" />
-                  </IconButton>
-                )}
-              </div>
-            </div>
-            {profileError && <Alert severity="error">{profileError}</Alert>}
-            <div
-              className={`student-profile__profile-main ${
-                profileEditing ? "is-editing" : "has-bot"
-              }`}
-            >
-              <div className="student-profile__profile-avatar">
-                <Avatar
-                  src={profileDraft.photo || undefined}
-                  className="student-profile__avatar"
-                  sx={avatarResponsiveSx}
+              <div className="student-profile__profile-shell-actions">
+                <Button
+                  variant="contained"
+                  startIcon={<EditRoundedIcon />}
+                  onClick={openProfileEditDialog}
                 >
-                  {getUserAvatarInitial(user)}
-                </Avatar>
-                {!profileEditing && (
-                  <span
-                    className="student-profile__avatar-verified"
-                    aria-label="Профиль подтвержден"
-                    title="Профиль подтвержден"
-                  >
-                    <TaskAltRoundedIcon fontSize="inherit" />
-                  </span>
-                )}
-                {profileEditing && (
-                  <Button
-                    variant="outlined"
-                    onClick={() => avatarInputRef.current?.click()}
-                    className="student-profile__avatar-button"
-                  >
-                    Загрузить фото
-                  </Button>
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  ref={avatarInputRef}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const dataUrl = await fileToDataUrl(file);
-                    setProfileDraft((prev) => ({ ...prev, photo: dataUrl }));
-                    e.target.value = "";
-                  }}
-                />
-                {!profileEditing && (
-                  <div className="student-profile__identity-cloud">
-                    <div className="student-profile__identity-pill student-profile__identity-pill--status">
-                      {roleLabel}
-                    </div>
-                    <div className="student-profile__identity-pill student-profile__identity-pill--name">
-                      {profileDraft.firstName || "Имя"} {profileDraft.lastName || "Фамилия"}
-                    </div>
-                    <div className="student-profile__identity-pill student-profile__identity-pill--mail">
-                      {user.email}
-                    </div>
-                    <div className="student-profile__identity-pill student-profile__identity-pill--phone">
-                      {formatRuPhoneDisplay(profileDraft.phone) || "Телефон не указан"}
-                    </div>
-                  </div>
-                )}
+                  Редактировать профиль
+                </Button>
               </div>
-
-              {profileEditing ? (
-                <div className="student-profile__profile-fields">
-                  <TextField
-                    label="Имя"
-                    value={profileDraft.firstName}
-                    onChange={(e) =>
-                      setProfileDraft((prev) => ({
-                        ...prev,
-                        firstName: e.target.value,
-                      }))
-                    }
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                  />
-                  <TextField
-                    label="Фамилия"
-                    value={profileDraft.lastName}
-                    onChange={(e) =>
-                      setProfileDraft((prev) => ({
-                        ...prev,
-                        lastName: e.target.value,
-                      }))
-                    }
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                  />
-                  <TextField
-                    label="Статус"
-                    value={roleLabel}
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    disabled
-                  />
-                  <TextField
-                    label="Email"
-                    value={user.email}
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    disabled
-                  />
-                  <TextField
-                    label="Телефон"
-                    value={formatRuPhoneInput(profileDraft.phone)}
-                    onChange={(e) =>
-                      setProfileDraft((prev) => ({
-                        ...prev,
-                        phone: formatRuPhoneInput(e.target.value),
-                      }))
-                    }
-                    placeholder={PHONE_MASK_TEMPLATE}
-                    inputProps={{ inputMode: "tel" }}
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                  />
-
-                </div>
-              ) : null}
-            </div>
-            <PasswordSecurityCard className="student-profile__password-card" />
+            </section>
           </div>
-          <NewsFeedPanel user={user} />
+          <div className="student-profile__profile-news">
+            <NewsFeedPanel user={user} />
+          </div>
         </div>
       )}
 
