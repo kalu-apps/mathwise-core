@@ -4,8 +4,8 @@
   z-index: 100;
   padding: 10px var(--layout-gutter);
   color: var(--text-primary);
-  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 82%, transparent);
+  background: color-mix(in srgb, var(--surface-elevated) 86%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
   backdrop-filter: blur(10px) saturate(112%);
   -webkit-backdrop-filter: blur(10px) saturate(112%);
 
@@ -21,21 +21,21 @@
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     column-gap: 18px;
-    padding: 4px 0;
+    padding: 3px 0;
   }
 
-  &__brand-zone {
+  &__brand-anchor {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
     min-width: 0;
     flex: 0 0 auto;
   }
 
   &__brand-trigger {
-    width: 42px !important;
-    height: 42px !important;
-    border-radius: 11px !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 10px !important;
     border: 0 !important;
     background: transparent !important;
     color: var(--text-primary) !important;
@@ -45,13 +45,13 @@
     }
 
     &:focus-visible {
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 26%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 24%, transparent);
     }
   }
 
   &__brand-icon {
-    font-size: 31px !important;
-    color: color-mix(in srgb, var(--accent-strong) 86%, var(--accent-primary));
+    font-size: 30px !important;
+    color: color-mix(in srgb, var(--accent-strong) 84%, var(--accent-primary));
     transition: transform 0.2s ease, color 0.2s ease;
 
     &.is-open {
@@ -59,130 +59,127 @@
     }
   }
 
+  &__brand-copy {
+    display: grid;
+    gap: 1px;
+    min-width: 0;
+    line-height: 1.05;
+  }
+
   &__brand-wordmark {
     font-size: 14px;
     font-weight: 720;
-    letter-spacing: 0.015em;
-    color: color-mix(in srgb, var(--text-primary) 94%, var(--accent-primary));
+    letter-spacing: 0.01em;
+    color: color-mix(in srgb, var(--text-primary) 96%, var(--accent-primary));
     white-space: nowrap;
   }
 
-  &__nav-desktop {
+  &__brand-subtle {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--text-secondary) 82%, var(--text-primary));
+    white-space: nowrap;
+  }
+
+  &__tablist {
     min-width: 0;
+    justify-self: start;
     display: inline-flex;
     align-items: center;
-    justify-self: start;
-    gap: 0;
+    gap: 2px;
     padding: 2px 0;
+    position: relative;
   }
 
-  &__nav-item {
-    position: relative;
-    min-height: 38px;
-    border-radius: 10px;
+  &__tab {
+    min-height: 36px !important;
     border: 0 !important;
+    border-radius: 8px !important;
     background: transparent !important;
-    padding: 0 13px !important;
+    padding: 0 10px !important;
     text-transform: none !important;
     font-size: 13px !important;
-    font-weight: 610 !important;
-    color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary)) !important;
+    font-weight: 600 !important;
+    color: color-mix(in srgb, var(--text-secondary) 80%, var(--text-primary)) !important;
     white-space: nowrap;
+    position: relative;
     transition: color 0.16s ease, background-color 0.16s ease;
 
     .MuiButton-startIcon {
       margin-left: 0;
-      margin-right: 7px;
+      margin-right: 6px;
 
       .MuiSvgIcon-root {
         font-size: 17px;
       }
     }
 
-    &:not(:first-of-type)::before {
+    &::after {
       content: "";
       position: absolute;
-      left: 0;
-      top: 50%;
-      width: 1px;
-      height: 16px;
-      transform: translateY(-50%);
-      background: linear-gradient(
-        180deg,
-        transparent 0%,
-        color-mix(in srgb, var(--border-subtle) 76%, var(--accent-primary)) 28%,
-        color-mix(in srgb, var(--border-subtle) 76%, var(--accent-primary)) 72%,
-        transparent 100%
-      );
-      opacity: 0.75;
-      pointer-events: none;
-    }
-
-    &:after {
-      content: "";
-      position: absolute;
-      left: 13px;
-      right: 13px;
-      bottom: 5px;
-      height: 1px;
+      left: 10px;
+      right: 10px;
+      bottom: 3px;
+      height: 2px;
+      border-radius: 999px;
       opacity: 0;
-      transform: scaleX(0.45);
+      transform: scaleX(0.5);
       transform-origin: center;
       background: linear-gradient(
         90deg,
-        color-mix(in srgb, var(--accent-primary) 12%, transparent) 0%,
-        color-mix(in srgb, var(--accent-primary) 44%, var(--accent-strong)) 50%,
-        color-mix(in srgb, var(--accent-primary) 12%, transparent) 100%
+        color-mix(in srgb, var(--accent-primary) 28%, var(--accent-strong)) 0%,
+        color-mix(in srgb, var(--accent-primary) 72%, var(--accent-strong)) 50%,
+        color-mix(in srgb, var(--accent-primary) 28%, var(--accent-strong)) 100%
       );
       transition: opacity 0.16s ease, transform 0.16s ease;
     }
 
     &:hover {
       color: var(--text-primary) !important;
-      background: color-mix(in srgb, var(--accent-primary) 9%, transparent) !important;
+      background: color-mix(in srgb, var(--accent-primary) 8%, transparent) !important;
     }
 
     &.is-active {
       color: var(--text-primary) !important;
-      background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+      font-weight: 650 !important;
+      background: transparent !important;
     }
 
-    &:hover::after,
     &.is-active::after {
       opacity: 1;
       transform: scaleX(1);
     }
 
     &:focus-visible {
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 26%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent);
     }
   }
 
-  &__controls-zone {
+  &__right-rail {
     min-width: 0;
     justify-self: end;
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
 
-  &__utilities-cluster {
+  &__action-bar {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    padding: 2px;
-    border-radius: 11px;
-    background: color-mix(in srgb, var(--surface-soft) 76%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 52%, transparent);
+    gap: 1px;
+    padding: 1px 2px;
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--surface-soft) 68%, transparent);
   }
 
-  &__utility-button {
-    width: 34px;
-    height: 34px;
-    border-radius: 9px !important;
+  &__action-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px !important;
     border: 0 !important;
     background: transparent !important;
-    color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary)) !important;
+    color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary)) !important;
 
     .MuiSvgIcon-root {
       font-size: 18px;
@@ -190,32 +187,39 @@
 
     &:hover {
       color: var(--text-primary) !important;
-      background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
+      background: color-mix(in srgb, var(--accent-primary) 11%, transparent) !important;
     }
 
     &:focus-visible {
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 24%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent);
     }
   }
 
-  &__account-cluster {
+  &__account-control {
+    min-height: 38px;
+    min-width: 0;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    min-width: 0;
-  }
-
-  &__account-cluster--guest {
     gap: 0;
+    padding: 2px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--surface-soft) 78%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 42%, transparent);
   }
 
-  &__account-chip {
-    min-height: 38px !important;
-    max-width: min(260px, 31vw);
-    border-radius: 11px !important;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 50%, transparent) !important;
-    background: color-mix(in srgb, var(--surface-soft) 78%, transparent) !important;
-    padding: 4px 9px 4px 5px !important;
+  &__account-control--guest {
+    padding: 1px;
+    border-color: color-mix(in srgb, var(--border-subtle) 34%, transparent);
+  }
+
+  &__account-main {
+    min-height: 34px !important;
+    max-width: min(260px, 30vw);
+    min-width: 0;
+    border: 0 !important;
+    background: transparent !important;
+    border-radius: 8px !important;
+    padding: 0 8px 0 4px !important;
     text-transform: none !important;
     color: var(--text-primary) !important;
     font-size: 13px !important;
@@ -224,33 +228,31 @@
     align-items: center;
     justify-content: flex-start;
     gap: 8px;
-    min-width: 0;
 
     &:hover {
-      background: color-mix(in srgb, var(--accent-primary) 10%, var(--surface-soft)) !important;
-      border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--border-subtle)) !important;
+      background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
     }
 
     &:focus-visible {
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 26%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent);
     }
   }
 
   &__account-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 9px;
-    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex: 0 0 auto;
     color: var(--text-on-brand);
     font-size: 12px;
     font-weight: 700;
     background: linear-gradient(
       135deg,
       color-mix(in srgb, var(--accent-primary) 78%, var(--accent-strong)) 0%,
-      color-mix(in srgb, var(--accent-strong) 76%, var(--accent-primary)) 100%
+      color-mix(in srgb, var(--accent-strong) 78%, var(--accent-primary)) 100%
     );
   }
 
@@ -259,13 +261,13 @@
     display: grid;
     gap: 0;
     text-align: left;
-    line-height: 1.08;
+    line-height: 1.06;
   }
 
   &__account-name {
     display: block;
     min-width: 0;
-    max-width: 154px;
+    max-width: 152px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -277,28 +279,42 @@
   &__account-role {
     display: block;
     min-width: 0;
-    max-width: 154px;
+    max-width: 152px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 10px;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary));
   }
 
   &__account-chevron {
-    margin-left: 2px;
-    color: color-mix(in srgb, var(--text-secondary) 76%, var(--text-primary));
+    margin-left: 1px;
+    color: color-mix(in srgb, var(--text-secondary) 78%, var(--text-primary));
   }
 
-  &__account-logout {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px !important;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 42%, transparent) !important;
-    background: color-mix(in srgb, var(--surface-soft) 72%, transparent) !important;
-    color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary)) !important;
+  &__account-trailing {
+    width: 31px;
+    height: 31px;
+    margin-left: 2px;
+    border-radius: 8px !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary)) !important;
+    position: relative;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: -2px;
+      top: 50%;
+      width: 1px;
+      height: 16px;
+      transform: translateY(-50%);
+      background: color-mix(in srgb, var(--border-subtle) 70%, transparent);
+      pointer-events: none;
+    }
 
     .MuiSvgIcon-root {
       font-size: 18px;
@@ -306,29 +322,27 @@
 
     &:hover {
       color: var(--text-primary) !important;
-      background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
-      border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle)) !important;
+      background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
     }
 
     &:focus-visible {
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 24%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent);
     }
   }
 
-  &__login-button {
-    min-height: 36px !important;
-    border-radius: 10px !important;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 46%, transparent) !important;
-    background: color-mix(in srgb, var(--surface-soft) 78%, transparent) !important;
+  &__account-login {
+    min-height: 34px !important;
+    border: 0 !important;
+    border-radius: 8px !important;
+    background: transparent !important;
     color: var(--text-primary) !important;
-    padding: 0 12px !important;
+    padding: 0 11px !important;
     text-transform: none !important;
     font-size: 13px !important;
     font-weight: 620 !important;
 
     &:hover {
-      background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
-      border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle)) !important;
+      background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
     }
   }
 
@@ -337,29 +351,28 @@
     position: relative;
     z-index: 121;
     margin-top: 8px;
-    padding: 10px;
+    padding: 8px;
     border-radius: 12px;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     background: color-mix(in srgb, var(--surface-elevated) 94%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 68%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 60%, transparent);
     box-shadow: 0 10px 24px color-mix(in srgb, #111827 20%, transparent);
   }
 
   &__mobile-item {
     justify-content: flex-start !important;
-    min-height: 38px !important;
+    min-height: 36px !important;
     text-transform: none !important;
     font-size: 13px !important;
-    font-weight: 620 !important;
-    border-radius: 10px !important;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 64%, transparent) !important;
-    background: color-mix(in srgb, var(--surface-soft) 88%, transparent) !important;
+    font-weight: 610 !important;
+    border-radius: 9px !important;
+    border: 0 !important;
+    background: transparent !important;
     color: var(--text-primary) !important;
 
     &:hover {
-      background: color-mix(in srgb, var(--accent-primary) 12%, transparent) !important;
-      border-color: color-mix(in srgb, var(--accent-primary) 32%, var(--border-subtle)) !important;
+      background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
     }
   }
 
@@ -373,18 +386,14 @@
     margin: 0;
   }
 
-  @media (max-width: 1240px) {
-    &__brand-wordmark {
+  @media (max-width: 1260px) {
+    &__brand-subtle {
       display: none;
     }
   }
 
   @media (max-width: 1080px) {
-    &__shell {
-      column-gap: 10px;
-    }
-
-    &__nav-desktop {
+    &__tablist {
       display: none;
     }
 
@@ -397,19 +406,21 @@
     }
   }
 
-  @media (max-width: 860px) {
-    &__controls-zone {
-      gap: 7px;
+  @media (max-width: 900px) {
+    &__account-role {
+      display: none;
     }
+  }
 
-    &__account-role,
+  @media (max-width: 780px) {
+    &__brand-copy,
     &__account-name {
       display: none;
     }
 
-    &__account-chip {
+    &__account-main {
       max-width: none;
-      padding: 4px 7px 4px 5px !important;
+      padding: 0 6px 0 4px !important;
       gap: 6px;
     }
   }
