@@ -1,10 +1,12 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button, IconButton, Tooltip } from "@mui/material";
 import CalculateIcon from "@mui/icons-material/Calculate";
 import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
 import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LoginIcon from "@mui/icons-material/Login";
+import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
+import SupportAgentRoundedIcon from "@mui/icons-material/SupportAgentRounded";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { useThemeMode } from "@/app/theme/themeModeContext";
 import { t } from "@/shared/i18n";
@@ -18,6 +20,7 @@ export function Header() {
   const { user, logout, openAuthModal } = useAuth();
   const { mode, toggleMode } = useThemeMode();
   const navigate = useNavigate();
+  const location = useLocation();
   const mobileOpen = useAppShellStore((state) => state.mobileMenuOpen);
   const setMobileOpen = useAppShellStore((state) => state.setMobileMenuOpen);
 
@@ -25,7 +28,6 @@ export function Header() {
     { label: t("header.navCourses"), path: "/courses" },
     { label: t("header.navTeacher"), path: "/about-teacher" },
     { label: t("header.navBooking"), path: "/booking" },
-    { label: t("header.navContact"), path: "/contact" },
   ];
 
   const handleLogoClick = () => {
@@ -41,6 +43,8 @@ export function Header() {
     logout();
     navigate("/", { replace: true });
   };
+
+  const isItemActive = (path: string) => location.pathname.startsWith(path);
 
   const userDisplayName = user ? formatUserBadgeName(user) : "";
   const userAvatarInitial = user
@@ -69,7 +73,7 @@ export function Header() {
               <Button
                 key={item.label}
                 color="inherit"
-                className="header__link"
+                className={`header__link ${isItemActive(item.path) ? "is-active" : ""}`}
                 onClick={() => navigate(item.path)}
               >
                 {item.label}
@@ -79,7 +83,27 @@ export function Header() {
         </div>
 
         <div className="header__right">
-          <div className="header__utility-cluster">
+          <div className="header__quick-actions">
+            <Tooltip title={t("header.navContact")}>
+              <IconButton
+                onClick={() => navigate("/contact")}
+                size="small"
+                aria-label={t("header.navContact")}
+                className="header__utility-icon"
+              >
+                <QuizRoundedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={t("header.techSupport")}>
+              <IconButton
+                onClick={() => navigate("/contact")}
+                size="small"
+                aria-label={t("header.techSupport")}
+                className="header__utility-icon"
+              >
+                <SupportAgentRoundedIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
             <Tooltip
               title={
                 mode === "dark"
@@ -95,7 +119,7 @@ export function Header() {
                     ? t("header.switchLightTheme")
                     : t("header.switchDarkTheme")
                 }
-                className="header__theme-toggle"
+                className="header__utility-icon"
               >
                 {mode === "dark" ? (
                   <LightModeRoundedIcon fontSize="small" />
@@ -104,46 +128,45 @@ export function Header() {
                 )}
               </IconButton>
             </Tooltip>
-            {user ? (
-              <div className="header__user-cluster">
-                <Tooltip title={t("header.profile")}>
-                  <Button
-                    onClick={() =>
-                      navigate(
-                        user.role === "student"
-                          ? "/student/profile"
-                          : "/teacher/profile"
-                      )
-                    }
-                    className="header__profile-btn"
-                    color="inherit"
-                  >
-                    <div className="header__avatar">{userAvatarInitial}</div>
-                    <span className="header__profile-name">{userDisplayName}</span>
-                  </Button>
-                </Tooltip>
-
-                <Tooltip title={t("header.logout")}>
-                  <IconButton
-                    onClick={handleLogout}
-                    size="small"
-                    className="header__logout-btn"
-                  >
-                    <LogoutIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </div>
-            ) : (
-              <Tooltip title={t("header.login")}>
-                <IconButton
-                  onClick={() => openAuthModal()}
-                  className="header__login-btn"
+          </div>
+          {user ? (
+            <div className="header__auth-controls">
+              <Tooltip title={t("header.profile")}>
+                <Button
+                  onClick={() =>
+                    navigate(
+                      user.role === "student"
+                        ? "/student/profile"
+                        : "/teacher/profile"
+                    )
+                  }
+                  className="header__profile-btn"
+                  color="inherit"
                 >
+                  <div className="header__avatar">{userAvatarInitial}</div>
+                  <span className="header__profile-name">{userDisplayName}</span>
+                </Button>
+              </Tooltip>
+
+              <Tooltip title={t("header.logout")}>
+                <IconButton
+                  onClick={handleLogout}
+                  size="small"
+                  className="header__auth-icon"
+                >
+                  <LogoutIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </div>
+          ) : (
+            <div className="header__auth-controls">
+              <Tooltip title={t("header.login")}>
+                <IconButton onClick={() => openAuthModal()} className="header__auth-icon">
                   <LoginIcon />
                 </IconButton>
               </Tooltip>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 

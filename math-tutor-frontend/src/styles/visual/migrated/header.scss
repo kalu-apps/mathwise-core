@@ -22,21 +22,22 @@
   &__left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     min-width: 0;
     flex: 1 1 auto;
   }
 
   &__logo {
     color: var(--text-primary) !important;
-    background: color-mix(in srgb, var(--surface-soft) 85%, transparent) !important;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 86%, transparent) !important;
-    border-radius: 12px !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding: 2px !important;
 
     .header__logo-icon {
-      font-size: 22px;
+      font-size: 30px;
       color: var(--accent-strong);
-      transition: transform 0.2s ease;
+      transition: transform 0.2s ease, color 0.2s ease;
     }
 
     .header__logo-icon.is-open {
@@ -44,81 +45,168 @@
     }
   }
 
+  &__logo:hover .header__logo-icon {
+    color: color-mix(in srgb, var(--accent-strong) 84%, var(--accent-primary));
+  }
+
   &__menu-desktop {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0;
     min-width: 0;
     flex: 1 1 auto;
 
     .header__link {
+      position: relative;
       min-height: 34px;
-      border-radius: 10px;
-      border: 1px solid transparent;
-      padding: 0 12px;
+      border-radius: 0;
+      border: 0;
+      padding: 0 16px;
       text-transform: none;
       font-size: 13px;
       font-weight: 620;
       color: color-mix(in srgb, var(--text-secondary) 86%, var(--text-primary));
       background: transparent;
+      transition: color 0.18s ease;
 
-      &:hover {
-        color: var(--text-primary);
-        border-color: color-mix(in srgb, var(--border-subtle) 74%, var(--accent-primary));
-        background: color-mix(in srgb, var(--surface-soft) 88%, var(--accent-primary));
+      &::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 1px;
+        height: 18px;
+        transform: translateY(-50%);
+        background: linear-gradient(
+          180deg,
+          transparent 0%,
+          color-mix(in srgb, var(--border-subtle) 80%, var(--accent-primary)) 28%,
+          color-mix(in srgb, var(--border-subtle) 80%, var(--accent-primary)) 72%,
+          transparent 100%
+        );
+        opacity: 0;
+        transition: opacity 0.18s ease;
       }
 
-      &:focus-visible {
-        box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 20%, transparent);
+      &::after {
+        content: "";
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        bottom: 4px;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          color-mix(in srgb, var(--accent-primary) 10%, transparent) 0%,
+          color-mix(in srgb, var(--accent-primary) 46%, var(--accent-strong)) 50%,
+          color-mix(in srgb, var(--accent-primary) 10%, transparent) 100%
+        );
+        transform: scaleX(0.2);
+        transform-origin: center;
+        opacity: 0;
+        transition: opacity 0.18s ease, transform 0.18s ease;
       }
+    }
+
+    .header__link + .header__link::before {
+      opacity: 0.9;
+    }
+
+    .header__link:hover,
+    .header__link.is-active {
+      color: var(--text-primary);
+    }
+
+    .header__link:hover::after,
+    .header__link.is-active::after {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+
+    .header__link:focus-visible {
+      box-shadow: none;
+      color: var(--text-primary);
     }
   }
 
   &__right {
     display: flex;
     align-items: center;
+    gap: 8px;
     min-width: 0;
     flex: 0 0 auto;
   }
 
-  &__utility-cluster {
+  &__quick-actions {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px;
-    border-radius: 12px;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 86%, transparent);
-    background: color-mix(in srgb, var(--surface-soft) 92%, transparent);
+    gap: 2px;
   }
 
-  &__user-cluster {
+  &__quick-actions > * + * {
+    position: relative;
+    margin-left: 6px;
+  }
+
+  &__quick-actions > * + *::before {
+    content: "";
+    position: absolute;
+    left: -5px;
+    top: 50%;
+    width: 1px;
+    height: 14px;
+    transform: translateY(-50%);
+    background: color-mix(in srgb, var(--border-subtle) 74%, var(--accent-primary));
+    opacity: 0.72;
+    pointer-events: none;
+  }
+
+  &__auth-controls {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
 
-  &__theme-toggle,
-  &__logout-btn,
-  &__login-btn {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px !important;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 84%, transparent) !important;
+  &__auth-controls > * + * {
+    position: relative;
+    margin-left: 6px;
+  }
+
+  &__auth-controls > * + *::before {
+    content: "";
+    position: absolute;
+    left: -5px;
+    top: 50%;
+    width: 1px;
+    height: 15px;
+    transform: translateY(-50%);
+    background: color-mix(in srgb, var(--border-subtle) 74%, var(--accent-primary));
+    opacity: 0.72;
+    pointer-events: none;
+  }
+
+  &__utility-icon,
+  &__auth-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px !important;
+    border: 0 !important;
     color: var(--text-primary) !important;
-    background: color-mix(in srgb, var(--surface-elevated) 92%, transparent) !important;
+    background: transparent !important;
 
     &:hover {
-      background: color-mix(in srgb, var(--surface-soft) 90%, var(--accent-primary)) !important;
+      background: transparent !important;
+      color: color-mix(in srgb, var(--text-primary) 88%, var(--accent-primary)) !important;
     }
   }
 
   &__profile-btn {
     min-height: 34px;
     max-width: min(220px, 24vw);
-    border-radius: 10px !important;
-    padding: 0 10px !important;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 84%, transparent) !important;
-    background: color-mix(in srgb, var(--surface-elevated) 92%, transparent) !important;
+    border-radius: 0 !important;
+    padding: 0 6px !important;
+    border: 0 !important;
+    background: transparent !important;
     text-transform: none !important;
     color: var(--text-primary) !important;
     font-size: 13px !important;
@@ -126,14 +214,13 @@
     gap: 8px;
 
     &:hover {
-      border-color: color-mix(in srgb, var(--accent-primary) 30%, var(--border-subtle)) !important;
-      background: color-mix(in srgb, var(--surface-soft) 88%, var(--accent-primary)) !important;
+      background: transparent !important;
     }
 
     .header__avatar {
       width: 24px;
       height: 24px;
-      border-radius: 8px;
+      border-radius: 50%;
       background: color-mix(in srgb, var(--accent-primary) 62%, var(--accent-strong));
       color: var(--text-on-brand);
       display: inline-flex;
@@ -205,6 +292,10 @@
 
     &__profile-name {
       display: none;
+    }
+
+    &__quick-actions {
+      gap: 0;
     }
 
     &__mobile-backdrop {

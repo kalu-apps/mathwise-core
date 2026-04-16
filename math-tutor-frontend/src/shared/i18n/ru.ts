@@ -28,10 +28,11 @@ export const ru = {
     mobileInfo: "Стр. {page} из {totalPages}",
   },
   header: {
-    navCourses: "Курсы",
+    navCourses: "Каталог",
     navTeacher: "О преподавателе",
     navBooking: "Индивидуальные занятия",
     navContact: "Задать вопрос",
+    techSupport: "Техподдержка",
     openNavigation: "Открыть меню навигации",
     closeNavigation: "Закрыть навигацию",
     switchLightTheme: "Включить светлую тему",

@@ -426,6 +426,24 @@ select:focus-visible,
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 28%, var(--ag-tier1-border)) !important;
 }
 
+/* Keep profile rail tabs clean (no segmented shell clipping on Safari/WebKit). */
+.student-profile .student-profile__tabs,
+.student-profile .student-profile__tabs .MuiTabs-root,
+.teacher-dashboard .teacher-dashboard__tabs,
+.teacher-dashboard .teacher-dashboard__tabs .MuiTabs-root {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.student-profile .student-profile__tabs .MuiTabs-scroller,
+.teacher-dashboard .teacher-dashboard__tabs .MuiTabs-scroller {
+  overflow: visible !important;
+}
+
 /* Alerts / empty / states */
 .MuiAlert-root,
 .ui-alert,
