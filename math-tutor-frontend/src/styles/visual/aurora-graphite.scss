@@ -340,7 +340,7 @@ select,
   color: var(--text-primary) !important;
   border: 1px solid var(--ag-tier1-border) !important;
   border-radius: var(--radius-sm) !important;
-  box-shadow: inset 0 1px 0 var(--ag-tier1-edge) !important;
+  box-shadow: none !important;
 }
 
 input:hover,
@@ -353,15 +353,51 @@ select:hover,
 .MuiAutocomplete-inputRoot:hover {
   background: color-mix(in srgb, var(--ag-tier1-bg) 84%, var(--accent-primary)) !important;
   border-color: color-mix(in srgb, var(--ag-tier1-border) 78%, var(--accent-soft)) !important;
+  box-shadow: none !important;
+}
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible,
+.ui-input:focus,
+.ui-input:focus-visible,
+.MuiInputBase-root.Mui-focused,
+.MuiOutlinedInput-root.Mui-focused,
+.MuiFilledInput-root.Mui-focused,
+.MuiAutocomplete-inputRoot.Mui-focused,
+[class*="search"] input:focus,
+[class*="search"] input:focus-visible,
+[class*="search"] .MuiInputBase-root.Mui-focused,
+[class*="search"] .MuiOutlinedInput-root.Mui-focused {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 .ui-input:focus-visible,
+.MuiInputBase-root.Mui-focused,
+.MuiOutlinedInput-root.Mui-focused,
+.MuiFilledInput-root.Mui-focused,
+.MuiAutocomplete-inputRoot.Mui-focused {
+  border-color: color-mix(in srgb, var(--accent-primary) 30%, var(--ag-tier1-border)) !important;
+  box-shadow: none !important;
+}
+
+.MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
+  border-color: transparent !important;
+  border-width: 0 !important;
+}
+
+.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline,
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
 .Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: var(--accent-primary) !important;
-  box-shadow: var(--ag-shadow-focus) !important;
+  border-color: transparent !important;
+  border-width: 0 !important;
 }
 
 /* Tabs and segmented controls */

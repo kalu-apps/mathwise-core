@@ -91,8 +91,23 @@ export function createMuiTheme(mode: ThemeMode) {
       MuiOutlinedInput: {
         styleOverrides: {
           root: {
+            border: "1px solid var(--input-border)",
+            boxShadow: "none",
             "& .MuiOutlinedInput-notchedOutline": {
-              borderWidth: 1,
+              borderWidth: 0,
+              borderColor: "transparent",
+            },
+            "&:hover .MuiOutlinedInput-notchedOutline": {
+              borderWidth: 0,
+              borderColor: "transparent",
+            },
+            "&.Mui-focused": {
+              boxShadow: "none",
+              borderColor: "color-mix(in srgb, var(--accent-primary) 30%, var(--input-border))",
+            },
+            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderWidth: 0,
+              borderColor: "transparent",
             },
           },
         },
