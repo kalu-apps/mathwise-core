@@ -137,7 +137,7 @@
 
     &:hover {
       color: var(--text-primary) !important;
-      background: color-mix(in srgb, var(--accent-primary) 8%, transparent) !important;
+      background: transparent !important;
     }
 
     &.is-active {
@@ -152,7 +152,7 @@
     }
 
     &:focus-visible {
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent);
+      box-shadow: none;
     }
   }
 
@@ -203,13 +203,13 @@
     gap: 0;
     padding: 2px;
     border-radius: 10px;
-    background: color-mix(in srgb, var(--surface-soft) 78%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 42%, transparent);
+    background: transparent;
+    border: 0;
   }
 
   &__account-control--guest {
     padding: 1px;
-    border-color: color-mix(in srgb, var(--border-subtle) 34%, transparent);
+    border: 0;
   }
 
   &__account-main {
@@ -230,11 +230,11 @@
     gap: 8px;
 
     &:hover {
-      background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+      background: transparent !important;
     }
 
     &:focus-visible {
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent);
+      box-shadow: none;
     }
   }
 
@@ -305,15 +305,7 @@
     position: relative;
 
     &::before {
-      content: "";
-      position: absolute;
-      left: -2px;
-      top: 50%;
-      width: 1px;
-      height: 16px;
-      transform: translateY(-50%);
-      background: color-mix(in srgb, var(--border-subtle) 70%, transparent);
-      pointer-events: none;
+      display: none;
     }
 
     .MuiSvgIcon-root {
@@ -322,11 +314,11 @@
 
     &:hover {
       color: var(--text-primary) !important;
-      background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+      background: transparent !important;
     }
 
     &:focus-visible {
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary) 22%, transparent);
+      box-shadow: none;
     }
   }
 
@@ -342,7 +334,7 @@
     font-weight: 620 !important;
 
     &:hover {
-      background: color-mix(in srgb, var(--accent-primary) 10%, transparent) !important;
+      background: transparent !important;
     }
   }
 
