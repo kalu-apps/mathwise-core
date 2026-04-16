@@ -10,16 +10,15 @@ import {
   Typography,
 } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import GoogleIcon from "@mui/icons-material/Google";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { t } from "@/shared/i18n";
 import { ButtonPending } from "@/shared/ui/loading";
-import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import type { AuthModalContext } from "@/features/auth/model/authUiStore";
-import { OnboardingFlowPanel } from "@/shared/ui/OnboardingFlowPanel";
-import type { OnboardingFlowStep } from "@/shared/ui/OnboardingFlowPanel";
 import {
   buildSocialLoginStartUrl,
   requestPasswordReset,
@@ -41,9 +40,8 @@ type ViewMode = "login" | "recover";
 type RecoveryStep = 1 | 2 | 3;
 
 type FlowMeta = {
-  kicker: string;
   loginTitle: string;
-  loginDescription: string;
+  loginSubtitle: string;
   recoverTitle: string;
 };
 
@@ -89,6 +87,7 @@ const mapSocialButton = (provider: SocialProvider) => {
   if (provider === "vk") {
     return {
       label: t("auth.socialVk"),
+      compactLabel: "VK",
       badge: "VK",
       className: "auth-modal__social-btn--vk",
     };
@@ -96,12 +95,14 @@ const mapSocialButton = (provider: SocialProvider) => {
   if (provider === "yandex") {
     return {
       label: t("auth.socialYandex"),
+      compactLabel: "Яндекс",
       badge: "Я",
       className: "auth-modal__social-btn--yandex",
     };
   }
   return {
     label: t("auth.socialGoogle"),
+    compactLabel: "Google",
     badge: "G",
     className: "auth-modal__social-btn--google",
   };
@@ -111,32 +112,39 @@ const parseRecoveryCode = (value: string) => value.replace(/\D+/g, "").slice(0, 
 
 const flowMetaByContext: Record<AuthModalContext, FlowMeta> = {
   general: {
-    kicker: "Авторизация",
-    loginTitle: "Вход в личный кабинет",
-    loginDescription:
-      "Используйте пароль или социальный провайдер. Если пароль утерян, восстановите доступ в три шага.",
-    recoverTitle: "Восстановление доступа к аккаунту",
+    loginTitle: "Вход в аккаунт",
+    loginSubtitle: "Продолжите в Mathwise.",
+    recoverTitle: "Восстановление пароля",
   },
   course: {
-    kicker: "Покупка курса",
-    loginTitle: "Подтвердите identity перед оплатой",
-    loginDescription:
-      "Этот шаг нужен, чтобы оплата и доступ к курсу были привязаны к правильному аккаунту без дублей.",
-    recoverTitle: "Восстановление для завершения покупки",
+    loginTitle: "Вход перед оплатой",
+    loginSubtitle: "Подтвердите аккаунт, чтобы завершить checkout.",
+    recoverTitle: "Восстановление перед оплатой",
   },
   booking: {
-    kicker: "Индивидуальное занятие",
-    loginTitle: "Войдите для подтверждения записи",
-    loginDescription:
-      "Для закрепления слота нужен полный аккаунт ученика. После входа запись автоматически завершится.",
+    loginTitle: "Вход для подтверждения записи",
+    loginSubtitle: "После входа запись продолжится автоматически.",
     recoverTitle: "Восстановление доступа к записи",
   },
   invite: {
-    kicker: "Приглашение преподавателя",
-    loginTitle: "Продолжите по ссылке-приглашению",
-    loginDescription:
-      "Войдите в существующий аккаунт или восстановите доступ, чтобы безопасно принять приглашение.",
-    recoverTitle: "Восстановление для принятия приглашения",
+    loginTitle: "Вход по приглашению",
+    loginSubtitle: "Подтвердите аккаунт, чтобы принять приглашение.",
+    recoverTitle: "Восстановление по приглашению",
+  },
+};
+
+const recoveryStageMeta: Record<RecoveryStep, { title: string; subtitle: string }> = {
+  1: {
+    title: "Проверьте email",
+    subtitle: "Отправим код подтверждения.",
+  },
+  2: {
+    title: "Введите код",
+    subtitle: "Код из письма содержит 6 цифр.",
+  },
+  3: {
+    title: "Создайте новый пароль",
+    subtitle: "Сохраните новый пароль для входа.",
   },
 };
 
@@ -180,108 +188,7 @@ export function AuthModal({
   const normalizedEmail = normalizeEmailInput(email);
   const socialProviders: SocialProvider[] = ["vk", "yandex", "google"];
   const flowMeta = flowMetaByContext[context];
-  const loginSteps: OnboardingFlowStep[] =
-    context === "course"
-      ? [
-          {
-            key: "verify",
-            title: "1. Верификация",
-            description: "Проверьте email или войдите через VK, Яндекс, Google.",
-            state: "current" as const,
-          },
-          {
-            key: "payment",
-            title: "2. Оплата",
-            description: "После подтверждения identity продолжите checkout курса.",
-            state: "pending" as const,
-          },
-          {
-            key: "finalize",
-            title: "3. Активация",
-            description: "Кабинет и права доступа будут завершены после оплаты.",
-            state: "pending" as const,
-          },
-        ]
-      : context === "booking"
-      ? [
-          {
-            key: "slot",
-            title: "1. Слот",
-            description: "Слот уже выбран и ожидает подтверждения с вашей стороны.",
-            state: "done" as const,
-          },
-          {
-            key: "identity",
-            title: "2. Вход или регистрация",
-            description: "Подтвердите identity, чтобы закрепить запись за вашим профилем.",
-            state: "current" as const,
-          },
-          {
-            key: "confirm",
-            title: "3. Подтверждение",
-            description: "После авторизации запись на занятие завершится автоматически.",
-            state: "pending" as const,
-          },
-        ]
-      : context === "invite"
-      ? [
-          {
-            key: "inspect",
-            title: "1. Проверка приглашения",
-            description: "Ссылка валидна и готова к принятию.",
-            state: "done" as const,
-          },
-          {
-            key: "auth",
-            title: "2. Вход или регистрация",
-            description: "Подтвердите identity, чтобы связать профиль с преподавателем.",
-            state: "current" as const,
-          },
-          {
-            key: "accept",
-            title: "3. Привязка",
-            description: "После входа приглашение будет применено к вашему аккаунту.",
-            state: "pending" as const,
-          },
-        ]
-      : [
-          {
-            key: "auth",
-            title: "1. Авторизация",
-            description: "Войдите в аккаунт удобным способом.",
-            state: "current" as const,
-          },
-          {
-            key: "cabinet",
-            title: "2. Продолжение",
-            description: "Система вернет вас к целевому разделу после успешного входа.",
-            state: "pending" as const,
-          },
-        ];
-  const codeStepState: OnboardingFlowStep["state"] =
-    recoverStep === 2 ? "current" : recoverStep > 2 ? "done" : "pending";
-  const passwordStepState: OnboardingFlowStep["state"] =
-    recoverStep === 3 ? "current" : "pending";
-  const recoverySteps: OnboardingFlowStep[] = [
-    {
-      key: "email",
-      title: "1. Email",
-      description: "Укажите email, на который отправить код подтверждения.",
-      state: recoverStep === 1 ? "current" : "done",
-    },
-    {
-      key: "code",
-      title: "2. Код",
-      description: "Введите 6-значный код из письма.",
-      state: codeStepState,
-    },
-    {
-      key: "password",
-      title: "3. Новый пароль",
-      description: "Задайте новый пароль и подтвердите его.",
-      state: passwordStepState,
-    },
-  ];
+  const recoverStage = recoveryStageMeta[recoverStep];
 
   useEffect(() => {
     if (!open) return;
@@ -319,7 +226,13 @@ export function AuthModal({
     ariaLabel: string
   ) => (
     <InputAdornment position="end">
-      <IconButton onClick={onToggle} edge="end" size="small" aria-label={ariaLabel}>
+      <IconButton
+        className="auth-modal__visibility-btn"
+        onClick={onToggle}
+        edge="end"
+        size="small"
+        aria-label={ariaLabel}
+      >
         {visible ? (
           <VisibilityOffRoundedIcon fontSize="small" />
         ) : (
@@ -328,11 +241,6 @@ export function AuthModal({
       </IconButton>
     </InputAdornment>
   );
-
-  const renderError = () => {
-    if (!error) return null;
-    return <Alert severity="error">{error}</Alert>;
-  };
 
   const handlePasswordLogin = async () => {
     setError(null);
@@ -494,12 +402,27 @@ export function AuthModal({
   const openRecovery = () => {
     setViewMode("recover");
     setRecoverStep(1);
+    setRecoverCode("");
+    setRecoverToken("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setRecoverError(null);
+    setRecoverMessage(null);
+    setRecoverDebugCode(null);
     setError(null);
     setInfoMessage(null);
   };
 
   const openLogin = () => {
     setViewMode("login");
+    setRecoverStep(1);
+    setRecoverError(null);
+    setRecoverMessage(null);
+    setRecoverDebugCode(null);
+  };
+
+  const handleRecoverStepBack = () => {
+    setRecoverStep((prev) => (prev > 1 ? ((prev - 1) as RecoveryStep) : prev));
     setRecoverError(null);
     setRecoverMessage(null);
   };
@@ -511,21 +434,37 @@ export function AuthModal({
         key={provider}
         type="button"
         variant="outlined"
-        fullWidth
         className={`auth-modal__social-btn ${social.className}`}
         onClick={() => handleSocialLogin(provider)}
         disabled={Boolean(socialLoadingProvider)}
+        aria-label={social.label}
       >
         <span className="auth-modal__social-badge" aria-hidden="true">
           {provider === "google" ? <GoogleIcon fontSize="small" /> : social.badge}
         </span>
-        <span>{social.label}</span>
+        <span className="auth-modal__social-label">{social.compactLabel}</span>
         {socialLoadingProvider === provider ? (
           <span className="auth-modal__social-loading">{t("common.loading")}</span>
         ) : null}
       </Button>
     );
   });
+
+  const recoverPrimaryAction =
+    recoverStep === 1
+      ? {
+          label: t("auth.passwordResetRequest"),
+          onClick: handleRequestRecoveryCode,
+        }
+      : recoverStep === 2
+      ? {
+          label: t("auth.recoveryCodeVerify"),
+          onClick: handleVerifyRecoveryCode,
+        }
+      : {
+          label: t("auth.passwordResetConfirm"),
+          onClick: handleSaveNewPassword,
+        };
 
   return (
     <Dialog
@@ -535,58 +474,74 @@ export function AuthModal({
       fullWidth
       className="ui-dialog ui-dialog--compact auth-modal"
     >
-      <DialogTitleWithClose
-        title={viewMode === "login" ? flowMeta.loginTitle : flowMeta.recoverTitle}
-        className="auth-modal__title"
-        onClose={handleDialogClose}
-        closeAriaLabel={t("common.close")}
-      />
-
       <DialogContent className="auth-modal__content">
-        {renderError()}
-        {infoMessage && <Alert severity="success">{infoMessage}</Alert>}
-        <OnboardingFlowPanel
-          kicker={flowMeta.kicker}
-          title={viewMode === "login" ? flowMeta.loginTitle : flowMeta.recoverTitle}
-          description={viewMode === "login" ? flowMeta.loginDescription : t("auth.recoverFlowDescription")}
-          steps={viewMode === "login" ? loginSteps : recoverySteps}
-          compact
-          className="auth-modal__flow"
-        />
+        <header className="auth-modal__header">
+          <div className="auth-modal__topbar">
+            <div className="auth-modal__topbar-side">
+              {viewMode === "recover" ? (
+                <IconButton
+                  className="auth-modal__icon-btn"
+                  onClick={openLogin}
+                  aria-label={t("auth.backToLogin")}
+                  size="small"
+                >
+                  <ArrowBackRoundedIcon fontSize="small" />
+                </IconButton>
+              ) : null}
+            </div>
+            <IconButton
+              className="auth-modal__icon-btn"
+              onClick={handleDialogClose}
+              aria-label={t("common.close")}
+              size="small"
+            >
+              <CloseRoundedIcon fontSize="small" />
+            </IconButton>
+          </div>
+          <div className="auth-modal__title-wrap">
+            <h2 className="auth-modal__title">
+              {viewMode === "login" ? flowMeta.loginTitle : flowMeta.recoverTitle}
+            </h2>
+            <p className="auth-modal__subtitle">
+              {viewMode === "login" ? flowMeta.loginSubtitle : recoverStage.subtitle}
+            </p>
+          </div>
+        </header>
 
         {viewMode === "login" ? (
           <>
-            <Typography variant="body2" color="text.secondary" className="auth-modal__description">
-              {flowMeta.loginDescription}
-            </Typography>
+            <div className="auth-modal__alerts">
+              {error ? <Alert severity="error">{error}</Alert> : null}
+              {infoMessage ? <Alert severity="success">{infoMessage}</Alert> : null}
+            </div>
 
-            <TextField
-              className="auth-modal__email-field"
-              label="Email"
-              type="email"
-              fullWidth
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
+            <div className="auth-modal__field-stack">
+              <TextField
+                className="auth-modal__email-field"
+                label="Email"
+                type="email"
+                fullWidth
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
 
-            <TextField
-              label={t("auth.passwordLabel")}
-              type={showPassword ? "text" : "password"}
-              fullWidth
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              InputLabelProps={{ shrink: true }}
-              InputProps={{
-                endAdornment: passwordVisibilityAdornment(
-                  showPassword,
-                  () => setShowPassword((prev) => !prev),
-                  t("auth.passwordVisibilityToggle")
-                ),
-              }}
-            />
+              <TextField
+                label={t("auth.passwordLabel")}
+                type={showPassword ? "text" : "password"}
+                fullWidth
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                InputProps={{
+                  endAdornment: passwordVisibilityAdornment(
+                    showPassword,
+                    () => setShowPassword((prev) => !prev),
+                    t("auth.passwordVisibilityToggle")
+                  ),
+                }}
+              />
+            </div>
 
             <Button
               className="auth-modal__submit"
@@ -609,171 +564,120 @@ export function AuthModal({
               {t("auth.passwordResetShow")}
             </Button>
 
-            <Divider className="auth-modal__divider" />
-
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              className="auth-modal__social-caption"
-            >
-              {t("auth.socialDivider")}
-            </Typography>
+            <div className="auth-modal__divider-row" aria-hidden="true">
+              <Divider className="auth-modal__divider-line" />
+              <Typography variant="caption" className="auth-modal__divider-text">
+                {t("auth.socialDivider")}
+              </Typography>
+              <Divider className="auth-modal__divider-line" />
+            </div>
 
             <div className="auth-modal__social-grid">{socialButtons}</div>
           </>
         ) : (
           <>
-            <Typography variant="body2" color="text.secondary" className="auth-modal__description">
-              {t("auth.recoverFlowDescription")}
-            </Typography>
+            <div className="auth-modal__recover-progress" role="status" aria-live="polite">
+              <span className="auth-modal__recover-step">
+                {t("auth.recoveryStepLabel", { step: recoverStep })}
+              </span>
+              <span className="auth-modal__recover-step-title">{recoverStage.title}</span>
+            </div>
 
-            <TextField
-              className="auth-modal__email-field"
-              label="Email"
-              type="email"
-              fullWidth
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
+            <div className="auth-modal__alerts">
+              {recoverError ? <Alert severity="error">{recoverError}</Alert> : null}
+              {recoverMessage ? <Alert severity={recoverSeverity}>{recoverMessage}</Alert> : null}
+              {recoverDebugCode ? (
+                <Alert severity="info">{t("auth.passwordResetDebug", { token: recoverDebugCode })}</Alert>
+              ) : null}
+            </div>
 
-            <Typography variant="caption" color="text.secondary" className="auth-modal__step-note">
-              {t("auth.recoveryStepLabel", { step: recoverStep })}
-            </Typography>
-
-            {recoverStep >= 2 && (
+            <div className="auth-modal__field-stack">
               <TextField
-                label={t("auth.passwordResetTokenLabel")}
-                value={recoverCode}
-                onChange={(event) => setRecoverCode(parseRecoveryCode(event.target.value))}
+                className="auth-modal__email-field"
+                label="Email"
+                type="email"
                 fullWidth
-                autoComplete="one-time-code"
-                InputLabelProps={{ shrink: true }}
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
               />
-            )}
 
-            {recoverStep === 3 && (
-              <div className="auth-modal__recovery-passwords">
+              {recoverStep >= 2 ? (
                 <TextField
-                  label={t("auth.passwordResetNewLabel")}
-                  type={showNewPassword ? "text" : "password"}
+                  label={t("auth.passwordResetTokenLabel")}
+                  value={recoverCode}
+                  onChange={(event) => setRecoverCode(parseRecoveryCode(event.target.value))}
                   fullWidth
-                  autoComplete="new-password"
-                  value={newPassword}
-                  onChange={(event) => setNewPassword(event.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  InputProps={{
-                    endAdornment: passwordVisibilityAdornment(
-                      showNewPassword,
-                      () => setShowNewPassword((prev) => !prev),
-                      t("auth.newPasswordVisibilityToggle")
-                    ),
-                  }}
+                  autoComplete="one-time-code"
                 />
+              ) : null}
 
-                <TextField
-                  label={t("auth.passwordResetConfirmLabel")}
-                  type={showConfirmPassword ? "text" : "password"}
-                  fullWidth
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  InputProps={{
-                    endAdornment: passwordVisibilityAdornment(
-                      showConfirmPassword,
-                      () => setShowConfirmPassword((prev) => !prev),
-                      t("auth.confirmPasswordVisibilityToggle")
-                    ),
-                  }}
-                />
+              {recoverStep === 3 ? (
+                <div className="auth-modal__recovery-passwords">
+                  <TextField
+                    label={t("auth.passwordResetNewLabel")}
+                    type={showNewPassword ? "text" : "password"}
+                    fullWidth
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    InputProps={{
+                      endAdornment: passwordVisibilityAdornment(
+                        showNewPassword,
+                        () => setShowNewPassword((prev) => !prev),
+                        t("auth.newPasswordVisibilityToggle")
+                      ),
+                    }}
+                  />
 
-                <Typography variant="caption" color="text.secondary">
-                  {t("auth.passwordPolicyHint")}
-                </Typography>
-              </div>
-            )}
+                  <TextField
+                    label={t("auth.passwordResetConfirmLabel")}
+                    type={showConfirmPassword ? "text" : "password"}
+                    fullWidth
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    InputProps={{
+                      endAdornment: passwordVisibilityAdornment(
+                        showConfirmPassword,
+                        () => setShowConfirmPassword((prev) => !prev),
+                        t("auth.confirmPasswordVisibilityToggle")
+                      ),
+                    }}
+                  />
 
-            {recoverError && <Alert severity="error">{recoverError}</Alert>}
-            {recoverMessage && <Alert severity={recoverSeverity}>{recoverMessage}</Alert>}
-            {recoverDebugCode && (
-              <Alert severity="info">
-                {t("auth.passwordResetDebug", { token: recoverDebugCode })}
-              </Alert>
-            )}
+                  <Typography variant="caption" className="auth-modal__password-hint">
+                    {t("auth.passwordPolicyHint")}
+                  </Typography>
+                </div>
+              ) : null}
+            </div>
 
             <div className="auth-modal__recover-actions">
-              {recoverStep === 1 && (
-                <Button
-                  className="auth-modal__submit"
-                  variant="contained"
-                  fullWidth
-                  onClick={handleRequestRecoveryCode}
-                  disabled={recoverLoading}
-                >
-                  <ButtonPending
-                    loading={recoverLoading}
-                    loadingLabel={t("connectivity.rechecking")}
-                  >
-                    {t("auth.passwordResetRequest")}
-                  </ButtonPending>
-                </Button>
-              )}
+              <Button
+                className="auth-modal__submit"
+                variant="contained"
+                fullWidth
+                onClick={recoverPrimaryAction.onClick}
+                disabled={recoverLoading}
+              >
+                <ButtonPending loading={recoverLoading} loadingLabel={t("connectivity.rechecking")}>
+                  {recoverPrimaryAction.label}
+                </ButtonPending>
+              </Button>
 
-              {recoverStep === 2 && (
-                <Button
-                  className="auth-modal__submit"
-                  variant="contained"
-                  fullWidth
-                  onClick={handleVerifyRecoveryCode}
-                  disabled={recoverLoading}
-                >
-                  <ButtonPending
-                    loading={recoverLoading}
-                    loadingLabel={t("connectivity.rechecking")}
-                  >
-                    {t("auth.recoveryCodeVerify")}
-                  </ButtonPending>
-                </Button>
-              )}
-
-              {recoverStep === 3 && (
-                <Button
-                  className="auth-modal__submit"
-                  variant="contained"
-                  fullWidth
-                  onClick={handleSaveNewPassword}
-                  disabled={recoverLoading}
-                >
-                  <ButtonPending
-                    loading={recoverLoading}
-                    loadingLabel={t("connectivity.rechecking")}
-                  >
-                    {t("auth.passwordResetConfirm")}
-                  </ButtonPending>
-                </Button>
-              )}
-
-              {recoverStep > 1 && (
+              {recoverStep > 1 ? (
                 <Button
                   className="auth-modal__link-btn"
                   variant="text"
-                  onClick={() => {
-                    setRecoverStep((prev) => (prev > 1 ? ((prev - 1) as RecoveryStep) : prev));
-                    setRecoverError(null);
-                    setRecoverMessage(null);
-                  }}
+                  onClick={handleRecoverStepBack}
                   disabled={recoverLoading}
+                  startIcon={<ArrowBackRoundedIcon fontSize="small" />}
                 >
                   {t("auth.recoveryBackStep")}
                 </Button>
-              )}
+              ) : null}
             </div>
-
-            <Button className="auth-modal__link-btn" variant="text" onClick={openLogin}>
-              {t("auth.backToLogin")}
-            </Button>
           </>
         )}
       </DialogContent>

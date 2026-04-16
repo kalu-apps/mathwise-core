@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Button,
@@ -13,7 +13,6 @@ import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import { completeFirstPassword } from "@/features/auth/model/api";
 import { ButtonPending } from "@/shared/ui/loading";
-import { OnboardingFlowPanel } from "@/shared/ui/OnboardingFlowPanel";
 
 const validateStrongPassword = (password: string): string | null => {
   if (password.length < 10) {
@@ -71,37 +70,19 @@ export function FirstPasswordDialog({
     setShowConfirmPassword(false);
   }, [open]);
 
-  const flowSteps = useMemo(
-    () => [
-      {
-        key: "identity",
-        title: "Identity подтвержден",
-        description: "Система подтвердила владельца аккаунта и завершила связывание данных.",
-        state: "done" as const,
-      },
-      {
-        key: "cabinet",
-        title: "Личный кабинет готов",
-        description: "Профиль создан и доступ к вашим данным уже активен.",
-        state: "done" as const,
-      },
-      {
-        key: "password",
-        title: "Завершите безопасность входа",
-        description: "Задайте постоянный пароль для дальнейшей авторизации.",
-        state: "current" as const,
-      },
-    ],
-    []
-  );
-
   const passwordAdornment = (
     visible: boolean,
     onToggle: () => void,
     label: string
   ) => (
     <InputAdornment position="end">
-      <IconButton onClick={onToggle} edge="end" size="small" aria-label={label}>
+      <IconButton
+        className="first-password-dialog__visibility-btn"
+        onClick={onToggle}
+        edge="end"
+        size="small"
+        aria-label={label}
+      >
         {visible ? (
           <VisibilityOffRoundedIcon fontSize="small" />
         ) : (
@@ -159,51 +140,49 @@ export function FirstPasswordDialog({
       disableEscapeKeyDown
     >
       <DialogContent className="first-password-dialog__content">
-        <OnboardingFlowPanel
-          kicker="Завершение регистрации"
-          title="Создайте пароль для вашего аккаунта"
-          description="Этот шаг обязателен, чтобы вход по email и паролю работал стабильно на всех устройствах."
-          steps={flowSteps}
-          compact
-          className="first-password-dialog__flow"
-        />
+        <header className="first-password-dialog__header">
+          <h2 className="first-password-dialog__title">Создайте пароль</h2>
+          <p className="first-password-dialog__subtitle">
+            Это последний шаг для входа по email и паролю.
+          </p>
+        </header>
 
         {statusError ? <Alert severity="warning">{statusError}</Alert> : null}
         {error ? <Alert severity="error">{error}</Alert> : null}
 
-        <TextField
-          label="Новый пароль"
-          type={showPassword ? "text" : "password"}
-          fullWidth
-          autoComplete="new-password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          InputLabelProps={{ shrink: true }}
-          InputProps={{
-            endAdornment: passwordAdornment(
-              showPassword,
-              () => setShowPassword((prev) => !prev),
-              "Показать или скрыть новый пароль"
-            ),
-          }}
-        />
+        <div className="first-password-dialog__fields">
+          <TextField
+            label="Новый пароль"
+            type={showPassword ? "text" : "password"}
+            fullWidth
+            autoComplete="new-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            InputProps={{
+              endAdornment: passwordAdornment(
+                showPassword,
+                () => setShowPassword((prev) => !prev),
+                "Показать или скрыть новый пароль"
+              ),
+            }}
+          />
 
-        <TextField
-          label="Повторите пароль"
-          type={showConfirmPassword ? "text" : "password"}
-          fullWidth
-          autoComplete="new-password"
-          value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
-          InputLabelProps={{ shrink: true }}
-          InputProps={{
-            endAdornment: passwordAdornment(
-              showConfirmPassword,
-              () => setShowConfirmPassword((prev) => !prev),
-              "Показать или скрыть подтверждение пароля"
-            ),
-          }}
-        />
+          <TextField
+            label="Повторите пароль"
+            type={showConfirmPassword ? "text" : "password"}
+            fullWidth
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            InputProps={{
+              endAdornment: passwordAdornment(
+                showConfirmPassword,
+                () => setShowConfirmPassword((prev) => !prev),
+                "Показать или скрыть подтверждение пароля"
+              ),
+            }}
+          />
+        </div>
 
         <p className="first-password-dialog__hint">
           10-64 символа, латиница, минимум одна заглавная, одна строчная, цифра и спецсимвол.

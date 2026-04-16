@@ -124,15 +124,49 @@
 .first-password-dialog {
   .MuiPaper-root {
     border-radius: 22px;
-    border: 1px solid color-mix(in srgb, var(--card-border) 86%, #ffffff 14%);
-    box-shadow: 0 22px 56px rgba(15, 23, 42, 0.24);
-    background: var(--surface-elevated);
+    border: 1px solid var(--glass-tier-2-border) !important;
+    background: var(--glass-tier-2-bg) !important;
+    box-shadow:
+      var(--glass-tier-2-shadow),
+      inset 0 1px 0 var(--glass-tier-2-edge),
+      0 20px 46px rgba(2, 6, 23, 0.32) !important;
+    backdrop-filter: blur(var(--glass-tier-2-blur)) saturate(1.04) !important;
   }
 
   &__content {
-    padding: 20px 24px 14px;
-    display: grid;
+    padding: 16px 18px 12px !important;
+    display: flex;
+    flex-direction: column;
     gap: 12px;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  &__header {
+    display: grid;
+    gap: 4px;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.14;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+  }
+
+  &__subtitle {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+  }
+
+  &__fields {
+    display: grid;
+    gap: 10px;
   }
 
   &__hint {
@@ -143,14 +177,81 @@
   }
 
   &__actions {
-    padding: 8px 24px 22px;
+    padding: 8px 18px 18px !important;
+    border-top: 0 !important;
+    background: transparent !important;
 
     .MuiButton-root {
-      min-height: 46px;
-      border-radius: 13px;
+      min-height: 48px;
+      border-radius: 13px !important;
       text-transform: none;
       font-weight: 700;
       width: 100%;
+      background: var(--accent-gradient-soft) !important;
+      border: 1px solid
+        color-mix(in srgb, var(--accent-primary) 50%, var(--ag-border-strong)) !important;
+      color: var(--text-on-accent) !important;
+      box-shadow: 0 10px 24px color-mix(in srgb, var(--accent-primary) 22%, transparent) !important;
+    }
+  }
+
+  .MuiAlert-root {
+    margin: 0;
+    border-radius: 12px;
+  }
+
+  .MuiTextField-root {
+    margin: 0;
+
+    .MuiOutlinedInput-root {
+      min-height: 48px;
+      border-radius: 12px !important;
+      background: color-mix(in srgb, var(--glass-tier-1-bg) 80%, #0b1220 20%) !important;
+      border: 0 !important;
+      box-shadow: none !important;
+      transition: box-shadow 160ms ease;
+
+      .MuiOutlinedInput-notchedOutline {
+        border: 1px solid color-mix(in srgb, var(--glass-tier-1-border) 88%, transparent);
+      }
+
+      &:hover .MuiOutlinedInput-notchedOutline {
+        border-color: color-mix(in srgb, var(--ag-border-strong) 82%, var(--accent-primary));
+      }
+
+      &.Mui-focused {
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
+      }
+
+      &.Mui-focused .MuiOutlinedInput-notchedOutline {
+        border-width: 1px;
+        border-color: color-mix(in srgb, var(--accent-primary) 62%, #ffffff 38%);
+      }
+    }
+
+    .MuiInputBase-input {
+      font-size: 15px;
+      line-height: 1.35;
+      color: var(--text-primary);
+      padding-block: 13px;
+    }
+
+    .MuiInputLabel-root {
+      font-size: 13px;
+      color: var(--text-secondary);
+      letter-spacing: 0.005em;
+    }
+  }
+
+  &__visibility-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px !important;
+    color: var(--text-secondary) !important;
+
+    &:hover {
+      background: color-mix(in srgb, var(--glass-tier-1-bg) 86%, var(--accent-soft)) !important;
+      color: var(--text-primary) !important;
     }
   }
 }
@@ -171,12 +272,20 @@
     }
 
     &__content {
-      padding: 14px 14px 12px;
+      padding: 12px 12px 10px !important;
       gap: 10px;
     }
 
+    &__title {
+      font-size: 22px;
+    }
+
+    &__subtitle {
+      font-size: 12px;
+    }
+
     &__actions {
-      padding: 6px 14px 14px;
+      padding: 6px 12px 12px !important;
     }
   }
 }
