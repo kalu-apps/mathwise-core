@@ -13,19 +13,19 @@
   background:
     radial-gradient(
       136% 98% at -4% -14%,
-      color-mix(in srgb, #637dff 34%, transparent) 0%,
+      color-mix(in srgb, #6a84ff 38%, transparent) 0%,
       transparent 58%
     ),
     radial-gradient(
       132% 98% at 109% 118%,
-      color-mix(in srgb, #4cc9ff 24%, transparent) 0%,
+      color-mix(in srgb, #4fd4ff 28%, transparent) 0%,
       transparent 64%
     ),
     linear-gradient(
       153deg,
-      color-mix(in srgb, #1d2742 78%, var(--surface-elevated)) 0%,
-      color-mix(in srgb, #161f37 76%, var(--surface-soft)) 54%,
-      color-mix(in srgb, #0d1730 86%, var(--background-elevated)) 100%
+      color-mix(in srgb, #1a2440 66%, var(--surface-elevated)) 0%,
+      color-mix(in srgb, #131f3a 62%, var(--surface-soft)) 54%,
+      color-mix(in srgb, #0c1731 74%, var(--background-elevated)) 100%
     );
   box-shadow:
     0 42px 78px color-mix(in srgb, #050a18 34%, transparent),
@@ -93,14 +93,14 @@
   background:
     linear-gradient(
       180deg,
-      color-mix(in srgb, #070f21 34%, transparent) 0%,
+      color-mix(in srgb, #070f21 16%, transparent) 0%,
       transparent 20%,
       transparent 78%,
-      color-mix(in srgb, #071126 38%, transparent) 100%
+      color-mix(in srgb, #071126 22%, transparent) 100%
     ),
     radial-gradient(
       70% 66% at 58% 36%,
-      color-mix(in srgb, #8f88ff 14%, transparent),
+      color-mix(in srgb, #8f88ff 16%, transparent),
       transparent 74%
     );
 }
@@ -150,13 +150,31 @@
   background:
     linear-gradient(
       162deg,
-      color-mix(in srgb, #1a2442 52%, var(--surface-elevated)) 0%,
-      color-mix(in srgb, #151f38 44%, var(--surface-soft)) 58%,
-      color-mix(in srgb, #131f3a 36%, transparent) 100%
+      color-mix(in srgb, #151f36 28%, transparent) 0%,
+      color-mix(in srgb, #121f3a 18%, transparent) 58%,
+      color-mix(in srgb, #121f3a 10%, transparent) 100%
     );
+  border: 1px solid color-mix(in srgb, #deebff 22%, transparent);
+  backdrop-filter: blur(20px) saturate(155%) brightness(1.06);
+  -webkit-backdrop-filter: blur(20px) saturate(155%) brightness(1.06);
   box-shadow:
-    20px 26px 42px color-mix(in srgb, #050b19 28%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 12%, transparent);
+    20px 26px 42px color-mix(in srgb, #050b19 22%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 34%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #9fbaff 12%, transparent);
+}
+
+.home-first-screen__hero-command::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  inset: 1px;
+  border-radius: 22px;
+  background: radial-gradient(
+    120% 66% at 12% 0%,
+    color-mix(in srgb, #c8d7ff 13%, transparent) 0%,
+    transparent 62%
+  );
+  opacity: 0.76;
 }
 
 .home-first-screen__eyebrow {
@@ -186,6 +204,7 @@
   font-size: clamp(15px, 1.34vw, 18px);
   line-height: 1.55;
   color: color-mix(in srgb, var(--text-secondary) 88%, #e2ebff);
+  text-shadow: 0 1px 0 color-mix(in srgb, #0c1429 36%, transparent);
 }
 
 .home-first-screen__actions {
@@ -253,8 +272,13 @@
   min-height: 30px;
   padding: 6px 10px;
   border-radius: 11px;
-  background: color-mix(in srgb, #d5ddff 13%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 12%, transparent);
+  background: color-mix(in srgb, #cdd8ff 10%, transparent);
+  border: 1px solid color-mix(in srgb, #e0e9ff 20%, transparent);
+  backdrop-filter: blur(11px) saturate(138%);
+  -webkit-backdrop-filter: blur(11px) saturate(138%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 28%, transparent),
+    0 8px 16px color-mix(in srgb, #060d1d 14%, transparent);
 }
 
 .home-first-screen__proof-chip dt {
@@ -310,12 +334,16 @@
   background:
     linear-gradient(
       160deg,
-      color-mix(in srgb, #cfdafc 10%, transparent),
-      color-mix(in srgb, #c1cefa 4%, transparent)
+      color-mix(in srgb, #d8e2ff 10%, transparent),
+      color-mix(in srgb, #c6d4ff 4%, transparent)
     );
+  border: 1px solid color-mix(in srgb, #dbe8ff 18%, transparent);
+  backdrop-filter: blur(18px) saturate(146%) brightness(1.04);
+  -webkit-backdrop-filter: blur(18px) saturate(146%) brightness(1.04);
   box-shadow:
-    10px 12px 24px color-mix(in srgb, #050a16 18%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 11%, transparent);
+    12px 14px 24px color-mix(in srgb, #050a16 15%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 26%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #89a8ff 10%, transparent);
 }
 
 .home-first-screen__path-item--primary {
@@ -323,12 +351,16 @@
   background:
     linear-gradient(
       156deg,
-      color-mix(in srgb, #8e9cff 26%, transparent),
-      color-mix(in srgb, #60d8ff 14%, transparent)
+      color-mix(in srgb, #97a5ff 24%, transparent),
+      color-mix(in srgb, #69d8ff 16%, transparent)
     );
+  border-color: color-mix(in srgb, #dbe7ff 24%, transparent);
+  backdrop-filter: blur(19px) saturate(152%) brightness(1.06);
+  -webkit-backdrop-filter: blur(19px) saturate(152%) brightness(1.06);
   box-shadow:
-    16px 18px 30px color-mix(in srgb, #050a16 24%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent);
+    17px 20px 34px color-mix(in srgb, #050a16 20%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 30%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #75bfff 14%, transparent);
   overflow: hidden;
 }
 
@@ -390,7 +422,13 @@
   align-items: center;
   justify-content: center;
   color: color-mix(in srgb, #a0adff 78%, #72dfff);
-  background: color-mix(in srgb, #d4dcff 14%, transparent);
+  background: color-mix(in srgb, #d4dcff 12%, transparent);
+  border: 1px solid color-mix(in srgb, #e5edff 22%, transparent);
+  backdrop-filter: blur(10px) saturate(132%);
+  -webkit-backdrop-filter: blur(10px) saturate(132%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 36%, transparent),
+    0 8px 14px color-mix(in srgb, #071021 14%, transparent);
 }
 
 .home-first-screen__path-kicker {
@@ -425,25 +463,27 @@
 
 .home-first-screen .MuiButton-root.home-first-screen__path-action {
   margin-top: 12px;
-  min-height: 36px;
+  min-height: 38px;
   border: 0 !important;
   border-radius: 10px !important;
   text-transform: none !important;
   justify-content: flex-start !important;
-  padding: 0 !important;
-  line-height: 1.2 !important;
+  padding: 0 2px !important;
+  line-height: 1.24 !important;
   font-size: 14px !important;
   font-weight: 620 !important;
+  letter-spacing: 0.004em !important;
   color: color-mix(in srgb, var(--text-primary) 92%, #deebff) !important;
   background: transparent !important;
 }
 
 .home-first-screen .MuiButton-root.home-first-screen__path-action--primary {
   margin-top: 14px;
-  min-height: 42px;
+  min-height: 44px;
   justify-content: center !important;
-  padding: 0 14px !important;
-  line-height: 1.15 !important;
+  padding: 0 18px !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.006em !important;
   color: var(--text-on-accent) !important;
   background: linear-gradient(
     136deg,
@@ -471,9 +511,9 @@
     ),
     linear-gradient(
       151deg,
-      color-mix(in srgb, #f6f8ff 78%, #d9e4ff) 0%,
-      color-mix(in srgb, #eaf1ff 74%, #d5e2ff) 58%,
-      color-mix(in srgb, #e1ecff 80%, #d5e3ff) 100%
+      color-mix(in srgb, #f4f8ff 72%, #d6e4ff) 0%,
+      color-mix(in srgb, #e8f1ff 66%, #cde2ff) 58%,
+      color-mix(in srgb, #dcecff 72%, #cadfff) 100%
     );
   box-shadow:
     0 30px 56px color-mix(in srgb, #8ea3d9 20%, transparent),
@@ -500,13 +540,17 @@
   background:
     linear-gradient(
       162deg,
-      color-mix(in srgb, #ffffff 84%, #ebf2ff) 0%,
-      color-mix(in srgb, #f2f6ff 82%, #e7f1ff) 54%,
-      color-mix(in srgb, #eef4ff 72%, #e4eeff) 100%
+      color-mix(in srgb, #ffffff 50%, transparent) 0%,
+      color-mix(in srgb, #f5f9ff 40%, transparent) 54%,
+      color-mix(in srgb, #eef5ff 30%, transparent) 100%
     );
+  border: 1px solid color-mix(in srgb, #ceddff 66%, transparent);
+  backdrop-filter: blur(18px) saturate(150%) brightness(1.04);
+  -webkit-backdrop-filter: blur(18px) saturate(150%) brightness(1.04);
   box-shadow:
-    0 18px 34px color-mix(in srgb, #9bb0de 18%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 92%, transparent);
+    0 18px 34px color-mix(in srgb, #9bb0de 16%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 96%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #a2b7eb 28%, transparent);
 }
 
 :root[data-theme="light"] .home-first-screen__title {
@@ -519,7 +563,8 @@
 }
 
 :root[data-theme="light"] .home-first-screen__proof-chip {
-  background: color-mix(in srgb, #cbd8ff 34%, #eff4ff);
+  background: color-mix(in srgb, #d7e2ff 34%, transparent);
+  border-color: color-mix(in srgb, #c8d8ff 62%, transparent);
 }
 
 :root[data-theme="light"] .home-first-screen__proof-chip dt {
@@ -543,24 +588,32 @@
   background:
     linear-gradient(
       160deg,
-      color-mix(in srgb, #f4f7ff 90%, #e6eeff),
-      color-mix(in srgb, #edf3ff 88%, #e0ebff)
+      color-mix(in srgb, #f7faff 44%, transparent),
+      color-mix(in srgb, #edf4ff 38%, transparent)
     );
+  border-color: color-mix(in srgb, #c8d9ff 64%, transparent);
+  backdrop-filter: blur(17px) saturate(142%) brightness(1.03);
+  -webkit-backdrop-filter: blur(17px) saturate(142%) brightness(1.03);
   box-shadow:
-    0 14px 24px color-mix(in srgb, #a0b5df 18%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 96%, transparent);
+    0 14px 24px color-mix(in srgb, #a0b5df 15%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 96%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #adc2ef 28%, transparent);
 }
 
 :root[data-theme="light"] .home-first-screen__path-item--primary {
   background:
     linear-gradient(
       156deg,
-      color-mix(in srgb, #dfe6ff 92%, #d4e9ff),
-      color-mix(in srgb, #d4ebff 88%, #d9dcff)
+      color-mix(in srgb, #dce8ff 52%, transparent),
+      color-mix(in srgb, #d0ebff 46%, transparent)
     );
+  border-color: color-mix(in srgb, #bfd4ff 70%, transparent);
+  backdrop-filter: blur(18px) saturate(148%) brightness(1.05);
+  -webkit-backdrop-filter: blur(18px) saturate(148%) brightness(1.05);
   box-shadow:
-    0 18px 30px color-mix(in srgb, #9fb4de 20%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 96%, transparent);
+    0 18px 30px color-mix(in srgb, #9fb4de 17%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 96%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #9db8ef 34%, transparent);
 }
 
 :root[data-theme="light"] .home-first-screen__path-item h3 {
@@ -569,6 +622,12 @@
 
 :root[data-theme="light"] .home-first-screen__path-summary {
   color: color-mix(in srgb, #304170 88%, #44588d);
+}
+
+:root[data-theme="light"] .home-first-screen__path-icon {
+  background: color-mix(in srgb, #e1ebff 64%, transparent);
+  border-color: color-mix(in srgb, #c0d2ff 74%, transparent);
+  color: color-mix(in srgb, #5d78d0 88%, #33aede);
 }
 
 @media (max-width: 1080px) {
