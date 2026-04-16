@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { HomeHeroSceneObjects } from "./hero-3d/HomeHeroSceneObjects";
 
@@ -11,11 +11,7 @@ function isWebGlAvailable() {
 }
 
 export function HomeHeroEnvironment() {
-  const [webGlReady, setWebGlReady] = useState(false);
-
-  useEffect(() => {
-    setWebGlReady(isWebGlAvailable());
-  }, []);
+  const webGlReady = useMemo(() => isWebGlAvailable(), []);
 
   return (
     <div className="home-first-screen__environment" aria-hidden="true">
