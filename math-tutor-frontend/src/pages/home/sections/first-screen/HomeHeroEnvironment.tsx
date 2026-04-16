@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { useThemeMode } from "@/app/theme/themeModeContext";
 import { HomeHeroSceneObjects } from "./hero-3d/HomeHeroSceneObjects";
-import { ensureThreeClockCompat } from "./hero-3d/ensureThreeClockCompat";
 
 function isWebGlAvailable() {
   if (typeof window === "undefined") return false;
@@ -13,10 +12,7 @@ function isWebGlAvailable() {
 }
 
 export function HomeHeroEnvironment() {
-  const webGlReady = useMemo(() => {
-    ensureThreeClockCompat();
-    return isWebGlAvailable();
-  }, []);
+  const webGlReady = useMemo(() => isWebGlAvailable(), []);
   const { mode } = useThemeMode();
 
   return (
