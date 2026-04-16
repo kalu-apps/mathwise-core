@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
+import dns from "node:dns";
 import {
   copyFileSync,
   existsSync,
@@ -15,6 +16,12 @@ import { basename, dirname, resolve } from "node:path";
 const readPositiveInt = (value, fallback, cap) => {
   const parsed = Number.parseInt(String(value ?? "").trim(), 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return Math.min(parsed, cap);
+};
+
+const readNonNegativeInt = (value, fallback, cap) => {
+  const parsed = Number.parseInt(String(value ?? "").trim(), 10);
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
   return Math.min(parsed, cap);
 };
 
@@ -97,13 +104,72 @@ const verifyChecksum = (shaFilePath) => {
   throw new Error("missing_checksum_tool:install_shasum_or_sha256sum");
 };
 
-const runJson = async (url, token) => {
-  const response = await fetch(url, {
+const formatNetworkError = (error) => {
+  if (!(error instanceof Error)) return String(error);
+  const parts = [error.message];
+  const cause = error.cause;
+  if (cause && typeof cause === "object") {
+    const causeParts = [];
+    if (typeof cause.code === "string") causeParts.push(`code=${cause.code}`);
+    if (typeof cause.errno === "number" || typeof cause.errno === "string") {
+      causeParts.push(`errno=${cause.errno}`);
+    }
+    if (typeof cause.syscall === "string") causeParts.push(`syscall=${cause.syscall}`);
+    if (typeof cause.hostname === "string") causeParts.push(`host=${cause.hostname}`);
+    if (typeof cause.address === "string") causeParts.push(`address=${cause.address}`);
+    if (typeof cause.port === "number") causeParts.push(`port=${cause.port}`);
+    if (causeParts.length > 0) {
+      parts.push(`cause(${causeParts.join(",")})`);
+    }
+  }
+  return parts.filter(Boolean).join(" | ");
+};
+
+const fetchWithRetry = async ({
+  url,
+  headers,
+  timeoutMs,
+  retries,
+  retryDelayMs,
+  label,
+  acceptHeader,
+}) => {
+  let lastError = null;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, {
+        headers: {
+          ...headers,
+          Accept: acceptHeader ?? "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "mathwise-core-artifact-deploy",
+        },
+        redirect: "follow",
+        signal: controller.signal,
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs * (attempt + 1)));
+      }
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+  throw new Error(`${label}_network_error:${formatNetworkError(lastError)}`);
+};
+
+const runJson = async ({ url, token, timeoutMs, retries, retryDelayMs }) => {
+  const response = await fetchWithRetry({
+    url,
+    timeoutMs,
+    retries,
+    retryDelayMs,
+    label: "github_api_fetch",
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "mathwise-core-artifact-deploy",
     },
   });
   if (!response.ok) {
@@ -131,7 +197,18 @@ const run = async () => {
   const explicitRunId =
     explicitRunIdRaw.length > 0 ? Math.max(1, Number.parseInt(explicitRunIdRaw, 10)) : null;
   const timeoutMs = readPositiveInt(process.env.DEPLOY_GH_TIMEOUT_MS, 20_000, 120_000);
+  const fetchRetries = readNonNegativeInt(process.env.DEPLOY_GH_FETCH_RETRIES, 2, 6);
+  const fetchRetryDelayMs = readPositiveInt(process.env.DEPLOY_GH_FETCH_RETRY_DELAY_MS, 900, 10_000);
+  const preferIpv4 = readBool(process.env.DEPLOY_FETCH_IPV4_FIRST, true);
   const workdir = resolve(process.env.DEPLOY_WORKDIR ?? process.cwd());
+
+  if (preferIpv4 && typeof dns.setDefaultResultOrder === "function") {
+    try {
+      dns.setDefaultResultOrder("ipv4first");
+    } catch {
+      // Older Node runtimes may not support this API.
+    }
+  }
 
   const targetApiDistDir = resolve(workdir, process.env.DEPLOY_API_DIST_DIR ?? "apps/api/dist");
   const targetApiNodeModulesDir = resolve(
@@ -172,12 +249,21 @@ const run = async () => {
     let runInfo = null;
 
     if (explicitRunId) {
-      runInfo = await runJson(`${base}/actions/runs/${explicitRunId}`, token);
+      runInfo = await runJson({
+        url: `${base}/actions/runs/${explicitRunId}`,
+        token,
+        timeoutMs,
+        retries: fetchRetries,
+        retryDelayMs: fetchRetryDelayMs,
+      });
     } else {
-      const runsResponse = await runJson(
-        `${workflowPath}/runs?branch=${encodeURIComponent(branch)}&status=success&per_page=30`,
-        token
-      );
+      const runsResponse = await runJson({
+        url: `${workflowPath}/runs?branch=${encodeURIComponent(branch)}&status=success&per_page=30`,
+        token,
+        timeoutMs,
+        retries: fetchRetries,
+        retryDelayMs: fetchRetryDelayMs,
+      });
       const candidateRuns = Array.isArray(runsResponse.workflow_runs) ? runsResponse.workflow_runs : [];
       runInfo =
         candidateRuns.find((item) => {
@@ -194,10 +280,13 @@ const run = async () => {
       throw new Error("artifact_run_sha_mismatch");
     }
 
-    const artifactsResponse = await runJson(
-      `${base}/actions/runs/${runInfo.id}/artifacts?per_page=100`,
-      token
-    );
+    const artifactsResponse = await runJson({
+      url: `${base}/actions/runs/${runInfo.id}/artifacts?per_page=100`,
+      token,
+      timeoutMs,
+      retries: fetchRetries,
+      retryDelayMs: fetchRetryDelayMs,
+    });
     const artifact =
       (artifactsResponse.artifacts ?? []).find(
         (item) => item && item.name === artifactName && item.expired === false && Number.isFinite(item.id)
@@ -206,23 +295,16 @@ const run = async () => {
       throw new Error(`artifact_not_found:${artifactName}`);
     }
 
-    const archiveController = new AbortController();
-    const timeoutId = setTimeout(() => archiveController.abort(), timeoutMs);
-    let archiveResponse;
-    try {
-      archiveResponse = await fetch(artifact.archive_download_url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-          "User-Agent": "mathwise-core-artifact-deploy",
-        },
-        redirect: "follow",
-        signal: archiveController.signal,
-      });
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    const archiveResponse = await fetchWithRetry({
+      url: artifact.archive_download_url,
+      timeoutMs,
+      retries: fetchRetries,
+      retryDelayMs: fetchRetryDelayMs,
+      label: "artifact_download",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
     if (!archiveResponse.ok) {
       const body = await archiveResponse.text();
