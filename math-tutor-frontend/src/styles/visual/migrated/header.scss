@@ -202,6 +202,33 @@
     }
   }
 
+  /* Neutralize global MUI text-button chrome inside header */
+  &__tab.MuiButton-root,
+  &__tab.MuiButton-text,
+  &__account-main.MuiButton-root,
+  &__account-main.MuiButton-text {
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+  }
+
+  &__tab.MuiButton-root:hover,
+  &__tab.MuiButton-text:hover,
+  &__tab.MuiButton-root:focus-visible,
+  &__tab.MuiButton-text:focus-visible {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  &__account-main.MuiButton-root:hover,
+  &__account-main.MuiButton-text:hover,
+  &__account-main.MuiButton-root:focus-visible,
+  &__account-main.MuiButton-text:focus-visible {
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
   &__action-bar {
     min-width: 0;
     display: inline-flex;
@@ -282,7 +309,7 @@
     min-width: 0;
     border: 0 !important;
     outline: 0 !important;
-    background: transparent !important;
+    background: color-mix(in srgb, var(--accent-primary) 7%, transparent) !important;
     border-radius: 6px !important;
     box-shadow: none !important;
     padding: 0 7px 0 2px !important;
@@ -296,7 +323,7 @@
     gap: 8px;
 
     &:hover {
-      background: transparent !important;
+      background: color-mix(in srgb, var(--accent-primary) 11%, transparent) !important;
       color: color-mix(in srgb, var(--text-primary) 96%, var(--accent-primary)) !important;
     }
 

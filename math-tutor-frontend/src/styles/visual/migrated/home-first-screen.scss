@@ -11,10 +11,11 @@
   overflow: hidden;
   isolation: isolate;
   background:
-    radial-gradient(120% 94% at 0% 0%, color-mix(in srgb, #15295a 24%, transparent), transparent 62%),
+    radial-gradient(92% 78% at 4% 0%, color-mix(in srgb, #2a3d88 30%, transparent), transparent 62%),
+    radial-gradient(74% 68% at 92% 4%, color-mix(in srgb, #8a46ff 16%, transparent), transparent 74%),
     linear-gradient(145deg, #0b1530 0%, #0a1433 52%, #081126 100%);
   box-shadow:
-    0 26px 58px color-mix(in srgb, #050a18 28%, transparent),
+    0 26px 58px color-mix(in srgb, #050a18 30%, transparent),
     inset 0 1px 0 color-mix(in srgb, #ffffff 9%, transparent);
 }
 
@@ -25,8 +26,9 @@
   z-index: 1;
   pointer-events: none;
   background:
-    radial-gradient(70% 56% at 92% 8%, color-mix(in srgb, #4f66d6 14%, transparent), transparent 78%),
-    radial-gradient(130% 122% at 50% 100%, color-mix(in srgb, #000000 20%, transparent), transparent 66%);
+    radial-gradient(70% 56% at 92% 8%, color-mix(in srgb, #4f66d6 18%, transparent), transparent 78%),
+    radial-gradient(46% 34% at 68% 28%, color-mix(in srgb, #c35bff 10%, transparent), transparent 78%),
+    radial-gradient(130% 122% at 50% 100%, color-mix(in srgb, #000000 22%, transparent), transparent 66%);
 }
 
 .home-first-screen__environment {
@@ -46,8 +48,9 @@
 
 .home-first-screen__environment-fallback {
   background:
-    radial-gradient(42% 38% at 74% 26%, color-mix(in srgb, #5b79ff 20%, transparent), transparent 72%),
-    radial-gradient(28% 24% at 70% 72%, color-mix(in srgb, #57bfff 16%, transparent), transparent 74%);
+    radial-gradient(44% 40% at 74% 26%, color-mix(in srgb, #5b79ff 24%, transparent), transparent 72%),
+    radial-gradient(30% 25% at 70% 72%, color-mix(in srgb, #57bfff 20%, transparent), transparent 74%),
+    radial-gradient(28% 20% at 42% 28%, color-mix(in srgb, #c05bff 12%, transparent), transparent 78%);
 }
 
 .home-first-screen__ambient-veil {
@@ -56,8 +59,9 @@
   z-index: 2;
   pointer-events: none;
   background:
-    radial-gradient(34% 30% at 72% 24%, color-mix(in srgb, #6a7dff 11%, transparent), transparent 78%),
-    radial-gradient(24% 22% at 66% 76%, color-mix(in srgb, #5ec2ff 8%, transparent), transparent 80%);
+    radial-gradient(36% 31% at 72% 24%, color-mix(in srgb, #6a7dff 12%, transparent), transparent 78%),
+    radial-gradient(26% 22% at 66% 76%, color-mix(in srgb, #5ec2ff 10%, transparent), transparent 80%),
+    radial-gradient(22% 18% at 46% 20%, color-mix(in srgb, #be6bff 8%, transparent), transparent 82%);
 }
 
 .home-first-screen__layout {
@@ -76,10 +80,10 @@
   border-radius: 22px;
   background: linear-gradient(
     154deg,
-    rgba(18, 28, 58, 0.46) 0%,
-    rgba(28, 40, 84, 0.36) 100%
+    rgba(18, 28, 58, 0.4) 0%,
+    rgba(28, 40, 84, 0.31) 100%
   );
-  border: 1px solid color-mix(in srgb, #dbe7ff 14%, transparent);
+  border: 1px solid color-mix(in srgb, #dbe7ff 16%, transparent);
   backdrop-filter: blur(9px) saturate(118%);
   -webkit-backdrop-filter: blur(9px) saturate(118%);
   box-shadow:
@@ -252,8 +256,8 @@
   border-radius: 16px;
   background: linear-gradient(
     156deg,
-    color-mix(in srgb, #d6e3ff 6%, transparent) 0%,
-    color-mix(in srgb, #c3d2ff 3%, transparent) 100%
+    color-mix(in srgb, #d6e3ff 8%, transparent) 0%,
+    color-mix(in srgb, #c3d2ff 4%, transparent) 100%
   );
   border: 1px solid color-mix(in srgb, #dce8ff 13%, transparent);
   backdrop-filter: blur(7px) saturate(112%);
@@ -267,8 +271,9 @@
   padding: 16px 16px 14px;
   background: linear-gradient(
     154deg,
-    color-mix(in srgb, #8ea0ff 16%, transparent) 0%,
-    color-mix(in srgb, #65c9ff 12%, transparent) 100%
+    color-mix(in srgb, #8ea0ff 20%, transparent) 0%,
+    color-mix(in srgb, #65c9ff 14%, transparent) 76%,
+    color-mix(in srgb, #bc68ff 10%, transparent) 100%
   );
   border-color: color-mix(in srgb, #d9e5ff 18%, transparent);
   backdrop-filter: blur(8px) saturate(114%);
@@ -289,10 +294,11 @@
   pointer-events: none;
   background: radial-gradient(
     88% 150% at 44% 50%,
-    color-mix(in srgb, #8fa0ff 44%, transparent),
+    color-mix(in srgb, #7f90ff 48%, transparent),
+    color-mix(in srgb, #bd72ff 24%, transparent),
     transparent 72%
   );
-  opacity: 0.5;
+  opacity: 0.58;
   filter: blur(2px);
 }
 
@@ -381,7 +387,8 @@
 
 :root[data-theme="light"] .home-first-screen__scene {
   background:
-    radial-gradient(120% 96% at 0% 0%, color-mix(in srgb, #cddafe 21%, transparent), transparent 66%),
+    radial-gradient(88% 76% at 4% 0%, color-mix(in srgb, #bfd0ff 28%, transparent), transparent 64%),
+    radial-gradient(64% 56% at 92% 6%, color-mix(in srgb, #ce97ff 18%, transparent), transparent 74%),
     linear-gradient(145deg, #f4f7ff 0%, #eef4ff 52%, #e8f1ff 100%);
   box-shadow:
     0 24px 44px color-mix(in srgb, #a8bce5 16%, transparent),
@@ -390,27 +397,31 @@
 
 :root[data-theme="light"] .home-first-screen__scene::before {
   background:
-    radial-gradient(72% 62% at 92% 8%, color-mix(in srgb, #9eb0ff 18%, transparent), transparent 78%),
-    radial-gradient(132% 124% at 50% 100%, color-mix(in srgb, #b8caf0 16%, transparent), transparent 66%);
+    radial-gradient(72% 62% at 92% 8%, color-mix(in srgb, #9eb0ff 24%, transparent), transparent 78%),
+    radial-gradient(42% 34% at 66% 32%, color-mix(in srgb, #cf9bff 14%, transparent), transparent 76%),
+    radial-gradient(132% 124% at 50% 100%, color-mix(in srgb, #b8caf0 18%, transparent), transparent 66%);
 }
 
 :root[data-theme="light"] .home-first-screen__environment-fallback {
   background:
-    radial-gradient(42% 38% at 74% 26%, color-mix(in srgb, #8ea4ff 26%, transparent), transparent 72%),
-    radial-gradient(28% 24% at 70% 72%, color-mix(in srgb, #83c9ff 18%, transparent), transparent 74%);
+    radial-gradient(44% 38% at 74% 26%, color-mix(in srgb, #8ea4ff 30%, transparent), transparent 72%),
+    radial-gradient(30% 24% at 70% 72%, color-mix(in srgb, #83c9ff 22%, transparent), transparent 74%),
+    radial-gradient(24% 20% at 44% 26%, color-mix(in srgb, #d197ff 14%, transparent), transparent 78%);
 }
 
 :root[data-theme="light"] .home-first-screen__ambient-veil {
   background:
-    radial-gradient(34% 30% at 72% 24%, color-mix(in srgb, #95a7ff 12%, transparent), transparent 78%),
-    radial-gradient(24% 22% at 66% 76%, color-mix(in srgb, #8ccfff 10%, transparent), transparent 80%);
+    radial-gradient(34% 30% at 72% 24%, color-mix(in srgb, #95a7ff 14%, transparent), transparent 78%),
+    radial-gradient(24% 22% at 66% 76%, color-mix(in srgb, #8ccfff 12%, transparent), transparent 80%),
+    radial-gradient(22% 18% at 46% 20%, color-mix(in srgb, #c79aff 9%, transparent), transparent 82%);
 }
 
 :root[data-theme="light"] .home-first-screen__hero-command {
   background: linear-gradient(
     154deg,
-    rgba(248, 251, 255, 0.46) 0%,
-    rgba(232, 242, 255, 0.36) 100%
+    rgba(248, 251, 255, 0.44) 0%,
+    rgba(232, 242, 255, 0.34) 76%,
+    rgba(241, 232, 255, 0.28) 100%
   );
   border-color: color-mix(in srgb, #cad8ff 52%, transparent);
   backdrop-filter: blur(8px) saturate(112%);
@@ -459,7 +470,8 @@
   background: linear-gradient(
     154deg,
     color-mix(in srgb, #f8fbff 48%, transparent) 0%,
-    color-mix(in srgb, #edf5ff 40%, transparent) 100%
+    color-mix(in srgb, #edf5ff 38%, transparent) 72%,
+    color-mix(in srgb, #f6ebff 24%, transparent) 100%
   );
   border-color: color-mix(in srgb, #c9d9ff 48%, transparent);
   backdrop-filter: blur(6px) saturate(110%);
@@ -472,8 +484,9 @@
 :root[data-theme="light"] .home-first-screen__path-item--primary {
   background: linear-gradient(
     154deg,
-    color-mix(in srgb, #e5edff 52%, transparent) 0%,
-    color-mix(in srgb, #d9ecff 44%, transparent) 100%
+    color-mix(in srgb, #e5edff 56%, transparent) 0%,
+    color-mix(in srgb, #d9ecff 44%, transparent) 70%,
+    color-mix(in srgb, #f0deff 32%, transparent) 100%
   );
   border-color: color-mix(in srgb, #bfd3ff 54%, transparent);
   backdrop-filter: blur(7px) saturate(112%);

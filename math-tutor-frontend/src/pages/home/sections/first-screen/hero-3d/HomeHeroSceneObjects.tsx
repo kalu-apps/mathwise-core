@@ -15,7 +15,8 @@ type ScenePalette = {
   rim: string;
   planeSurfaceNear: string;
   planeSurfaceFar: string;
-  gridMajor: string;
+  gridMajorA: string;
+  gridMajorB: string;
   gridMinor: string;
   ribbonA: string;
   ribbonB: string;
@@ -40,11 +41,12 @@ function useDisposableGeometry<TGeometry extends BufferGeometry>(geometry: TGeom
 }
 
 function sampleFieldHeight(x: number, z: number) {
-  const gaussian = Math.exp(-(x * x * 0.08 + z * z * 0.04)) * 0.2;
-  const wave = Math.sin(x * 0.46) * 0.035 + Math.cos(z * 0.34) * 0.028;
-  const perspectiveTilt = z * 0.018;
+  const dome = Math.exp(-(x * x * 0.07 + z * z * 0.04)) * 0.22;
+  const saddle = (x * x - z * z) * 0.0045;
+  const ripple = Math.sin(x * 0.45 + z * 0.2) * 0.026 + Math.cos(z * 0.34) * 0.018;
+  const perspectiveTilt = z * 0.015;
 
-  return gaussian + wave - perspectiveTilt;
+  return dome + saddle + ripple - perspectiveTilt;
 }
 
 function applyTriGradient(
@@ -71,32 +73,32 @@ function applyTriGradient(
   const c1 = new THREE.Color(first);
   const c2 = new THREE.Color(middle);
   const c3 = new THREE.Color(last);
-  const mixedA = new THREE.Color();
-  const mixedB = new THREE.Color();
+  const mixed = new THREE.Color();
+  const shimmered = new THREE.Color();
   const colors = new Float32Array(position.count * 3);
 
   for (let i = 0; i < position.count; i += 1) {
     const t = (values[i] - min) / range;
 
     if (t < 0.5) {
-      mixedA.lerpColors(c1, c2, t / 0.5);
+      mixed.lerpColors(c1, c2, t / 0.5);
     } else {
-      mixedA.lerpColors(c2, c3, (t - 0.5) / 0.5);
+      mixed.lerpColors(c2, c3, (t - 0.5) / 0.5);
     }
 
-    const shimmer = 0.06 + 0.05 * Math.sin(position.getX(i) * 1.35 + position.getZ(i) * 0.78);
-    mixedB.copy(mixedA).offsetHSL(0, 0, shimmer);
+    const sparkle = 0.05 + 0.04 * Math.sin(position.getX(i) * 1.22 + position.getZ(i) * 0.84);
+    shimmered.copy(mixed).offsetHSL(0, 0, sparkle);
 
-    colors[i * 3] = mixedB.r;
-    colors[i * 3 + 1] = mixedB.g;
-    colors[i * 3 + 2] = mixedB.b;
+    colors[i * 3] = shimmered.r;
+    colors[i * 3 + 1] = shimmered.g;
+    colors[i * 3 + 2] = shimmered.b;
   }
 
   geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
 }
 
 function buildCoordinatePlaneSurface(mode: SceneMode, palette: ScenePalette): PlaneGeometry {
-  const geometry = new THREE.PlaneGeometry(9.8, 5.8, 30, 20);
+  const geometry = new THREE.PlaneGeometry(9.6, 5.7, 32, 20);
   const position = geometry.attributes.position as BufferAttribute;
 
   for (let i = 0; i < position.count; i += 1) {
@@ -111,37 +113,46 @@ function buildCoordinatePlaneSurface(mode: SceneMode, palette: ScenePalette): Pl
   applyTriGradient(
     geometry,
     palette.planeSurfaceNear,
-    mode === "dark" ? "#27386f" : "#9aafff",
+    mode === "dark" ? "#253f83" : "#90a5ff",
     palette.planeSurfaceFar,
-    (x, y, z) => y * 0.74 - z * 0.32 + x * 0.08
+    (x, y, z) => y * 0.72 - z * 0.34 + x * 0.1
   );
 
   return geometry;
 }
 
-function buildCoordinateLineGeometry(size: number, divisions: number, slicesPerLine: number) {
+function buildCoordinateLineGeometry(
+  size: number,
+  divisions: number,
+  slicesPerLine: number,
+  axis: "x" | "z" | "both"
+) {
   const half = size / 2;
   const vertices: number[] = [];
 
-  for (let i = 0; i <= divisions; i += 1) {
-    const x = -half + (size * i) / divisions;
+  if (axis === "x" || axis === "both") {
+    for (let i = 0; i <= divisions; i += 1) {
+      const x = -half + (size * i) / divisions;
 
-    for (let step = 0; step < slicesPerLine; step += 1) {
-      const zA = -half + (size * step) / slicesPerLine;
-      const zB = -half + (size * (step + 1)) / slicesPerLine;
-      vertices.push(x, sampleFieldHeight(x, zA), zA);
-      vertices.push(x, sampleFieldHeight(x, zB), zB);
+      for (let step = 0; step < slicesPerLine; step += 1) {
+        const zA = -half + (size * step) / slicesPerLine;
+        const zB = -half + (size * (step + 1)) / slicesPerLine;
+        vertices.push(x, sampleFieldHeight(x, zA), zA);
+        vertices.push(x, sampleFieldHeight(x, zB), zB);
+      }
     }
   }
 
-  for (let i = 0; i <= divisions; i += 1) {
-    const z = -half + (size * i) / divisions;
+  if (axis === "z" || axis === "both") {
+    for (let i = 0; i <= divisions; i += 1) {
+      const z = -half + (size * i) / divisions;
 
-    for (let step = 0; step < slicesPerLine; step += 1) {
-      const xA = -half + (size * step) / slicesPerLine;
-      const xB = -half + (size * (step + 1)) / slicesPerLine;
-      vertices.push(xA, sampleFieldHeight(xA, z), z);
-      vertices.push(xB, sampleFieldHeight(xB, z), z);
+      for (let step = 0; step < slicesPerLine; step += 1) {
+        const xA = -half + (size * step) / slicesPerLine;
+        const xB = -half + (size * (step + 1)) / slicesPerLine;
+        vertices.push(xA, sampleFieldHeight(xA, z), z);
+        vertices.push(xB, sampleFieldHeight(xB, z), z);
+      }
     }
   }
 
@@ -152,9 +163,9 @@ function buildCoordinateLineGeometry(size: number, divisions: number, slicesPerL
 }
 
 function buildMobiusRibbonGeometry(palette: ScenePalette) {
-  const radius = 1.74;
+  const radius = 1.72;
   const width = 0.34;
-  const geometry = new THREE.PlaneGeometry(1, 1, 108, 14);
+  const geometry = new THREE.PlaneGeometry(1, 1, 96, 14);
   const position = geometry.attributes.position as BufferAttribute;
 
   for (let i = 0; i < position.count; i += 1) {
@@ -163,8 +174,8 @@ function buildMobiusRibbonGeometry(palette: ScenePalette) {
 
     const radial = radius + v * Math.cos(u * 0.5);
     const x = radial * Math.cos(u);
-    const y = radial * Math.sin(u) * 0.64;
-    const z = v * Math.sin(u * 0.5) + Math.sin(u * 1.28) * 0.06;
+    const y = radial * Math.sin(u) * 0.62;
+    const z = v * Math.sin(u * 0.5) + Math.sin(u * 1.18) * 0.05;
 
     position.setXYZ(i, x, y, z);
   }
@@ -177,21 +188,21 @@ function buildMobiusRibbonGeometry(palette: ScenePalette) {
     palette.ribbonA,
     palette.ribbonB,
     palette.ribbonC,
-    (x, y, z) => x * 0.44 + y * 0.14 + z * 0.46
+    (x, y, z) => x * 0.46 + y * 0.2 + z * 0.4
   );
 
   return geometry;
 }
 
 function buildTorusKnotGeometry(palette: ScenePalette) {
-  const geometry = new THREE.TorusKnotGeometry(0.54, 0.12, 112, 18, 2, 3);
+  const geometry = new THREE.TorusKnotGeometry(0.52, 0.115, 96, 16, 2, 3);
 
   applyTriGradient(
     geometry,
     palette.knotA,
     palette.knotB,
     palette.knotC,
-    (x, y, z) => y * 0.58 - x * 0.18 + z * 0.24
+    (x, y, z) => y * 0.56 - x * 0.18 + z * 0.26
   );
 
   return geometry;
@@ -207,7 +218,7 @@ function buildPolyhedronGeometry(palette: ScenePalette) {
     const z = position.getZ(i);
 
     const radius = Math.sqrt(x * x + y * y + z * z) || 1;
-    const pulse = 1 + 0.075 * Math.sin(x * 3.1 + z * 2.3) + 0.06 * Math.cos(y * 3.4 - x * 1.4);
+    const pulse = 1 + 0.07 * Math.sin(x * 2.9 + z * 2.2) + 0.06 * Math.cos(y * 3.2 - x * 1.6);
     const factor = pulse / radius;
 
     position.setXYZ(i, x * factor * 0.62, y * factor * 0.62, z * factor * 0.62);
@@ -221,32 +232,33 @@ function buildPolyhedronGeometry(palette: ScenePalette) {
     palette.polyA,
     palette.polyB,
     palette.polyC,
-    (x, y, z) => z * 0.52 + y * 0.3 + x * 0.18
+    (x, y, z) => z * 0.54 + y * 0.28 + x * 0.18
   );
 
   return geometry;
 }
 
 function buildDistantArcGeometry(): TorusGeometry {
-  return new THREE.TorusGeometry(1.24, 0.04, 10, 64, Math.PI * 1.2);
+  return new THREE.TorusGeometry(1.18, 0.035, 10, 54, Math.PI * 1.16);
 }
 
 function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePalette }) {
   const surfaceGeometry = useDisposableGeometry(
     useMemo(() => buildCoordinatePlaneSurface(mode, palette), [mode, palette])
   );
-  const majorGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.7, 12, 24), []));
-  const minorGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.7, 18, 18), []));
+  const minorGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.5, 18, 16, "both"), []));
+  const majorXGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.5, 12, 20, "x"), []));
+  const majorZGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.5, 10, 20, "z"), []));
 
   return (
-    <group position={[0.48, -1.22, -2.22]} rotation={[-1.02, 0.24, -0.05]}>
+    <group position={[0.1, -1.24, -2.24]} rotation={[-0.93, 0.16, -0.03]}>
       <mesh geometry={surfaceGeometry}>
         <meshPhysicalMaterial
           vertexColors
-          roughness={0.48}
+          roughness={0.46}
           metalness={0.08}
-          clearcoat={0.34}
-          clearcoatRoughness={0.3}
+          clearcoat={0.32}
+          clearcoatRoughness={0.28}
           transparent
           opacity={mode === "dark" ? 0.34 : 0.3}
         />
@@ -256,16 +268,26 @@ function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePal
         <lineBasicMaterial
           color={palette.gridMinor}
           transparent
-          opacity={mode === "dark" ? 0.1 : 0.08}
+          opacity={mode === "dark" ? 0.08 : 0.07}
           depthWrite={false}
         />
       </lineSegments>
 
-      <lineSegments geometry={majorGeometry}>
+      <lineSegments geometry={majorXGeometry}>
         <lineBasicMaterial
-          color={palette.gridMajor}
+          color={palette.gridMajorA}
           transparent
           opacity={mode === "dark" ? 0.22 : 0.18}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </lineSegments>
+
+      <lineSegments geometry={majorZGeometry}>
+        <lineBasicMaterial
+          color={palette.gridMajorB}
+          transparent
+          opacity={mode === "dark" ? 0.18 : 0.14}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
@@ -278,18 +300,18 @@ function PrimaryRibbon({ mode, palette }: { mode: SceneMode; palette: ScenePalet
   const geometry = useDisposableGeometry(useMemo(() => buildMobiusRibbonGeometry(palette), [palette]));
 
   return (
-    <mesh geometry={geometry} position={[2.22, 0.38, -0.16]} rotation={[-0.2, 0.72, 0.2]}>
+    <mesh geometry={geometry} position={[1.88, 0.22, -0.24]} rotation={[-0.14, 0.5, 0.27]}>
       <meshPhysicalMaterial
         vertexColors
         emissive={palette.ribbonGlow}
-        emissiveIntensity={mode === "dark" ? 0.12 : 0.09}
-        roughness={0.21}
+        emissiveIntensity={mode === "dark" ? 0.13 : 0.11}
+        roughness={0.2}
         metalness={0.2}
-        clearcoat={0.86}
-        clearcoatRoughness={0.11}
-        iridescence={mode === "dark" ? 0.36 : 0.26}
-        iridescenceIOR={1.19}
-        iridescenceThicknessRange={[120, 260]}
+        clearcoat={0.88}
+        clearcoatRoughness={0.1}
+        iridescence={mode === "dark" ? 0.4 : 0.3}
+        iridescenceIOR={1.2}
+        iridescenceThicknessRange={[110, 250]}
         side={THREE.DoubleSide}
       />
     </mesh>
@@ -300,15 +322,15 @@ function SecondaryKnot({ mode, palette }: { mode: SceneMode; palette: ScenePalet
   const geometry = useDisposableGeometry(useMemo(() => buildTorusKnotGeometry(palette), [palette]));
 
   return (
-    <mesh geometry={geometry} position={[2.58, -0.06, -1.46]} rotation={[0.26, -0.24, 0.11]}>
+    <mesh geometry={geometry} position={[0.58, 0.78, -1.74]} rotation={[0.34, -0.22, 0.18]}>
       <meshPhysicalMaterial
         vertexColors
         roughness={0.24}
         metalness={0.18}
-        clearcoat={0.74}
+        clearcoat={0.76}
         clearcoatRoughness={0.14}
         emissive={palette.knotB}
-        emissiveIntensity={mode === "dark" ? 0.08 : 0.06}
+        emissiveIntensity={mode === "dark" ? 0.08 : 0.07}
       />
     </mesh>
   );
@@ -318,18 +340,18 @@ function SecondaryPolyhedron({ mode, palette }: { mode: SceneMode; palette: Scen
   const geometry = useDisposableGeometry(useMemo(() => buildPolyhedronGeometry(palette), [palette]));
 
   return (
-    <group position={[1.78, -0.98, -0.9]} rotation={[0.34, -0.22, 0.3]}>
+    <group position={[-2.14, -0.72, -1.52]} rotation={[0.36, 0.24, -0.18]}>
       <mesh geometry={geometry}>
         <meshPhysicalMaterial
           vertexColors
-          roughness={0.26}
-          metalness={0.14}
-          clearcoat={0.72}
+          roughness={0.24}
+          metalness={0.15}
+          clearcoat={0.76}
           clearcoatRoughness={0.16}
           transparent
-          opacity={mode === "dark" ? 0.9 : 0.86}
+          opacity={mode === "dark" ? 0.9 : 0.88}
           emissive={palette.polyGlow}
-          emissiveIntensity={mode === "dark" ? 0.11 : 0.08}
+          emissiveIntensity={mode === "dark" ? 0.12 : 0.1}
         />
       </mesh>
     </group>
@@ -340,12 +362,12 @@ function DistantAccent({ palette }: { palette: ScenePalette }) {
   const geometry = useDisposableGeometry(useMemo(() => buildDistantArcGeometry(), []));
 
   return (
-    <mesh geometry={geometry} position={[-2.56, -1.02, -2.42]} rotation={[0.22, 0.66, 0.24]}>
+    <mesh geometry={geometry} position={[2.82, 1.08, -2.82]} rotation={[0.22, 0.56, 0.2]}>
       <meshPhysicalMaterial
         color={palette.accent}
-        roughness={0.35}
+        roughness={0.34}
         metalness={0.12}
-        clearcoat={0.45}
+        clearcoat={0.44}
         clearcoatRoughness={0.24}
         transparent
         opacity={0.24}
@@ -357,50 +379,52 @@ function DistantAccent({ palette }: { palette: ScenePalette }) {
 function paletteByMode(mode: SceneMode): ScenePalette {
   if (mode === "dark") {
     return {
-      ambient: "#8ea8ff",
-      key: "#f3f6ff",
-      fill: "#4f95ff",
-      rim: "#59b8ff",
-      planeSurfaceNear: "#213568",
-      planeSurfaceFar: "#152243",
-      gridMajor: "#3f63d8",
-      gridMinor: "#6c7cff",
-      ribbonA: "#2c2f8f",
-      ribbonB: "#5c49d8",
-      ribbonC: "#5f8cff",
-      ribbonGlow: "#6e8fff",
-      knotA: "#3243af",
-      knotB: "#5670ff",
-      knotC: "#63cbff",
-      polyA: "#4c86d9",
-      polyB: "#6bb7ff",
-      polyC: "#80d5ff",
-      polyGlow: "#75c4ff",
-      accent: "#4758b3",
+      ambient: "#90a9ff",
+      key: "#f5f7ff",
+      fill: "#4cb0ff",
+      rim: "#6ee7ff",
+      planeSurfaceNear: "#203568",
+      planeSurfaceFar: "#121f45",
+      gridMajorA: "#3f63ff",
+      gridMajorB: "#cf59ff",
+      gridMinor: "#55cbff",
+      ribbonA: "#2c2f9c",
+      ribbonB: "#7a47ff",
+      ribbonC: "#4ce1ff",
+      ribbonGlow: "#8aa2ff",
+      knotA: "#3158e6",
+      knotB: "#9c4dff",
+      knotC: "#4df2ff",
+      polyA: "#3ea8ff",
+      polyB: "#6acfff",
+      polyC: "#ff7bcd",
+      polyGlow: "#75ccff",
+      accent: "#6b76ff",
     };
   }
 
   return {
-    ambient: "#8fa5e6",
+    ambient: "#93a6ed",
     key: "#ffffff",
-    fill: "#6fb9ff",
-    rim: "#8dd8ff",
-    planeSurfaceNear: "#9ab3ff",
-    planeSurfaceFar: "#7e97ec",
-    gridMajor: "#6f8dff",
-    gridMinor: "#9ab2ff",
-    ribbonA: "#8694ff",
-    ribbonB: "#a79dff",
-    ribbonC: "#c7d6ff",
-    ribbonGlow: "#aebdff",
-    knotA: "#8b9dff",
-    knotB: "#86a9ff",
-    knotC: "#8edaff",
-    polyA: "#8dc7ff",
-    polyB: "#b7daff",
-    polyC: "#d4ecff",
-    polyGlow: "#badfff",
-    accent: "#a4b2ea",
+    fill: "#6bc8ff",
+    rim: "#75dcff",
+    planeSurfaceNear: "#93acff",
+    planeSurfaceFar: "#7895ef",
+    gridMajorA: "#6d89ff",
+    gridMajorB: "#c87dff",
+    gridMinor: "#8fd7ff",
+    ribbonA: "#8797ff",
+    ribbonB: "#b08eff",
+    ribbonC: "#98e8ff",
+    ribbonGlow: "#b2b6ff",
+    knotA: "#6e92ff",
+    knotB: "#c188ff",
+    knotC: "#90eaff",
+    polyA: "#7ec1ff",
+    polyB: "#a8ddff",
+    polyC: "#ff9fd8",
+    polyGlow: "#b0e2ff",
+    accent: "#9eaef3",
   };
 }
 
@@ -409,10 +433,10 @@ export function HomeHeroSceneObjects({ mode }: HomeHeroSceneObjectsProps) {
 
   return (
     <group>
-      <ambientLight intensity={0.54} color={palette.ambient} />
-      <directionalLight intensity={0.9} color={palette.key} position={[4.1, 5.2, 4.6]} />
-      <pointLight intensity={0.24} color={palette.fill} position={[2.4, 0.8, 2.6]} />
-      <pointLight intensity={0.2} color={palette.rim} position={[1.2, -0.7, 2.2]} />
+      <ambientLight intensity={0.56} color={palette.ambient} />
+      <directionalLight intensity={0.94} color={palette.key} position={[4.2, 5.4, 4.7]} />
+      <pointLight intensity={0.24} color={palette.fill} position={[1.8, 1.1, 2.5]} />
+      <pointLight intensity={0.2} color={palette.rim} position={[-1.6, -0.6, 2.1]} />
 
       <CoordinatePlane mode={mode} palette={palette} />
       <PrimaryRibbon mode={mode} palette={palette} />
