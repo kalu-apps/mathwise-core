@@ -2,7 +2,7 @@
   --preview-content-max: min(100%, calc(var(--layout-content-max) + 240px));
   --preview-section-gap: 16px;
   --preview-shelf-gap: 14px;
-  --preview-shelf-nav-size: 78px;
+  --preview-shelf-nav-size: 86px;
   --preview-side-fade-width: 44px;
 
   position: relative;
@@ -99,7 +99,7 @@
     z-index: 1;
     width: var(--preview-content-max);
     margin: 0 auto;
-    padding-inline: calc(var(--preview-shelf-nav-size) + 28px);
+    padding-inline: calc(var(--preview-shelf-nav-size) + 34px);
     margin-top: 10px;
     overflow: visible;
 
@@ -111,7 +111,7 @@
       bottom: 0;
       width: var(--preview-side-fade-width);
       pointer-events: none;
-      z-index: 2;
+      z-index: 1;
     }
 
     &::before {
@@ -145,12 +145,12 @@
     color: color-mix(in srgb, var(--text-primary) 95%, #dfe8ff) !important;
     background: transparent !important;
     box-shadow: none !important;
-    z-index: 3;
+    z-index: 5;
     transition: transform 0.2s ease, color 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
     filter: none;
 
     .MuiSvgIcon-root {
-      font-size: 46px;
+      font-size: 52px;
     }
 
     &:hover:not(.Mui-disabled) {
@@ -161,17 +161,18 @@
     }
 
     &.Mui-disabled {
-      opacity: 0.4;
+      opacity: 0.62;
       box-shadow: none !important;
+      color: color-mix(in srgb, var(--text-secondary) 88%, #b3c5e9) !important;
     }
   }
 
   &__shelf-nav--prev {
-    left: calc(var(--preview-shelf-nav-size) * -0.82);
+    left: calc(var(--preview-shelf-nav-size) * -0.98);
   }
 
   &__shelf-nav--next {
-    right: calc(var(--preview-shelf-nav-size) * -0.82);
+    right: calc(var(--preview-shelf-nav-size) * -0.98);
   }
 
   &__rail {
@@ -179,7 +180,9 @@
     gap: 0;
     overflow-x: auto;
     overflow-y: visible;
-    padding-top: 74px;
+    position: relative;
+    z-index: 2;
+    padding-top: 82px;
     margin-top: 0;
     overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory;
@@ -229,7 +232,7 @@
     box-shadow:
       0 14px 24px color-mix(in srgb, #081024 16%, transparent),
       inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent) !important;
-    overflow: hidden;
+    overflow: visible;
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 
     &:hover {
@@ -242,6 +245,7 @@
   }
 
   &__card .course-visual-bg {
+    border-radius: inherit;
     --course-visual-pattern-opacity: 0.92;
     --course-visual-pattern-saturation: 1.16;
     --course-visual-pattern-contrast: 1.14;
@@ -313,14 +317,14 @@
   }
 
   &__content--featured.MuiCardContent-root {
-    padding: 17px 18px !important;
-    gap: 9px;
+    padding: 20px 22px !important;
+    gap: 12px;
     overflow: visible;
   }
 
   &__content--secondary.MuiCardContent-root {
-    padding: 13px 14px !important;
-    gap: 8px;
+    padding: 14px 15px !important;
+    gap: 10px;
     overflow: visible;
   }
 
@@ -331,8 +335,8 @@
   &__featured-zone--sticker {
     min-height: 0;
     position: absolute;
-    top: -22px;
-    left: -18px;
+    top: -34px;
+    left: -26px;
     z-index: 4;
     pointer-events: none;
     overflow: visible;
@@ -341,31 +345,34 @@
   &__featured-zone--title {
     display: grid;
     gap: 4px;
-    margin-top: 2px;
+    margin-top: 6px;
   }
 
   &__featured-zone--description {
     display: grid;
     gap: 6px;
+    margin-top: 2px;
   }
 
   &__featured-zone--meta {
-    margin-top: 3px;
+    margin-top: 6px;
   }
 
   &__featured-zone--cta {
     margin-top: auto;
+    padding-top: 8px;
   }
 
   &__secondary-main {
     display: grid;
-    gap: 4px;
+    gap: 6px;
+    margin-top: 10px;
   }
 
   &__secondary-footer {
     margin-top: auto;
     display: grid;
-    gap: 8px;
+    gap: 9px;
   }
 
   &__sticker {
@@ -374,9 +381,9 @@
     justify-content: center;
     text-align: center;
     position: relative;
-    width: 104px;
-    height: 92px;
-    transform: rotate(-16deg);
+    width: 126px;
+    height: 110px;
+    transform: rotate(-13deg);
     transform-origin: left center;
     filter: drop-shadow(0 12px 18px color-mix(in srgb, #ff7d8f 38%, transparent));
 
@@ -384,9 +391,9 @@
     &::after {
       content: "";
       position: absolute;
-      width: 52px;
-      height: 78px;
-      top: 4px;
+      width: 64px;
+      height: 96px;
+      top: 6px;
       border-radius: 44px 44px 0 0;
       background: linear-gradient(162deg, #ff6d8f 0%, #ff7c7d 52%, #ffb46e 100%);
       box-shadow:
@@ -395,13 +402,13 @@
     }
 
     &::before {
-      left: 48px;
+      left: 58px;
       transform: rotate(-45deg);
       transform-origin: 0 100%;
     }
 
     &::after {
-      left: 3px;
+      left: 4px;
       transform: rotate(45deg);
       transform-origin: 100% 100%;
     }
@@ -410,21 +417,21 @@
   &__sticker-label {
     position: relative;
     z-index: 1;
-    max-width: 58px;
-    font-size: 10px;
-    line-height: 1.05;
+    max-width: 70px;
+    font-size: 10.8px;
+    line-height: 1.08;
     font-weight: 760;
     letter-spacing: 0.01em;
     color: #ffffff;
     text-transform: uppercase;
-    transform: rotate(16deg);
+    transform: rotate(13deg);
     text-shadow: 0 1px 4px color-mix(in srgb, #7d2347 46%, transparent);
   }
 
   &__secondary-sticker {
     position: absolute;
-    top: -10px;
-    left: 12px;
+    top: -15px;
+    left: 14px;
     z-index: 4;
     pointer-events: none;
     filter: drop-shadow(0 10px 16px color-mix(in srgb, #15264a 18%, transparent));
@@ -434,34 +441,35 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 28px;
-    padding: 0 12px;
-    border-radius: 10px;
-    font-size: 11px;
+    min-height: 30px;
+    padding: 0 13px;
+    font-size: 10.6px;
     line-height: 1;
     font-weight: 730;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.015em;
     color: #fff8f4;
     white-space: nowrap;
     border: 1px solid color-mix(in srgb, #ffffff 26%, transparent);
   }
 
   &__secondary-sticker--extended .courses-preview__secondary-sticker-label {
-    border-radius: 9px 13px 9px 13px;
+    border-radius: 8px;
+    clip-path: polygon(0 15%, 78% 15%, 86% 0, 100% 0, 100% 82%, 22% 82%, 14% 100%, 0 100%);
     background: linear-gradient(138deg, #ff855f 0%, #ff6f9e 54%, #ff9f56 100%);
     box-shadow:
       0 10px 16px color-mix(in srgb, #ff7f72 32%, transparent),
       inset 0 1px 0 color-mix(in srgb, #ffffff 28%, transparent);
-    transform: rotate(-2.5deg);
+    transform: rotate(-3.5deg);
   }
 
   &__secondary-sticker--reinforce .courses-preview__secondary-sticker-label {
-    border-radius: 999px;
-    background: linear-gradient(138deg, #5f90ff 0%, #8b79ff 56%, #53d7ff 100%);
+    border-radius: 6px;
+    clip-path: polygon(8% 0, 92% 0, 100% 26%, 100% 74%, 92% 100%, 8% 100%, 0 74%, 0 26%);
+    background: linear-gradient(138deg, #55c4ff 0%, #7d9dff 52%, #9a7dff 100%);
     box-shadow:
       0 10px 16px color-mix(in srgb, #7496ff 34%, transparent),
       inset 0 1px 0 color-mix(in srgb, #ffffff 30%, transparent);
-    transform: rotate(2deg);
+    transform: rotate(2.8deg);
   }
 
   &__title {
@@ -476,11 +484,18 @@
   }
 
   &__title--secondary {
-    font-weight: 670;
-    font-size: 18px;
+    font-weight: 650;
+    font-size: 19px;
     line-height: 1.14;
     letter-spacing: -0.01em;
-    max-width: 19ch;
+    max-width: 17ch;
+  }
+
+  &__title--featured {
+    font-size: clamp(32px, 2.75vw, 40px);
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    max-width: 12ch;
   }
 
   &__descriptor {
@@ -493,8 +508,10 @@
   }
 
   &__descriptor--featured {
-    min-height: 54px;
-    max-width: 56ch;
+    min-height: 74px;
+    max-width: 58ch;
+    font-size: 14.8px;
+    line-height: 1.46;
   }
 
   &__metrics {
@@ -505,6 +522,17 @@
 
   &__metrics--compact {
     gap: 6px;
+  }
+
+  &__secondary-support {
+    margin: 0;
+    font-family: var(--font-ui);
+    font-weight: 560;
+    font-size: 12px;
+    line-height: 1.2;
+    letter-spacing: 0.015em;
+    color: color-mix(in srgb, var(--text-secondary) 88%, #c7d6f6);
+    text-transform: uppercase;
   }
 
   &__metric {
@@ -522,11 +550,6 @@
     white-space: nowrap;
   }
 
-  &__metric--section {
-    background: color-mix(in srgb, var(--surface-elevated) 78%, color-mix(in srgb, #f7b36e 16%, transparent));
-    border-color: color-mix(in srgb, var(--border-subtle) 58%, color-mix(in srgb, #f7b36e 34%, transparent));
-  }
-
   &__metric--support {
     background: color-mix(in srgb, var(--surface-elevated) 78%, color-mix(in srgb, #8ac0ff 18%, transparent));
     border-color: color-mix(in srgb, var(--border-subtle) 58%, color-mix(in srgb, #88b9ff 36%, transparent));
@@ -541,7 +564,7 @@
   }
 
   &__cta-row--secondary {
-    min-height: 36px;
+    min-height: 38px;
   }
 
   &__button.MuiButton-root {
@@ -680,12 +703,6 @@
     color: color-mix(in srgb, #30496f 94%, #4f678f);
   }
 
-  .courses-preview__metric--section {
-    background: color-mix(in srgb, #f5f0ff 78%, #ffe7d4 22%);
-    border-color: color-mix(in srgb, #dab8ff 42%, #ffc792 28%);
-    color: color-mix(in srgb, #4a4f87 92%, #7f5f67);
-  }
-
   .courses-preview__button.MuiButton-root {
     color: #f7fbff !important;
     background: linear-gradient(136deg, #ff9a7a 0%, #ff7e7a 52%, #df6a95 100%) !important;
@@ -712,7 +729,7 @@
   }
 
   .courses-preview__secondary-sticker--reinforce .courses-preview__secondary-sticker-label {
-    background: linear-gradient(138deg, #6a95ff 0%, #8e84ff 56%, #56dcff 100%);
+    background: linear-gradient(138deg, #66cfff 0%, #8da3ff 56%, #ab7fff 100%);
   }
 
   .courses-preview__shelf::before {
@@ -756,7 +773,7 @@
 
   @media (max-width: 860px) {
   .courses-preview {
-    --preview-shelf-nav-size: 56px;
+    --preview-shelf-nav-size: 62px;
     --preview-content-max: 100%;
 
     padding-inline: 14px;
@@ -791,23 +808,23 @@
     }
 
     &__featured-zone--sticker {
-      top: -12px;
-      left: -10px;
+      top: -18px;
+      left: -14px;
     }
 
     &__sticker {
-      width: 86px;
-      height: 76px;
+      width: 104px;
+      height: 92px;
     }
 
     &__sticker::before,
     &__sticker::after {
-      width: 42px;
-      height: 64px;
+      width: 50px;
+      height: 78px;
     }
 
     &__sticker::before {
-      left: 38px;
+      left: 46px;
     }
 
     &__card--secondary.MuiCard-root {
@@ -815,8 +832,8 @@
     }
 
     &__secondary-sticker {
-      top: -8px;
-      left: 10px;
+      top: -10px;
+      left: 12px;
     }
 
     &__secondary-sticker-label {
@@ -878,27 +895,27 @@
     }
 
     &__featured-zone--sticker {
-      top: -10px;
-      left: -7px;
+      top: -11px;
+      left: -8px;
     }
 
     &__sticker {
-      width: 70px;
-      height: 62px;
+      width: 78px;
+      height: 70px;
     }
 
     &__sticker::before,
     &__sticker::after {
-      width: 36px;
-      height: 54px;
+      width: 38px;
+      height: 58px;
     }
 
     &__sticker::before {
-      left: 32px;
+      left: 36px;
     }
 
     &__sticker-label {
-      max-width: 50px;
+      max-width: 52px;
       font-size: 9px;
     }
 

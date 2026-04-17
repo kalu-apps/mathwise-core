@@ -10,9 +10,16 @@ import { CourseVisualBackground } from "@/entities/course/ui/CourseVisualBackgro
 function toCompactDescriptor(description: string) {
   const normalized = description.replace(/\s+/g, " ").trim();
   if (!normalized) return "Маршрут с практикой, материалами и понятной структурой.";
-  const sentence = normalized.split(/[.!?]/, 1)[0]?.trim() ?? normalized;
-  if (sentence.length <= 108) return sentence;
-  return `${sentence.slice(0, 105).trimEnd()}…`;
+  const parts = normalized
+    .split(/[.!?]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const richLine = parts.slice(0, 2).join(". ");
+  const candidate = richLine.length > 0 ? `${richLine}.` : normalized;
+
+  if (candidate.length <= 172) return candidate;
+  return `${candidate.slice(0, 169).trimEnd()}…`;
 }
 
 function toFormatLabel(course: Course) {
@@ -28,7 +35,7 @@ function toSupportLabel(course: Course) {
 function getSecondarySticker(index: number) {
   if (index % 2 === 0) {
     return {
-      label: "Больше возможностей",
+      label: "Расширенный тариф",
       variant: "extended",
     } as const;
   }
@@ -184,12 +191,12 @@ export function CoursesPreview() {
                 <CardContent className="courses-preview__content courses-preview__content--featured">
                   <div className="courses-preview__featured-zone courses-preview__featured-zone--sticker">
                     <span className="courses-preview__sticker" aria-hidden="true">
-                      <span className="courses-preview__sticker-label">Можно частями</span>
+                      <span className="courses-preview__sticker-label">Оплата частями</span>
                     </span>
                   </div>
 
                   <div className="courses-preview__featured-zone courses-preview__featured-zone--title">
-                    <h3 className="courses-preview__title">{page.featured.title}</h3>
+                    <h3 className="courses-preview__title courses-preview__title--featured">{page.featured.title}</h3>
                   </div>
 
                   <div className="courses-preview__featured-zone courses-preview__featured-zone--description">
@@ -244,6 +251,7 @@ export function CoursesPreview() {
 
                           <div className="courses-preview__secondary-main">
                             <h3 className="courses-preview__title courses-preview__title--secondary">{course.title}</h3>
+                            <p className="courses-preview__secondary-support">{course.supportLabel}</p>
                           </div>
 
                           <div className="courses-preview__secondary-footer">
