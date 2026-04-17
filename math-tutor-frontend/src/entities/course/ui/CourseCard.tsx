@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   IconButton,
   Tooltip,
@@ -41,6 +41,9 @@ type Props = {
   bnplAvailable?: boolean;
   bnplFromAmount?: number | null;
   showPrices?: boolean;
+  showPurchaseBadge?: boolean;
+  hideCta?: boolean;
+  clickable?: boolean;
   summaryMode?: "description" | "level";
   statusBelowTitle?: boolean;
   progressDetails?: PurchasedProgressDetails | null;
@@ -84,6 +87,9 @@ export function CourseCard({
   bnplAvailable = false,
   bnplFromAmount = null,
   showPrices = true,
+  showPurchaseBadge = true,
+  hideCta = false,
+  clickable = false,
   summaryMode = "description",
   statusBelowTitle = false,
   progressDetails = null,
@@ -93,7 +99,9 @@ export function CourseCard({
   onPublish,
 }: Props) {
   const location = useLocation();
+  const navigate = useNavigate();
   const resolvedFromPath = detailsFromPath ?? `${location.pathname}${location.search}`;
+  const detailsHref = `/courses/${course.id}`;
   const fromState = {
     from: resolvedFromPath,
   };
@@ -123,11 +131,34 @@ export function CourseCard({
   const compactMainPrice = Math.min(course.priceGuided, course.priceSelf);
   const compactSecondaryPrice = Math.max(course.priceGuided, course.priceSelf);
   const hasSecondaryPrice = compactSecondaryPrice > compactMainPrice;
+  const isCatalogCompact = clickable && hideCta && !showPrices && summaryMode === "level";
 
   return (
     <Paper
-      className={`course-card course-card--entity ${isCatalogCard ? "course-card--catalog" : ""}`}
+      className={`course-card course-card--entity ${isCatalogCard ? "course-card--catalog" : ""} ${
+        clickable ? "course-card--clickable" : ""
+      }`}
       elevation={0}
+      onClick={
+        clickable
+          ? () => {
+              navigate(detailsHref, { state: fromState });
+            }
+          : undefined
+      }
+      onKeyDown={
+        clickable
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                navigate(detailsHref, { state: fromState });
+              }
+            }
+          : undefined
+      }
+      tabIndex={clickable ? 0 : undefined}
+      role={clickable ? "button" : undefined}
+      aria-label={clickable ? `Открыть курс ${course.title}` : undefined}
       sx={{
         p: 2,
         borderRadius: 3,
@@ -145,7 +176,7 @@ export function CourseCard({
         backdropFilter: "blur(var(--glass-tier-1-blur))",
         transition: "transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease",
         "&:hover": {
-          transform: "translateY(-2px)",
+          transform: clickable ? "translateY(-3px) scale(1.018)" : "translateY(-2px)",
           borderColor:
             "color-mix(in srgb, var(--glass-tier-1-border) 84%, var(--accent-soft))",
           boxShadow:
@@ -154,14 +185,15 @@ export function CourseCard({
         minHeight: 180,
         position: "relative",
         isolation: "isolate",
-        opacity: locked && !isTeacherView ? 0.85 : 1,
+        opacity: locked && !isTeacherView ? 0.92 : 1,
+        cursor: clickable ? "pointer" : "default",
       }}
     >
       <CourseVisualBackground
         course={course}
         mode={isTeacherView ? "featured" : "card"}
       />
-      {!isTeacherView && locked && (
+      {!isTeacherView && locked && showPurchaseBadge && (
         <Box
           className="course-card__purchase-status"
           sx={{
@@ -228,6 +260,7 @@ export function CourseCard({
       )}
       {/* Левый контент */}
       <Box
+        className="course-card__content-col"
         sx={{
           flex: 1,
           pr: isTeacherView ? 2 : isPurchasedStudentCard ? { md: 2, xs: 0 } : 0,
@@ -240,8 +273,74 @@ export function CourseCard({
         }}
       >
         {/* Название и описание */}
+        {clickable ? (
+          <Box>
+            <Typography
+              variant="h6"
+              className="course-card__title"
+              sx={{
+                fontWeight: 740,
+                color: "var(--text-primary)",
+                mb: 1,
+                display: "flex",
+                width: "fit-content",
+                alignItems: "center",
+                gap: 0.75,
+              }}
+            >
+              {course.title}
+              {!isTeacherView && isPremium && (
+                <DiamondRoundedIcon
+                  sx={{
+                    color: "var(--feedback-warning)",
+                    fontSize: 20,
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+            </Typography>
+
+            {showStatus && statusBelowTitle ? (
+              <Chip
+                label={course.status === "draft" ? "Черновик" : "Опубликован"}
+                color={course.status === "draft" ? "warning" : "success"}
+                size="small"
+                sx={{ mb: 1 }}
+              />
+            ) : null}
+
+            {summaryMode === "level" ? (
+              <Typography
+                variant="body2"
+                className="course-card__summary course-card__summary--level"
+                sx={{
+                  color: "var(--text-secondary)",
+                  mb: 1,
+                  fontWeight: 700,
+                }}
+              >
+                Уровень: {course.level}
+              </Typography>
+            ) : (
+              <Typography
+                variant="body2"
+                className="course-card__summary course-card__summary--description"
+                sx={{
+                  color: "var(--text-secondary)",
+                  mb: 1,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
+                {course.description}
+              </Typography>
+            )}
+          </Box>
+        ) : (
         <Link
-          to={`/courses/${course.id}`}
+          to={detailsHref}
           state={fromState}
           style={{ textDecoration: "none" }}
         >
@@ -308,8 +407,9 @@ export function CourseCard({
             </Typography>
           )}
         </Link>
+        )}
 
-        {isCatalogCard && (
+        {!isCatalogCompact && isCatalogCard && (
           <Stack
             direction="row"
             spacing={0.75}
@@ -336,7 +436,7 @@ export function CourseCard({
         )}
 
         {/* Цены */}
-        {showPrices ? (
+        {!isCatalogCompact && showPrices ? (
           <Box
             className="course-card__price-zone"
             sx={{
@@ -394,32 +494,34 @@ export function CourseCard({
         ) : null}
 
         {/* Мета информация с статусом на одной линии */}
-        <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-          {summaryMode !== "level" ? (
-            <Typography variant="caption" color="text.secondary">
-              Уровень: {course.level}
-            </Typography>
-          ) : null}
-          {(isTeacherView || hasPurchasedProgress) && showLessonsCount && (
-            <Typography variant="caption" color="text.secondary">
-              Уроков: {lessonsCount}
-            </Typography>
-          )}
-          {(isTeacherView || hasPurchasedProgress) && testsCount > 0 && !hasPurchasedProgress && (
-            <Typography variant="caption" color="text.secondary">
-              Тестов: {testsCount}
-            </Typography>
-          )}
-          {showStatus && !statusBelowTitle && (
-            <Chip
-              label={course.status === "draft" ? "Черновик" : "Опубликован"}
-              color={course.status === "draft" ? "warning" : "success"}
-              size="small"
-            />
-          )}
-        </Stack>
+        {!isCatalogCompact && (
+          <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+            {summaryMode !== "level" ? (
+              <Typography variant="caption" color="text.secondary">
+                Уровень: {course.level}
+              </Typography>
+            ) : null}
+            {(isTeacherView || hasPurchasedProgress) && showLessonsCount && (
+              <Typography variant="caption" color="text.secondary">
+                Уроков: {lessonsCount}
+              </Typography>
+            )}
+            {(isTeacherView || hasPurchasedProgress) && testsCount > 0 && !hasPurchasedProgress && (
+              <Typography variant="caption" color="text.secondary">
+                Тестов: {testsCount}
+              </Typography>
+            )}
+            {showStatus && !statusBelowTitle && (
+              <Chip
+                label={course.status === "draft" ? "Черновик" : "Опубликован"}
+                color={course.status === "draft" ? "warning" : "success"}
+                size="small"
+              />
+            )}
+          </Stack>
+        )}
 
-        {!isTeacherView && hasPurchasedProgress ? (
+        {!isCatalogCompact && !isTeacherView && hasPurchasedProgress ? (
           <Box sx={{ mt: 1.25, display: "grid", gap: 1 }}>
             <Typography
               variant="caption"
@@ -656,10 +758,10 @@ export function CourseCard({
       )}
 
       {/* Кнопка "Подробнее" для каталога */}
-      {!isTeacherView && !isPurchasedStudentCard && (
+      {!isCatalogCompact && !isTeacherView && !isPurchasedStudentCard && !hideCta && (
         <Box mt={1} className="course-card__cta-slot">
           <Link
-            to={`/courses/${course.id}`}
+            to={detailsHref}
             state={fromState}
             className="course-card__cta-link course-card__cta-link--details"
             style={{

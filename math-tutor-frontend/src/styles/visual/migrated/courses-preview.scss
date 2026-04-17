@@ -103,7 +103,7 @@
     z-index: 1;
     width: min(100%, var(--preview-content-max));
     margin: 0 auto;
-    padding-inline: calc(var(--preview-shelf-nav-size) + 18px);
+    padding-inline: 0;
     margin-top: 10px;
     overflow: visible;
 
@@ -119,6 +119,10 @@
     &::after {
       right: 0;
     }
+  }
+
+  &__shelf--with-nav {
+    padding-inline: calc(var(--preview-shelf-nav-size) + 14px);
   }
 
   &__shelf-nav.MuiIconButton-root {
@@ -138,7 +142,7 @@
     filter: none;
 
     .MuiSvgIcon-root {
-      font-size: 54px;
+      font-size: clamp(58px, 4vw, 72px);
     }
 
     &:hover:not(.Mui-disabled) {
@@ -155,17 +159,17 @@
     }
 
     &.is-inactive {
-      opacity: 0.62;
-      color: color-mix(in srgb, var(--text-secondary) 88%, #b3c5e9) !important;
+      opacity: 0.84;
+      color: color-mix(in srgb, var(--text-secondary) 94%, #c8d8f4) !important;
     }
   }
 
   &__shelf-nav--prev {
-    left: calc(var(--preview-shelf-nav-size) * -0.72);
+    left: 10px;
   }
 
   &__shelf-nav--next {
-    right: calc(var(--preview-shelf-nav-size) * -0.72);
+    right: 10px;
   }
 
   &__rail {
@@ -840,6 +844,10 @@
       padding-right: 6px;
       padding-top: 48px;
       margin-top: 0;
+    }
+
+    &__shelf--with-nav {
+      padding-inline: calc(var(--preview-shelf-nav-size) + 8px);
     }
 
     &__page {

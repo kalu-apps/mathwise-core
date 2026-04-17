@@ -71,8 +71,11 @@ export function CoursesPreview() {
     Record<string, { lessonsCount: number; testsCount: number }>
   >({});
   const railRef = useRef<HTMLDivElement | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const autoDirectionRef = useRef<"next" | "prev">("next");
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
+  const [isInViewport, setIsInViewport] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -216,11 +219,60 @@ export function CoursesPreview() {
 
     return pages;
   }, [previewCards]);
+  const hasMultiplePages = previewPages.length > 1;
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInViewport(entry.isIntersecting && entry.intersectionRatio >= 0.38);
+      },
+      {
+        root: null,
+        rootMargin: "0px 0px -8% 0px",
+        threshold: [0.2, 0.38, 0.55],
+      }
+    );
+
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!hasMultiplePages || !isInViewport) return;
+
+    const intervalMs = 7600;
+    const tick = () => {
+      const rail = railRef.current;
+      if (!rail) return;
+
+      const maxScrollLeft = Math.max(0, rail.scrollWidth - rail.clientWidth);
+      if (maxScrollLeft <= 2) return;
+
+      const tolerance = 5;
+      if (rail.scrollLeft >= maxScrollLeft - tolerance) {
+        autoDirectionRef.current = "prev";
+      } else if (rail.scrollLeft <= tolerance) {
+        autoDirectionRef.current = "next";
+      }
+
+      const amount = Math.max(rail.clientWidth * 0.78, 280);
+      rail.scrollBy({
+        left: autoDirectionRef.current === "next" ? amount : -amount,
+        behavior: "smooth",
+      });
+    };
+
+    const intervalId = window.setInterval(tick, intervalMs);
+    return () => window.clearInterval(intervalId);
+  }, [hasMultiplePages, isInViewport]);
 
   if (!previewPages.length) return null;
 
   return (
-    <section className="courses-preview">
+    <section className="courses-preview" ref={sectionRef}>
       <div className="courses-preview__header">
         <div className="courses-preview__copy">
           <h2 className="courses-preview__heading">Выберите курс и двигайтесь по плану</h2>
@@ -239,21 +291,29 @@ export function CoursesPreview() {
         </div>
       </div>
 
-      <div className="courses-preview__shelf">
-        <IconButton
-          onClick={() => {
-            if (!canScrollPrev) return;
-            scrollRailByDirection("prev");
-          }}
-          className={`courses-preview__shelf-nav courses-preview__shelf-nav--prev ${
-            canScrollPrev ? "" : "is-inactive"
-          }`}
-          aria-label="Прокрутить курсы влево"
-          disableRipple
-          disableTouchRipple
-        >
-          <ChevronLeftRoundedIcon />
-        </IconButton>
+      <div
+        className={`courses-preview__shelf ${
+          hasMultiplePages
+            ? "courses-preview__shelf--with-nav"
+            : "courses-preview__shelf--without-nav"
+        }`}
+      >
+        {hasMultiplePages ? (
+          <IconButton
+            onClick={() => {
+              if (!canScrollPrev) return;
+              scrollRailByDirection("prev");
+            }}
+            className={`courses-preview__shelf-nav courses-preview__shelf-nav--prev ${
+              canScrollPrev ? "" : "is-inactive"
+            }`}
+            aria-label="Прокрутить курсы влево"
+            disableRipple
+            disableTouchRipple
+          >
+            <ChevronLeftRoundedIcon />
+          </IconButton>
+        ) : null}
 
         <div className="courses-preview__rail" ref={railRef}>
           {previewPages.map((page, pageIndex) => (
@@ -363,20 +423,22 @@ export function CoursesPreview() {
           ))}
         </div>
 
-        <IconButton
-          className={`courses-preview__shelf-nav courses-preview__shelf-nav--next ${
-            canScrollNext ? "" : "is-inactive"
-          }`}
-          onClick={() => {
-            if (!canScrollNext) return;
-            scrollRailByDirection("next");
-          }}
-          aria-label="Прокрутить курсы вправо"
-          disableRipple
-          disableTouchRipple
-        >
-          <ChevronRightRoundedIcon />
-        </IconButton>
+        {hasMultiplePages ? (
+          <IconButton
+            className={`courses-preview__shelf-nav courses-preview__shelf-nav--next ${
+              canScrollNext ? "" : "is-inactive"
+            }`}
+            onClick={() => {
+              if (!canScrollNext) return;
+              scrollRailByDirection("next");
+            }}
+            aria-label="Прокрутить курсы вправо"
+            disableRipple
+            disableTouchRipple
+          >
+            <ChevronRightRoundedIcon />
+          </IconButton>
+        ) : null}
       </div>
     </section>
   );

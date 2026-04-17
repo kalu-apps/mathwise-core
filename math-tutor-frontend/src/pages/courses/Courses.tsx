@@ -37,7 +37,6 @@ import {
 } from "@/features/assessments/model/storage";
 import { buildPublishedCourseContentProjection } from "@/features/assessments/model/releaseContent";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
-import { getMyCapabilities } from "@/features/capabilities/model/api";
 import { resolveCourseVisualArchetype } from "@/entities/course/model/courseVisuals";
 
 const toApproxMonthly = (fromAmount: number | null, periodLabel: string) => {
@@ -71,7 +70,6 @@ export default function Courses() {
   const [lessonCounts, setLessonCounts] = useState<Record<string, number>>({});
   const [purchasedIds, setPurchasedIds] = useState<string[]>([]);
   const [progressMap, setProgressMap] = useState<Record<string, number>>({});
-  const [premiumMap, setPremiumMap] = useState<Record<string, boolean>>({});
   const [purchasedProgressMap, setPurchasedProgressMap] = useState<
     Record<
       string,
@@ -230,16 +228,13 @@ export default function Courses() {
     try {
       setLoading(true);
       setPageError(null);
-      const [coursesData, lessons, purchases, accessData, capabilities] = await Promise.all([
+      const [coursesData, lessons, purchases, accessData] = await Promise.all([
         getCourses({ forceFresh: true }),
         getLessons({ forceFresh: true }),
         user?.role === "student"
           ? getPurchases({ userId: user.id }, { forceFresh: true })
           : Promise.resolve([]),
         getCourseAccessList(),
-        user?.role === "student"
-          ? getMyCapabilities({ forceFresh: true })
-          : Promise.resolve(null),
       ]);
       const accessByCourse = accessData.decisions.reduce<
         Record<string, CourseAccessDecision>
@@ -276,15 +271,6 @@ export default function Courses() {
           })
           .filter((course): course is Course => Boolean(course));
         setPurchasedCourses(purchasedCards);
-
-        const premiumCourseIds = new Set(capabilities?.premiumCourseIds ?? []);
-        const premiumLookup = uniquePurchases.reduce<Record<string, boolean>>((acc, purchase) => {
-          acc[purchase.courseId] =
-            premiumCourseIds.has(purchase.courseId) ||
-            purchase.tariff === "premium";
-          return acc;
-        }, {});
-        setPremiumMap(premiumLookup);
 
         const progressEntries = await Promise.all(
           uniquePurchases.map(async (purchase) => {
@@ -416,7 +402,6 @@ export default function Courses() {
         setPurchasedIds([]);
         setPurchasedCourses([]);
         setProgressMap({});
-        setPremiumMap({});
         setPurchasedProgressMap({});
       }
     } catch (error) {
@@ -542,56 +527,51 @@ export default function Courses() {
           </div>
         )}
 
-        <div className="courses-page__controls">
-          <div className="courses-page__controls-main">
-            <div className="courses-page__search">
-              <TextField
-                placeholder="Поиск курса..."
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setPage(1);
-                }}
-                fullWidth
-                inputProps={{ "aria-label": "Поиск курса" }}
-                InputProps={{
-                  endAdornment: query ? (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="Очистить поиск"
-                        onClick={() => {
-                          setQuery("");
-                          setPage(1);
-                        }}
-                        edge="end"
-                        size="small"
-                      >
-                        <CloseRoundedIcon fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ) : null,
-                }}
-              />
-            </div>
-
-          </div>
-
-          <div className="courses-page__controls-side">
+        <div className="courses-page__toolbar">
+          <div className="courses-page__search">
             <TextField
-              select
-              size="small"
-              value={sortBy}
-              onChange={(event) => setSortBy(event.target.value as CatalogSort)}
-              className="courses-page__sort"
-              inputProps={{ "aria-label": "Сортировка курсов" }}
-            >
-              <MenuItem value="recommended">Рекомендуемые</MenuItem>
-              <MenuItem value="titleAsc">По названию: А-Я</MenuItem>
-              <MenuItem value="titleDesc">По названию: Я-А</MenuItem>
-              <MenuItem value="priceAsc">Цена: сначала ниже</MenuItem>
-              <MenuItem value="priceDesc">Цена: сначала выше</MenuItem>
-            </TextField>
+              placeholder="Поиск курса..."
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(1);
+              }}
+              fullWidth
+              inputProps={{ "aria-label": "Поиск курса" }}
+              InputProps={{
+                endAdornment: query ? (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="Очистить поиск"
+                      onClick={() => {
+                        setQuery("");
+                        setPage(1);
+                      }}
+                      edge="end"
+                      size="small"
+                    >
+                      <CloseRoundedIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+              }}
+            />
           </div>
+
+          <TextField
+            select
+            size="small"
+            value={sortBy}
+            onChange={(event) => setSortBy(event.target.value as CatalogSort)}
+            className="courses-page__sort"
+            inputProps={{ "aria-label": "Сортировка курсов" }}
+          >
+            <MenuItem value="recommended">Рекомендуемые</MenuItem>
+            <MenuItem value="titleAsc">По названию: А-Я</MenuItem>
+            <MenuItem value="titleDesc">По названию: Я-А</MenuItem>
+            <MenuItem value="priceAsc">Цена: сначала ниже</MenuItem>
+            <MenuItem value="priceDesc">Цена: сначала выше</MenuItem>
+          </TextField>
         </div>
 
         {loading && courses.length === 0 ? (
@@ -606,14 +586,7 @@ export default function Courses() {
           >
             {pagedCourses.map((course) => {
               const isTeacher = user?.role === "teacher";
-              const decision = accessMap[course.id];
               const locked = isTeacher ? false : isCourseLocked(course.id);
-              const progress =
-                user?.role === "student" &&
-                decision?.canAccessAllLessons !== false &&
-                !locked
-                  ? progressMap[course.id] ?? 0
-                  : null;
               const bnplMarketing = selectBnplMarketingInfo(
                 Math.min(course.priceSelf, course.priceGuided)
               );
@@ -643,19 +616,22 @@ export default function Courses() {
                   lessonsCount={lessonCounts[course.id] ?? 0}
                   showLessonsCount={false}
                   locked={locked}
-                  progress={progress}
+                  progress={null}
                   ctaLabel={isPurchasedCard ? purchasedCtaLabel : ctaLabel}
-                  isPremium={premiumMap[course.id] ?? false}
+                  isPremium={false}
                   bnplAvailable={bnplMarketing.isAvailable}
                   bnplFromAmount={bnplFromMonthly}
-                  showPrices={!isPurchasedCard}
+                  showPrices={false}
                   summaryMode="level"
-                  progressDetails={isPurchasedCard ? purchasedProgress : null}
+                  progressDetails={null}
                   detailsFromPath={
                     isStudent
                       ? `/courses?tab=${isPurchasedCard ? "purchased" : "notPurchased"}`
                       : undefined
                   }
+                  showPurchaseBadge={false}
+                  hideCta
+                  clickable
                 />
               );
             })}
