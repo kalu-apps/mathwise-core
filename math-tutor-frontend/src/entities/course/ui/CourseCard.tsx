@@ -160,6 +160,7 @@ export function CourseCard({
       />
       {!isTeacherView && locked && (
         <Box
+          className="course-card__purchase-status"
           sx={{
             position: "absolute",
             top: 14,
@@ -243,6 +244,7 @@ export function CourseCard({
         >
           <Typography
             variant="h6"
+            className="course-card__title"
             sx={{
               fontWeight: 740,
               color: "var(--text-primary)",
@@ -277,6 +279,7 @@ export function CourseCard({
           {summaryMode === "level" ? (
             <Typography
               variant="body2"
+              className="course-card__summary course-card__summary--level"
               sx={{
                 color: "var(--text-secondary)",
                 mb: 1,
@@ -288,6 +291,7 @@ export function CourseCard({
           ) : (
             <Typography
               variant="body2"
+              className="course-card__summary course-card__summary--description"
               sx={{
                 color: "var(--text-secondary)",
                 mb: 1,
@@ -324,6 +328,7 @@ export function CourseCard({
               <Stack direction="row" spacing={0.55} alignItems="center">
                 <Typography
                   variant="caption"
+                  className="course-card__price-label"
                   sx={{
                     fontSize: 11,
                     letterSpacing: "0.02em",
@@ -346,6 +351,7 @@ export function CourseCard({
               </Stack>
               <Typography
                 component="strong"
+                className="course-card__price-main"
                 sx={{
                   fontSize: { xs: 24, md: 26 },
                   fontWeight: 860,
@@ -371,6 +377,7 @@ export function CourseCard({
             >
               <Typography
                 variant="caption"
+                className="course-card__price-sub-label"
                 sx={{
                   fontSize: 11,
                   letterSpacing: "0.02em",
@@ -382,6 +389,7 @@ export function CourseCard({
               </Typography>
               <Typography
                 component="span"
+                className="course-card__price-secondary"
                 sx={{
                   fontSize: { xs: 18, md: 19 },
                   fontWeight: 700,
@@ -410,6 +418,7 @@ export function CourseCard({
               >
                 <Typography
                   component="span"
+                  className="course-card__bnpl-note"
                   sx={{
                     position: "relative",
                     display: "inline-flex",
@@ -507,6 +516,7 @@ export function CourseCard({
               <Link
                 to={`/courses/${course.id}`}
                 state={fromState}
+                className="course-card__cta-link course-card__cta-link--continue"
                 style={{
                   textDecoration: "none",
                   background: "var(--btn-primary-bg)",
@@ -705,10 +715,11 @@ export function CourseCard({
 
       {/* Кнопка "Подробнее" для каталога */}
       {!isTeacherView && !isPurchasedStudentCard && (
-        <Box mt={1}>
+        <Box mt={1} className="course-card__cta-slot">
           <Link
             to={`/courses/${course.id}`}
             state={fromState}
+            className="course-card__cta-link course-card__cta-link--details"
             style={{
               textDecoration: "none",
               background: "var(--btn-primary-bg)",

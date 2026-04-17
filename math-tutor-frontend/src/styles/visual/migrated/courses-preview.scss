@@ -38,15 +38,19 @@
 
   &__heading {
     margin: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
     font-size: clamp(24px, 2.85vw, 33px);
-    line-height: 1.06;
-    letter-spacing: -0.02em;
+    line-height: 1.08;
+    letter-spacing: -0.016em;
     color: color-mix(in srgb, var(--text-primary) 95%, #e2ecff);
     text-wrap: balance;
   }
 
   &__subtitle {
     margin: 8px 0 0;
+    font-family: var(--font-ui);
+    font-weight: 480;
     font-size: 14px;
     line-height: 1.44;
     color: color-mix(in srgb, var(--text-secondary) 88%, #cedbfd);
@@ -66,7 +70,7 @@
     padding: 0 15px !important;
     text-transform: none !important;
     font-size: 13.8px !important;
-    font-weight: 660 !important;
+    font-weight: 640 !important;
     letter-spacing: 0.005em;
     color: color-mix(in srgb, #f7fbff 96%, #edf4ff) !important;
     background: linear-gradient(
@@ -174,7 +178,7 @@
     gap: 0;
     overflow-x: auto;
     overflow-y: visible;
-    padding-top: 34px;
+    padding-top: 68px;
     margin-top: 0;
     overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory;
@@ -196,6 +200,7 @@
     scroll-snap-align: start;
     scroll-snap-stop: always;
     padding: 2px;
+    overflow: visible;
   }
 
   &__page--single {
@@ -207,6 +212,7 @@
     display: grid;
     grid-template-rows: repeat(2, minmax(0, 1fr));
     gap: 12px;
+    overflow: visible;
   }
 
   &__card.MuiCard-root {
@@ -248,7 +254,7 @@
 
   &__card--featured.MuiCard-root {
     min-height: 336px;
-    overflow: visible;
+    overflow: visible !important;
     border-color: color-mix(in srgb, var(--accent-primary) 52%, var(--border-subtle)) !important;
     background: linear-gradient(
       146deg,
@@ -308,6 +314,7 @@
   &__content--featured.MuiCardContent-root {
     padding: 17px 18px !important;
     gap: 10px;
+    overflow: visible;
   }
 
   &__content--secondary.MuiCardContent-root {
@@ -322,10 +329,11 @@
   &__featured-zone--sticker {
     min-height: 0;
     position: absolute;
-    top: -30px;
-    left: -24px;
+    top: -24px;
+    left: -18px;
     z-index: 4;
     pointer-events: none;
+    overflow: visible;
   }
 
   &__featured-zone--main {
@@ -353,8 +361,8 @@
     align-items: center;
     justify-content: center;
     position: relative;
-    width: 78px;
-    height: 68px;
+    width: 104px;
+    height: 92px;
     transform: rotate(-16deg);
     transform-origin: left center;
     filter: drop-shadow(0 12px 18px color-mix(in srgb, #ff7d8f 38%, transparent));
@@ -363,10 +371,10 @@
     &::after {
       content: "";
       position: absolute;
-      width: 40px;
-      height: 60px;
-      top: 2px;
-      border-radius: 40px 40px 0 0;
+      width: 52px;
+      height: 78px;
+      top: 4px;
+      border-radius: 44px 44px 0 0;
       background: linear-gradient(162deg, #ff6d8f 0%, #ff7c7d 52%, #ffb46e 100%);
       box-shadow:
         0 12px 20px color-mix(in srgb, #ff7390 36%, transparent),
@@ -374,13 +382,13 @@
     }
 
     &::before {
-      left: 36px;
+      left: 48px;
       transform: rotate(-45deg);
       transform-origin: 0 100%;
     }
 
     &::after {
-      left: 2px;
+      left: 3px;
       transform: rotate(45deg);
       transform-origin: 100% 100%;
     }
@@ -388,20 +396,25 @@
 
   &__title {
     margin: 0;
+    font-family: var(--font-display);
+    font-weight: 680;
     font-size: 20px;
-    line-height: 1.12;
-    letter-spacing: -0.015em;
+    line-height: 1.14;
+    letter-spacing: -0.012em;
     color: color-mix(in srgb, var(--text-primary) 99%, #f0f5ff);
     text-wrap: balance;
   }
 
   &__title--secondary {
+    font-weight: 650;
     font-size: 17px;
-    line-height: 1.15;
+    line-height: 1.17;
   }
 
   &__descriptor {
     margin: 0;
+    font-family: var(--font-ui);
+    font-weight: 470;
     font-size: 13px;
     line-height: 1.4;
     color: color-mix(in srgb, var(--text-secondary) 93%, #dde6ff);
@@ -678,6 +691,10 @@
       justify-content: flex-end;
     }
 
+    &__rail {
+      padding-top: 56px;
+    }
+
     &__page {
       min-height: auto;
       grid-template-columns: minmax(0, 1fr);
@@ -693,23 +710,23 @@
     }
 
     &__featured-zone--sticker {
-      top: -24px;
-      left: -18px;
+      top: -14px;
+      left: -12px;
     }
 
     &__sticker {
-      width: 66px;
-      height: 58px;
+      width: 86px;
+      height: 76px;
     }
 
     &__sticker::before,
     &__sticker::after {
-      width: 34px;
-      height: 52px;
+      width: 42px;
+      height: 64px;
     }
 
     &__sticker::before {
-      left: 30px;
+      left: 38px;
     }
 
     &__card--secondary.MuiCard-root {
@@ -732,7 +749,7 @@
 
     &__rail {
       padding-right: 6px;
-      padding-top: 22px;
+      padding-top: 48px;
       margin-top: 0;
     }
 
@@ -769,23 +786,23 @@
     }
 
     &__featured-zone--sticker {
-      top: -18px;
-      left: -12px;
+      top: -10px;
+      left: -8px;
     }
 
     &__sticker {
-      width: 56px;
-      height: 50px;
+      width: 70px;
+      height: 62px;
     }
 
     &__sticker::before,
     &__sticker::after {
-      width: 30px;
-      height: 44px;
+      width: 36px;
+      height: 54px;
     }
 
     &__sticker::before {
-      left: 24px;
+      left: 32px;
     }
   }
 }

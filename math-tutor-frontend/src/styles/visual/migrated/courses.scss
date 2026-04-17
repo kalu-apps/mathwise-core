@@ -1,18 +1,18 @@
 .courses-page {
   width: 100%;
-  padding: 42px 0 80px;
+  padding: 30px 0 64px;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--bg-canvas-soft) 90%, var(--surface-soft)),
-    color-mix(in srgb, var(--surface-soft) 94%, var(--bg-canvas))
+    color-mix(in srgb, var(--bg-canvas-soft) 92%, var(--surface-soft)),
+    color-mix(in srgb, var(--surface-soft) 96%, var(--bg-canvas))
   );
 
   &__container {
-    max-width: 1320px;
+    max-width: 1380px;
     margin: 0 auto;
-    padding: 0 24px;
+    padding: 0 26px;
     display: grid;
-    gap: 18px;
+    gap: 14px;
 
     @media (max-width: 900px) {
       padding: 0 16px;
@@ -23,9 +23,9 @@
   &__hero {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
-    gap: 24px;
-    margin-bottom: 6px;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 2px;
 
     @media (max-width: 900px) {
       flex-direction: column;
@@ -35,26 +35,28 @@
   }
 
   &__hero-copy {
-    max-width: 840px;
+    max-width: 900px;
     display: grid;
-    gap: 12px;
+    gap: 9px;
   }
 
   &__title {
     margin: 0;
-    font-size: clamp(30px, 3.3vw, 44px);
-    line-height: 1.05;
+    font-family: var(--font-display);
+    font-size: clamp(30px, 3.2vw, 42px);
+    line-height: 1.04;
     letter-spacing: -0.03em;
-    font-weight: 840;
-    color: color-mix(in srgb, var(--text-primary) 88%, #36507a);
+    font-weight: 760;
+    color: color-mix(in srgb, var(--text-primary) 74%, #435f8f);
   }
 
   &__subtitle {
     margin: 0;
-    max-width: 760px;
-    font-size: clamp(14px, 1.35vw, 17px);
+    font-family: var(--font-ui);
+    max-width: 740px;
+    font-size: clamp(14px, 1.25vw, 16px);
     line-height: 1.45;
-    color: color-mix(in srgb, var(--text-secondary) 86%, #5e77a1);
+    color: color-mix(in srgb, var(--text-secondary) 80%, #617eae);
   }
 
   &__hero-summary {
@@ -158,58 +160,82 @@
 
   &__controls {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 16px;
-    align-items: start;
-    padding: 14px;
-    border-radius: 16px;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
-    background: color-mix(in srgb, var(--surface-elevated) 90%, #f8fbff);
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 248px);
+    gap: 12px;
+    align-items: end;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 58%, transparent);
+    background: linear-gradient(
+      154deg,
+      color-mix(in srgb, var(--surface-elevated) 78%, transparent) 0%,
+      color-mix(in srgb, var(--surface-elevated) 66%, transparent) 100%
+    );
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 22%, transparent);
 
     @media (max-width: 900px) {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  &__controls-main {
-    display: grid;
-    gap: 10px;
-  }
-
-  &__controls-side {
-    display: grid;
-    justify-items: end;
-    gap: 8px;
-    min-width: 220px;
-
-    @media (max-width: 900px) {
-      min-width: 0;
-      justify-items: start;
-      grid-template-columns: minmax(0, 1fr) auto;
-      width: 100%;
-      align-items: end;
-    }
-
-    @media (max-width: 640px) {
       grid-template-columns: 1fr;
       align-items: stretch;
     }
   }
 
-  &__sort-label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    color: color-mix(in srgb, var(--text-muted) 88%, #718bb7);
-    text-transform: uppercase;
-    line-height: 1;
+  &__controls-main {
+    display: grid;
+    gap: 8px;
+  }
+
+  &__controls-side {
+    display: grid;
+    justify-items: stretch;
+    align-content: start;
+    gap: 6px;
+    min-width: 0;
+
+    @media (max-width: 900px) {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: "sort meta";
+      align-items: center;
+      gap: 10px;
+    }
+
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "sort"
+        "meta";
+      align-items: stretch;
+    }
+  }
+
+  &__controls-meta {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 6px;
+    min-height: 18px;
+
+    @media (max-width: 900px) {
+      grid-area: meta;
+      justify-content: flex-end;
+    }
+
+    @media (max-width: 640px) {
+      justify-content: flex-start;
+    }
   }
 
   &__results {
     font-size: 12px;
-    font-weight: 680;
-    color: var(--text-muted);
+    font-weight: 700;
+    color: color-mix(in srgb, var(--text-secondary) 84%, #607ca9);
     letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+
+  &__results-total {
+    font-size: 11px;
+    font-weight: 620;
+    color: color-mix(in srgb, var(--text-muted) 86%, #7b94bc);
     white-space: nowrap;
   }
 
@@ -221,45 +247,48 @@
     }
 
     .MuiOutlinedInput-root {
-      min-height: 46px;
-      border-radius: 13px;
-      background: color-mix(in srgb, var(--surface-soft) 94%, #ffffff);
+      min-height: 42px;
+      border-radius: 11px;
+      background: color-mix(in srgb, var(--surface-soft) 88%, #ffffff);
       box-shadow: none;
 
       .MuiOutlinedInput-notchedOutline {
-        border-color: color-mix(in srgb, var(--border-subtle) 78%, transparent);
+        border-color: color-mix(in srgb, var(--border-subtle) 64%, transparent);
       }
 
       &:hover .MuiOutlinedInput-notchedOutline,
       &.Mui-focused .MuiOutlinedInput-notchedOutline {
-        border-color: color-mix(in srgb, var(--border-strong) 82%, var(--brand-soft));
+        border-color: color-mix(in srgb, var(--border-strong) 64%, var(--brand-soft));
         border-width: 1px;
       }
     }
 
     .MuiInputBase-input {
-      font-size: 14px;
-      font-weight: 520;
-      color: var(--text-primary);
+      font-size: 13.5px;
+      font-weight: 540;
+      line-height: 1.35;
+      color: color-mix(in srgb, var(--text-primary) 78%, #4e6995);
+      padding-top: 10px;
+      padding-bottom: 10px;
     }
   }
 
   &__chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
   }
 
   &__chip {
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 82%, transparent);
-    background: color-mix(in srgb, var(--surface-soft) 88%, transparent);
-    color: var(--text-secondary);
-    border-radius: 999px;
-    min-height: 32px;
-    padding: 0 12px;
-    font-size: 12px;
-    font-weight: 650;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 64%, transparent);
+    background: color-mix(in srgb, var(--surface-soft) 82%, transparent);
+    color: color-mix(in srgb, var(--text-secondary) 86%, #5d79a6);
+    border-radius: 10px;
+    min-height: 29px;
+    padding: 0 11px;
+    font-size: 11.5px;
+    font-weight: 620;
     line-height: 1;
     display: inline-flex;
     align-items: center;
@@ -267,14 +296,14 @@
     transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
 
     &:hover {
-      color: var(--text-primary);
-      border-color: color-mix(in srgb, var(--border-strong) 80%, var(--brand-soft));
+      color: color-mix(in srgb, var(--text-primary) 80%, #4a648f);
+      border-color: color-mix(in srgb, var(--border-strong) 64%, var(--brand-soft));
     }
 
     &.is-active {
-      color: var(--accent-text);
-      border-color: color-mix(in srgb, var(--brand-solid) 52%, var(--border-strong));
-      background: color-mix(in srgb, var(--brand-soft) 28%, transparent);
+      color: color-mix(in srgb, var(--accent-text) 84%, #506dab);
+      border-color: color-mix(in srgb, var(--brand-solid) 42%, var(--border-strong));
+      background: color-mix(in srgb, var(--brand-soft) 18%, transparent);
     }
   }
 
@@ -283,45 +312,44 @@
   }
 
   &__sort {
-    width: 220px;
+    width: 100%;
+    grid-area: sort;
 
     @media (max-width: 640px) {
       width: 100%;
     }
 
     .MuiInputBase-root {
-      border-radius: 12px;
-      background: color-mix(in srgb, var(--surface-soft) 94%, #ffffff);
+      min-height: 40px;
+      border-radius: 11px;
+      background: color-mix(in srgb, var(--surface-soft) 88%, #ffffff);
     }
 
     .MuiOutlinedInput-notchedOutline {
-      border-color: color-mix(in srgb, var(--border-subtle) 80%, transparent);
+      border-color: color-mix(in srgb, var(--border-subtle) 64%, transparent);
     }
 
     .Mui-focused .MuiOutlinedInput-notchedOutline {
       border-width: 1px;
-      border-color: color-mix(in srgb, var(--border-strong) 82%, var(--brand-soft));
+      border-color: color-mix(in srgb, var(--border-strong) 64%, var(--brand-soft));
     }
 
     .MuiSelect-select {
-      font-weight: 640;
-      color: color-mix(in srgb, var(--text-primary) 86%, #4a628d);
-      padding-top: 10px;
-      padding-bottom: 10px;
+      font-size: 13.5px;
+      font-weight: 620;
+      color: color-mix(in srgb, var(--text-primary) 78%, #4f6a96);
+      padding-top: 8px;
+      padding-bottom: 8px;
     }
   }
 
   &__grid {
     display: grid;
-    gap: 16px;
+    gap: 14px;
   }
 
   &__grid--catalog {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-
-    @media (max-width: 1220px) {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
 
     @media (max-width: 760px) {
       grid-template-columns: 1fr;
@@ -329,7 +357,7 @@
   }
 
   &__grid--purchased {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
 
     @media (max-width: 980px) {
       grid-template-columns: 1fr;
@@ -350,37 +378,43 @@
 }
 
 .courses-page .course-card--entity {
-  min-height: 250px !important;
+  min-height: 268px !important;
   border-radius: 18px !important;
-  padding: 16px !important;
-  border: 1px solid color-mix(in srgb, var(--glass-tier-1-border) 66%, var(--border-subtle)) !important;
+  padding: 18px !important;
+  border: 1px solid color-mix(in srgb, var(--glass-tier-1-border) 72%, var(--border-subtle)) !important;
   background: linear-gradient(
       155deg,
-      color-mix(in srgb, var(--surface-elevated) 94%, #ffffff),
-      color-mix(in srgb, var(--surface-soft) 92%, #f6faff)
+      color-mix(in srgb, var(--surface-elevated) 96%, #ffffff),
+      color-mix(in srgb, var(--surface-soft) 90%, #f5f8ff)
     ) !important;
   box-shadow:
-    0 14px 26px color-mix(in srgb, var(--shadow-color, #0b1222) 11%, transparent),
+    0 16px 26px color-mix(in srgb, var(--shadow-color, #0b1222) 12%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--glass-tier-1-edge) 72%, transparent) !important;
 }
 
 .courses-page .course-card--entity .course-visual-bg {
-  opacity: 0.94;
+  opacity: 0.98;
+  --course-visual-pattern-opacity: 1;
+  --course-visual-pattern-saturation: 1.26;
+  --course-visual-pattern-contrast: 1.2;
+  --course-visual-glow-opacity: 0.84;
+  --course-visual-shimmer-opacity: 0.34;
+  --course-visual-veil-opacity: 0.1;
 }
 
 .courses-page .course-card--entity .course-visual-bg__layer--readability {
-  opacity: 0.16;
+  opacity: 0.11;
 }
 
 .courses-page .course-card--entity .MuiTypography-h6 {
   font-size: clamp(1.08rem, 1.05rem + 0.18vw, 1.2rem) !important;
   line-height: 1.2;
-  color: color-mix(in srgb, var(--text-primary) 88%, #3c5379);
+  color: color-mix(in srgb, var(--text-primary) 74%, #3f5a87);
 }
 
 .courses-page .course-card--entity .MuiTypography-body2,
 .courses-page .course-card--entity .MuiTypography-caption {
-  color: color-mix(in srgb, var(--text-secondary) 88%, #6079a1);
+  color: color-mix(in srgb, var(--text-secondary) 82%, #647fa9);
 }
 
 .courses-page .course-card--entity .MuiChip-root {
@@ -391,30 +425,106 @@
   font-size: 14px;
 }
 
+.courses-page .course-card__purchase-status {
+  top: 12px !important;
+  right: 12px !important;
+  padding: 3px 10px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 640 !important;
+  color: color-mix(in srgb, var(--text-secondary) 78%, #4f6d9c) !important;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 62%, transparent) !important;
+  background: linear-gradient(
+    132deg,
+    color-mix(in srgb, var(--surface-elevated) 80%, transparent),
+    color-mix(in srgb, var(--surface-soft) 76%, transparent)
+  ) !important;
+  box-shadow: none !important;
+}
+
+.courses-page .course-card__price-main {
+  color: color-mix(in srgb, var(--text-primary) 78%, #395789) !important;
+  text-shadow: none !important;
+}
+
+.courses-page .course-card__title {
+  font-family: var(--font-display) !important;
+  font-weight: 690 !important;
+  letter-spacing: -0.01em;
+}
+
+.courses-page .course-card__price-secondary {
+  color: color-mix(in srgb, var(--text-secondary) 84%, #607ca8) !important;
+}
+
+.courses-page .course-card__price-label,
+.courses-page .course-card__price-sub-label {
+  color: color-mix(in srgb, var(--text-secondary) 80%, #647fa9) !important;
+}
+
+.courses-page .course-card__bnpl-note {
+  color: color-mix(in srgb, var(--text-primary) 74%, #4f6897) !important;
+}
+
+.courses-page .course-card__cta-slot {
+  margin-top: 10px !important;
+}
+
+.courses-page .course-card__cta-link {
+  border-radius: 12px !important;
+  padding: 7px 16px !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  border: 1px solid color-mix(in srgb, #ffffff 22%, transparent) !important;
+  background: linear-gradient(136deg, #7f98ff 0%, #6f88ff 54%, #7e82f5 100%) !important;
+  color: #f8fbff !important;
+  box-shadow: 0 8px 16px color-mix(in srgb, #6f88ff 24%, transparent) !important;
+}
+
+.courses-page .course-card__cta-link--details {
+  background: linear-gradient(136deg, #7f98ff 0%, #6f88ff 54%, #7e82f5 100%) !important;
+}
+
 :root[data-theme="light"] .courses-page {
-  background: linear-gradient(180deg, #f5f8ff, #edf3ff);
+  background: linear-gradient(180deg, #f4f8ff, #eef5ff);
 }
 
 :root[data-theme="light"] .courses-page .course-card--entity {
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(244, 249, 255, 0.92)) !important;
-  border-color: color-mix(in srgb, #c8d7f9 56%, #e0e8ff) !important;
+  background: linear-gradient(160deg, rgba(254, 255, 255, 0.98), rgba(244, 250, 255, 0.95)) !important;
+  border-color: color-mix(in srgb, #c4d6fc 62%, #dde8ff) !important;
 }
 
 :root[data-theme="light"] .courses-page .course-card--entity .course-visual-bg__layer--readability {
-  opacity: 0.08;
+  opacity: 0.06;
+}
+
+:root[data-theme="light"] .courses-page .course-card--entity .course-visual-bg {
+  --course-visual-pattern-saturation: 1.3;
+  --course-visual-pattern-contrast: 1.22;
+  --course-visual-glow-opacity: 0.8;
+  --course-visual-shimmer-opacity: 0.36;
+  --course-visual-veil-opacity: 0.08;
 }
 
 :root[data-theme="dark"] .courses-page {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--bg-canvas) 86%, #071126),
-    color-mix(in srgb, var(--surface-soft) 82%, #060f24)
+    color-mix(in srgb, var(--bg-canvas) 88%, #071126),
+    color-mix(in srgb, var(--surface-soft) 84%, #060f24)
   );
 }
 
 :root[data-theme="dark"] .courses-page .course-card--entity {
-  background: linear-gradient(160deg, rgba(12, 24, 50, 0.82), rgba(14, 30, 63, 0.78)) !important;
-  border-color: color-mix(in srgb, #3f5ea8 42%, rgba(13, 26, 54, 0.8)) !important;
+  background: linear-gradient(160deg, rgba(13, 26, 54, 0.86), rgba(17, 34, 68, 0.82)) !important;
+  border-color: color-mix(in srgb, #4768b2 46%, rgba(13, 26, 54, 0.84)) !important;
+}
+
+:root[data-theme="dark"] .courses-page .course-card--entity .course-visual-bg__layer--readability {
+  opacity: 0.14;
+}
+
+:root[data-theme="dark"] .courses-page .course-card__cta-link {
+  background: linear-gradient(138deg, #8098ff 0%, #6f84ff 55%, #8a82f6 100%) !important;
 }
 
 @media (max-width: 640px) {

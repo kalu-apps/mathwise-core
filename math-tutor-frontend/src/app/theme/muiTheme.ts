@@ -38,24 +38,24 @@ export function createMuiTheme(mode: ThemeMode) {
       borderRadius: 14,
     },
     typography: {
-      fontFamily: '"Manrope", "IBM Plex Sans", "Inter", "SF Pro Display", "Segoe UI", -apple-system, sans-serif',
+      fontFamily: '"IBM Plex Sans", "Inter", "SF Pro Display", "Segoe UI", -apple-system, sans-serif',
       h1: {
-        fontFamily: '"Manrope", "Space Grotesk", "IBM Plex Sans", sans-serif',
-        fontWeight: 780,
-        letterSpacing: "-0.024em",
-        lineHeight: 1.1,
+        fontFamily: '"Commissioner", "IBM Plex Sans", "Inter", sans-serif',
+        fontWeight: 730,
+        letterSpacing: "-0.02em",
+        lineHeight: 1.08,
       },
       h2: {
-        fontFamily: '"Manrope", "Space Grotesk", "IBM Plex Sans", sans-serif',
-        fontWeight: 760,
-        letterSpacing: "-0.02em",
-        lineHeight: 1.16,
+        fontFamily: '"Commissioner", "IBM Plex Sans", "Inter", sans-serif',
+        fontWeight: 710,
+        letterSpacing: "-0.018em",
+        lineHeight: 1.14,
       },
       h3: {
-        fontFamily: '"Manrope", "Space Grotesk", "IBM Plex Sans", sans-serif',
-        fontWeight: 740,
-        letterSpacing: "-0.015em",
-        lineHeight: 1.2,
+        fontFamily: '"Commissioner", "IBM Plex Sans", "Inter", sans-serif',
+        fontWeight: 690,
+        letterSpacing: "-0.012em",
+        lineHeight: 1.18,
       },
       body1: {
         fontSize: "0.96rem",
@@ -71,8 +71,8 @@ export function createMuiTheme(mode: ThemeMode) {
       },
       button: {
         textTransform: "none",
-        fontWeight: 680,
-        letterSpacing: "0.01em",
+        fontWeight: 650,
+        letterSpacing: "0.008em",
       },
     },
     components: {

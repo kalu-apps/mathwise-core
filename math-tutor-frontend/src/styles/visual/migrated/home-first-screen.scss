@@ -106,6 +106,7 @@
 
 .home-first-screen__eyebrow {
   margin: 0;
+  font-family: var(--font-ui);
   font-size: 11px;
   line-height: 1.32;
   letter-spacing: 0.075em;
@@ -116,16 +117,20 @@
 
 .home-first-screen__title {
   margin: 12px 0 0;
+  font-family: var(--font-display);
+  font-weight: 710;
   max-width: 20ch;
   font-size: clamp(30px, 4.1vw, 54px);
-  line-height: 1;
-  letter-spacing: -0.03em;
+  line-height: 1.03;
+  letter-spacing: -0.02em;
   color: color-mix(in srgb, var(--text-primary) 96%, #edf3ff);
   text-wrap: balance;
 }
 
 .home-first-screen__subtitle {
   margin: 14px 0 0;
+  font-family: var(--font-ui);
+  font-weight: 470;
   max-width: 56ch;
   font-size: clamp(14px, 1.2vw, 17px);
   line-height: 1.5;
@@ -148,7 +153,7 @@
   line-height: 1.2 !important;
   text-transform: none !important;
   font-size: 15px !important;
-  font-weight: 650 !important;
+  font-weight: 640 !important;
   letter-spacing: 0.01em !important;
   color: var(--text-on-accent) !important;
   background: linear-gradient(
@@ -172,7 +177,7 @@
   line-height: 1.2 !important;
   text-transform: none !important;
   font-size: 14px !important;
-  font-weight: 620 !important;
+  font-weight: 610 !important;
   letter-spacing: 0.004em !important;
   color: color-mix(in srgb, var(--text-primary) 92%, #e6edff) !important;
   background: color-mix(in srgb, #dbe6ff 10%, transparent) !important;

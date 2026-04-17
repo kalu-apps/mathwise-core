@@ -501,12 +501,6 @@ export default function Courses() {
               переходом к изучению.
             </p>
           </div>
-          <div className="courses-page__hero-summary" aria-live="polite">
-            <span className="courses-page__hero-count">{filteredCountLabel}</span>
-            {filteredCourses.length !== visibleCourses.length ? (
-              <span className="courses-page__hero-total">из {totalCountLabel}</span>
-            ) : null}
-          </div>
         </header>
 
         {pageError ? (
@@ -665,7 +659,6 @@ export default function Courses() {
           </div>
 
           <div className="courses-page__controls-side">
-            <span className="courses-page__sort-label">Сортировка</span>
             <TextField
               select
               size="small"
@@ -680,6 +673,13 @@ export default function Courses() {
               <MenuItem value="priceAsc">Цена: сначала ниже</MenuItem>
               <MenuItem value="priceDesc">Цена: сначала выше</MenuItem>
             </TextField>
+
+            <div className="courses-page__controls-meta" aria-live="polite">
+              <span className="courses-page__results">{filteredCountLabel}</span>
+              {filteredCourses.length !== visibleCourses.length ? (
+                <span className="courses-page__results-total">из {totalCountLabel}</span>
+              ) : null}
+            </div>
           </div>
         </div>
 

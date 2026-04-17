@@ -8,7 +8,7 @@
   --border: var(--border-subtle);
   --shadow: var(--shadow-md);
 
-  font-family: "Manrope", "Segoe UI", sans-serif;
+  font-family: var(--font-ui);
   background: var(--bg);
   color: var(--ink);
   min-height: 100vh;
