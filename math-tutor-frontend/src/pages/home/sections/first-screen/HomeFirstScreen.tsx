@@ -4,11 +4,26 @@ import { HOME_GUIDED_PATHS, HOME_PROOF_POINTS } from "./content";
 import { HeroCommandDeck } from "./HeroCommandDeck";
 import { GuidedPathCards } from "./GuidedPathCards";
 
+let heroEnvironmentImportPromise:
+  | Promise<typeof import("./HomeHeroEnvironment")>
+  | null = null;
+
+const preloadHomeHeroEnvironment = () => {
+  if (!heroEnvironmentImportPromise) {
+    heroEnvironmentImportPromise = import("./HomeHeroEnvironment");
+  }
+  return heroEnvironmentImportPromise;
+};
+
 const LazyHomeHeroEnvironment = lazy(() =>
-  import("./HomeHeroEnvironment").then((module) => ({
+  preloadHomeHeroEnvironment().then((module) => ({
     default: module.HomeHeroEnvironment,
   }))
 );
+
+if (typeof window !== "undefined") {
+  void preloadHomeHeroEnvironment();
+}
 
 export function HomeFirstScreen() {
   const navigate = useNavigate();
@@ -23,13 +38,21 @@ export function HomeFirstScreen() {
       cancelIdleCallback?: (id: number) => void;
     };
 
+    // Warm up the hero 3D chunk right after first paint so the environment
+    // can mount without a visible fetch gap.
+    const warmupHandle = window.requestAnimationFrame(() => {
+      void preloadHomeHeroEnvironment();
+    });
+
     const idleHandle =
       typeof win.requestIdleCallback === "function"
-        ? win.requestIdleCallback(onIdle, { timeout: 900 })
+        ? win.requestIdleCallback(onIdle, { timeout: 260 })
         : null;
-    const timeoutHandle = idleHandle === null ? window.setTimeout(onIdle, 160) : null;
+    const timeoutHandle = idleHandle === null ? window.setTimeout(onIdle, 110) : null;
 
     return () => {
+      window.cancelAnimationFrame(warmupHandle);
+
       if (idleHandle !== null && typeof win.cancelIdleCallback === "function") {
         win.cancelIdleCallback(idleHandle);
       }

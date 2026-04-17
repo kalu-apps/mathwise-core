@@ -37,11 +37,39 @@ function patchThreeConsoleWarnings() {
   });
 }
 
+function resolveEnvironmentProfile(mode: "light" | "dark") {
+  if (typeof window === "undefined") {
+    return {
+      dpr: [1, 1.2] as [number, number],
+      antialias: true,
+      powerPreference: "default" as const,
+    };
+  }
+
+  const cores = window.navigator.hardwareConcurrency ?? 4;
+  const lowPowerDevice = cores <= 4;
+
+  if (lowPowerDevice) {
+    return {
+      dpr: [0.78, 1.0] as [number, number],
+      antialias: false,
+      powerPreference: "low-power" as const,
+    };
+  }
+
+  return {
+    dpr: mode === "light" ? ([0.92, 1.22] as [number, number]) : ([0.86, 1.12] as [number, number]),
+    antialias: true,
+    powerPreference: "default" as const,
+  };
+}
+
 export function HomeHeroEnvironment() {
   patchThreeConsoleWarnings();
 
   const webGlReady = useMemo(() => isWebGlAvailable(), []);
   const { mode } = useThemeMode();
+  const profile = useMemo(() => resolveEnvironmentProfile(mode), [mode]);
 
   return (
     <div className="home-first-screen__environment" aria-hidden="true">
@@ -49,13 +77,13 @@ export function HomeHeroEnvironment() {
         <Canvas
           className="home-first-screen__environment-canvas"
           camera={{ position: [0, 0.02, 6.05], fov: 36.5 }}
-          dpr={mode === "light" ? [1.1, 1.55] : [0.9, 1.25]}
+          dpr={profile.dpr}
           frameloop="demand"
-          performance={{ min: 0.56, max: 1, debounce: 320 }}
+          performance={{ min: 0.5, max: 1, debounce: 260 }}
           gl={{
-            antialias: true,
+            antialias: profile.antialias,
             alpha: true,
-            powerPreference: "high-performance",
+            powerPreference: profile.powerPreference,
             failIfMajorPerformanceCaveat: true,
             precision: "highp",
             stencil: false,

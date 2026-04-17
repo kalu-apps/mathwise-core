@@ -1,15 +1,17 @@
 import { useEffect, useMemo } from "react";
-import type {
-  BufferAttribute,
+import {
+  AdditiveBlending,
   BufferGeometry,
-  ColorRepresentation,
+  CapsuleGeometry,
+  Color,
+  Float32BufferAttribute,
   PlaneGeometry,
   SphereGeometry,
   TorusGeometry,
   TorusKnotGeometry,
-  CapsuleGeometry,
+  type BufferAttribute,
+  type ColorRepresentation,
 } from "three";
-import * as THREE from "three";
 
 type SceneMode = "light" | "dark";
 
@@ -85,11 +87,11 @@ function applyTriGradient(
   }
 
   const range = Math.max(1e-5, max - min);
-  const c1 = new THREE.Color(first);
-  const c2 = new THREE.Color(middle);
-  const c3 = new THREE.Color(last);
-  const mixed = new THREE.Color();
-  const luminance = new THREE.Color();
+  const c1 = new Color(first);
+  const c2 = new Color(middle);
+  const c3 = new Color(last);
+  const mixed = new Color();
+  const luminance = new Color();
   const colors = new Float32Array(position.count * 3);
 
   for (let i = 0; i < position.count; i += 1) {
@@ -108,11 +110,11 @@ function applyTriGradient(
     colors[i * 3 + 2] = luminance.b;
   }
 
-  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
 }
 
 function buildCoordinatePlaneSurface(mode: SceneMode, palette: ScenePalette): PlaneGeometry {
-  const geometry = new THREE.PlaneGeometry(9.8, 5.95, 54, 34);
+  const geometry = new PlaneGeometry(9.8, 5.95, 40, 26);
   const position = geometry.attributes.position as BufferAttribute;
 
   for (let i = 0; i < position.count; i += 1) {
@@ -168,13 +170,13 @@ function buildCoordinateLineGeometry(
     }
   }
 
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute(vertices, 3));
   return geometry;
 }
 
 function buildMainLoopGeometry(palette: ScenePalette): TorusGeometry {
-  const geometry = new THREE.TorusGeometry(0.96, 0.24, 72, 240, Math.PI * 2);
+  const geometry = new TorusGeometry(0.96, 0.24, 56, 180, Math.PI * 2);
 
   applyTriGradient(
     geometry,
@@ -188,7 +190,7 @@ function buildMainLoopGeometry(palette: ScenePalette): TorusGeometry {
 }
 
 function buildKnotGeometry(palette: ScenePalette): TorusKnotGeometry {
-  const geometry = new THREE.TorusKnotGeometry(0.5, 0.115, 260, 48, 2, 5);
+  const geometry = new TorusKnotGeometry(0.5, 0.115, 180, 36, 2, 5);
 
   applyTriGradient(
     geometry,
@@ -202,7 +204,7 @@ function buildKnotGeometry(palette: ScenePalette): TorusKnotGeometry {
 }
 
 function buildOrbGeometry(palette: ScenePalette): SphereGeometry {
-  const geometry = new THREE.SphereGeometry(0.36, 64, 64);
+  const geometry = new SphereGeometry(0.36, 48, 48);
 
   applyTriGradient(
     geometry,
@@ -216,7 +218,7 @@ function buildOrbGeometry(palette: ScenePalette): SphereGeometry {
 }
 
 function buildRodGeometry(palette: ScenePalette): CapsuleGeometry {
-  const geometry = new THREE.CapsuleGeometry(0.115, 0.84, 18, 36);
+  const geometry = new CapsuleGeometry(0.115, 0.84, 14, 28);
 
   applyTriGradient(
     geometry,
@@ -230,7 +232,7 @@ function buildRodGeometry(palette: ScenePalette): CapsuleGeometry {
 }
 
 function buildRoundedSolidGeometry(palette: ScenePalette): SphereGeometry {
-  const geometry = new THREE.SphereGeometry(0.46, 62, 62);
+  const geometry = new SphereGeometry(0.46, 48, 48);
   const position = geometry.attributes.position as BufferAttribute;
 
   for (let i = 0; i < position.count; i += 1) {
@@ -263,7 +265,7 @@ function buildRoundedSolidGeometry(palette: ScenePalette): SphereGeometry {
 }
 
 function buildAccentOrbGeometry(palette: ScenePalette): SphereGeometry {
-  const geometry = new THREE.SphereGeometry(0.18, 48, 48);
+  const geometry = new SphereGeometry(0.18, 30, 30);
 
   applyTriGradient(
     geometry,
@@ -279,17 +281,17 @@ function buildAccentOrbGeometry(palette: ScenePalette): SphereGeometry {
 function buildSupportPointTorusGeometry(palette: ScenePalette): BufferGeometry {
   const majorRadius = 0.8;
   const minorRadius = 0.24;
-  const uSegments = 132;
-  const vSegments = 72;
+  const uSegments = 96;
+  const vSegments = 52;
   const pointCount = uSegments * vSegments;
   const positions = new Float32Array(pointCount * 3);
   const colors = new Float32Array(pointCount * 3);
 
-  const c1 = new THREE.Color(palette.supportTorusA);
-  const c2 = new THREE.Color(palette.supportTorusB);
-  const c3 = new THREE.Color(palette.supportTorusC);
-  const mixed = new THREE.Color();
-  const polished = new THREE.Color();
+  const c1 = new Color(palette.supportTorusA);
+  const c2 = new Color(palette.supportTorusB);
+  const c3 = new Color(palette.supportTorusC);
+  const mixed = new Color();
+  const polished = new Color();
 
   let ptr = 0;
   for (let uIndex = 0; uIndex < uSegments; uIndex += 1) {
@@ -328,9 +330,9 @@ function buildSupportPointTorusGeometry(palette: ScenePalette): BufferGeometry {
     }
   }
 
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
   return geometry;
 }
 
@@ -338,9 +340,9 @@ function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePal
   const surfaceGeometry = useDisposableGeometry(
     useMemo(() => buildCoordinatePlaneSurface(mode, palette), [mode, palette])
   );
-  const minorGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 22, 22, "both"), []));
-  const majorXGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 12, 26, "x"), []));
-  const majorZGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 12, 26, "z"), []));
+  const minorGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 18, 18, "both"), []));
+  const majorXGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 10, 20, "x"), []));
+  const majorZGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 10, 20, "z"), []));
 
   return (
     <group position={[0.08, -1.2, -2.34]} rotation={[-0.9, 0.14, -0.02]}>
@@ -371,7 +373,7 @@ function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePal
           transparent
           opacity={mode === "dark" ? 0.24 : 0.36}
           depthWrite={false}
-          blending={THREE.AdditiveBlending}
+          blending={AdditiveBlending}
         />
       </lineSegments>
 
@@ -381,7 +383,7 @@ function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePal
           transparent
           opacity={mode === "dark" ? 0.2 : 0.32}
           depthWrite={false}
-          blending={THREE.AdditiveBlending}
+          blending={AdditiveBlending}
         />
       </lineSegments>
     </group>
@@ -400,7 +402,7 @@ function SupportPointTorusArtifact({ mode, palette }: { mode: SceneMode; palette
         size={mode === "dark" ? 0.0042 : 0.0044}
         sizeAttenuation
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={AdditiveBlending}
       />
     </points>
   );
