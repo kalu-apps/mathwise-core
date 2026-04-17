@@ -6,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { getCourses } from "@/entities/course/model/storage";
 import type { Course } from "@/entities/course/model/types";
 import { CourseVisualBackground } from "@/entities/course/ui/CourseVisualBackground";
-import { resolveCourseVisualArchetype } from "@/entities/course/model/courseVisuals";
 
 function toCompactDescriptor(description: string) {
   const normalized = description.replace(/\s+/g, " ").trim();
@@ -16,17 +15,28 @@ function toCompactDescriptor(description: string) {
   return `${sentence.slice(0, 105).trimEnd()}…`;
 }
 
-function toShortDescriptor(description: string) {
-  const normalized = description.replace(/\s+/g, " ").trim();
-  if (!normalized) return "Курс с практикой и понятным планом.";
-  const sentence = normalized.split(/[.!?]/, 1)[0]?.trim() ?? normalized;
-  if (sentence.length <= 84) return sentence;
-  return `${sentence.slice(0, 81).trimEnd()}…`;
-}
-
 function toFormatLabel(course: Course) {
   if (course.priceGuided > course.priceSelf) return "2 формата обучения";
   return "Формат с практикой";
+}
+
+function toSupportLabel(course: Course) {
+  if (course.priceGuided > course.priceSelf) return "С поддержкой";
+  return "Самостоятельно";
+}
+
+function getSecondarySticker(index: number) {
+  if (index % 2 === 0) {
+    return {
+      label: "Больше возможностей",
+      variant: "extended",
+    } as const;
+  }
+
+  return {
+    label: "Закрепить тему",
+    variant: "reinforce",
+  } as const;
 }
 
 export function CoursesPreview() {
@@ -103,9 +113,8 @@ export function CoursesPreview() {
       previewCourses.map((course) => ({
         ...course,
         descriptor: toCompactDescriptor(course.description),
-        compactDescriptor: toShortDescriptor(course.description),
         formatLabel: toFormatLabel(course),
-        archetype: resolveCourseVisualArchetype(course),
+        supportLabel: toSupportLabel(course),
       })),
     [previewCourses]
   );
@@ -174,11 +183,16 @@ export function CoursesPreview() {
                 <CourseVisualBackground course={page.featured} mode="featured" />
                 <CardContent className="courses-preview__content courses-preview__content--featured">
                   <div className="courses-preview__featured-zone courses-preview__featured-zone--sticker">
-                    <span className="courses-preview__sticker" aria-hidden="true" />
+                    <span className="courses-preview__sticker" aria-hidden="true">
+                      <span className="courses-preview__sticker-label">Можно частями</span>
+                    </span>
                   </div>
 
-                  <div className="courses-preview__featured-zone courses-preview__featured-zone--main">
+                  <div className="courses-preview__featured-zone courses-preview__featured-zone--title">
                     <h3 className="courses-preview__title">{page.featured.title}</h3>
+                  </div>
+
+                  <div className="courses-preview__featured-zone courses-preview__featured-zone--description">
                     <p className="courses-preview__descriptor courses-preview__descriptor--featured">
                       {page.featured.descriptor}
                     </p>
@@ -187,61 +201,70 @@ export function CoursesPreview() {
                   <div className="courses-preview__featured-zone courses-preview__featured-zone--meta">
                     <div className="courses-preview__metrics">
                       <span className="courses-preview__metric">{page.featured.level}</span>
-                      <span className="courses-preview__metric courses-preview__metric--section">
-                        {page.featured.archetype.shortTag}
+                      <span className="courses-preview__metric">{page.featured.formatLabel}</span>
+                      <span className="courses-preview__metric courses-preview__metric--support">
+                        {page.featured.supportLabel}
                       </span>
                     </div>
                   </div>
 
-                  <div className="courses-preview__cta-row courses-preview__cta-row--featured">
-                    <Button
-                      className="courses-preview__button"
-                      onClick={() => navigate(`/courses/${page.featured.id}`)}
-                    >
-                      Открыть курс
-                    </Button>
+                  <div className="courses-preview__featured-zone courses-preview__featured-zone--cta">
+                    <div className="courses-preview__cta-row courses-preview__cta-row--featured">
+                      <Button
+                        className="courses-preview__button"
+                        onClick={() => navigate(`/courses/${page.featured.id}`)}
+                      >
+                        Открыть курс
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
               {!!page.secondary.length && (
                 <div className="courses-preview__stack">
-                  {page.secondary.map((course) => (
-                    <Card
-                      key={course.id}
-                      className="courses-preview__card courses-preview__card--secondary"
-                      elevation={0}
-                    >
-                      <CourseVisualBackground course={course} mode="card" />
-                      <CardContent className="courses-preview__content courses-preview__content--secondary">
-                        <div className="courses-preview__secondary-main">
-                          <h3 className="courses-preview__title courses-preview__title--secondary">{course.title}</h3>
-                          <p className="courses-preview__descriptor courses-preview__descriptor--secondary">
-                            {course.compactDescriptor}
-                          </p>
-                        </div>
+                  {page.secondary.map((course, secondaryIndex) => {
+                    const secondarySticker = getSecondarySticker(secondaryIndex);
 
-                        <div className="courses-preview__secondary-footer">
-                          <div className="courses-preview__metrics courses-preview__metrics--compact">
-                            <span className="courses-preview__metric">{course.level}</span>
-                            <span className="courses-preview__metric courses-preview__metric--section">
-                              {course.archetype.shortTag}
+                    return (
+                      <Card
+                        key={course.id}
+                        className="courses-preview__card courses-preview__card--secondary"
+                        elevation={0}
+                      >
+                        <CourseVisualBackground course={course} mode="card" />
+                        <CardContent className="courses-preview__content courses-preview__content--secondary">
+                          <div
+                            className={`courses-preview__secondary-sticker courses-preview__secondary-sticker--${secondarySticker.variant}`}
+                          >
+                            <span className="courses-preview__secondary-sticker-label">
+                              {secondarySticker.label}
                             </span>
-                            <span className="courses-preview__metric">{course.formatLabel}</span>
                           </div>
 
-                          <div className="courses-preview__cta-row courses-preview__cta-row--secondary">
-                            <Button
-                              className="courses-preview__button courses-preview__button--secondary"
-                              onClick={() => navigate(`/courses/${course.id}`)}
-                            >
-                              Открыть курс
-                            </Button>
+                          <div className="courses-preview__secondary-main">
+                            <h3 className="courses-preview__title courses-preview__title--secondary">{course.title}</h3>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+
+                          <div className="courses-preview__secondary-footer">
+                            <div className="courses-preview__metrics courses-preview__metrics--compact">
+                              <span className="courses-preview__metric">{course.level}</span>
+                              <span className="courses-preview__metric">{course.formatLabel}</span>
+                            </div>
+
+                            <div className="courses-preview__cta-row courses-preview__cta-row--secondary">
+                              <Button
+                                className="courses-preview__button courses-preview__button--secondary"
+                                onClick={() => navigate(`/courses/${course.id}`)}
+                              >
+                                Открыть курс
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </div>

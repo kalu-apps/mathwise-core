@@ -49,7 +49,7 @@ export function HomeHeroEnvironment() {
         <Canvas
           className="home-first-screen__environment-canvas"
           camera={{ position: [0, 0.02, 6.05], fov: 36.5 }}
-          dpr={mode === "light" ? [0.9, 1.25] : [0.85, 1.15]}
+          dpr={mode === "light" ? [1.1, 1.55] : [0.9, 1.25]}
           frameloop="demand"
           performance={{ min: 0.56, max: 1, debounce: 320 }}
           gl={{
@@ -64,7 +64,7 @@ export function HomeHeroEnvironment() {
           onCreated={({ gl }) => {
             gl.setClearColor(0x000000, 0);
             gl.toneMapping = ACESFilmicToneMapping;
-            gl.toneMappingExposure = mode === "dark" ? 1 : 1.08;
+            gl.toneMappingExposure = mode === "dark" ? 1 : 1.12;
             gl.outputColorSpace = SRGBColorSpace;
           }}
         >

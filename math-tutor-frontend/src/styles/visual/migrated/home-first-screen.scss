@@ -395,8 +395,9 @@
 
 :root[data-theme="light"] .home-first-screen__scene {
   background:
-    radial-gradient(88% 76% at 4% 0%, color-mix(in srgb, #bfd0ff 28%, transparent), transparent 64%),
-    radial-gradient(64% 56% at 92% 6%, color-mix(in srgb, #ce97ff 18%, transparent), transparent 74%),
+    radial-gradient(88% 76% at 4% 0%, color-mix(in srgb, #bfd0ff 30%, transparent), transparent 64%),
+    radial-gradient(62% 56% at 92% 6%, color-mix(in srgb, #ff9ec9 20%, transparent), transparent 74%),
+    radial-gradient(44% 38% at 76% 24%, color-mix(in srgb, #ffb46f 16%, transparent), transparent 78%),
     linear-gradient(145deg, #f4f7ff 0%, #eef4ff 52%, #e8f1ff 100%);
   box-shadow:
     0 24px 44px color-mix(in srgb, #a8bce5 16%, transparent),
@@ -405,23 +406,25 @@
 
 :root[data-theme="light"] .home-first-screen__scene::before {
   background:
-    radial-gradient(72% 62% at 92% 8%, color-mix(in srgb, #9eb0ff 24%, transparent), transparent 78%),
-    radial-gradient(42% 34% at 66% 32%, color-mix(in srgb, #cf9bff 14%, transparent), transparent 76%),
-    radial-gradient(132% 124% at 50% 100%, color-mix(in srgb, #b8caf0 18%, transparent), transparent 66%);
+    radial-gradient(72% 62% at 92% 8%, color-mix(in srgb, #8fa2ff 26%, transparent), transparent 78%),
+    radial-gradient(44% 34% at 66% 32%, color-mix(in srgb, #ff9ed0 16%, transparent), transparent 76%),
+    radial-gradient(36% 32% at 62% 72%, color-mix(in srgb, #ffbd86 14%, transparent), transparent 80%),
+    radial-gradient(132% 124% at 50% 100%, color-mix(in srgb, #d7def2 13%, transparent), transparent 66%);
 }
 
 :root[data-theme="light"] .home-first-screen__environment-fallback {
   background:
-    radial-gradient(44% 38% at 74% 26%, color-mix(in srgb, #8ea4ff 30%, transparent), transparent 72%),
-    radial-gradient(30% 24% at 70% 72%, color-mix(in srgb, #83c9ff 22%, transparent), transparent 74%),
-    radial-gradient(24% 20% at 44% 26%, color-mix(in srgb, #d197ff 14%, transparent), transparent 78%);
+    radial-gradient(44% 38% at 74% 26%, color-mix(in srgb, #8ea4ff 34%, transparent), transparent 72%),
+    radial-gradient(30% 24% at 70% 72%, color-mix(in srgb, #ffb577 22%, transparent), transparent 74%),
+    radial-gradient(24% 20% at 44% 26%, color-mix(in srgb, #ff8fc4 18%, transparent), transparent 78%);
 }
 
 :root[data-theme="light"] .home-first-screen__ambient-veil {
   background:
-    radial-gradient(34% 30% at 72% 24%, color-mix(in srgb, #95a7ff 14%, transparent), transparent 78%),
-    radial-gradient(24% 22% at 66% 76%, color-mix(in srgb, #8ccfff 12%, transparent), transparent 80%),
-    radial-gradient(22% 18% at 46% 20%, color-mix(in srgb, #c79aff 9%, transparent), transparent 82%);
+    radial-gradient(34% 30% at 72% 24%, color-mix(in srgb, #8e9dff 17%, transparent), transparent 78%),
+    radial-gradient(24% 22% at 66% 76%, color-mix(in srgb, #ffb66e 14%, transparent), transparent 80%),
+    radial-gradient(22% 18% at 46% 20%, color-mix(in srgb, #ff8dbe 13%, transparent), transparent 82%),
+    radial-gradient(52% 46% at 68% 56%, color-mix(in srgb, #c3cbe6 16%, transparent), transparent 84%);
 }
 
 :root[data-theme="light"] .home-first-screen__hero-command {
@@ -477,9 +480,9 @@
 :root[data-theme="light"] .home-first-screen__path-item {
   background: linear-gradient(
     154deg,
-    color-mix(in srgb, #f8fbff 48%, transparent) 0%,
-    color-mix(in srgb, #edf5ff 38%, transparent) 72%,
-    color-mix(in srgb, #f6ebff 24%, transparent) 100%
+    color-mix(in srgb, #f8fbff 44%, transparent) 0%,
+    color-mix(in srgb, #edf5ff 34%, transparent) 72%,
+    color-mix(in srgb, #f6ebff 22%, transparent) 100%
   );
   border-color: color-mix(in srgb, #c9d9ff 48%, transparent);
   backdrop-filter: blur(6px) saturate(110%);
@@ -492,9 +495,9 @@
 :root[data-theme="light"] .home-first-screen__path-item--primary {
   background: linear-gradient(
     154deg,
-    color-mix(in srgb, #e5edff 56%, transparent) 0%,
-    color-mix(in srgb, #d9ecff 44%, transparent) 70%,
-    color-mix(in srgb, #f0deff 32%, transparent) 100%
+    color-mix(in srgb, #e5edff 52%, transparent) 0%,
+    color-mix(in srgb, #d9ecff 40%, transparent) 70%,
+    color-mix(in srgb, #f0deff 30%, transparent) 100%
   );
   border-color: color-mix(in srgb, #bfd3ff 54%, transparent);
   backdrop-filter: blur(7px) saturate(112%);

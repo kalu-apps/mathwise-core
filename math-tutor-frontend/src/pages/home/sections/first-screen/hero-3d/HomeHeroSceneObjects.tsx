@@ -188,14 +188,14 @@ function buildMainLoopGeometry(palette: ScenePalette): TorusGeometry {
 }
 
 function buildKnotGeometry(palette: ScenePalette): TorusKnotGeometry {
-  const geometry = new THREE.TorusKnotGeometry(0.5, 0.11, 220, 40, 2, 5);
+  const geometry = new THREE.TorusKnotGeometry(0.5, 0.115, 260, 48, 2, 5);
 
   applyTriGradient(
     geometry,
     palette.knotA,
     palette.knotB,
     palette.knotC,
-    (x, y, z) => y * 0.58 + z * 0.2 - x * 0.24
+    (x, y, z) => y * 0.56 + z * 0.26 - x * 0.22
   );
 
   return geometry;
@@ -347,12 +347,12 @@ function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePal
       <mesh geometry={surfaceGeometry}>
         <meshPhysicalMaterial
           vertexColors
-          roughness={mode === "dark" ? 0.42 : 0.28}
-          metalness={mode === "dark" ? 0.09 : 0.16}
-          clearcoat={mode === "dark" ? 0.28 : 0.42}
-          clearcoatRoughness={mode === "dark" ? 0.28 : 0.2}
+          roughness={mode === "dark" ? 0.4 : 0.22}
+          metalness={mode === "dark" ? 0.1 : 0.18}
+          clearcoat={mode === "dark" ? 0.3 : 0.5}
+          clearcoatRoughness={mode === "dark" ? 0.26 : 0.16}
           transparent
-          opacity={mode === "dark" ? 0.35 : 0.42}
+          opacity={mode === "dark" ? 0.34 : 0.3}
         />
       </mesh>
 
@@ -360,7 +360,7 @@ function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePal
         <lineBasicMaterial
           color={palette.gridMinor}
           transparent
-          opacity={mode === "dark" ? 0.08 : 0.15}
+          opacity={mode === "dark" ? 0.1 : 0.2}
           depthWrite={false}
         />
       </lineSegments>
@@ -369,7 +369,7 @@ function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePal
         <lineBasicMaterial
           color={palette.gridMajorA}
           transparent
-          opacity={mode === "dark" ? 0.22 : 0.3}
+          opacity={mode === "dark" ? 0.24 : 0.36}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
@@ -379,7 +379,7 @@ function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePal
         <lineBasicMaterial
           color={palette.gridMajorB}
           transparent
-          opacity={mode === "dark" ? 0.2 : 0.26}
+          opacity={mode === "dark" ? 0.2 : 0.32}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
@@ -396,8 +396,8 @@ function SupportPointTorusArtifact({ mode, palette }: { mode: SceneMode; palette
       <pointsMaterial
         vertexColors
         transparent
-        opacity={mode === "dark" ? 0.96 : 0.88}
-        size={mode === "dark" ? 0.0042 : 0.0038}
+        opacity={mode === "dark" ? 0.96 : 0.94}
+        size={mode === "dark" ? 0.0042 : 0.0044}
         sizeAttenuation
         depthWrite={false}
         blending={THREE.AdditiveBlending}
@@ -424,12 +424,12 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
       >
         <meshPhysicalMaterial
           vertexColors
-          roughness={0.2}
-          metalness={0.2}
-          clearcoat={0.92}
-          clearcoatRoughness={0.11}
+          roughness={mode === "dark" ? 0.2 : 0.14}
+          metalness={mode === "dark" ? 0.22 : 0.3}
+          clearcoat={1}
+          clearcoatRoughness={mode === "dark" ? 0.1 : 0.06}
           emissive={palette.loopGlow}
-          emissiveIntensity={mode === "dark" ? 0.16 : 0.12}
+          emissiveIntensity={mode === "dark" ? 0.18 : 0.2}
         />
       </mesh>
 
@@ -441,22 +441,24 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
       >
         <meshPhysicalMaterial
           vertexColors
-          roughness={0.22}
-          metalness={0.16}
-          clearcoat={0.82}
-          clearcoatRoughness={0.14}
+          roughness={mode === "dark" ? 0.22 : 0.14}
+          metalness={mode === "dark" ? 0.16 : 0.28}
+          clearcoat={0.94}
+          clearcoatRoughness={mode === "dark" ? 0.14 : 0.08}
+          emissive={palette.knotB}
+          emissiveIntensity={mode === "dark" ? 0.06 : 0.08}
         />
       </mesh>
 
       <mesh geometry={orbGeometry} position={[-1.25, 0.92, 0.56]}>
         <meshPhysicalMaterial
           vertexColors
-          roughness={0.16}
-          metalness={0.14}
+          roughness={mode === "dark" ? 0.16 : 0.1}
+          metalness={mode === "dark" ? 0.14 : 0.24}
           clearcoat={1}
-          clearcoatRoughness={0.08}
+          clearcoatRoughness={mode === "dark" ? 0.08 : 0.05}
           emissive={palette.orbB}
-          emissiveIntensity={mode === "dark" ? 0.08 : 0.06}
+          emissiveIntensity={mode === "dark" ? 0.1 : 0.14}
         />
       </mesh>
 
@@ -473,34 +475,34 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
       <mesh geometry={rodGeometry} position={[-3.06, 1.16, 0.18]} rotation={[-0.28, 0.34, 0.9]}>
         <meshPhysicalMaterial
           vertexColors
-          roughness={0.22}
-          metalness={0.2}
-          clearcoat={0.9}
-          clearcoatRoughness={0.14}
+          roughness={mode === "dark" ? 0.22 : 0.15}
+          metalness={mode === "dark" ? 0.2 : 0.28}
+          clearcoat={0.96}
+          clearcoatRoughness={mode === "dark" ? 0.14 : 0.08}
         />
       </mesh>
 
       <mesh geometry={accentGeometry} position={[-3.25, -0.92, 0.08]}>
         <meshPhysicalMaterial
           vertexColors
-          roughness={0.16}
-          metalness={0.14}
+          roughness={mode === "dark" ? 0.16 : 0.12}
+          metalness={mode === "dark" ? 0.14 : 0.24}
           clearcoat={0.98}
-          clearcoatRoughness={0.12}
+          clearcoatRoughness={mode === "dark" ? 0.12 : 0.08}
           transparent
-          opacity={mode === "dark" ? 0.92 : 0.88}
+          opacity={mode === "dark" ? 0.92 : 0.9}
         />
       </mesh>
 
       <mesh geometry={accentGeometry} position={[-2.48, -1.28, -0.38]} scale={0.74}>
         <meshPhysicalMaterial
           vertexColors
-          roughness={0.18}
-          metalness={0.12}
+          roughness={mode === "dark" ? 0.18 : 0.14}
+          metalness={mode === "dark" ? 0.12 : 0.22}
           clearcoat={0.94}
-          clearcoatRoughness={0.12}
+          clearcoatRoughness={mode === "dark" ? 0.12 : 0.08}
           transparent
-          opacity={mode === "dark" ? 0.82 : 0.78}
+          opacity={mode === "dark" ? 0.82 : 0.84}
         />
       </mesh>
     </group>
@@ -545,37 +547,37 @@ function paletteByMode(mode: SceneMode): ScenePalette {
   }
 
   return {
-    ambient: "#f3b5ff",
+    ambient: "#ffc7f3",
     key: "#ffffff",
-    fill: "#ff9ab3",
-    rim: "#b29cff",
-    planeSurfaceNear: "#a4b8ff",
-    planeSurfaceFar: "#819cec",
-    gridMajorA: "#6f8fff",
-    gridMajorB: "#ff77bf",
-    gridMinor: "#64d7ff",
-    loopA: "#8f82ff",
-    loopB: "#ff8cc8",
-    loopC: "#ffb188",
-    loopGlow: "#ffc0e7",
-    knotA: "#9d8fff",
-    knotB: "#ff8fc9",
-    knotC: "#ffbf8f",
-    orbA: "#9a90ff",
-    orbB: "#ff93bf",
-    orbC: "#ffc999",
-    rodA: "#ac97ff",
-    rodB: "#ff97b9",
-    rodC: "#ffbf98",
-    solidA: "#9c92ff",
-    solidB: "#ff9bd0",
-    solidC: "#ffc997",
-    accentA: "#ad98ff",
-    accentB: "#ffa1d4",
-    accentC: "#ffd0a8",
-    supportTorusA: "#7f7cff",
-    supportTorusB: "#ff8ec8",
-    supportTorusC: "#ffc48f",
+    fill: "#ff8ea1",
+    rim: "#8aa2ff",
+    planeSurfaceNear: "#adb7ff",
+    planeSurfaceFar: "#8d9ee8",
+    gridMajorA: "#4e80ff",
+    gridMajorB: "#ff5fb2",
+    gridMinor: "#3ddfff",
+    loopA: "#7f6eff",
+    loopB: "#ff67af",
+    loopC: "#ff974d",
+    loopGlow: "#ff8ac7",
+    knotA: "#8b7aff",
+    knotB: "#ff62a8",
+    knotC: "#ffad53",
+    orbA: "#8f87ff",
+    orbB: "#ff70b4",
+    orbC: "#ffc26a",
+    rodA: "#9a86ff",
+    rodB: "#ff7aa6",
+    rodC: "#ffb768",
+    solidA: "#8f82ff",
+    solidB: "#ff76bf",
+    solidC: "#ffc274",
+    accentA: "#a68dff",
+    accentB: "#ff92c5",
+    accentC: "#ffd294",
+    supportTorusA: "#6f72ff",
+    supportTorusB: "#ff78be",
+    supportTorusC: "#ffbe63",
   };
 }
 
@@ -584,10 +586,10 @@ export function HomeHeroSceneObjects({ mode }: HomeHeroSceneObjectsProps) {
 
   return (
     <group>
-      <ambientLight intensity={mode === "dark" ? 0.54 : 0.62} color={palette.ambient} />
-      <directionalLight intensity={mode === "dark" ? 0.96 : 1.08} color={palette.key} position={[4.2, 5.2, 4.9]} />
-      <pointLight intensity={mode === "dark" ? 0.24 : 0.3} color={palette.fill} position={[2.1, 1.2, 2.4]} />
-      <pointLight intensity={mode === "dark" ? 0.21 : 0.26} color={palette.rim} position={[-1.4, -0.8, 2.2]} />
+      <ambientLight intensity={mode === "dark" ? 0.54 : 0.66} color={palette.ambient} />
+      <directionalLight intensity={mode === "dark" ? 0.96 : 1.14} color={palette.key} position={[4.2, 5.2, 4.9]} />
+      <pointLight intensity={mode === "dark" ? 0.24 : 0.34} color={palette.fill} position={[2.1, 1.2, 2.4]} />
+      <pointLight intensity={mode === "dark" ? 0.21 : 0.29} color={palette.rim} position={[-1.4, -0.8, 2.2]} />
 
       <CoordinatePlane mode={mode} palette={palette} />
       <SupportPointTorusArtifact mode={mode} palette={palette} />
