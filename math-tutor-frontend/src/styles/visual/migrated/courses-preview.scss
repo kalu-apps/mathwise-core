@@ -466,6 +466,12 @@
     transform: rotate(2.8deg);
   }
 
+  &__secondary-sticker--reinforce {
+    left: auto;
+    right: 14px;
+    top: -22px;
+  }
+
   &__title {
     margin: 0;
     font-family: var(--font-display);
@@ -808,6 +814,12 @@
       left: 12px;
     }
 
+    &__secondary-sticker--reinforce {
+      left: auto;
+      right: 12px;
+      top: -12px;
+    }
+
     &__secondary-sticker-label {
       min-height: 32px;
       padding: 0 12px;
@@ -890,6 +902,12 @@
     &__secondary-sticker {
       top: -9px;
       left: 9px;
+    }
+
+    &__secondary-sticker--reinforce {
+      left: auto;
+      right: 9px;
+      top: -9px;
     }
 
     &__secondary-sticker-label {

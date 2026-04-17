@@ -13,7 +13,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import LockIcon from "@mui/icons-material/Lock";
 import DiamondRoundedIcon from "@mui/icons-material/DiamondRounded";
 
@@ -100,6 +99,7 @@ export function CourseCard({
   };
   const hasPurchasedProgress = Boolean(progressDetails);
   const isPurchasedStudentCard = !isTeacherView && hasPurchasedProgress;
+  const isCatalogCard = !isTeacherView && !isPurchasedStudentCard;
   const learningVisual = hasPurchasedProgress
     ? buildProgressVisual(progressDetails?.lessonsTotal
         ? (progressDetails.lessonsViewed / Math.max(progressDetails.lessonsTotal, 1)) * 100
@@ -120,10 +120,13 @@ export function CourseCard({
           : ""
       }`
     : null;
+  const compactMainPrice = Math.min(course.priceGuided, course.priceSelf);
+  const compactSecondaryPrice = Math.max(course.priceGuided, course.priceSelf);
+  const hasSecondaryPrice = compactSecondaryPrice > compactMainPrice;
 
   return (
     <Paper
-      className="course-card course-card--entity"
+      className={`course-card course-card--entity ${isCatalogCard ? "course-card--catalog" : ""}`}
       elevation={0}
       sx={{
         p: 2,
@@ -306,147 +309,86 @@ export function CourseCard({
           )}
         </Link>
 
-        {/* Цены с одинаковым отступом */}
+        {isCatalogCard && (
+          <Stack
+            direction="row"
+            spacing={0.75}
+            alignItems="center"
+            flexWrap="wrap"
+            className="course-card__info-row"
+            sx={{ mb: 1 }}
+          >
+            {showLessonsCount && lessonsCount > 0 ? (
+              <Chip
+                size="small"
+                label={`${lessonsCount} урок${lessonsCount === 1 ? "" : lessonsCount < 5 && lessonsCount > 1 ? "а" : "ов"}`}
+                className="course-card__info-chip"
+              />
+            ) : null}
+            {testsCount > 0 && (
+              <Chip
+                size="small"
+                label={`${testsCount} тест${testsCount === 1 ? "" : testsCount < 5 && testsCount > 1 ? "а" : "ов"}`}
+                className="course-card__info-chip course-card__info-chip--tests"
+              />
+            )}
+          </Stack>
+        )}
+
+        {/* Цены */}
         {showPrices ? (
           <Box
+            className="course-card__price-zone"
             sx={{
               mb: 1.2,
               display: "grid",
-              gap: 0.8,
+              gap: 0.55,
             }}
           >
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="baseline"
-              flexWrap="wrap"
-              spacing={1}
-              sx={{
-                lineHeight: 1.2,
-              }}
-            >
-              <Stack direction="row" spacing={0.55} alignItems="center">
-                <Typography
-                  variant="caption"
-                  className="course-card__price-label"
-                  sx={{
-                    fontSize: 11,
-                    letterSpacing: "0.02em",
-                    fontWeight: 650,
-                    color: "var(--price-title-color)",
-                  }}
-                >
-                  С обратной связью
-                </Typography>
-                <Tooltip title="Преподаватель проверяет задания и отвечает на вопросы студента">
-                  <InfoOutlinedIcon
-                    fontSize="inherit"
-                    sx={{
-                      fontSize: 14,
-                      color: "var(--price-icon-color)",
-                      opacity: 0.88,
-                    }}
-                  />
-                </Tooltip>
-              </Stack>
+            <Stack direction="row" justifyContent="space-between" alignItems="flex-end" spacing={1} flexWrap="wrap">
               <Typography
                 component="strong"
                 className="course-card__price-main"
                 sx={{
-                  fontSize: { xs: 24, md: 26 },
-                  fontWeight: 860,
+                  fontSize: { xs: 23, md: 25 },
+                  fontWeight: 800,
                   lineHeight: 1,
-                  letterSpacing: "-0.02em",
+                  letterSpacing: "-0.018em",
                   color: "var(--price-value-color)",
-                  textShadow:
-                    "0 10px 18px color-mix(in srgb, var(--feedback-info) 14%, transparent)",
                 }}
               >
-                {formatPriceRub(course.priceGuided)}
+                {formatPriceRub(compactMainPrice)}
               </Typography>
-            </Stack>
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="baseline"
-              flexWrap="wrap"
-              spacing={1}
-              sx={{
-                lineHeight: 1.2,
-              }}
-            >
-              <Typography
-                variant="caption"
-                className="course-card__price-sub-label"
-                sx={{
-                  fontSize: 11,
-                  letterSpacing: "0.02em",
-                  fontWeight: 650,
-                  color: "color-mix(in srgb, var(--text-secondary) 90%, var(--accent-soft))",
-                }}
-              >
-                Без обратной связи
-              </Typography>
-              <Typography
-                component="span"
-                className="course-card__price-secondary"
-                sx={{
-                  fontSize: { xs: 18, md: 19 },
-                  fontWeight: 700,
-                  lineHeight: 1,
-                  letterSpacing: "-0.01em",
-                  color: "color-mix(in srgb, var(--text-primary) 92%, var(--accent-soft))",
-                }}
-              >
-                {formatPriceRub(course.priceSelf)}
-              </Typography>
-            </Stack>
-            {!isTeacherView && bnplAvailable && (
-              <Stack
-                direction="row"
-                spacing={0}
-                alignItems="center"
-                sx={{
-                  alignSelf: "flex-start",
-                  mt: 0.1,
-                  fontWeight: 650,
-                  lineHeight: 1.35,
-                  color: "var(--accent-text)",
-                  textShadow:
-                    "0 6px 18px color-mix(in srgb, var(--feedback-info) 14%, transparent)",
-                }}
-              >
+              {hasSecondaryPrice ? (
                 <Typography
                   component="span"
-                  className="course-card__bnpl-note"
+                  className="course-card__price-secondary"
                   sx={{
-                    position: "relative",
-                    display: "inline-flex",
-                    fontSize: 13,
-                    fontWeight: 680,
-                    letterSpacing: "0.01em",
-                    color: "color-mix(in srgb, var(--text-primary) 94%, var(--accent-soft))",
-                    pb: 0.55,
-                    "&::after": {
-                      content: "\"\"",
-                      position: "absolute",
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      height: "1.5px",
-                      borderRadius: "999px",
-                      background:
-                        "linear-gradient(92deg, color-mix(in srgb, var(--brand-violet) 70%, transparent), color-mix(in srgb, var(--feedback-info) 74%, transparent))",
-                      boxShadow:
-                        "0 0 8px color-mix(in srgb, var(--feedback-info) 22%, transparent)",
-                    },
+                    fontSize: { xs: 14, md: 15 },
+                    fontWeight: 650,
+                    lineHeight: 1.15,
+                    letterSpacing: "-0.004em",
                   }}
                 >
-                  {bnplFromAmount
-                    ? `Оплата частями · от ${bnplFromAmount.toLocaleString("ru-RU")} ₽ / мес`
-                    : "Оплата частями доступна"}
+                  до {formatPriceRub(compactSecondaryPrice)}
                 </Typography>
-              </Stack>
+              ) : null}
+            </Stack>
+            {!isTeacherView && bnplAvailable && (
+              <Typography
+                component="span"
+                className="course-card__bnpl-note"
+                sx={{
+                  fontSize: 12.5,
+                  fontWeight: 640,
+                  lineHeight: 1.35,
+                  color: "color-mix(in srgb, var(--text-secondary) 86%, #5f7da8)",
+                }}
+              >
+                {bnplFromAmount
+                  ? `Можно частями от ${bnplFromAmount.toLocaleString("ru-RU")} ₽ / мес`
+                  : "Можно частями"}
+              </Typography>
             )}
           </Box>
         ) : null}
@@ -458,12 +400,12 @@ export function CourseCard({
               Уровень: {course.level}
             </Typography>
           ) : null}
-          {showLessonsCount && (
+          {(isTeacherView || hasPurchasedProgress) && showLessonsCount && (
             <Typography variant="caption" color="text.secondary">
               Уроков: {lessonsCount}
             </Typography>
           )}
-          {testsCount > 0 && !hasPurchasedProgress && (
+          {(isTeacherView || hasPurchasedProgress) && testsCount > 0 && !hasPurchasedProgress && (
             <Typography variant="caption" color="text.secondary">
               Тестов: {testsCount}
             </Typography>
@@ -724,9 +666,9 @@ export function CourseCard({
               textDecoration: "none",
               background: "var(--btn-primary-bg)",
               color: "var(--btn-primary-text)",
-              padding: "6px 16px",
-              borderRadius: 14,
-              fontWeight: 600,
+              padding: "7px 15px",
+              borderRadius: 12,
+              fontWeight: 650,
               display: "inline-block",
               border: "1px solid color-mix(in srgb, var(--brand-soft) 28%, transparent)",
               boxShadow: "var(--shadow-xs)",

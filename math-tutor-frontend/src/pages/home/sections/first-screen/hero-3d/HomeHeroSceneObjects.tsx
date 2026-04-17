@@ -174,7 +174,7 @@ function buildCoordinateLineGeometry(
 }
 
 function buildMainLoopGeometry(palette: ScenePalette): TorusGeometry {
-  const geometry = new THREE.TorusGeometry(1.04, 0.2, 64, 220, Math.PI * 1.72);
+  const geometry = new THREE.TorusGeometry(0.96, 0.24, 72, 240, Math.PI * 2);
 
   applyTriGradient(
     geometry,
@@ -418,18 +418,18 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
     <group position={[1.7, 0.06, -1.22]} rotation={[0.04, -0.24, 0.03]}>
       <mesh
         geometry={loopGeometry}
-        position={[-0.86, 0.16, -0.06]}
-        rotation={[0.64, -0.5, 0.86]}
-        scale={[1, 1, 1]}
+        position={[0.82, 1.08, -0.02]}
+        rotation={[0.34, 0.92, 0.24]}
+        scale={[0.5, 0.5, 0.5]}
       >
         <meshPhysicalMaterial
           vertexColors
-          roughness={mode === "dark" ? 0.2 : 0.14}
-          metalness={mode === "dark" ? 0.22 : 0.3}
+          roughness={mode === "dark" ? 0.14 : 0.1}
+          metalness={mode === "dark" ? 0.32 : 0.4}
           clearcoat={1}
-          clearcoatRoughness={mode === "dark" ? 0.1 : 0.06}
+          clearcoatRoughness={mode === "dark" ? 0.08 : 0.05}
           emissive={palette.loopGlow}
-          emissiveIntensity={mode === "dark" ? 0.18 : 0.2}
+          emissiveIntensity={mode === "dark" ? 0.22 : 0.28}
         />
       </mesh>
 

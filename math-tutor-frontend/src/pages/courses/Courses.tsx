@@ -89,9 +89,8 @@ export default function Courses() {
     {}
   );
   const [query, setQuery] = useState("");
-  const [sectionFilter, setSectionFilter] = useState("all");
-  const [accessFilter, setAccessFilter] =
-    useState<CatalogAccessFilter>("all");
+  const [sectionFilter] = useState("all");
+  const [accessFilter] = useState<CatalogAccessFilter>("all");
   const [sortBy, setSortBy] = useState<CatalogSort>("recommended");
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState<unknown | null>(null);
@@ -138,18 +137,6 @@ export default function Courses() {
         return acc;
       }, {}),
     [visibleCourses]
-  );
-
-  const sectionOptions = useMemo(
-    () =>
-      Array.from(new Set(Object.values(courseSectionMap))).sort((left, right) =>
-        left.localeCompare(right, "ru")
-      ),
-    [courseSectionMap]
-  );
-  const visibleSectionOptions = useMemo(
-    () => sectionOptions.slice(0, 6),
-    [sectionOptions]
   );
 
   const isCourseLocked = useCallback(
@@ -587,60 +574,6 @@ export default function Courses() {
               />
             </div>
 
-            <div className="courses-page__chips">
-              <button
-                type="button"
-                className={`courses-page__chip ${
-                  sectionFilter === "all" ? "is-active" : ""
-                }`}
-                onClick={() => setSectionFilter("all")}
-              >
-                Все разделы
-              </button>
-              {visibleSectionOptions.map((section) => (
-                <button
-                  key={section}
-                  type="button"
-                  className={`courses-page__chip ${
-                    sectionFilter === section ? "is-active" : ""
-                  }`}
-                  onClick={() => setSectionFilter(section)}
-                >
-                  {section}
-                </button>
-              ))}
-              {isStudent && (
-                <>
-                  <button
-                    type="button"
-                    className={`courses-page__chip courses-page__chip--status ${
-                      accessFilter === "all" ? "is-active" : ""
-                    }`}
-                    onClick={() => setAccessFilter("all")}
-                  >
-                    Все
-                  </button>
-                  <button
-                    type="button"
-                    className={`courses-page__chip courses-page__chip--status ${
-                      accessFilter === "available" ? "is-active" : ""
-                    }`}
-                    onClick={() => setAccessFilter("available")}
-                  >
-                    Доступные
-                  </button>
-                  <button
-                    type="button"
-                    className={`courses-page__chip courses-page__chip--status ${
-                      accessFilter === "locked" ? "is-active" : ""
-                    }`}
-                    onClick={() => setAccessFilter("locked")}
-                  >
-                    После покупки
-                  </button>
-                </>
-              )}
-            </div>
           </div>
 
           <div className="courses-page__controls-side">
