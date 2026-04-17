@@ -418,7 +418,7 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
     <group position={[1.7, 0.06, -1.22]} rotation={[0.04, -0.24, 0.03]}>
       <mesh
         geometry={loopGeometry}
-        position={[0.28, 0.16, -0.06]}
+        position={[-0.86, 0.16, -0.06]}
         rotation={[0.64, -0.5, 0.86]}
         scale={[2, 2, 2]}
       >
@@ -433,7 +433,12 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
         />
       </mesh>
 
-      <mesh geometry={knotGeometry} position={[-2.92, -1.16, -0.52]} rotation={[0.32, -0.26, 0.44]}>
+      <mesh
+        geometry={knotGeometry}
+        position={[-3.78, -1.16, -0.52]}
+        rotation={[0.32, -0.26, 0.44]}
+        scale={[0.8, 0.8, 0.8]}
+      >
         <meshPhysicalMaterial
           vertexColors
           roughness={0.22}

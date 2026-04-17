@@ -4,6 +4,7 @@ import {
   IconButton,
   InputAdornment,
   TextField,
+  MenuItem,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -15,7 +16,6 @@ import {
   getCourses,
 } from "@/entities/course/model/storage";
 import { CourseCard } from "@/entities/course/ui/CourseCard";
-import { PageTitle } from "@/shared/ui/PageTitle";
 import { ListPagination } from "@/shared/ui/ListPagination";
 import type { Course } from "@/entities/course/model/types";
 import { getLessons } from "@/entities/lesson/model/storage";
@@ -38,6 +38,7 @@ import {
 import { buildPublishedCourseContentProjection } from "@/features/assessments/model/releaseContent";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { getMyCapabilities } from "@/features/capabilities/model/api";
+import { resolveCourseVisualArchetype } from "@/entities/course/model/courseVisuals";
 
 const toApproxMonthly = (fromAmount: number | null, periodLabel: string) => {
   if (!fromAmount || fromAmount <= 0) return null;
@@ -46,6 +47,27 @@ const toApproxMonthly = (fromAmount: number | null, periodLabel: string) => {
   if (normalizedPeriod.includes("нед")) return Math.round((fromAmount * 52) / 12);
   return fromAmount;
 };
+
+const formatCoursesCount = (count: number) => {
+  const absCount = Math.abs(count);
+  const mod100 = absCount % 100;
+  if (mod100 >= 11 && mod100 <= 19) {
+    return `${count} курсов`;
+  }
+  const mod10 = absCount % 10;
+  if (mod10 === 1) return `${count} курс`;
+  if (mod10 >= 2 && mod10 <= 4) return `${count} курса`;
+  return `${count} курсов`;
+};
+
+type CatalogSort =
+  | "recommended"
+  | "titleAsc"
+  | "titleDesc"
+  | "priceAsc"
+  | "priceDesc";
+
+type CatalogAccessFilter = "all" | "available" | "locked";
 
 export default function Courses() {
   const { user, openAuthModal, openRecoverModal } = useAuth();
@@ -79,6 +101,10 @@ export default function Courses() {
     {}
   );
   const [query, setQuery] = useState("");
+  const [sectionFilter, setSectionFilter] = useState("all");
+  const [accessFilter, setAccessFilter] =
+    useState<CatalogAccessFilter>("all");
+  const [sortBy, setSortBy] = useState<CatalogSort>("recommended");
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState<unknown | null>(null);
   const [page, setPage] = useState(1);
@@ -86,7 +112,7 @@ export default function Courses() {
     requestedStudentTab
   );
 
-  const pageSize = isMobile ? 4 : isTablet ? 4 : 6;
+  const pageSize = isMobile ? 4 : isTablet ? 6 : 9;
 
   const isStudent = user?.role === "student";
   const purchasedSet = useMemo(() => new Set(purchasedIds), [purchasedIds]);
@@ -97,6 +123,10 @@ export default function Courses() {
     setStudentTab(requestedStudentTab);
     setPage(1);
   }, [isStudent, requestedStudentTab, studentTab]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [sectionFilter, accessFilter, sortBy]);
 
   const visibleCourses = useMemo(() => {
     if (!isStudent) {
@@ -113,13 +143,96 @@ export default function Courses() {
     return courses.filter((course) => !purchasedSet.has(course.id));
   }, [courses, isStudent, studentTab, purchasedCourses, purchasedSet, progressMap]);
 
-  const filteredCourses = useMemo(
+  const courseSectionMap = useMemo(
     () =>
-      visibleCourses.filter((course) =>
-        course.title.toLowerCase().includes(query.trim().toLowerCase())
-      ),
-    [visibleCourses, query]
+      visibleCourses.reduce<Record<string, string>>((acc, course) => {
+        acc[course.id] = resolveCourseVisualArchetype(course).shortTag;
+        return acc;
+      }, {}),
+    [visibleCourses]
   );
+
+  const sectionOptions = useMemo(
+    () =>
+      Array.from(new Set(Object.values(courseSectionMap))).sort((left, right) =>
+        left.localeCompare(right, "ru")
+      ),
+    [courseSectionMap]
+  );
+  const visibleSectionOptions = useMemo(
+    () => sectionOptions.slice(0, 6),
+    [sectionOptions]
+  );
+
+  const isCourseLocked = useCallback(
+    (courseId: string) => {
+      const decision = accessMap[courseId];
+      if (decision) {
+        return !decision.canAccessAllLessons;
+      }
+      return !purchasedSet.has(courseId);
+    },
+    [accessMap, purchasedSet]
+  );
+
+  const filteredCourses = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    let nextCourses = visibleCourses.filter((course) => {
+      if (!normalizedQuery) return true;
+      return (
+        course.title.toLowerCase().includes(normalizedQuery) ||
+        course.description.toLowerCase().includes(normalizedQuery) ||
+        course.level.toLowerCase().includes(normalizedQuery)
+      );
+    });
+
+    if (sectionFilter !== "all") {
+      nextCourses = nextCourses.filter(
+        (course) => courseSectionMap[course.id] === sectionFilter
+      );
+    }
+
+    if (isStudent && accessFilter !== "all") {
+      nextCourses = nextCourses.filter((course) => {
+        const locked = isCourseLocked(course.id);
+        return accessFilter === "available" ? !locked : locked;
+      });
+    }
+
+    if (sortBy === "titleAsc") {
+      nextCourses = [...nextCourses].sort((left, right) =>
+        left.title.localeCompare(right.title, "ru")
+      );
+    } else if (sortBy === "titleDesc") {
+      nextCourses = [...nextCourses].sort((left, right) =>
+        right.title.localeCompare(left.title, "ru")
+      );
+    } else if (sortBy === "priceAsc") {
+      nextCourses = [...nextCourses].sort(
+        (left, right) =>
+          Math.min(left.priceGuided, left.priceSelf) -
+          Math.min(right.priceGuided, right.priceSelf)
+      );
+    } else if (sortBy === "priceDesc") {
+      nextCourses = [...nextCourses].sort(
+        (left, right) =>
+          Math.min(right.priceGuided, right.priceSelf) -
+          Math.min(left.priceGuided, left.priceSelf)
+      );
+    }
+
+    return nextCourses;
+  }, [
+    visibleCourses,
+    query,
+    sectionFilter,
+    courseSectionMap,
+    isStudent,
+    accessFilter,
+    isCourseLocked,
+    sortBy,
+  ]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCourses.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -128,6 +241,9 @@ export default function Courses() {
     const start = (safePage - 1) * pageSize;
     return filteredCourses.slice(start, start + pageSize);
   }, [filteredCourses, safePage, pageSize]);
+
+  const filteredCountLabel = formatCoursesCount(filteredCourses.length);
+  const totalCountLabel = formatCoursesCount(visibleCourses.length);
 
   const catalogNoticeState = useMemo(
     () =>
@@ -376,7 +492,22 @@ export default function Courses() {
   return (
     <section className="courses-page">
       <div className="courses-page__container">
-        <PageTitle title="Каталог курсов" className="courses-page__title" />
+        <header className="courses-page__hero">
+          <div className="courses-page__hero-copy">
+            <h1 className="courses-page__title">Каталог курсов</h1>
+            <p className="courses-page__subtitle">
+              Подберите курс по уровню, разделу и формату. Все программы
+              собраны в единой библиотеке с прозрачной структурой и быстрым
+              переходом к изучению.
+            </p>
+          </div>
+          <div className="courses-page__hero-summary" aria-live="polite">
+            <span className="courses-page__hero-count">{filteredCountLabel}</span>
+            {filteredCourses.length !== visibleCourses.length ? (
+              <span className="courses-page__hero-total">из {totalCountLabel}</span>
+            ) : null}
+          </div>
+        </header>
 
         {pageError ? (
           <RecoverableErrorAlert
@@ -394,40 +525,12 @@ export default function Courses() {
           />
         )}
 
-        <div className="courses-page__search">
-            <TextField
-              placeholder="Поиск курса..."
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setPage(1);
-              }}
-            fullWidth
-            inputProps={{ "aria-label": "Поиск курса" }}
-            InputProps={{
-              endAdornment: query ? (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="Очистить поиск"
-                    onClick={() => {
-                      setQuery("");
-                      setPage(1);
-                    }}
-                    edge="end"
-                    size="small"
-                  >
-                    <CloseRoundedIcon fontSize="small" />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-            }}
-          />
-        </div>
-
         {isStudent && (
-          <div className="courses-page__segment">
+          <div className="courses-page__segment" role="tablist" aria-label="Тип каталога">
             <button
               type="button"
+              role="tab"
+              aria-selected={studentTab === "notPurchased"}
               className={`courses-page__segment-btn ${
                 studentTab === "notPurchased" ? "is-active" : ""
               }`}
@@ -449,6 +552,8 @@ export default function Courses() {
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={studentTab === "purchased"}
               className={`courses-page__segment-btn ${
                 studentTab === "purchased" ? "is-active" : ""
               }`}
@@ -471,6 +576,113 @@ export default function Courses() {
           </div>
         )}
 
+        <div className="courses-page__controls">
+          <div className="courses-page__controls-main">
+            <div className="courses-page__search">
+              <TextField
+                placeholder="Поиск курса..."
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
+                fullWidth
+                inputProps={{ "aria-label": "Поиск курса" }}
+                InputProps={{
+                  endAdornment: query ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="Очистить поиск"
+                        onClick={() => {
+                          setQuery("");
+                          setPage(1);
+                        }}
+                        edge="end"
+                        size="small"
+                      >
+                        <CloseRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
+            </div>
+
+            <div className="courses-page__chips">
+              <button
+                type="button"
+                className={`courses-page__chip ${
+                  sectionFilter === "all" ? "is-active" : ""
+                }`}
+                onClick={() => setSectionFilter("all")}
+              >
+                Все разделы
+              </button>
+              {visibleSectionOptions.map((section) => (
+                <button
+                  key={section}
+                  type="button"
+                  className={`courses-page__chip ${
+                    sectionFilter === section ? "is-active" : ""
+                  }`}
+                  onClick={() => setSectionFilter(section)}
+                >
+                  {section}
+                </button>
+              ))}
+              {isStudent && (
+                <>
+                  <button
+                    type="button"
+                    className={`courses-page__chip courses-page__chip--status ${
+                      accessFilter === "all" ? "is-active" : ""
+                    }`}
+                    onClick={() => setAccessFilter("all")}
+                  >
+                    Все
+                  </button>
+                  <button
+                    type="button"
+                    className={`courses-page__chip courses-page__chip--status ${
+                      accessFilter === "available" ? "is-active" : ""
+                    }`}
+                    onClick={() => setAccessFilter("available")}
+                  >
+                    Доступные
+                  </button>
+                  <button
+                    type="button"
+                    className={`courses-page__chip courses-page__chip--status ${
+                      accessFilter === "locked" ? "is-active" : ""
+                    }`}
+                    onClick={() => setAccessFilter("locked")}
+                  >
+                    После покупки
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="courses-page__controls-side">
+            <TextField
+              select
+              size="small"
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value as CatalogSort)}
+              label="Сортировка"
+              className="courses-page__sort"
+            >
+              <MenuItem value="recommended">Рекомендуемые</MenuItem>
+              <MenuItem value="titleAsc">По названию: А-Я</MenuItem>
+              <MenuItem value="titleDesc">По названию: Я-А</MenuItem>
+              <MenuItem value="priceAsc">Цена: сначала ниже</MenuItem>
+              <MenuItem value="priceDesc">Цена: сначала выше</MenuItem>
+            </TextField>
+            <div className="courses-page__results">{filteredCountLabel}</div>
+          </div>
+        </div>
+
         {loading && courses.length === 0 ? (
           <ListSkeleton className="courses-page__grid" count={6} itemHeight={220} />
         ) : (
@@ -484,10 +696,7 @@ export default function Courses() {
             {pagedCourses.map((course) => {
               const isTeacher = user?.role === "teacher";
               const decision = accessMap[course.id];
-              const locked =
-                decision !== undefined
-                  ? !decision.canAccessAllLessons
-                  : !isTeacher && !purchasedIds.includes(course.id);
+              const locked = isTeacher ? false : isCourseLocked(course.id);
               const progress =
                 user?.role === "student" &&
                 decision?.canAccessAllLessons !== false &&
