@@ -1,5 +1,5 @@
 .courses-preview {
-  --preview-content-max: min(100%, var(--layout-content-max));
+  --preview-content-max: min(100%, calc(var(--layout-content-max) + 240px));
   --preview-section-gap: 16px;
   --preview-shelf-gap: 14px;
   --preview-shelf-nav-size: 58px;
@@ -8,7 +8,7 @@
   position: relative;
   padding: clamp(42px, 4.5vw, 58px) var(--layout-gutter) clamp(28px, 3.2vw, 42px);
   background: transparent;
-  overflow: hidden;
+  overflow: visible;
 
   &::before {
     content: "";
@@ -95,7 +95,7 @@
     z-index: 1;
     width: var(--preview-content-max);
     margin: 0 auto;
-    padding-inline: calc(var(--preview-shelf-nav-size) + 10px);
+    padding-inline: calc(var(--preview-shelf-nav-size) + 2px);
 
     &::before,
     &::after {
@@ -173,8 +173,8 @@
     gap: 0;
     overflow-x: auto;
     overflow-y: visible;
-    padding-top: 34px;
-    margin-top: -34px;
+    padding-top: 44px;
+    margin-top: -44px;
     overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
@@ -662,6 +662,7 @@
 @media (max-width: 860px) {
   .courses-preview {
     --preview-shelf-nav-size: 42px;
+    --preview-content-max: 100%;
 
     padding-inline: 14px;
 

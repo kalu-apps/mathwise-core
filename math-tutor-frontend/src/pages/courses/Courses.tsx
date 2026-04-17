@@ -665,13 +665,14 @@ export default function Courses() {
           </div>
 
           <div className="courses-page__controls-side">
+            <span className="courses-page__sort-label">Сортировка</span>
             <TextField
               select
               size="small"
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value as CatalogSort)}
-              label="Сортировка"
               className="courses-page__sort"
+              inputProps={{ "aria-label": "Сортировка курсов" }}
             >
               <MenuItem value="recommended">Рекомендуемые</MenuItem>
               <MenuItem value="titleAsc">По названию: А-Я</MenuItem>
@@ -679,7 +680,6 @@ export default function Courses() {
               <MenuItem value="priceAsc">Цена: сначала ниже</MenuItem>
               <MenuItem value="priceDesc">Цена: сначала выше</MenuItem>
             </TextField>
-            <div className="courses-page__results">{filteredCountLabel}</div>
           </div>
         </div>
 
