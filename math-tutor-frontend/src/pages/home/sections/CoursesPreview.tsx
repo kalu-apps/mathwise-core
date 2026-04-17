@@ -3,9 +3,10 @@ import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCourses } from "@/entities/course/model/storage";
+import { getCourseReleaseContent, getCourses } from "@/entities/course/model/storage";
 import type { Course } from "@/entities/course/model/types";
 import { CourseVisualBackground } from "@/entities/course/ui/CourseVisualBackground";
+import { getLessonsByCourse } from "@/entities/lesson/model/storage";
 
 function toCompactDescriptor(description: string) {
   const normalized = description.replace(/\s+/g, " ").trim();
@@ -22,20 +23,37 @@ function toCompactDescriptor(description: string) {
   return `${candidate.slice(0, 169).trimEnd()}…`;
 }
 
-function toFormatLabel(course: Course) {
-  if (course.priceGuided > course.priceSelf) return "2 формата обучения";
-  return "Формат с практикой";
+function toPluralLabel(
+  count: number,
+  one: string,
+  few: string,
+  many: string
+) {
+  const abs = Math.abs(count);
+  const mod100 = abs % 100;
+  if (mod100 >= 11 && mod100 <= 19) {
+    return many;
+  }
+  const mod10 = abs % 10;
+  if (mod10 === 1) return one;
+  if (mod10 >= 2 && mod10 <= 4) return few;
+  return many;
 }
 
-function toSupportLabel(course: Course) {
-  if (course.priceGuided > course.priceSelf) return "С поддержкой";
-  return "Самостоятельно";
+function toLessonChipLabel(lessonsCount: number) {
+  if (lessonsCount <= 0) return "Уроки";
+  return `${lessonsCount} ${toPluralLabel(lessonsCount, "урок", "урока", "уроков")}`;
+}
+
+function toTestChipLabel(testsCount: number) {
+  if (testsCount <= 0) return null;
+  return `${testsCount} ${toPluralLabel(testsCount, "тест", "теста", "тестов")}`;
 }
 
 function getSecondarySticker(index: number) {
   if (index % 2 === 0) {
     return {
-      label: "Расширенный тариф",
+      label: "Больше возможностей",
       variant: "extended",
     } as const;
   }
@@ -49,6 +67,9 @@ function getSecondarySticker(index: number) {
 export function CoursesPreview() {
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [courseStatsById, setCourseStatsById] = useState<
+    Record<string, { lessonsCount: number; testsCount: number }>
+  >({});
   const railRef = useRef<HTMLDivElement | null>(null);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
@@ -115,15 +136,68 @@ export function CoursesPreview() {
     (course) => course.status === "published"
   );
   const previewCourses = publishedCourses.slice(0, 9);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadCourseStats = async () => {
+      if (!previewCourses.length) {
+        if (active) {
+          setCourseStatsById({});
+        }
+        return;
+      }
+
+      const statsEntries = await Promise.all(
+        previewCourses.map(async (course) => {
+          const fallback = { lessonsCount: 0, testsCount: 0 };
+          try {
+            const [lessons, releaseContent] = await Promise.all([
+              getLessonsByCourse(course.id, { forceFresh: true }).catch(() => []),
+              getCourseReleaseContent(course.id, { forceFresh: true }).catch(() => ({
+                items: [],
+                blocks: [],
+              })),
+            ]);
+
+            const releaseLessonIds = new Set(
+              releaseContent.items
+                .filter((item) => item.type === "lesson" && item.lessonId)
+                .map((item) => item.lessonId as string)
+            );
+            const lessonsCount = Math.max(lessons.length, releaseLessonIds.size);
+            const testsCount = releaseContent.items.filter(
+              (item) => item.type === "test"
+            ).length;
+
+            return [course.id, { lessonsCount, testsCount }] as const;
+          } catch {
+            return [course.id, fallback] as const;
+          }
+        })
+      );
+
+      if (!active) return;
+      setCourseStatsById(Object.fromEntries(statsEntries));
+    };
+
+    void loadCourseStats();
+    return () => {
+      active = false;
+    };
+  }, [previewCourses]);
+
   const previewCards = useMemo(
     () =>
       previewCourses.map((course) => ({
         ...course,
         descriptor: toCompactDescriptor(course.description),
-        formatLabel: toFormatLabel(course),
-        supportLabel: toSupportLabel(course),
+        lessonsChip: toLessonChipLabel(
+          courseStatsById[course.id]?.lessonsCount ?? 0
+        ),
+        testsChip: toTestChipLabel(courseStatsById[course.id]?.testsCount ?? 0),
       })),
-    [previewCourses]
+    [previewCourses, courseStatsById]
   );
   const previewPages = useMemo(() => {
     const pages: Array<{
@@ -167,9 +241,13 @@ export function CoursesPreview() {
 
       <div className="courses-preview__shelf">
         <IconButton
-          className="courses-preview__shelf-nav courses-preview__shelf-nav--prev"
-          onClick={() => scrollRailByDirection("prev")}
-          disabled={!canScrollPrev}
+          onClick={() => {
+            if (!canScrollPrev) return;
+            scrollRailByDirection("prev");
+          }}
+          className={`courses-preview__shelf-nav courses-preview__shelf-nav--prev ${
+            canScrollPrev ? "" : "is-inactive"
+          }`}
           aria-label="Прокрутить курсы влево"
           disableRipple
           disableTouchRipple
@@ -208,10 +286,12 @@ export function CoursesPreview() {
                   <div className="courses-preview__featured-zone courses-preview__featured-zone--meta">
                     <div className="courses-preview__metrics">
                       <span className="courses-preview__metric">{page.featured.level}</span>
-                      <span className="courses-preview__metric">{page.featured.formatLabel}</span>
-                      <span className="courses-preview__metric courses-preview__metric--support">
-                        {page.featured.supportLabel}
-                      </span>
+                      <span className="courses-preview__metric">{page.featured.lessonsChip}</span>
+                      {page.featured.testsChip ? (
+                        <span className="courses-preview__metric courses-preview__metric--tests">
+                          {page.featured.testsChip}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
 
@@ -251,13 +331,16 @@ export function CoursesPreview() {
 
                           <div className="courses-preview__secondary-main">
                             <h3 className="courses-preview__title courses-preview__title--secondary">{course.title}</h3>
-                            <p className="courses-preview__secondary-support">{course.supportLabel}</p>
                           </div>
 
                           <div className="courses-preview__secondary-footer">
                             <div className="courses-preview__metrics courses-preview__metrics--compact">
-                              <span className="courses-preview__metric">{course.level}</span>
-                              <span className="courses-preview__metric">{course.formatLabel}</span>
+                              <span className="courses-preview__metric">{course.lessonsChip}</span>
+                              {course.testsChip ? (
+                                <span className="courses-preview__metric courses-preview__metric--tests">
+                                  {course.testsChip}
+                                </span>
+                              ) : null}
                             </div>
 
                             <div className="courses-preview__cta-row courses-preview__cta-row--secondary">
@@ -280,9 +363,13 @@ export function CoursesPreview() {
         </div>
 
         <IconButton
-          className="courses-preview__shelf-nav courses-preview__shelf-nav--next"
-          onClick={() => scrollRailByDirection("next")}
-          disabled={!canScrollNext}
+          className={`courses-preview__shelf-nav courses-preview__shelf-nav--next ${
+            canScrollNext ? "" : "is-inactive"
+          }`}
+          onClick={() => {
+            if (!canScrollNext) return;
+            scrollRailByDirection("next");
+          }}
           aria-label="Прокрутить курсы вправо"
           disableRipple
           disableTouchRipple
