@@ -49,22 +49,22 @@ export function HomeHeroEnvironment() {
         <Canvas
           className="home-first-screen__environment-canvas"
           camera={{ position: [0, 0.02, 6.05], fov: 36.5 }}
-          dpr={[0.75, 0.95]}
+          dpr={mode === "light" ? [1, 1.45] : [0.95, 1.3]}
           frameloop="demand"
-          performance={{ min: 0.52, max: 0.95, debounce: 280 }}
+          performance={{ min: 0.62, max: 1.05, debounce: 260 }}
           gl={{
             antialias: true,
             alpha: true,
-            powerPreference: "low-power",
+            powerPreference: "high-performance",
             failIfMajorPerformanceCaveat: true,
-            precision: "mediump",
+            precision: "highp",
             stencil: false,
             depth: true,
           }}
           onCreated={({ gl }) => {
             gl.setClearColor(0x000000, 0);
             gl.toneMapping = ACESFilmicToneMapping;
-            gl.toneMappingExposure = mode === "dark" ? 1 : 1.02;
+            gl.toneMappingExposure = mode === "dark" ? 1 : 1.08;
             gl.outputColorSpace = SRGBColorSpace;
           }}
         >

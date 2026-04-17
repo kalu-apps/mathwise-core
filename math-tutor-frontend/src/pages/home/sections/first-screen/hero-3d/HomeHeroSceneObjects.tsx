@@ -46,6 +46,9 @@ type ScenePalette = {
   accentA: string;
   accentB: string;
   accentC: string;
+  supportTorusA: string;
+  supportTorusB: string;
+  supportTorusC: string;
 };
 
 function useDisposableGeometry<TGeometry extends BufferGeometry>(geometry: TGeometry): TGeometry {
@@ -109,7 +112,7 @@ function applyTriGradient(
 }
 
 function buildCoordinatePlaneSurface(mode: SceneMode, palette: ScenePalette): PlaneGeometry {
-  const geometry = new THREE.PlaneGeometry(9.8, 5.95, 38, 24);
+  const geometry = new THREE.PlaneGeometry(9.8, 5.95, 54, 34);
   const position = geometry.attributes.position as BufferAttribute;
 
   for (let i = 0; i < position.count; i += 1) {
@@ -171,7 +174,7 @@ function buildCoordinateLineGeometry(
 }
 
 function buildMainLoopGeometry(palette: ScenePalette): TorusGeometry {
-  const geometry = new THREE.TorusGeometry(1.04, 0.2, 46, 170, Math.PI * 1.72);
+  const geometry = new THREE.TorusGeometry(1.04, 0.2, 64, 220, Math.PI * 1.72);
 
   applyTriGradient(
     geometry,
@@ -185,7 +188,7 @@ function buildMainLoopGeometry(palette: ScenePalette): TorusGeometry {
 }
 
 function buildKnotGeometry(palette: ScenePalette): TorusKnotGeometry {
-  const geometry = new THREE.TorusKnotGeometry(0.5, 0.11, 170, 26, 2, 5);
+  const geometry = new THREE.TorusKnotGeometry(0.5, 0.11, 220, 40, 2, 5);
 
   applyTriGradient(
     geometry,
@@ -199,7 +202,7 @@ function buildKnotGeometry(palette: ScenePalette): TorusKnotGeometry {
 }
 
 function buildOrbGeometry(palette: ScenePalette): SphereGeometry {
-  const geometry = new THREE.SphereGeometry(0.36, 52, 52);
+  const geometry = new THREE.SphereGeometry(0.36, 64, 64);
 
   applyTriGradient(
     geometry,
@@ -213,7 +216,7 @@ function buildOrbGeometry(palette: ScenePalette): SphereGeometry {
 }
 
 function buildRodGeometry(palette: ScenePalette): CapsuleGeometry {
-  const geometry = new THREE.CapsuleGeometry(0.115, 0.84, 14, 28);
+  const geometry = new THREE.CapsuleGeometry(0.115, 0.84, 18, 36);
 
   applyTriGradient(
     geometry,
@@ -227,7 +230,7 @@ function buildRodGeometry(palette: ScenePalette): CapsuleGeometry {
 }
 
 function buildRoundedSolidGeometry(palette: ScenePalette): SphereGeometry {
-  const geometry = new THREE.SphereGeometry(0.46, 48, 48);
+  const geometry = new THREE.SphereGeometry(0.46, 62, 62);
   const position = geometry.attributes.position as BufferAttribute;
 
   for (let i = 0; i < position.count; i += 1) {
@@ -260,7 +263,7 @@ function buildRoundedSolidGeometry(palette: ScenePalette): SphereGeometry {
 }
 
 function buildAccentOrbGeometry(palette: ScenePalette): SphereGeometry {
-  const geometry = new THREE.SphereGeometry(0.18, 40, 40);
+  const geometry = new THREE.SphereGeometry(0.18, 48, 48);
 
   applyTriGradient(
     geometry,
@@ -273,25 +276,83 @@ function buildAccentOrbGeometry(palette: ScenePalette): SphereGeometry {
   return geometry;
 }
 
+function buildSupportPointTorusGeometry(palette: ScenePalette): BufferGeometry {
+  const majorRadius = 0.8;
+  const minorRadius = 0.24;
+  const uSegments = 156;
+  const vSegments = 84;
+  const pointCount = uSegments * vSegments;
+  const positions = new Float32Array(pointCount * 3);
+  const colors = new Float32Array(pointCount * 3);
+
+  const c1 = new THREE.Color(palette.supportTorusA);
+  const c2 = new THREE.Color(palette.supportTorusB);
+  const c3 = new THREE.Color(palette.supportTorusC);
+  const mixed = new THREE.Color();
+  const polished = new THREE.Color();
+
+  let ptr = 0;
+  for (let uIndex = 0; uIndex < uSegments; uIndex += 1) {
+    const u = (uIndex / uSegments) * Math.PI * 2;
+    const cosU = Math.cos(u);
+    const sinU = Math.sin(u);
+
+    for (let vIndex = 0; vIndex < vSegments; vIndex += 1) {
+      const v = (vIndex / vSegments) * Math.PI * 2;
+      const cosV = Math.cos(v);
+      const sinV = Math.sin(v);
+      const radius = majorRadius + minorRadius * cosV;
+      const x = radius * cosU;
+      const y = minorRadius * sinV;
+      const z = radius * sinU;
+
+      positions[ptr * 3] = x;
+      positions[ptr * 3 + 1] = y;
+      positions[ptr * 3 + 2] = z;
+
+      const band = (sinV + 1) * 0.5;
+      const sweep = (cosU + 1) * 0.5;
+      const t = Math.min(1, Math.max(0, band * 0.62 + sweep * 0.38));
+      if (t < 0.5) {
+        mixed.lerpColors(c1, c2, t / 0.5);
+      } else {
+        mixed.lerpColors(c2, c3, (t - 0.5) / 0.5);
+      }
+
+      const sheen = 0.05 * Math.sin(u * 1.2 + v * 2.3);
+      polished.copy(mixed).offsetHSL(0, 0, sheen);
+      colors[ptr * 3] = polished.r;
+      colors[ptr * 3 + 1] = polished.g;
+      colors[ptr * 3 + 2] = polished.b;
+      ptr += 1;
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  return geometry;
+}
+
 function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePalette }) {
   const surfaceGeometry = useDisposableGeometry(
     useMemo(() => buildCoordinatePlaneSurface(mode, palette), [mode, palette])
   );
-  const minorGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 18, 18, "both"), []));
-  const majorXGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 10, 22, "x"), []));
-  const majorZGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 10, 22, "z"), []));
+  const minorGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 22, 22, "both"), []));
+  const majorXGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 12, 26, "x"), []));
+  const majorZGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 12, 26, "z"), []));
 
   return (
     <group position={[0.08, -1.2, -2.34]} rotation={[-0.9, 0.14, -0.02]}>
       <mesh geometry={surfaceGeometry}>
         <meshPhysicalMaterial
           vertexColors
-          roughness={0.44}
-          metalness={0.09}
-          clearcoat={0.28}
-          clearcoatRoughness={0.28}
+          roughness={mode === "dark" ? 0.42 : 0.28}
+          metalness={mode === "dark" ? 0.09 : 0.16}
+          clearcoat={mode === "dark" ? 0.28 : 0.42}
+          clearcoatRoughness={mode === "dark" ? 0.28 : 0.2}
           transparent
-          opacity={mode === "dark" ? 0.35 : 0.28}
+          opacity={mode === "dark" ? 0.35 : 0.42}
         />
       </mesh>
 
@@ -299,7 +360,7 @@ function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePal
         <lineBasicMaterial
           color={palette.gridMinor}
           transparent
-          opacity={mode === "dark" ? 0.08 : 0.07}
+          opacity={mode === "dark" ? 0.08 : 0.15}
           depthWrite={false}
         />
       </lineSegments>
@@ -308,7 +369,7 @@ function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePal
         <lineBasicMaterial
           color={palette.gridMajorA}
           transparent
-          opacity={mode === "dark" ? 0.22 : 0.18}
+          opacity={mode === "dark" ? 0.22 : 0.3}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
@@ -318,12 +379,30 @@ function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePal
         <lineBasicMaterial
           color={palette.gridMajorB}
           transparent
-          opacity={mode === "dark" ? 0.2 : 0.16}
+          opacity={mode === "dark" ? 0.2 : 0.26}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
       </lineSegments>
     </group>
+  );
+}
+
+function SupportPointTorusArtifact({ mode, palette }: { mode: SceneMode; palette: ScenePalette }) {
+  const geometry = useDisposableGeometry(useMemo(() => buildSupportPointTorusGeometry(palette), [palette]));
+
+  return (
+    <points geometry={geometry} position={[-2.84, -1.26, -0.88]} rotation={[-0.34, 0.36, -0.28]} scale={0.52}>
+      <pointsMaterial
+        vertexColors
+        transparent
+        opacity={mode === "dark" ? 0.96 : 0.88}
+        size={mode === "dark" ? 0.018 : 0.015}
+        sizeAttenuation
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
   );
 }
 
@@ -449,6 +528,9 @@ function paletteByMode(mode: SceneMode): ScenePalette {
       accentA: "#7b66ff",
       accentB: "#ff61b2",
       accentC: "#ffb46f",
+      supportTorusA: "#5f52ff",
+      supportTorusB: "#ff68bf",
+      supportTorusC: "#ffb06f",
     };
   }
 
@@ -457,11 +539,11 @@ function paletteByMode(mode: SceneMode): ScenePalette {
     key: "#ffffff",
     fill: "#ff9ab3",
     rim: "#b29cff",
-    planeSurfaceNear: "#9ab0ff",
-    planeSurfaceFar: "#7f9af0",
-    gridMajorA: "#7d95ff",
-    gridMajorB: "#ff8dcf",
-    gridMinor: "#8ee3ff",
+    planeSurfaceNear: "#a4b8ff",
+    planeSurfaceFar: "#819cec",
+    gridMajorA: "#6f8fff",
+    gridMajorB: "#ff77bf",
+    gridMinor: "#64d7ff",
     loopA: "#8f82ff",
     loopB: "#ff8cc8",
     loopC: "#ffb188",
@@ -481,6 +563,9 @@ function paletteByMode(mode: SceneMode): ScenePalette {
     accentA: "#ad98ff",
     accentB: "#ffa1d4",
     accentC: "#ffd0a8",
+    supportTorusA: "#7f7cff",
+    supportTorusB: "#ff8ec8",
+    supportTorusC: "#ffc48f",
   };
 }
 
@@ -489,12 +574,13 @@ export function HomeHeroSceneObjects({ mode }: HomeHeroSceneObjectsProps) {
 
   return (
     <group>
-      <ambientLight intensity={0.54} color={palette.ambient} />
-      <directionalLight intensity={0.96} color={palette.key} position={[4.2, 5.2, 4.9]} />
-      <pointLight intensity={0.24} color={palette.fill} position={[2.1, 1.2, 2.4]} />
-      <pointLight intensity={0.21} color={palette.rim} position={[-1.4, -0.8, 2.2]} />
+      <ambientLight intensity={mode === "dark" ? 0.54 : 0.62} color={palette.ambient} />
+      <directionalLight intensity={mode === "dark" ? 0.96 : 1.08} color={palette.key} position={[4.2, 5.2, 4.9]} />
+      <pointLight intensity={mode === "dark" ? 0.24 : 0.3} color={palette.fill} position={[2.1, 1.2, 2.4]} />
+      <pointLight intensity={mode === "dark" ? 0.21 : 0.26} color={palette.rim} position={[-1.4, -0.8, 2.2]} />
 
       <CoordinatePlane mode={mode} palette={palette} />
+      <SupportPointTorusArtifact mode={mode} palette={palette} />
       <MuseumGeometryCluster mode={mode} palette={palette} />
     </group>
   );

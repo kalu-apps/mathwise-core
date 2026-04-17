@@ -1,11 +1,11 @@
 .courses-preview {
   --preview-content-max: min(100%, var(--layout-content-max));
-  --preview-gap: 14px;
-  --preview-card-compact: clamp(238px, 27%, 312px);
-  --preview-card-featured: clamp(278px, 31%, 384px);
+  --preview-section-gap: 16px;
+  --preview-shelf-gap: 14px;
+  --preview-shelf-nav-size: 46px;
 
   position: relative;
-  padding: clamp(44px, 4.6vw, 60px) var(--layout-gutter) clamp(30px, 3.2vw, 44px);
+  padding: clamp(42px, 4.5vw, 58px) var(--layout-gutter) clamp(28px, 3.2vw, 42px);
   background: transparent;
   overflow: hidden;
 
@@ -14,9 +14,9 @@
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(74% 52% at 4% 0%, color-mix(in srgb, #7f95ff 14%, transparent), transparent 70%),
-      radial-gradient(52% 44% at 100% 16%, color-mix(in srgb, #67beff 10%, transparent), transparent 74%);
-    opacity: 0.55;
+      radial-gradient(78% 54% at 2% 0%, color-mix(in srgb, #829dff 16%, transparent), transparent 72%),
+      radial-gradient(54% 44% at 98% 14%, color-mix(in srgb, #66bbff 12%, transparent), transparent 74%);
+    opacity: 0.56;
     pointer-events: none;
   }
 
@@ -24,225 +24,224 @@
     position: relative;
     z-index: 1;
     width: var(--preview-content-max);
-    margin: 0 auto 20px;
+    margin: 0 auto var(--preview-section-gap);
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 16px;
+    gap: 18px;
   }
 
   &__copy {
     max-width: 640px;
   }
 
-  &__overline {
-    display: inline-flex;
-    align-items: center;
-    min-height: 22px;
-    padding: 0 8px;
-    border-radius: 999px;
-    font-size: 10px;
-    line-height: 1;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-weight: 700;
-    color: color-mix(in srgb, var(--text-secondary) 84%, var(--accent-primary));
-    background: color-mix(in srgb, var(--surface-elevated) 72%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
-  }
-
   &__heading {
-    margin: 10px 0 0;
-    font-size: clamp(24px, 2.9vw, 34px);
+    margin: 0;
+    font-size: clamp(24px, 2.85vw, 33px);
     line-height: 1.06;
     letter-spacing: -0.02em;
-    color: color-mix(in srgb, var(--text-primary) 94%, #dce7ff);
+    color: color-mix(in srgb, var(--text-primary) 95%, #e2ecff);
     text-wrap: balance;
   }
 
   &__subtitle {
     margin: 8px 0 0;
     font-size: 14px;
-    line-height: 1.45;
-    color: color-mix(in srgb, var(--text-secondary) 88%, #ccdafc);
+    line-height: 1.44;
+    color: color-mix(in srgb, var(--text-secondary) 88%, #cedbfd);
     max-width: 62ch;
   }
 
   &__actions {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
     flex-shrink: 0;
   }
 
   &__cta.MuiButton-root {
-    min-height: 36px;
+    min-height: 37px;
     border: 0 !important;
     border-radius: 10px !important;
-    background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
-    color: color-mix(in srgb, var(--text-primary) 94%, #ddebff) !important;
+    padding: 0 13px !important;
     text-transform: none !important;
     font-size: 13.5px !important;
-    font-weight: 640 !important;
-    padding: 0 12px !important;
+    font-weight: 630 !important;
+    color: color-mix(in srgb, var(--text-primary) 94%, #ddebff) !important;
+    background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
     box-shadow: none !important;
-    transition: background-color 0.18s ease, transform 0.18s ease;
+    transition: background-color 0.2s ease, transform 0.2s ease;
 
     &:hover {
       background: color-mix(in srgb, var(--accent-primary) 24%, transparent) !important;
-      transform: translateY(-0.5px);
+      transform: translateY(-1px);
     }
   }
 
-  &__nav {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  &__nav-button.MuiIconButton-root {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px !important;
-    border: 0 !important;
-    background: color-mix(in srgb, var(--surface-elevated) 72%, transparent) !important;
-    color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary)) !important;
-    box-shadow: none !important;
-    transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
-
-    .MuiSvgIcon-root {
-      font-size: 20px;
-    }
-
-    &:hover:not(.Mui-disabled) {
-      background: color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
-      color: var(--text-primary) !important;
-      transform: translateY(-0.5px);
-    }
-
-    &.Mui-disabled {
-      opacity: 0.42;
-      color: color-mix(in srgb, var(--text-muted) 86%, var(--text-secondary)) !important;
-      background: color-mix(in srgb, var(--surface-elevated) 52%, transparent) !important;
-    }
-  }
-
-  &__rail {
+  &__shelf {
     position: relative;
     z-index: 1;
     width: var(--preview-content-max);
     margin: 0 auto;
+    padding-inline: calc(var(--preview-shelf-nav-size) + 8px);
+  }
+
+  &__shelf-nav.MuiIconButton-root {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: var(--preview-shelf-nav-size);
+    height: var(--preview-shelf-nav-size);
+    border-radius: 14px !important;
+    border: 0 !important;
+    color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary)) !important;
+    background: color-mix(in srgb, var(--surface-elevated) 74%, transparent) !important;
+    box-shadow:
+      0 10px 18px color-mix(in srgb, #050b1f 12%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #ffffff 12%, transparent) !important;
+    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+
+    .MuiSvgIcon-root {
+      font-size: 30px;
+    }
+
+    &:hover:not(.Mui-disabled) {
+      transform: translateY(-50%) scale(1.03);
+      background: color-mix(in srgb, var(--accent-primary) 24%, transparent) !important;
+      color: var(--text-primary) !important;
+    }
+
+    &.Mui-disabled {
+      opacity: 0.4;
+      box-shadow: none !important;
+    }
+  }
+
+  &__shelf-nav--prev {
+    left: 0;
+  }
+
+  &__shelf-nav--next {
+    right: 0;
+  }
+
+  &__rail {
     display: flex;
-    gap: var(--preview-gap);
+    gap: 0;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory;
-    scroll-padding-left: 4px;
-    padding: 2px 26px 8px 2px;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
 
-    scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--accent-primary) 44%, transparent) transparent;
+  &__rail::-webkit-scrollbar {
+    display: none;
+  }
 
-    &::-webkit-scrollbar {
-      height: 7px;
-    }
+  &__page {
+    flex: 0 0 100%;
+    width: 100%;
+    min-height: 336px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: var(--preview-shelf-gap);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    padding: 2px;
+  }
 
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
+  &__page--single {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-    &::-webkit-scrollbar-thumb {
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--accent-primary) 44%, transparent);
-    }
+  &__stack {
+    min-height: 0;
+    display: grid;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 12px;
   }
 
   &__card.MuiCard-root {
     position: relative;
-    flex: 0 0 var(--preview-card-compact);
-    min-height: 232px;
+    min-height: 0;
     border-radius: 18px !important;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 72%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent) !important;
     background: linear-gradient(
-      155deg,
+      152deg,
       color-mix(in srgb, var(--surface-elevated) 92%, transparent) 0%,
       color-mix(in srgb, var(--surface-elevated) 82%, transparent) 100%
     ) !important;
     box-shadow:
-      0 10px 20px color-mix(in srgb, #081026 10%, transparent),
-      inset 0 1px 0 color-mix(in srgb, #ffffff 12%, transparent) !important;
+      0 12px 22px color-mix(in srgb, #081024 14%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent) !important;
     overflow: hidden;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 
     &:hover {
       transform: translateY(-2px);
-      border-color: color-mix(in srgb, var(--accent-primary) 30%, var(--border-subtle)) !important;
+      border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle)) !important;
       box-shadow:
-        0 14px 24px color-mix(in srgb, #081026 14%, transparent),
-        inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent) !important;
+        0 16px 28px color-mix(in srgb, #081024 16%, transparent),
+        inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent) !important;
     }
   }
 
   &__card .course-visual-bg {
     opacity: 0.4;
-    filter: saturate(0.86) contrast(1.01);
+    filter: saturate(0.9) contrast(1.02);
   }
 
   &__card--featured.MuiCard-root {
-    flex-basis: var(--preview-card-featured);
-    min-height: 248px;
-    border-color: color-mix(in srgb, var(--accent-primary) 30%, var(--border-subtle)) !important;
+    min-height: 336px;
+    border-color: color-mix(in srgb, var(--accent-primary) 32%, var(--border-subtle)) !important;
     background: linear-gradient(
-      151deg,
+      148deg,
       color-mix(in srgb, var(--surface-elevated) 88%, color-mix(in srgb, var(--accent-primary) 14%, transparent)) 0%,
-      color-mix(in srgb, var(--surface-elevated) 80%, color-mix(in srgb, var(--accent-strong) 9%, transparent)) 100%
+      color-mix(in srgb, var(--surface-elevated) 79%, color-mix(in srgb, var(--accent-strong) 10%, transparent)) 100%
     ) !important;
-    box-shadow:
-      0 14px 24px color-mix(in srgb, #081026 15%, transparent),
-      inset 0 1px 0 color-mix(in srgb, #ffffff 15%, transparent) !important;
   }
 
   &__card--featured .course-visual-bg {
     opacity: 0.48;
-    filter: saturate(0.94) contrast(1.03);
+    filter: saturate(0.96) contrast(1.05);
+  }
+
+  &__card--secondary.MuiCard-root {
+    min-height: 162px;
   }
 
   &__content.MuiCardContent-root {
     position: relative;
     z-index: 1;
-    display: grid;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
-    align-content: start;
     padding: 16px !important;
   }
 
-  &__type {
-    display: inline-flex;
-    align-items: center;
-    min-height: 20px;
-    width: fit-content;
-    padding: 0 7px;
-    border-radius: 999px;
-    font-size: 9.5px;
-    line-height: 1;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: color-mix(in srgb, var(--text-secondary) 88%, #d4ddff);
-    background: color-mix(in srgb, var(--surface-elevated) 72%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 64%, transparent);
+  &__content--featured.MuiCardContent-root {
+    padding: 18px !important;
+    gap: 11px;
+  }
+
+  &__content--secondary.MuiCardContent-root {
+    padding: 14px !important;
+    gap: 8px;
   }
 
   &__title {
     margin: 0;
-    font-size: 19px;
-    line-height: 1.14;
+    font-size: 20px;
+    line-height: 1.12;
     letter-spacing: -0.015em;
-    color: color-mix(in srgb, var(--text-primary) 96%, #e4ecff);
+    color: color-mix(in srgb, var(--text-primary) 96%, #e3edff);
     text-wrap: balance;
+  }
+
+  &__title--secondary {
+    font-size: 18px;
+    line-height: 1.14;
   }
 
   &__descriptor {
@@ -250,13 +249,30 @@
     font-size: 13px;
     line-height: 1.42;
     color: color-mix(in srgb, var(--text-secondary) 88%, #d0dcff);
-    min-height: 37px;
+  }
+
+  &__descriptor--featured {
+    min-height: 38px;
+    max-width: 54ch;
+  }
+
+  &__descriptor--secondary {
+    min-height: 36px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   &__metrics {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+  }
+
+  &__metrics--compact {
+    gap: 5px;
   }
 
   &__metric {
@@ -270,54 +286,51 @@
     font-weight: 620;
     color: color-mix(in srgb, var(--text-primary) 90%, #dce7ff);
     background: color-mix(in srgb, var(--surface-elevated) 76%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 68%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 66%, transparent);
+    white-space: nowrap;
   }
 
   &__button.MuiButton-root {
-    margin-top: 2px;
-    min-height: 34px;
+    margin-top: auto;
+    align-self: flex-start;
+    min-height: 36px;
     border: 0 !important;
     border-radius: 9px !important;
-    padding: 0 10px !important;
+    padding: 0 12px !important;
     text-transform: none !important;
     font-size: 13px !important;
     font-weight: 620 !important;
     color: color-mix(in srgb, var(--text-primary) 92%, #dce8ff) !important;
     background: color-mix(in srgb, var(--accent-primary) 14%, transparent) !important;
     box-shadow: none !important;
-    align-self: flex-start;
-    transition: background-color 0.18s ease, transform 0.18s ease;
+    transition: background-color 0.2s ease, transform 0.2s ease;
 
     &:hover {
       background: color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
       transform: translateY(-0.5px);
     }
   }
+
+  &__button--secondary.MuiButton-root {
+    min-height: 34px;
+  }
 }
 
 :root[data-theme="light"] .courses-preview {
   &::before {
     background:
-      radial-gradient(76% 56% at 4% 0%, color-mix(in srgb, #c9d7ff 28%, transparent), transparent 72%),
-      radial-gradient(56% 46% at 100% 16%, color-mix(in srgb, #9ed6ff 21%, transparent), transparent 74%);
-    opacity: 0.68;
-  }
-
-  .courses-preview__overline,
-  .courses-preview__type,
-  .courses-preview__metric {
-    background: color-mix(in srgb, #eff4ff 84%, transparent);
-    border-color: color-mix(in srgb, #cfdcff 64%, transparent);
-    color: color-mix(in srgb, #425883 88%, #5f74a2);
+      radial-gradient(80% 56% at 2% 0%, color-mix(in srgb, #ccd9ff 30%, transparent), transparent 73%),
+      radial-gradient(56% 46% at 98% 16%, color-mix(in srgb, #9fd7ff 22%, transparent), transparent 76%);
+    opacity: 0.7;
   }
 
   .courses-preview__heading {
-    color: color-mix(in srgb, #1f2f54 94%, #304571);
+    color: color-mix(in srgb, #1f3259 94%, #2f4a78);
   }
 
   .courses-preview__subtitle,
   .courses-preview__descriptor {
-    color: color-mix(in srgb, #536792 88%, #667cab);
+    color: color-mix(in srgb, #4f638d 88%, #6179a8);
   }
 
   .courses-preview__cta.MuiButton-root {
@@ -325,34 +338,43 @@
     color: color-mix(in srgb, #2d446f 92%, #415989) !important;
   }
 
-  .courses-preview__nav-button.MuiIconButton-root {
-    background: color-mix(in srgb, #edf3ff 78%, transparent) !important;
-    color: color-mix(in srgb, #4c628f 90%, #6075a3) !important;
+  .courses-preview__shelf-nav.MuiIconButton-root {
+    background: color-mix(in srgb, #edf3ff 82%, transparent) !important;
+    color: color-mix(in srgb, #4c628f 92%, #6075a3) !important;
+    box-shadow:
+      0 10px 18px color-mix(in srgb, #b1c5e8 16%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #ffffff 96%, transparent) !important;
   }
 
   .courses-preview__card.MuiCard-root {
     background: linear-gradient(
-      156deg,
-      color-mix(in srgb, #f7fbff 90%, transparent) 0%,
-      color-mix(in srgb, #edf4ff 82%, transparent) 100%
+      154deg,
+      color-mix(in srgb, #f8fbff 92%, transparent) 0%,
+      color-mix(in srgb, #edf4ff 84%, transparent) 100%
     ) !important;
-    border-color: color-mix(in srgb, #c8d8ff 64%, transparent) !important;
+    border-color: color-mix(in srgb, #c9d8ff 64%, transparent) !important;
     box-shadow:
-      0 10px 18px color-mix(in srgb, #afc3e7 14%, transparent),
+      0 12px 20px color-mix(in srgb, #afc3e8 14%, transparent),
       inset 0 1px 0 color-mix(in srgb, #ffffff 94%, transparent) !important;
   }
 
   .courses-preview__card--featured.MuiCard-root {
     background: linear-gradient(
-      152deg,
+      150deg,
       color-mix(in srgb, #edf4ff 92%, transparent) 0%,
-      color-mix(in srgb, #e3ecff 86%, color-mix(in srgb, #d9eeff 14%, transparent)) 100%
+      color-mix(in srgb, #e3ecff 86%, color-mix(in srgb, #d6e9ff 16%, transparent)) 100%
     ) !important;
-    border-color: color-mix(in srgb, #bfd3ff 72%, transparent) !important;
+    border-color: color-mix(in srgb, #bfd2ff 72%, transparent) !important;
   }
 
   .courses-preview__title {
-    color: color-mix(in srgb, #203359 92%, #375085);
+    color: color-mix(in srgb, #1f3359 92%, #365086);
+  }
+
+  .courses-preview__metric {
+    background: color-mix(in srgb, #eff4ff 84%, transparent);
+    border-color: color-mix(in srgb, #cfdcff 64%, transparent);
+    color: color-mix(in srgb, #415781 90%, #6076a4);
   }
 
   .courses-preview__button.MuiButton-root {
@@ -363,39 +385,87 @@
 
 @media (max-width: 1080px) {
   .courses-preview {
-    --preview-card-compact: calc((100% - var(--preview-gap)) / 2.3);
-    --preview-card-featured: calc((100% - var(--preview-gap)) / 1.95);
-    padding-top: clamp(36px, 4vw, 48px);
-
     &__header {
       align-items: flex-start;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
-    &__actions {
-      margin-top: 2px;
+    &__page {
+      min-height: 318px;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    }
+
+    &__card--featured.MuiCard-root {
+      min-height: 318px;
+    }
+
+    &__card--secondary.MuiCard-root {
+      min-height: 152px;
     }
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .courses-preview {
-    --preview-gap: 12px;
-    --preview-card-compact: calc(100% - 42px);
-    --preview-card-featured: calc(100% - 22px);
+    --preview-shelf-nav-size: 42px;
 
-    padding-inline: 12px;
-    padding-top: 34px;
+    padding-inline: 14px;
 
     &__header {
       flex-direction: column;
-      gap: 12px;
-      margin-bottom: 14px;
+      gap: 10px;
+      margin-bottom: 12px;
     }
 
     &__actions {
       width: 100%;
-      justify-content: space-between;
+      justify-content: flex-end;
+    }
+
+    &__page {
+      min-height: auto;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    &__stack {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: minmax(0, 1fr);
+    }
+
+    &__card--featured.MuiCard-root {
+      min-height: 286px;
+    }
+
+    &__card--secondary.MuiCard-root {
+      min-height: 186px;
+    }
+  }
+}
+
+@media (max-width: 620px) {
+  .courses-preview {
+    --preview-shelf-gap: 12px;
+
+    &__shelf {
+      padding-inline: 4px;
+    }
+
+    &__shelf-nav.MuiIconButton-root {
+      display: none;
+    }
+
+    &__rail {
+      padding-right: 6px;
+    }
+
+    &__page {
+      gap: 10px;
+    }
+
+    &__stack {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      gap: 10px;
     }
 
     &__heading {
@@ -407,21 +477,17 @@
       line-height: 1.42;
     }
 
-    &__rail {
-      padding-right: 14px;
+    &__card--featured.MuiCard-root {
+      min-height: 270px;
     }
 
-    &__content.MuiCardContent-root {
-      padding: 14px !important;
-      gap: 9px;
+    &__card--secondary.MuiCard-root {
+      min-height: 166px;
     }
 
-    &__title {
-      font-size: 18px;
-    }
-
-    &__descriptor {
-      min-height: auto;
+    &__content--featured.MuiCardContent-root {
+      padding: 16px !important;
+      gap: 10px;
     }
   }
 }
