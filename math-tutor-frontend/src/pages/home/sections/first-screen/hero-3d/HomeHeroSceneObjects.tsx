@@ -416,7 +416,12 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
 
   return (
     <group position={[1.7, 0.06, -1.22]} rotation={[0.04, -0.24, 0.03]}>
-      <mesh geometry={loopGeometry} position={[0.28, 0.16, -0.06]} rotation={[0.64, -0.5, 0.86]}>
+      <mesh
+        geometry={loopGeometry}
+        position={[0.28, 0.16, -0.06]}
+        rotation={[0.64, -0.5, 0.86]}
+        scale={[2, 2, 2]}
+      >
         <meshPhysicalMaterial
           vertexColors
           roughness={0.2}
@@ -438,7 +443,7 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
         />
       </mesh>
 
-      <mesh geometry={orbGeometry} position={[0.85, 0.38, 0.16]}>
+      <mesh geometry={orbGeometry} position={[-1.25, 0.92, 0.56]}>
         <meshPhysicalMaterial
           vertexColors
           roughness={0.16}
