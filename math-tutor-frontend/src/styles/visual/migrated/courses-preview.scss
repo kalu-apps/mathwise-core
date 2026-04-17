@@ -96,6 +96,7 @@
     width: var(--preview-content-max);
     margin: 0 auto;
     padding-inline: calc(var(--preview-shelf-nav-size) + 2px);
+    margin-top: 10px;
 
     &::before,
     &::after {
@@ -173,8 +174,8 @@
     gap: 0;
     overflow-x: auto;
     overflow-y: visible;
-    padding-top: 44px;
-    margin-top: -44px;
+    padding-top: 34px;
+    margin-top: 0;
     overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
@@ -731,8 +732,8 @@
 
     &__rail {
       padding-right: 6px;
-      padding-top: 20px;
-      margin-top: -20px;
+      padding-top: 22px;
+      margin-top: 0;
     }
 
     &__page {
