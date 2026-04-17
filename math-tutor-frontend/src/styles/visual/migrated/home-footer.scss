@@ -1,0 +1,85 @@
+.home-footer {
+  position: relative;
+  padding: clamp(26px, 3vw, 40px) var(--layout-gutter) clamp(34px, 3.8vw, 52px);
+  background: transparent;
+  overflow: hidden;
+}
+
+.home-footer::before {
+  content: "";
+  position: absolute;
+  left: var(--layout-gutter);
+  right: var(--layout-gutter);
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--border-subtle) 88%, var(--accent-primary)) 18%,
+    color-mix(in srgb, var(--border-subtle) 84%, var(--accent-secondary)) 82%,
+    transparent 100%
+  );
+  opacity: 0.74;
+  pointer-events: none;
+}
+
+.home-footer__inner {
+  width: min(100%, var(--layout-content-max));
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-footer__copyright {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 11px;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 620;
+  letter-spacing: 0.028em;
+  color: color-mix(in srgb, var(--text-secondary) 94%, #d7e4ff);
+  background: linear-gradient(
+    140deg,
+    color-mix(in srgb, var(--surface-elevated) 74%, transparent) 0%,
+    color-mix(in srgb, var(--surface-elevated) 60%, transparent) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 76%, transparent);
+  box-shadow:
+    0 8px 20px color-mix(in srgb, #051027 12%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent);
+}
+
+:root[data-theme="light"] .home-footer::before {
+  opacity: 0.9;
+}
+
+:root[data-theme="light"] .home-footer__copyright {
+  color: color-mix(in srgb, #425683 92%, #5d73a3);
+  background: linear-gradient(
+    140deg,
+    color-mix(in srgb, #f6faff 92%, transparent) 0%,
+    color-mix(in srgb, #edf4ff 82%, transparent) 100%
+  );
+  border-color: color-mix(in srgb, #c7d7ff 72%, transparent);
+  box-shadow:
+    0 8px 18px color-mix(in srgb, #a9bde0 18%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 94%, transparent);
+}
+
+@media (max-width: 640px) {
+  .home-footer {
+    padding-top: 20px;
+    padding-bottom: 30px;
+  }
+
+  .home-footer__copyright {
+    min-height: 32px;
+    padding-inline: 12px;
+    font-size: 12.5px;
+  }
+}

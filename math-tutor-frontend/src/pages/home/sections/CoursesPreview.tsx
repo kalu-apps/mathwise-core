@@ -174,9 +174,7 @@ export function CoursesPreview() {
                 <CourseVisualBackground course={page.featured} mode="featured" />
                 <CardContent className="courses-preview__content courses-preview__content--featured">
                   <div className="courses-preview__featured-zone courses-preview__featured-zone--sticker">
-                    <span className="courses-preview__sticker" aria-hidden="true">
-                      <span className="courses-preview__sticker-heart">❤</span>
-                    </span>
+                    <span className="courses-preview__sticker" aria-hidden="true" />
                   </div>
 
                   <div className="courses-preview__featured-zone courses-preview__featured-zone--main">
@@ -191,9 +189,6 @@ export function CoursesPreview() {
                       <span className="courses-preview__metric">{page.featured.level}</span>
                       <span className="courses-preview__metric courses-preview__metric--section">
                         {page.featured.archetype.shortTag}
-                      </span>
-                      <span className="courses-preview__metric courses-preview__metric--formula">
-                        {page.featured.archetype.formulas[0]}
                       </span>
                     </div>
                   </div>
