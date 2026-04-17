@@ -1,12 +1,13 @@
 .courses-preview {
-  --preview-content-max: min(calc(100vw - var(--layout-gutter) - var(--layout-gutter)), calc(var(--layout-content-max) + 380px));
+  --preview-inline-gutter: clamp(16px, 2.1vw, 30px);
+  --preview-content-max: min(calc(var(--layout-content-max) + 300px), calc(100vw - (var(--preview-inline-gutter) * 2)));
   --preview-section-gap: 16px;
   --preview-shelf-gap: 16px;
   --preview-shelf-nav-size: 94px;
   --preview-side-fade-width: 44px;
 
   position: relative;
-  padding: clamp(42px, 4.5vw, 58px) var(--layout-gutter) clamp(28px, 3.2vw, 42px);
+  padding: clamp(42px, 4.5vw, 58px) var(--preview-inline-gutter) clamp(28px, 3.2vw, 42px);
   background: transparent;
   overflow: visible;
 
@@ -24,12 +25,13 @@
   &__header {
     position: relative;
     z-index: 1;
-    width: var(--preview-content-max);
+    width: min(100%, var(--preview-content-max));
     margin: 0 auto var(--preview-section-gap);
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
     gap: 18px;
+    overflow: visible;
   }
 
   &__copy {
@@ -61,6 +63,7 @@
     display: inline-flex;
     align-items: center;
     flex-shrink: 0;
+    margin-left: auto;
   }
 
   &__cta.MuiButton-root {
@@ -84,6 +87,7 @@
     transition: background-position 0.24s ease, transform 0.2s ease, box-shadow 0.2s ease;
     background-size: 170% 170%;
     background-position: 0% 40%;
+    white-space: nowrap;
 
     &:hover {
       background-position: 100% 60%;
@@ -97,7 +101,7 @@
   &__shelf {
     position: relative;
     z-index: 1;
-    width: var(--preview-content-max);
+    width: min(100%, var(--preview-content-max));
     margin: 0 auto;
     padding-inline: calc(var(--preview-shelf-nav-size) + 18px);
     margin-top: 10px;
@@ -105,31 +109,15 @@
 
     &::before,
     &::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: var(--preview-side-fade-width);
-      pointer-events: none;
-      z-index: 1;
+      content: none;
     }
 
     &::before {
       left: 0;
-      background: linear-gradient(
-        90deg,
-        color-mix(in srgb, var(--background-base) 84%, transparent) 0%,
-        transparent 100%
-      );
     }
 
     &::after {
       right: 0;
-      background: linear-gradient(
-        270deg,
-        color-mix(in srgb, var(--background-base) 84%, transparent) 0%,
-        transparent 100%
-      );
     }
   }
 
@@ -340,8 +328,8 @@
   &__featured-zone--sticker {
     min-height: 0;
     position: absolute;
-    top: -44px;
-    left: -30px;
+    top: -36px;
+    left: 10px;
     z-index: 4;
     pointer-events: none;
     overflow: visible;
@@ -350,7 +338,8 @@
   &__featured-zone--title {
     display: grid;
     gap: 4px;
-    margin-top: 20px;
+    margin-top: 28px;
+    padding-left: 4px;
   }
 
   &__featured-zone--description {
@@ -726,20 +715,9 @@
     background: linear-gradient(140deg, #c9ff67 0%, #84f18d 58%, #52dfba 100%);
   }
 
-  .courses-preview__shelf::before {
-    background: linear-gradient(
-      90deg,
-      color-mix(in srgb, #eef4ff 90%, transparent) 0%,
-      transparent 100%
-    );
-  }
-
+  .courses-preview__shelf::before,
   .courses-preview__shelf::after {
-    background: linear-gradient(
-      270deg,
-      color-mix(in srgb, #eef4ff 90%, transparent) 0%,
-      transparent 100%
-    );
+    content: none;
   }
 }
 
@@ -803,7 +781,7 @@
 
     &__featured-zone--sticker {
       top: -20px;
-      left: -12px;
+      left: 8px;
     }
 
     &__sticker {

@@ -335,6 +335,7 @@ export function CoursesPreview() {
 
                           <div className="courses-preview__secondary-footer">
                             <div className="courses-preview__metrics courses-preview__metrics--compact">
+                              <span className="courses-preview__metric">{course.level}</span>
                               <span className="courses-preview__metric">{course.lessonsChip}</span>
                               {course.testsChip ? (
                                 <span className="courses-preview__metric courses-preview__metric--tests">

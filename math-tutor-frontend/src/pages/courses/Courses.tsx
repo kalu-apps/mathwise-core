@@ -48,18 +48,6 @@ const toApproxMonthly = (fromAmount: number | null, periodLabel: string) => {
   return fromAmount;
 };
 
-const formatCoursesCount = (count: number) => {
-  const absCount = Math.abs(count);
-  const mod100 = absCount % 100;
-  if (mod100 >= 11 && mod100 <= 19) {
-    return `${count} курсов`;
-  }
-  const mod10 = absCount % 10;
-  if (mod10 === 1) return `${count} курс`;
-  if (mod10 >= 2 && mod10 <= 4) return `${count} курса`;
-  return `${count} курсов`;
-};
-
 type CatalogSort =
   | "recommended"
   | "titleAsc"
@@ -241,9 +229,6 @@ export default function Courses() {
     const start = (safePage - 1) * pageSize;
     return filteredCourses.slice(start, start + pageSize);
   }, [filteredCourses, safePage, pageSize]);
-
-  const filteredCountLabel = formatCoursesCount(filteredCourses.length);
-  const totalCountLabel = formatCoursesCount(visibleCourses.length);
 
   const catalogNoticeState = useMemo(
     () =>
@@ -673,13 +658,6 @@ export default function Courses() {
               <MenuItem value="priceAsc">Цена: сначала ниже</MenuItem>
               <MenuItem value="priceDesc">Цена: сначала выше</MenuItem>
             </TextField>
-
-            <div className="courses-page__controls-meta" aria-live="polite">
-              <span className="courses-page__results">{filteredCountLabel}</span>
-              {filteredCourses.length !== visibleCourses.length ? (
-                <span className="courses-page__results-total">из {totalCountLabel}</span>
-              ) : null}
-            </div>
           </div>
         </div>
 
