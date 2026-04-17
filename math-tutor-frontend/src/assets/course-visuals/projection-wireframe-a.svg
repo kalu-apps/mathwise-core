@@ -1,26 +1,47 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="wireA-cube" x1="172" y1="58" x2="344" y2="198" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFEFD2"/>
-      <stop offset="0.56" stop-color="#FFBF78"/>
-      <stop offset="1" stop-color="#D1607C"/>
+    <linearGradient id="linA-axis" x1="188" y1="182" x2="366" y2="72" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD39B"/>
+      <stop offset="0.52" stop-color="#FF9F73"/>
+      <stop offset="1" stop-color="#D46589"/>
+    </linearGradient>
+    <linearGradient id="linA-grid" x1="156" y1="206" x2="354" y2="156" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE9C8" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#FFC087" stop-opacity="0.42"/>
     </linearGradient>
   </defs>
 
-  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="194" y="62" width="104" height="104" stroke="url(#wireA-cube)" stroke-width="1.84"/>
-    <rect x="248" y="92" width="104" height="104" stroke="#FFD7AD" stroke-opacity="0.82" stroke-width="1.54"/>
-    <path d="M194 62L248 92M298 62L352 92M194 166L248 196M298 166L352 196" stroke="#FFEAD0" stroke-opacity="0.78" stroke-width="1.24"/>
-
-    <path d="M66 216L194 62" stroke="#FFB271" stroke-opacity="0.82" stroke-width="1.42"/>
-    <path d="M66 216L352 196" stroke="#FF9E7C" stroke-opacity="0.76" stroke-width="1.32"/>
-    <path d="M66 216L352 92" stroke="#FFC889" stroke-opacity="0.74" stroke-width="1.3"/>
+  <g stroke="#FFE6C6" stroke-opacity="0.4" stroke-width="1.02" stroke-linecap="round">
+    <path d="M156 200L308 200"/>
+    <path d="M148 184L304 184"/>
+    <path d="M140 168L300 168"/>
+    <path d="M132 152L296 152"/>
+    <path d="M124 136L292 136"/>
+    <path d="M124 136L156 200"/>
+    <path d="M166 136L198 200"/>
+    <path d="M208 136L240 200"/>
+    <path d="M250 136L282 200"/>
+    <path d="M292 136L324 200"/>
   </g>
 
-  <g fill="#FFF4E4" fill-opacity="0.92">
-    <circle cx="66" cy="216" r="3"/>
-    <circle cx="194" cy="62" r="2.6"/>
-    <circle cx="352" cy="92" r="2.6"/>
-    <circle cx="352" cy="196" r="2.6"/>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M220 184L320 184L352 126L252 126L220 184Z" fill="url(#linA-grid)"/>
+    <path d="M252 126L320 184" stroke="#FFEFD8" stroke-opacity="0.82" stroke-width="1.18"/>
+    <path d="M220 184L352 126" stroke="#FFE2C0" stroke-opacity="0.74" stroke-width="1.12"/>
+
+    <path d="M220 184L356 152" stroke="url(#linA-axis)" stroke-width="1.82"/>
+    <path d="M220 184L160 224" stroke="#FFB978" stroke-opacity="0.86" stroke-width="1.66"/>
+    <path d="M220 184L220 72" stroke="#FFD7A2" stroke-opacity="0.88" stroke-width="1.72"/>
+
+    <path d="M356 152L348 146M356 152L346 154" stroke="#FFD9A8" stroke-width="1.44"/>
+    <path d="M160 224L168 218M160 224L170 226" stroke="#FFBB7A" stroke-width="1.34"/>
+    <path d="M220 72L214 80M220 72L226 80" stroke="#FFD9A8" stroke-width="1.4"/>
+  </g>
+
+  <g fill="#FFF1DF" fill-opacity="0.9">
+    <circle cx="220" cy="184" r="2.5"/>
+    <circle cx="320" cy="184" r="2.4"/>
+    <circle cx="352" cy="126" r="2.4"/>
+    <circle cx="252" cy="126" r="2.4"/>
   </g>
 </svg>

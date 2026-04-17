@@ -1,26 +1,25 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="anaB-plane" x1="152" y1="70" x2="392" y2="210" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFF0D6" stop-opacity="0.72"/>
-      <stop offset="1" stop-color="#FF9A7B" stop-opacity="0.32"/>
-    </linearGradient>
-    <linearGradient id="anaB-curve" x1="178" y1="102" x2="398" y2="196" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFE6C5"/>
-      <stop offset="0.48" stop-color="#FFAE79"/>
-      <stop offset="1" stop-color="#C95E8B"/>
+    <linearGradient id="anaB-cone" x1="232" y1="36" x2="344" y2="228" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF2DD"/>
+      <stop offset="0.56" stop-color="#FFC789"/>
+      <stop offset="1" stop-color="#C96592"/>
     </linearGradient>
   </defs>
 
-  <polygon points="146,94 388,138 342,230 98,186" fill="url(#anaB-plane)"/>
-  <path d="M202 80L344 112L316 194L176 164L202 80Z" fill="#FFE8CB" fill-opacity="0.18"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M286 42L234 126H338L286 42Z" stroke="url(#anaB-cone)" stroke-width="1.66"/>
+    <path d="M286 218L234 134H338L286 218Z" stroke="url(#anaB-cone)" stroke-width="1.66"/>
 
-  <path d="M176 188C226 138 252 124 286 118C320 112 348 124 398 172" stroke="url(#anaB-curve)" stroke-width="2.8" stroke-linecap="round"/>
-  <path d="M176 212C226 162 254 148 286 142C318 136 346 148 396 194" stroke="#FFE9D4" stroke-opacity="0.68" stroke-width="1.26" stroke-linecap="round"/>
+    <ellipse cx="286" cy="126" rx="52" ry="12" stroke="#FFE8C8" stroke-opacity="0.68" stroke-width="1.08"/>
+    <ellipse cx="286" cy="134" rx="52" ry="12" stroke="#FFE8C8" stroke-opacity="0.52" stroke-width="1.02"/>
 
-  <g stroke="#FFD9BE" stroke-opacity="0.5" stroke-width="1" stroke-linecap="round">
-    <path d="M132 140H408"/>
-    <path d="M286 44V232"/>
-    <path d="M166 100L394 214" stroke-dasharray="4 8"/>
-    <path d="M156 214L392 100" stroke-dasharray="4 8"/>
+    <path d="M166 98L394 136" stroke="#FFE2BE" stroke-opacity="0.64" stroke-width="1.16"/>
+    <path d="M164 158L392 196" stroke="#FFD3A8" stroke-opacity="0.56" stroke-width="1.06"/>
+
+    <path d="M192 198C232 150 256 132 286 128C316 124 340 138 382 192" stroke="#FFB67E" stroke-opacity="0.86" stroke-width="2.08"/>
+    <path d="M192 78C232 126 256 144 286 148C316 152 340 138 382 84" stroke="#FFEBD4" stroke-opacity="0.62" stroke-width="1.14"/>
+
+    <path d="M286 42V218" stroke="#FFEBD5" stroke-opacity="0.42" stroke-width="1"/>
   </g>
 </svg>

@@ -1,22 +1,22 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="topA-ribbon" x1="170" y1="146" x2="394" y2="210" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFE6C5"/>
-      <stop offset="0.5" stop-color="#FF9A7B"/>
-      <stop offset="1" stop-color="#B95A8E"/>
+    <linearGradient id="topA-band" x1="176" y1="116" x2="390" y2="206" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF1DA"/>
+      <stop offset="0.5" stop-color="#FFBB82"/>
+      <stop offset="1" stop-color="#C86596"/>
     </linearGradient>
-    <linearGradient id="topA-inner" x1="178" y1="172" x2="388" y2="204" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFDDB1"/>
-      <stop offset="1" stop-color="#A85FA3"/>
+    <linearGradient id="topA-inner" x1="188" y1="142" x2="372" y2="214" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE5C4"/>
+      <stop offset="1" stop-color="#B868A8"/>
     </linearGradient>
   </defs>
 
-  <path d="M154 162C198 92 284 84 344 120C376 140 398 138 406 126L402 162C390 176 364 180 328 166C260 140 214 150 174 214L154 162Z" fill="url(#topA-ribbon)"/>
-  <path d="M174 214C214 156 258 154 326 174C362 184 390 182 406 168L402 200C384 214 356 220 320 208C256 188 214 194 188 236L174 214Z" fill="url(#topA-inner)" fill-opacity="0.86"/>
+  <path d="M172 142C186 104 222 84 266 86C310 88 350 112 374 150C390 176 388 202 372 214C356 226 330 220 302 202C272 182 236 174 206 180C182 184 166 174 166 160C166 154 168 148 172 142Z" fill="url(#topA-band)" fill-opacity="0.92"/>
+  <path d="M214 178C244 166 278 172 306 192C320 202 332 210 342 210C352 210 358 202 358 192C358 178 346 158 326 142C300 120 264 108 232 112C210 114 194 126 194 142C194 156 200 168 214 178Z" fill="url(#topA-inner)" fill-opacity="0.9"/>
 
-  <g stroke="#FFE9D5" stroke-opacity="0.72" stroke-linecap="round">
-    <path d="M154 162C198 92 284 84 344 120C376 140 398 138 406 126" stroke-width="1.42"/>
-    <path d="M174 214C214 156 258 154 326 174C362 184 390 182 406 168" stroke-width="1.26"/>
-    <path d="M196 184C226 174 256 174 290 184C322 194 350 204 376 214" stroke-width="1.02" stroke-opacity="0.5" stroke-dasharray="4 8"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M172 142C186 104 222 84 266 86C310 88 350 112 374 150C390 176 388 202 372 214C356 226 330 220 302 202C272 182 236 174 206 180C182 184 166 174 166 160C166 154 168 148 172 142Z" stroke="#FFECD4" stroke-opacity="0.82" stroke-width="1.22"/>
+    <path d="M214 178C244 166 278 172 306 192C320 202 332 210 342 210C352 210 358 202 358 192C358 178 346 158 326 142C300 120 264 108 232 112C210 114 194 126 194 142C194 156 200 168 214 178Z" stroke="#FFE2C5" stroke-opacity="0.62" stroke-width="1.04"/>
+    <path d="M194 142C210 150 228 150 246 142C264 134 284 134 306 142" stroke="#FFC68D" stroke-opacity="0.56" stroke-width="1" stroke-dasharray="4 7"/>
   </g>
 </svg>

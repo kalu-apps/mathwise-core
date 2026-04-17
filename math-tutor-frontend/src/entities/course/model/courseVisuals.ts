@@ -138,35 +138,159 @@ const STYLE_DEFAULT_PALETTE: Record<CanonicalCourseVisualStyle, CourseVisualPale
   "signal-waves": "indigo-mineral",
 };
 
+export type CourseVisualArchetype = {
+  section: string;
+  shortTag: string;
+  object: string;
+  formulas: string[];
+  keywords: string[];
+  references: string[];
+};
+
+export const COURSE_VISUAL_ARCHETYPE_CATALOG: Record<
+  CanonicalCourseVisualStyle,
+  CourseVisualArchetype
+> = {
+  "projection-wireframe": {
+    section: "Линейная алгебра",
+    shortTag: "Линейная алгебра",
+    object: "Векторно-матричный каркас и параллелепипед базиса",
+    formulas: ["v = a·e₁ + b·e₂ + c·e₃", "det(A) ≠ 0"],
+    keywords: [
+      "линейн",
+      "вектор",
+      "матриц",
+      "пространств",
+      "базис",
+      "детерминант",
+      "rank",
+      "алгебр",
+    ],
+    references: [
+      "https://mathworld.wolfram.com/Coordinates.html",
+      "https://mathworld.wolfram.com/Matrix.html",
+    ],
+  },
+  "analytic-sections": {
+    section: "Аналитическая геометрия",
+    shortTag: "Аналитическая геометрия",
+    object: "Сечение конуса плоскостью: эллипс / гипербола",
+    formulas: ["x²/a² + y²/b² = 1", "x²/a² - y²/b² = 1"],
+    keywords: [
+      "аналит",
+      "геометр",
+      "координат",
+      "плоскост",
+      "конус",
+      "сечен",
+      "эллипс",
+      "гипербол",
+      "парабол",
+    ],
+    references: [
+      "https://mathworld.wolfram.com/ConicSection.html",
+      "https://mathworld.wolfram.com/Conic.html",
+    ],
+  },
+  topology: {
+    section: "Топология",
+    shortTag: "Топология",
+    object: "Лента Мёбиуса и тор",
+    formulas: [
+      "x=(a+u cos(v/2)) cos(v)",
+      "y=(a+u cos(v/2)) sin(v)",
+      "z=u sin(v/2)",
+    ],
+    keywords: [
+      "тополог",
+      "структур",
+      "симметр",
+      "узел",
+      "тор",
+      "лента",
+      "möbius",
+      "moebius",
+      "knot",
+    ],
+    references: [
+      "https://mathworld.wolfram.com/MoebiusStrip.html",
+      "https://mathworld.wolfram.com/TorusKnot.html",
+      "https://mathworld.wolfram.com/Torus.html",
+    ],
+  },
+  polyhedra: {
+    section: "Стереометрия",
+    shortTag: "Стереометрия",
+    object: "Куб и октаэдр в чертежной проекции",
+    formulas: ["Cube: (±1, ±1, ±1)", "Octa: |x| + |y| + |z| = 1"],
+    keywords: [
+      "стереометр",
+      "многогран",
+      "объем",
+      "пространствен",
+      "куб",
+      "октаэд",
+      "polyhed",
+      "кристалл",
+    ],
+    references: [
+      "https://mathworld.wolfram.com/Cube.html",
+      "https://mathworld.wolfram.com/RegularOctahedron.html",
+    ],
+  },
+  "signal-waves": {
+    section: "Тригонометрия и гармоника",
+    shortTag: "Тригонометрия",
+    object: "Единичная окружность и гармоническая волна / фигуры Лиссажу",
+    formulas: ["sin²(x)+cos²(x)=1", "x=A sin(at+δ), y=B sin(bt)"],
+    keywords: [
+      "тригоном",
+      "синус",
+      "косинус",
+      "гармони",
+      "частот",
+      "лиссаж",
+      "волна",
+      "амплитуд",
+      "фаза",
+    ],
+    references: [
+      "https://mathworld.wolfram.com/LissajousCurve.html",
+      "https://mathworld.wolfram.com/UnitCircle.html",
+    ],
+  },
+  "function-fields": {
+    section: "Математический анализ",
+    shortTag: "Матанализ",
+    object: "Параболоид и седловая поверхность",
+    formulas: ["z = x² + y²", "z = x² - y²"],
+    keywords: [
+      "матан",
+      "предел",
+      "производн",
+      "интеграл",
+      "функц",
+      "график",
+      "поверхност",
+      "параболоид",
+      "седлов",
+    ],
+    references: [
+      "https://mathworld.wolfram.com/Paraboloid.html",
+      "https://mathworld.wolfram.com/HyperbolicParaboloid.html",
+    ],
+  },
+};
+
 const STYLE_KEYWORD_RULES: Array<{
   style: CanonicalCourseVisualStyle;
   keywords: string[];
-}> = [
-  {
-    style: "projection-wireframe",
-    keywords: ["линейн", "вектор", "матриц", "пространств", "rank", "алгебр"],
-  },
-  {
-    style: "analytic-sections",
-    keywords: ["аналит", "геометр", "координат", "плоскост", "конус", "сечен"],
-  },
-  {
-    style: "topology",
-    keywords: ["алгебр", "уравнен", "тополог", "структур", "корн", "симметр"],
-  },
-  {
-    style: "polyhedra",
-    keywords: ["стереометр", "многогран", "объем", "пространствен", "кристалл"],
-  },
-  {
-    style: "signal-waves",
-    keywords: ["тригоном", "синус", "косинус", "гармони", "частот", "статист", "вероят"],
-  },
-  {
-    style: "function-fields",
-    keywords: ["матан", "предел", "производн", "интеграл", "функц", "график"],
-  },
-];
+}> = (Object.entries(COURSE_VISUAL_ARCHETYPE_CATALOG) as Array<
+  [CanonicalCourseVisualStyle, CourseVisualArchetype]
+>).map(([style, archetype]) => ({
+  style,
+  keywords: archetype.keywords,
+}));
 
 const STYLE_ASSET_MAP: Record<
   CanonicalCourseVisualStyle,
@@ -295,6 +419,20 @@ export const resolveCourseVisualMetadata = (
     visualVariant:
       clampInt(input.visualVariant, 0, MAX_VISUAL_VARIANT) ?? fallback.visualVariant,
   };
+};
+
+export const getCourseVisualArchetype = (
+  style: CourseVisualStyle | CanonicalCourseVisualStyle
+): CourseVisualArchetype => {
+  const normalized = normalizeVisualStyle(style) ?? "function-fields";
+  return COURSE_VISUAL_ARCHETYPE_CATALOG[normalized];
+};
+
+export const resolveCourseVisualArchetype = (
+  input: CourseVisualStyleInput
+): CourseVisualArchetype => {
+  const metadata = resolveCourseVisualMetadata(input);
+  return COURSE_VISUAL_ARCHETYPE_CATALOG[metadata.visualStyle];
 };
 
 export const buildCourseVisualLayers = (

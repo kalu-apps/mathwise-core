@@ -1,42 +1,35 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="polyA-bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(272 118) rotate(144) scale(192 142)">
-      <stop offset="0" stop-color="#FFC9A5" stop-opacity="0.66"/>
-      <stop offset="0.45" stop-color="#FF8A72" stop-opacity="0.42"/>
-      <stop offset="1" stop-color="#B44D74" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="polyA-faceA" x1="238" y1="52" x2="344" y2="212" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFF2DF"/>
-      <stop offset="0.45" stop-color="#FFC38A"/>
-      <stop offset="1" stop-color="#E97363"/>
+    <linearGradient id="stA-cube" x1="194" y1="64" x2="336" y2="214" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF1DA"/>
+      <stop offset="0.52" stop-color="#FFBF83"/>
+      <stop offset="1" stop-color="#CF698A"/>
     </linearGradient>
-    <linearGradient id="polyA-faceB" x1="182" y1="104" x2="290" y2="228" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFD8A7"/>
-      <stop offset="0.54" stop-color="#FF997B"/>
-      <stop offset="1" stop-color="#C65979"/>
+    <linearGradient id="stA-face" x1="232" y1="94" x2="332" y2="192" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE8CB" stop-opacity="0.62"/>
+      <stop offset="1" stop-color="#FFAB7F" stop-opacity="0.28"/>
     </linearGradient>
-    <filter id="polyA-shadow" x="150" y="28" width="238" height="228" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feGaussianBlur stdDeviation="10"/>
-    </filter>
   </defs>
 
-  <ellipse cx="274" cy="130" rx="146" ry="102" fill="url(#polyA-bg)"/>
-  <ellipse cx="272" cy="210" rx="102" ry="24" fill="#140F1E" fill-opacity="0.34" filter="url(#polyA-shadow)"/>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M230 90H320V180H230V90Z" fill="url(#stA-face)"/>
 
-  <g opacity="0.98" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M274 40L332 94L316 176L256 220L194 168L212 86L274 40Z" fill="url(#polyA-faceA)"/>
-    <path d="M274 40L212 86L194 168L256 220L274 134V40Z" fill="url(#polyA-faceB)" fill-opacity="0.92"/>
-    <path d="M274 40L332 94L316 176L256 220L194 168L212 86L274 40Z" stroke="#FFECD4" stroke-opacity="0.9" stroke-width="1.2"/>
-    <path d="M274 40L274 134M212 86L274 134L332 94M194 168L274 134L316 176" stroke="#FFF4E5" stroke-opacity="0.66" stroke-width="1.1"/>
-    <path d="M256 220L274 134" stroke="#FFD5C2" stroke-opacity="0.74" stroke-width="1.05"/>
+    <path d="M194 64H284V154H194V64Z" stroke="#FFE3C1" stroke-opacity="0.82" stroke-width="1.42"/>
+    <path d="M230 90H320V180H230V90Z" stroke="url(#stA-cube)" stroke-width="1.76"/>
+
+    <path d="M194 64L230 90M284 64L320 90M194 154L230 180M284 154L320 180" stroke="#FFEFD9" stroke-opacity="0.78" stroke-width="1.2"/>
+
+    <path d="M194 64L284 154" stroke="#FFC085" stroke-opacity="0.6" stroke-width="1.04" stroke-dasharray="4 7"/>
+    <path d="M194 154L284 64" stroke="#FFC085" stroke-opacity="0.58" stroke-width="1.04" stroke-dasharray="4 7"/>
+
+    <path d="M230 135L320 135" stroke="#FFD6AE" stroke-opacity="0.74" stroke-width="1.1"/>
+    <path d="M275 90V180" stroke="#FFD6AE" stroke-opacity="0.74" stroke-width="1.1"/>
   </g>
 
-  <g fill="#FFF4E8" fill-opacity="0.92">
-    <circle cx="274" cy="40" r="2.6"/>
-    <circle cx="332" cy="94" r="2.6"/>
-    <circle cx="316" cy="176" r="2.6"/>
-    <circle cx="256" cy="220" r="2.6"/>
-    <circle cx="194" cy="168" r="2.6"/>
-    <circle cx="212" cy="86" r="2.6"/>
+  <g fill="#FFF3E2" fill-opacity="0.9">
+    <circle cx="194" cy="64" r="2.3"/>
+    <circle cx="320" cy="90" r="2.3"/>
+    <circle cx="320" cy="180" r="2.3"/>
+    <circle cx="194" cy="154" r="2.3"/>
   </g>
 </svg>

@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { getCourses } from "@/entities/course/model/storage";
 import type { Course } from "@/entities/course/model/types";
 import { CourseVisualBackground } from "@/entities/course/ui/CourseVisualBackground";
+import { resolveCourseVisualArchetype } from "@/entities/course/model/courseVisuals";
 
 function toCompactDescriptor(description: string) {
   const normalized = description.replace(/\s+/g, " ").trim();
@@ -26,11 +27,6 @@ function toShortDescriptor(description: string) {
 function toFormatLabel(course: Course) {
   if (course.priceGuided > course.priceSelf) return "2 формата обучения";
   return "Формат с практикой";
-}
-
-function toSupportLabel(course: Course) {
-  if (course.priceGuided > course.priceSelf) return "Самостоятельно или с разбором";
-  return "Поддержка преподавателя";
 }
 
 export function CoursesPreview() {
@@ -109,7 +105,7 @@ export function CoursesPreview() {
         descriptor: toCompactDescriptor(course.description),
         compactDescriptor: toShortDescriptor(course.description),
         formatLabel: toFormatLabel(course),
-        supportLabel: toSupportLabel(course),
+        archetype: resolveCourseVisualArchetype(course),
       })),
     [previewCourses]
   );
@@ -179,7 +175,7 @@ export function CoursesPreview() {
                 <CardContent className="courses-preview__content courses-preview__content--featured">
                   <div className="courses-preview__featured-zone courses-preview__featured-zone--sticker">
                     <span className="courses-preview__sticker" aria-hidden="true">
-                      ✦
+                      <span className="courses-preview__sticker-heart">❤</span>
                     </span>
                   </div>
 
@@ -193,8 +189,12 @@ export function CoursesPreview() {
                   <div className="courses-preview__featured-zone courses-preview__featured-zone--meta">
                     <div className="courses-preview__metrics">
                       <span className="courses-preview__metric">{page.featured.level}</span>
-                      <span className="courses-preview__metric">{page.featured.formatLabel}</span>
-                      <span className="courses-preview__metric">{page.featured.supportLabel}</span>
+                      <span className="courses-preview__metric courses-preview__metric--section">
+                        {page.featured.archetype.shortTag}
+                      </span>
+                      <span className="courses-preview__metric courses-preview__metric--formula">
+                        {page.featured.archetype.formulas[0]}
+                      </span>
                     </div>
                   </div>
 
@@ -229,8 +229,10 @@ export function CoursesPreview() {
                         <div className="courses-preview__secondary-footer">
                           <div className="courses-preview__metrics courses-preview__metrics--compact">
                             <span className="courses-preview__metric">{course.level}</span>
+                            <span className="courses-preview__metric courses-preview__metric--section">
+                              {course.archetype.shortTag}
+                            </span>
                             <span className="courses-preview__metric">{course.formatLabel}</span>
-                            <span className="courses-preview__metric">{course.supportLabel}</span>
                           </div>
 
                           <div className="courses-preview__cta-row courses-preview__cta-row--secondary">

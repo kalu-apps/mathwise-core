@@ -2,8 +2,8 @@
   --preview-content-max: min(100%, var(--layout-content-max));
   --preview-section-gap: 16px;
   --preview-shelf-gap: 14px;
-  --preview-shelf-nav-size: 50px;
-  --preview-side-panel-width: 56px;
+  --preview-shelf-nav-size: 58px;
+  --preview-side-fade-width: 64px;
 
   position: relative;
   padding: clamp(42px, 4.5vw, 58px) var(--layout-gutter) clamp(28px, 3.2vw, 42px);
@@ -95,33 +95,35 @@
     z-index: 1;
     width: var(--preview-content-max);
     margin: 0 auto;
-    padding-inline: calc(var(--preview-shelf-nav-size) + 12px);
+    padding-inline: calc(var(--preview-shelf-nav-size) + 10px);
 
     &::before,
     &::after {
       content: "";
       position: absolute;
-      top: 4px;
-      bottom: 4px;
-      width: var(--preview-side-panel-width);
-      border-radius: 16px;
+      top: 0;
+      bottom: 0;
+      width: var(--preview-side-fade-width);
       pointer-events: none;
-      border: 1px solid color-mix(in srgb, var(--border-subtle) 56%, transparent);
-      background: linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--surface-elevated) 72%, transparent) 0%,
-        color-mix(in srgb, var(--surface-elevated) 48%, transparent) 100%
-      );
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
+      z-index: 2;
     }
 
     &::before {
       left: 0;
+      background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--background-base) 84%, transparent) 0%,
+        transparent 100%
+      );
     }
 
     &::after {
       right: 0;
+      background: linear-gradient(
+        270deg,
+        color-mix(in srgb, var(--background-base) 84%, transparent) 0%,
+        transparent 100%
+      );
     }
   }
 
@@ -131,23 +133,24 @@
     transform: translateY(-50%);
     width: var(--preview-shelf-nav-size);
     height: var(--preview-shelf-nav-size);
-    border-radius: 15px !important;
+    border-radius: 50% !important;
     border: 0 !important;
-    color: color-mix(in srgb, var(--text-primary) 90%, #d5e2ff) !important;
-    background: color-mix(in srgb, var(--surface-elevated) 82%, transparent) !important;
-    box-shadow:
-      0 12px 20px color-mix(in srgb, #050b1f 14%, transparent),
-      inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent) !important;
-    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+    color: color-mix(in srgb, var(--text-primary) 95%, #dfe8ff) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    z-index: 3;
+    transition: transform 0.2s ease, color 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
+    filter: drop-shadow(0 6px 14px color-mix(in srgb, #050b1f 26%, transparent));
 
     .MuiSvgIcon-root {
-      font-size: 33px;
+      font-size: 40px;
     }
 
     &:hover:not(.Mui-disabled) {
       transform: translateY(-50%) scale(1.03);
-      background: color-mix(in srgb, var(--accent-primary) 28%, transparent) !important;
-      color: var(--text-primary) !important;
+      background: transparent !important;
+      color: color-mix(in srgb, var(--accent-primary) 68%, var(--text-primary)) !important;
+      filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--accent-primary) 36%, transparent));
     }
 
     &.Mui-disabled {
@@ -157,11 +160,11 @@
   }
 
   &__shelf-nav--prev {
-    left: 0;
+    left: 2px;
   }
 
   &__shelf-nav--next {
-    right: 0;
+    right: 2px;
   }
 
   &__rail {
@@ -240,7 +243,7 @@
 
   &__card--featured.MuiCard-root {
     min-height: 336px;
-    border-color: color-mix(in srgb, var(--accent-primary) 46%, var(--border-subtle)) !important;
+    border-color: color-mix(in srgb, var(--accent-primary) 52%, var(--border-subtle)) !important;
     background: linear-gradient(
       146deg,
       color-mix(in srgb, var(--surface-elevated) 86%, color-mix(in srgb, var(--accent-primary) 20%, transparent)) 0%,
@@ -338,20 +341,47 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 11px 16px 13px 9px;
-    font-size: 16px;
-    line-height: 1;
-    font-weight: 760;
-    letter-spacing: 0;
-    color: #f8f5ff;
-    background: linear-gradient(132deg, #ff6d8a 0%, #ff62b1 46%, #8d82ff 100%);
-    box-shadow:
-      0 8px 16px color-mix(in srgb, #ff6d8a 33%, transparent),
-      0 0 0 1px color-mix(in srgb, #ffffff 20%, transparent) inset;
-    transform: rotate(-5.5deg);
+    position: relative;
+    width: 30px;
+    height: 26px;
+    transform: rotate(-7deg);
     transform-origin: left center;
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 24px;
+      top: 1px;
+      border-radius: 16px 16px 0 0;
+      background: linear-gradient(162deg, #ff6d8f 0%, #ff7c7d 52%, #ffb46e 100%);
+      box-shadow:
+        0 8px 14px color-mix(in srgb, #ff7390 34%, transparent),
+        0 0 0 1px color-mix(in srgb, #ffffff 22%, transparent) inset;
+    }
+
+    &::before {
+      left: 14px;
+      transform: rotate(-45deg);
+      transform-origin: 0 100%;
+    }
+
+    &::after {
+      left: 0;
+      transform: rotate(45deg);
+      transform-origin: 100% 100%;
+    }
+  }
+
+  &__sticker-heart {
+    position: relative;
+    z-index: 1;
+    font-size: 10px;
+    line-height: 1;
+    color: #fff8f0;
+    transform: rotate(7deg) translateY(3px);
+    text-shadow: 0 1px 2px color-mix(in srgb, #a3435a 44%, transparent);
   }
 
   &__title {
@@ -414,6 +444,26 @@
     white-space: nowrap;
   }
 
+  &__metric--section {
+    background: color-mix(in srgb, var(--surface-elevated) 78%, color-mix(in srgb, #f7b36e 16%, transparent));
+    border-color: color-mix(in srgb, var(--border-subtle) 58%, color-mix(in srgb, #f7b36e 34%, transparent));
+  }
+
+  &__metric--formula {
+    flex: 1 1 100%;
+    min-height: 24px;
+    padding: 4px 10px;
+    white-space: normal;
+    line-height: 1.2;
+    letter-spacing: 0;
+    font-family: var(--font-mono);
+    font-size: 10.4px;
+    font-weight: 620;
+    color: color-mix(in srgb, #f9ecdd 94%, #ffd5a6);
+    background: color-mix(in srgb, #3a2130 66%, transparent);
+    border-color: color-mix(in srgb, #ffb07a 36%, transparent);
+  }
+
   &__cta-row {
     margin-top: auto;
     min-height: 38px;
@@ -436,13 +486,9 @@
     font-weight: 650 !important;
     letter-spacing: 0.003em;
     color: color-mix(in srgb, #f5f9ff 96%, #e8efff) !important;
-    background: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--accent-primary) 58%, #7a93ff) 0%,
-      color-mix(in srgb, var(--accent-strong) 52%, #637dff) 100%
-    ) !important;
+    background: linear-gradient(138deg, #ff8f73 0%, #ff736f 48%, #e15f8d 100%) !important;
     box-shadow:
-      0 8px 14px color-mix(in srgb, var(--accent-primary) 20%, transparent),
+      0 8px 14px color-mix(in srgb, #ff8a73 24%, transparent),
       inset 0 1px 0 color-mix(in srgb, #ffffff 22%, transparent) !important;
     transition: background-color 0.2s ease, transform 0.2s ease;
 
@@ -455,6 +501,11 @@
     min-height: 34px;
     font-size: 12.8px !important;
     padding: 0 12px !important;
+    background: linear-gradient(
+      138deg,
+      color-mix(in srgb, #ff9c7b 74%, var(--surface-elevated)) 0%,
+      color-mix(in srgb, #eb6b8c 70%, var(--surface-elevated)) 100%
+    ) !important;
   }
 }
 
@@ -483,22 +534,11 @@
       inset 0 1px 0 color-mix(in srgb, #ffffff 26%, transparent) !important;
   }
 
-  .courses-preview__shelf::before,
-  .courses-preview__shelf::after {
-    border-color: color-mix(in srgb, #c8d8ff 70%, transparent);
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, #eef4ff 88%, transparent) 0%,
-      color-mix(in srgb, #e3ecff 72%, transparent) 100%
-    );
-  }
-
   .courses-preview__shelf-nav.MuiIconButton-root {
-    background: color-mix(in srgb, #edf4ff 92%, transparent) !important;
     color: color-mix(in srgb, #3e5684 94%, #5b74a3) !important;
-    box-shadow:
-      0 12px 20px color-mix(in srgb, #adc1e8 20%, transparent),
-      inset 0 1px 0 color-mix(in srgb, #ffffff 96%, transparent) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    filter: drop-shadow(0 8px 14px color-mix(in srgb, #a9bde1 36%, transparent));
   }
 
   .courses-preview__card.MuiCard-root {
@@ -571,20 +611,48 @@
     color: color-mix(in srgb, #30496f 94%, #4f678f);
   }
 
+  .courses-preview__metric--section {
+    background: color-mix(in srgb, #f5f0ff 78%, #ffe7d4 22%);
+    border-color: color-mix(in srgb, #dab8ff 42%, #ffc792 28%);
+    color: color-mix(in srgb, #4a4f87 92%, #7f5f67);
+  }
+
+  .courses-preview__metric--formula {
+    color: color-mix(in srgb, #4f3f67 94%, #6f4f7e);
+    background: color-mix(in srgb, #fff6ec 82%, #f7e4ff 18%);
+    border-color: color-mix(in srgb, #dfc8ff 44%, #ffd4b0 24%);
+  }
+
   .courses-preview__button.MuiButton-root {
     color: #f7fbff !important;
-    background: linear-gradient(136deg, #7698ff 0%, #6788ff 58%, #5f7df5 100%) !important;
+    background: linear-gradient(136deg, #ff9a7a 0%, #ff7e7a 52%, #df6a95 100%) !important;
     box-shadow:
-      0 8px 14px color-mix(in srgb, #6f8dff 24%, transparent),
+      0 8px 14px color-mix(in srgb, #ff8f77 28%, transparent),
       inset 0 1px 0 color-mix(in srgb, #ffffff 24%, transparent) !important;
   }
 
-  .courses-preview__sticker {
-    color: #fff8fd;
-    background: linear-gradient(132deg, #ff6f87 0%, #ff64a7 44%, #8c8eff 100%);
+  .courses-preview__sticker::before,
+  .courses-preview__sticker::after {
+    background: linear-gradient(162deg, #ff768f 0%, #ff8177 50%, #ffc177 100%);
     box-shadow:
-      0 8px 14px color-mix(in srgb, #ff7190 30%, transparent),
+      0 8px 14px color-mix(in srgb, #ff7b90 30%, transparent),
       0 0 0 1px color-mix(in srgb, #ffffff 34%, transparent) inset;
+  }
+
+  .courses-preview__shelf::before {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, #eef4ff 90%, transparent) 0%,
+      transparent 100%
+    );
+  }
+
+  .courses-preview__shelf::after {
+    background: linear-gradient(
+      270deg,
+      color-mix(in srgb, #eef4ff 90%, transparent) 0%,
+      transparent 100%
+    );
   }
 }
 

@@ -1,34 +1,18 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="sigB-cloud" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(286 146) rotate(90) scale(94 124)">
-      <stop offset="0" stop-color="#FFD7AA" stop-opacity="0.8"/>
-      <stop offset="0.52" stop-color="#FF9B7E" stop-opacity="0.44"/>
-      <stop offset="1" stop-color="#9F5E94" stop-opacity="0"/>
-    </radialGradient>
+    <linearGradient id="sigB-lissajous" x1="196" y1="72" x2="386" y2="202" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF2DF"/>
+      <stop offset="0.54" stop-color="#FFC68D"/>
+      <stop offset="1" stop-color="#C76797"/>
+    </linearGradient>
   </defs>
 
-  <ellipse cx="286" cy="146" rx="138" ry="90" fill="url(#sigB-cloud)"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M194 72H386M194 202H386M194 72V202M386 72V202" stroke="#FFE5C6" stroke-opacity="0.36" stroke-width="1"/>
+    <path d="M194 137H386M290 72V202" stroke="#FFD8B1" stroke-opacity="0.46" stroke-width="1"/>
 
-  <g fill="#FFEBD2" fill-opacity="0.86">
-    <circle cx="212" cy="106" r="2.1"/>
-    <circle cx="230" cy="126" r="2.1"/>
-    <circle cx="252" cy="114" r="2.1"/>
-    <circle cx="274" cy="132" r="2.1"/>
-    <circle cx="294" cy="112" r="2.1"/>
-    <circle cx="318" cy="128" r="2.1"/>
-    <circle cx="340" cy="112" r="2.1"/>
-    <circle cx="360" cy="130" r="2.1"/>
-
-    <circle cx="206" cy="156" r="2.1"/>
-    <circle cx="228" cy="174" r="2.1"/>
-    <circle cx="248" cy="164" r="2.1"/>
-    <circle cx="270" cy="182" r="2.1"/>
-    <circle cx="292" cy="162" r="2.1"/>
-    <circle cx="312" cy="180" r="2.1"/>
-    <circle cx="334" cy="166" r="2.1"/>
-    <circle cx="356" cy="184" r="2.1"/>
+    <path d="M226 104C252 76 284 76 308 104C332 132 332 170 308 198C284 226 252 226 226 198C200 170 200 132 226 104Z" stroke="url(#sigB-lissajous)" stroke-width="2.2"/>
+    <path d="M214 120C250 86 292 86 326 120C360 154 360 188 326 220" stroke="#FFE8D0" stroke-opacity="0.58" stroke-width="1.14"/>
+    <path d="M214 154C244 186 272 186 304 154C336 122 364 122 386 150" stroke="#FFC58B" stroke-opacity="0.58" stroke-width="1.08" stroke-dasharray="4 7"/>
   </g>
-
-  <path d="M194 198C236 160 270 160 312 196" stroke="#FFB57B" stroke-opacity="0.74" stroke-width="1.2" stroke-dasharray="4 8" stroke-linecap="round"/>
-  <path d="M196 94C236 128 272 128 312 94" stroke="#FFD9B5" stroke-opacity="0.66" stroke-width="1.2" stroke-dasharray="4 8" stroke-linecap="round"/>
 </svg>

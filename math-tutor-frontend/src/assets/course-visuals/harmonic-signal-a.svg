@@ -1,27 +1,22 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="sigA-core" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(286 146) rotate(90) scale(86 112)">
-      <stop offset="0" stop-color="#FFD4A8" stop-opacity="0.82"/>
-      <stop offset="0.54" stop-color="#FF9B7C" stop-opacity="0.46"/>
-      <stop offset="1" stop-color="#A95A90" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="sigA-wave" x1="176" y1="132" x2="400" y2="168" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFE9CC"/>
-      <stop offset="0.5" stop-color="#FFAF78"/>
-      <stop offset="1" stop-color="#B35F96"/>
+    <linearGradient id="sigA-main" x1="220" y1="96" x2="392" y2="194" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF1DA"/>
+      <stop offset="0.52" stop-color="#FFC183"/>
+      <stop offset="1" stop-color="#C86895"/>
     </linearGradient>
   </defs>
 
-  <ellipse cx="286" cy="146" rx="132" ry="88" fill="url(#sigA-core)"/>
-  <path d="M176 164C206 134 236 194 266 162C296 130 326 188 356 154C372 136 386 136 400 126" stroke="url(#sigA-wave)" stroke-width="4.2" stroke-linecap="round"/>
-  <path d="M176 138C206 118 236 154 266 140C296 126 326 154 356 140C372 132 386 132 400 118" stroke="#FFE6CD" stroke-opacity="0.68" stroke-width="1.72" stroke-linecap="round"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="236" cy="132" r="44" stroke="#FFE8CC" stroke-opacity="0.84" stroke-width="1.42"/>
+    <path d="M236 132L270 104" stroke="#FFC98F" stroke-opacity="0.84" stroke-width="1.36"/>
+    <circle cx="270" cy="104" r="2.8" fill="#FFF1DF" fill-opacity="0.92"/>
 
-  <g fill="#FFF1DF" fill-opacity="0.84">
-    <circle cx="206" cy="134" r="2.3"/>
-    <circle cx="236" cy="194" r="2.3"/>
-    <circle cx="266" cy="162" r="2.3"/>
-    <circle cx="296" cy="130" r="2.3"/>
-    <circle cx="326" cy="188" r="2.3"/>
-    <circle cx="356" cy="154" r="2.3"/>
+    <path d="M236 132H388" stroke="#FFE2C0" stroke-opacity="0.52" stroke-width="1.06"/>
+    <path d="M236 88V176" stroke="#FFE2C0" stroke-opacity="0.42" stroke-width="1"/>
+
+    <path d="M270 104V196" stroke="#FFD2A5" stroke-opacity="0.58" stroke-width="1.02" stroke-dasharray="4 8"/>
+    <path d="M274 196C294 160 314 140 336 154C352 164 366 192 388 188" stroke="url(#sigA-main)" stroke-width="2.32"/>
+    <path d="M274 196C294 176 314 168 336 176C352 182 366 196 388 194" stroke="#FFE7CF" stroke-opacity="0.66" stroke-width="1.2"/>
   </g>
 </svg>

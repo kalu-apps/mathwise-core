@@ -1,17 +1,31 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="wireB-lattice" x1="162" y1="52" x2="352" y2="210" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFF2DA"/>
-      <stop offset="0.58" stop-color="#FFC682"/>
-      <stop offset="1" stop-color="#CE5D7F"/>
+    <linearGradient id="linB-cube" x1="186" y1="84" x2="354" y2="206" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF0D6"/>
+      <stop offset="0.58" stop-color="#FFBF7C"/>
+      <stop offset="1" stop-color="#CC6388"/>
     </linearGradient>
   </defs>
 
-  <g fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9">
-    <rect x="162" y="54" width="186" height="154" rx="4" stroke="#FFD6AF" stroke-opacity="0.52" stroke-width="1.22"/>
-    <rect x="188" y="78" width="136" height="108" rx="3" stroke="#FFE8CC" stroke-opacity="0.76" stroke-width="1.16"/>
-    <rect x="212" y="98" width="92" height="72" rx="3" stroke="url(#wireB-lattice)" stroke-width="1.58"/>
-    <path d="M162 54L188 78M348 54L324 78M162 208L188 186M348 208L324 186" stroke="#FFC189" stroke-opacity="0.68" stroke-width="1.02" stroke-dasharray="4 8"/>
-    <path d="M212 98L304 170M304 98L212 170" stroke="#FFD7B1" stroke-opacity="0.54" stroke-width="1.04"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.96">
+    <rect x="210" y="80" width="96" height="96" stroke="url(#linB-cube)" stroke-width="1.74"/>
+    <rect x="176" y="56" width="96" height="96" stroke="#FFE2BC" stroke-opacity="0.84" stroke-width="1.44"/>
+
+    <path d="M176 56L210 80M272 56L306 80M176 152L210 176M272 152L306 176" stroke="#FFECD2" stroke-opacity="0.78" stroke-width="1.22"/>
+
+    <path d="M210 112H306M210 144H306" stroke="#FFD6AA" stroke-opacity="0.74" stroke-width="1.1"/>
+    <path d="M242 80V176M274 80V176" stroke="#FFD6AA" stroke-opacity="0.74" stroke-width="1.1"/>
+
+    <path d="M176 104H272M176 128H272" stroke="#FFE9CD" stroke-opacity="0.62" stroke-width="1"/>
+    <path d="M208 56V152M240 56V152" stroke="#FFE9CD" stroke-opacity="0.62" stroke-width="1"/>
+
+    <path d="M176 56L272 56L306 80" stroke="#FFB776" stroke-opacity="0.62" stroke-width="1" stroke-dasharray="4 8"/>
+  </g>
+
+  <g fill="#FFF2E0" fill-opacity="0.9">
+    <circle cx="176" cy="56" r="2.3"/>
+    <circle cx="306" cy="80" r="2.3"/>
+    <circle cx="306" cy="176" r="2.3"/>
+    <circle cx="176" cy="152" r="2.3"/>
   </g>
 </svg>

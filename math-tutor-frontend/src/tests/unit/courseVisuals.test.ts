@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCourseVisualLayers,
+  COURSE_VISUAL_ARCHETYPE_CATALOG,
   COURSE_VISUAL_STYLES,
   deriveCourseVisualMetadata,
   getCourseVisualFamilyLabel,
+  resolveCourseVisualArchetype,
   resolveCourseVisualMetadata,
 } from "@/entities/course/model/courseVisuals";
 
@@ -84,6 +86,32 @@ describe("course visual system", () => {
     const second = buildCourseVisualLayers(metadata, "featured");
 
     expect(first.patternImage).toEqual(second.patternImage);
+  });
+
+  it("infers harmonic archetype from trigonometry context", () => {
+    const resolved = resolveCourseVisualMetadata({
+      id: "course_trigonometry_intro",
+      title: "Тригонометрия: синусы и косинусы",
+      description: "Гармонические колебания, фаза и амплитуда.",
+      level: "10 класс",
+    });
+
+    expect(resolved.visualStyle).toBe("signal-waves");
+    const archetype = resolveCourseVisualArchetype({
+      id: "course_trigonometry_intro",
+      title: "Тригонометрия: синусы и косинусы",
+      description: "Гармонические колебания, фаза и амплитуда.",
+      level: "10 класс",
+    });
+    expect(archetype.section).toBe("Тригонометрия и гармоника");
+  });
+
+  it("contains canonical formulas for every visual archetype", () => {
+    for (const archetype of Object.values(COURSE_VISUAL_ARCHETYPE_CATALOG)) {
+      expect(archetype.formulas.length).toBeGreaterThan(0);
+      expect(archetype.object.length).toBeGreaterThan(0);
+      expect(archetype.references.length).toBeGreaterThan(0);
+    }
   });
 
   it("clamps oversized explicit seed to int4-safe max", () => {

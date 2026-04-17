@@ -1,13 +1,22 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="topB-knot" x1="188" y1="72" x2="388" y2="216" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FFE8C8"/>
-      <stop offset="0.48" stop-color="#FFAA7D"/>
-      <stop offset="1" stop-color="#9F5FAF"/>
+    <linearGradient id="topB-torus" x1="182" y1="80" x2="388" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF2DE"/>
+      <stop offset="0.54" stop-color="#FFC58D"/>
+      <stop offset="1" stop-color="#C66798"/>
     </linearGradient>
   </defs>
 
-  <path d="M186 170C160 146 162 106 192 88C222 70 272 74 306 92C340 110 350 144 326 170C302 196 252 200 220 188C198 180 196 166 210 154C226 140 262 142 280 154" stroke="url(#topB-knot)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M186 170C160 146 162 106 192 88C222 70 272 74 306 92C340 110 350 144 326 170" stroke="#FFF1DF" stroke-opacity="0.52" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M210 154C226 140 262 142 280 154" stroke="#FFDCC1" stroke-opacity="0.74" stroke-width="1.1" stroke-linecap="round"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="286" cy="142" rx="98" ry="54" stroke="url(#topB-torus)" stroke-width="2.14"/>
+    <ellipse cx="286" cy="142" rx="54" ry="28" stroke="#FFE5C8" stroke-opacity="0.84" stroke-width="1.44"/>
+
+    <ellipse cx="286" cy="142" rx="76" ry="40" stroke="#FFD3A8" stroke-opacity="0.64" stroke-width="1.02"/>
+    <ellipse cx="286" cy="142" rx="90" ry="48" stroke="#FFEAD0" stroke-opacity="0.52" stroke-width="1.02"/>
+
+    <path d="M188 142H384" stroke="#FFE3C3" stroke-opacity="0.46" stroke-width="1"/>
+    <path d="M286 88V196" stroke="#FFE3C3" stroke-opacity="0.46" stroke-width="1"/>
+
+    <path d="M232 142C232 122 256 106 286 106C316 106 340 122 340 142" stroke="#FFBD85" stroke-opacity="0.7" stroke-width="1.06" stroke-dasharray="4 7"/>
+  </g>
 </svg>
