@@ -1,35 +1,27 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="funcB-main" x1="146" y1="192" x2="406" y2="108" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#34DCFF" stop-opacity="0.84"/>
-      <stop offset="0.5" stop-color="#69C8FF" stop-opacity="0.95"/>
-      <stop offset="0.82" stop-color="#A690FF" stop-opacity="0.86"/>
-      <stop offset="1" stop-color="#F0B273" stop-opacity="0.7"/>
+    <linearGradient id="funcB-surface" x1="142" y1="84" x2="392" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF0D0"/>
+      <stop offset="0.5" stop-color="#FFB773"/>
+      <stop offset="1" stop-color="#C15D82"/>
+    </linearGradient>
+    <linearGradient id="funcB-grid" x1="156" y1="92" x2="372" y2="204" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF7E8" stop-opacity="0.86"/>
+      <stop offset="1" stop-color="#FFDAB7" stop-opacity="0.56"/>
     </linearGradient>
   </defs>
 
-  <g stroke="#90B9EE" stroke-opacity="0.2" stroke-width="1" stroke-linecap="round">
-    <path d="M142 60H398"/>
-    <path d="M142 92H398"/>
-    <path d="M142 124H398"/>
-    <path d="M142 156H398"/>
-    <path d="M142 188H398"/>
-    <path d="M176 34V230"/>
-    <path d="M220 34V230"/>
-    <path d="M264 34V230"/>
-    <path d="M308 34V230"/>
-    <path d="M352 34V230"/>
-  </g>
+  <ellipse cx="270" cy="208" rx="98" ry="18" fill="#2A1A32" fill-opacity="0.19"/>
+  <path d="M142 176C168 104 216 88 256 110C292 130 332 120 392 78C352 132 350 180 374 218C328 198 286 204 248 222C206 242 168 230 142 176Z" fill="url(#funcB-surface)" fill-opacity="0.96"/>
 
-  <path d="M146 174C174 150 200 202 226 174C252 146 276 186 298 168C320 150 342 164 404 136" stroke="url(#funcB-main)" stroke-width="3.06" stroke-linecap="round" fill="none"/>
-  <path d="M146 148C174 132 202 166 228 148C254 132 278 158 300 146C322 134 344 142 404 118" stroke="#95D9FF" stroke-opacity="0.58" stroke-width="1.88" stroke-linecap="round" fill="none"/>
-
-  <path d="M146 116C220 126 286 128 404 104" stroke="#A79CFF" stroke-opacity="0.38" stroke-width="1.08" stroke-dasharray="4 8" fill="none"/>
-  <path d="M146 208C220 194 286 190 404 170" stroke="#69D8FF" stroke-opacity="0.36" stroke-width="1.08" stroke-dasharray="4 8" fill="none"/>
-
-  <g fill="#E0F6FF" fill-opacity="0.84">
-    <circle cx="226" cy="174" r="2.7"/>
-    <circle cx="298" cy="168" r="2.7"/>
-    <circle cx="342" cy="164" r="2.7"/>
+  <g stroke="url(#funcB-grid)" stroke-width="1.02" stroke-linecap="round" opacity="0.66">
+    <path d="M154 170C190 128 226 126 258 142C290 158 326 150 372 116"/>
+    <path d="M152 188C190 144 228 144 260 160C292 176 328 170 376 136"/>
+    <path d="M150 206C190 164 230 166 262 182C294 198 332 192 382 160"/>
+    <path d="M180 152C188 176 196 198 206 220"/>
+    <path d="M214 138C222 162 230 188 240 220"/>
+    <path d="M248 136C256 160 264 190 274 222"/>
+    <path d="M282 138C290 164 298 194 308 224"/>
+    <path d="M316 136C324 162 332 190 342 220"/>
   </g>
 </svg>

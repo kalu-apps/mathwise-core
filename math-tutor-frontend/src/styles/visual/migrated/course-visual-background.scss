@@ -1,19 +1,22 @@
 .course-visual-bg {
-  --course-visual-pattern-opacity: 0.98;
-  --course-visual-pattern-saturation: 1.22;
-  --course-visual-pattern-contrast: 1.2;
-  --course-visual-glow-opacity: 0.84;
-  --course-visual-shimmer-opacity: 0.36;
-  --course-visual-veil-opacity: 0.3;
+  --course-visual-pattern-opacity: 0.96;
+  --course-visual-pattern-saturation: 1.18;
+  --course-visual-pattern-contrast: 1.14;
+  --course-visual-pattern-size: 118% auto;
+  --course-visual-pattern-position: 76% 52%;
+  --course-visual-pattern-scale: 1;
+  --course-visual-glow-opacity: 0.78;
+  --course-visual-shimmer-opacity: 0.3;
+  --course-visual-veil-opacity: 0.24;
   --course-visual-readability-opacity: 1;
   --course-visual-readability: linear-gradient(
       104deg,
-      rgba(8, 16, 34, 0.6) 0%,
-      rgba(8, 16, 34, 0.46) 38%,
-      rgba(8, 16, 34, 0.2) 66%,
-      rgba(6, 14, 31, 0.34) 100%
+      rgba(16, 11, 20, 0.54) 0%,
+      rgba(17, 12, 22, 0.42) 36%,
+      rgba(17, 12, 22, 0.14) 66%,
+      rgba(15, 11, 20, 0.28) 100%
     ),
-    radial-gradient(112% 86% at 44% 80%, rgba(8, 15, 32, 0.38) 0%, transparent 64%);
+    radial-gradient(112% 86% at 44% 80%, rgba(17, 12, 22, 0.34) 0%, transparent 64%);
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -33,13 +36,13 @@
   &__layer--pattern {
     background-image: var(--course-visual-pattern);
     background-repeat: no-repeat;
-    background-size: cover;
-    background-position: center;
+    background-size: var(--course-visual-pattern-size);
+    background-position: var(--course-visual-pattern-position);
     opacity: var(--course-visual-pattern-opacity);
     mix-blend-mode: normal;
     filter: saturate(var(--course-visual-pattern-saturation))
       contrast(var(--course-visual-pattern-contrast));
-    transform: scale(1.01);
+    transform: scale(var(--course-visual-pattern-scale));
     transform-origin: center;
   }
 
@@ -66,27 +69,61 @@
 
   &--featured {
     --course-visual-pattern-opacity: 1;
-    --course-visual-pattern-saturation: 1.24;
-    --course-visual-pattern-contrast: 1.24;
-    --course-visual-glow-opacity: 0.88;
-    --course-visual-shimmer-opacity: 0.44;
-    --course-visual-veil-opacity: 0.26;
+    --course-visual-pattern-saturation: 1.22;
+    --course-visual-pattern-contrast: 1.18;
+    --course-visual-pattern-size: 122% auto;
+    --course-visual-pattern-position: 82% 52%;
+    --course-visual-pattern-scale: 1.012;
+    --course-visual-glow-opacity: 0.84;
+    --course-visual-shimmer-opacity: 0.38;
+    --course-visual-veil-opacity: 0.2;
+  }
 
-    .course-visual-bg__layer--pattern {
-      transform: scale(1.015);
-    }
+  &--card {
+    --course-visual-pattern-size: 112% auto;
+    --course-visual-pattern-position: 78% 54%;
   }
 
   &--style-polyhedra,
   &--style-projection-wireframe {
-    --course-visual-pattern-contrast: 1.24;
+    --course-visual-pattern-contrast: 1.2;
     --course-visual-pattern-saturation: 1.2;
   }
 
   &--style-function-fields,
   &--style-signal-waves {
-    --course-visual-pattern-saturation: 1.26;
-    --course-visual-shimmer-opacity: 0.4;
+    --course-visual-pattern-saturation: 1.24;
+    --course-visual-shimmer-opacity: 0.34;
+  }
+
+  &--style-projection-wireframe {
+    --course-visual-pattern-size: 120% auto;
+    --course-visual-pattern-position: 82% 54%;
+  }
+
+  &--style-polyhedra {
+    --course-visual-pattern-size: 116% auto;
+    --course-visual-pattern-position: 76% 52%;
+  }
+
+  &--style-topology {
+    --course-visual-pattern-size: 126% auto;
+    --course-visual-pattern-position: 86% 54%;
+  }
+
+  &--style-analytic-sections {
+    --course-visual-pattern-size: 118% auto;
+    --course-visual-pattern-position: 80% 56%;
+  }
+
+  &--style-function-fields {
+    --course-visual-pattern-size: 122% auto;
+    --course-visual-pattern-position: 84% 56%;
+  }
+
+  &--style-signal-waves {
+    --course-visual-pattern-size: 124% auto;
+    --course-visual-pattern-position: 86% 54%;
   }
 
   &--style-function-fields,
@@ -94,30 +131,30 @@
   &--style-signal-waves {
     --course-visual-readability: linear-gradient(
         105deg,
-        rgba(7, 15, 32, 0.62) 0%,
-        rgba(7, 15, 32, 0.48) 36%,
-        rgba(7, 15, 32, 0.2) 66%,
-        rgba(7, 15, 32, 0.3) 100%
+        rgba(16, 11, 20, 0.58) 0%,
+        rgba(16, 11, 20, 0.44) 36%,
+        rgba(16, 11, 20, 0.14) 66%,
+        rgba(16, 11, 20, 0.26) 100%
       ),
-      radial-gradient(108% 82% at 46% 82%, rgba(8, 15, 32, 0.42) 0%, transparent 62%);
+      radial-gradient(108% 82% at 46% 82%, rgba(16, 11, 20, 0.36) 0%, transparent 62%);
   }
 }
 
 :root[data-theme="light"] .course-visual-bg {
-  --course-visual-pattern-opacity: 0.95;
-  --course-visual-pattern-saturation: 1.14;
-  --course-visual-pattern-contrast: 1.15;
-  --course-visual-glow-opacity: 0.68;
-  --course-visual-shimmer-opacity: 0.26;
-  --course-visual-veil-opacity: 0.2;
+  --course-visual-pattern-opacity: 0.98;
+  --course-visual-pattern-saturation: 1.2;
+  --course-visual-pattern-contrast: 1.18;
+  --course-visual-glow-opacity: 0.76;
+  --course-visual-shimmer-opacity: 0.34;
+  --course-visual-veil-opacity: 0.16;
   --course-visual-readability: linear-gradient(
       104deg,
-      rgba(246, 250, 255, 0.9) 0%,
-      rgba(244, 248, 255, 0.7) 38%,
-      rgba(241, 247, 255, 0.28) 68%,
-      rgba(234, 242, 255, 0.42) 100%
+      rgba(252, 245, 236, 0.62) 0%,
+      rgba(252, 245, 236, 0.44) 38%,
+      rgba(251, 244, 235, 0.14) 68%,
+      rgba(250, 242, 233, 0.26) 100%
     ),
-    radial-gradient(112% 86% at 44% 80%, rgba(247, 251, 255, 0.74) 0%, transparent 62%);
+    radial-gradient(112% 86% at 44% 80%, rgba(253, 246, 237, 0.5) 0%, transparent 62%);
 }
 
 :root[data-theme="light"] .course-visual-bg.course-visual-bg--style-function-fields,
@@ -125,10 +162,10 @@
 :root[data-theme="light"] .course-visual-bg.course-visual-bg--style-analytic-sections {
   --course-visual-readability: linear-gradient(
       104deg,
-      rgba(246, 250, 255, 0.92) 0%,
-      rgba(243, 248, 255, 0.74) 40%,
-      rgba(240, 246, 255, 0.3) 68%,
-      rgba(233, 241, 255, 0.42) 100%
+      rgba(252, 245, 236, 0.66) 0%,
+      rgba(252, 245, 236, 0.5) 40%,
+      rgba(251, 244, 235, 0.18) 68%,
+      rgba(250, 242, 233, 0.3) 100%
     ),
-    radial-gradient(110% 82% at 46% 82%, rgba(248, 252, 255, 0.76) 0%, transparent 62%);
+    radial-gradient(110% 82% at 46% 82%, rgba(253, 246, 237, 0.54) 0%, transparent 62%);
 }

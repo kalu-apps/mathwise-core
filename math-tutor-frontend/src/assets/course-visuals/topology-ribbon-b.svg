@@ -1,18 +1,13 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M154 164C202 100 270 90 332 116C362 130 386 132 406 120V152C386 164 362 170 330 158C266 136 220 148 170 204L154 164Z" fill="#E9F7FF" fill-opacity="0.2"/>
-  <path d="M172 204C218 154 262 152 330 172C360 182 386 184 406 170V202C388 214 360 220 326 206C262 186 220 190 188 232L172 204Z" fill="#9ECFFF" fill-opacity="0.16"/>
+  <defs>
+    <linearGradient id="topB-knot" x1="188" y1="72" x2="388" y2="216" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE8C8"/>
+      <stop offset="0.48" stop-color="#FFAA7D"/>
+      <stop offset="1" stop-color="#9F5FAF"/>
+    </linearGradient>
+  </defs>
 
-  <g fill="none" stroke-linecap="round">
-    <path d="M154 164C202 100 270 90 332 116C362 130 386 132 406 120" stroke="#D4F0FF" stroke-opacity="0.62" stroke-width="1.56"/>
-    <path d="M172 204C220 154 264 152 330 172C360 182 386 184 406 170" stroke="#6ED6FF" stroke-opacity="0.58" stroke-width="1.46"/>
-    <path d="M192 182C224 172 252 172 286 182C318 192 348 204 376 216" stroke="#82D8FF" stroke-opacity="0.34" stroke-width="1" stroke-dasharray="3 7"/>
-    <path d="M194 150C224 140 254 140 288 146C320 152 350 162 378 174" stroke="#F0BF82" stroke-opacity="0.3" stroke-width="1" stroke-dasharray="3 7"/>
-    <path d="M210 162C240 160 268 166 296 176" stroke="#A99BFF" stroke-opacity="0.56" stroke-width="1.1"/>
-  </g>
-
-  <g stroke="#CFEAFF" stroke-opacity="0.66" stroke-width="1.04" stroke-linecap="round">
-    <path d="M236 164L230 174"/>
-    <path d="M262 170L256 180"/>
-    <path d="M288 176L282 186"/>
-  </g>
+  <path d="M186 170C160 146 162 106 192 88C222 70 272 74 306 92C340 110 350 144 326 170C302 196 252 200 220 188C198 180 196 166 210 154C226 140 262 142 280 154" stroke="url(#topB-knot)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M186 170C160 146 162 106 192 88C222 70 272 74 306 92C340 110 350 144 326 170" stroke="#FFF1DF" stroke-opacity="0.52" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M210 154C226 140 262 142 280 154" stroke="#FFDCC1" stroke-opacity="0.74" stroke-width="1.1" stroke-linecap="round"/>
 </svg>

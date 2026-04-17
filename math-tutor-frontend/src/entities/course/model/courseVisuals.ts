@@ -45,7 +45,8 @@ export type CourseVisualRenderMode = "card" | "featured";
 export type CourseVisualStyleInput = Pick<
   Course,
   "id" | "visualStyle" | "visualSeed" | "visualPalette" | "visualVariant"
->;
+> &
+  Partial<Pick<Course, "title" | "description" | "level">>;
 
 export type CourseVisualLayers = {
   baseGradient: string;
@@ -72,61 +73,100 @@ const MAX_VISUAL_VARIANT = 255;
 
 const PALETTE_MAP: Record<CourseVisualPalette, PaletteSpec> = {
   "indigo-mineral": {
-    baseA: "#1D2A5A",
-    baseB: "#2B4782",
-    baseC: "#2C6EA0",
-    glowA: "#6AA7FF",
-    glowB: "#58D6FF",
-    tintA: "#4D79D8",
-    tintB: "#4BC7F0",
-    veilA: "#E8F3FF",
-    veilB: "#C7DBFF",
+    baseA: "#4A2033",
+    baseB: "#6A2D4D",
+    baseC: "#9D4B65",
+    glowA: "#FF9B78",
+    glowB: "#FFC37A",
+    tintA: "#FF8C8A",
+    tintB: "#F6A25B",
+    veilA: "#FFE8DF",
+    veilB: "#FFCBB1",
   },
   "cobalt-cyan": {
-    baseA: "#162A53",
-    baseB: "#214A84",
-    baseC: "#2575A6",
-    glowA: "#5E9EFF",
-    glowB: "#49D8F5",
-    tintA: "#3D77D4",
-    tintB: "#45CBEA",
-    veilA: "#E9F4FF",
-    veilB: "#C5DDFE",
+    baseA: "#4D231E",
+    baseB: "#7A3626",
+    baseC: "#B55331",
+    glowA: "#FFAF6A",
+    glowB: "#FFD487",
+    tintA: "#FF8D5E",
+    tintB: "#FFB773",
+    veilA: "#FFECDD",
+    veilB: "#FFD3AF",
   },
   "violet-mint": {
-    baseA: "#2A245C",
-    baseB: "#3E3B88",
-    baseC: "#2A7B85",
-    glowA: "#9C8DFF",
-    glowB: "#58E1C3",
-    tintA: "#6B66D7",
-    tintB: "#43D3B0",
-    veilA: "#EFF0FF",
-    veilB: "#D1DAFF",
+    baseA: "#4C1F3E",
+    baseB: "#7A2D64",
+    baseC: "#B74A8F",
+    glowA: "#FF8EB0",
+    glowB: "#FFC285",
+    tintA: "#F870A5",
+    tintB: "#F5A85F",
+    veilA: "#FFE4F0",
+    veilB: "#FFD0D9",
   },
   "graphite-aurora": {
-    baseA: "#1D2A45",
-    baseB: "#314867",
-    baseC: "#2B6F97",
-    glowA: "#78AEEB",
-    glowB: "#5BC8F4",
-    tintA: "#4D78B5",
-    tintB: "#49B9E5",
-    veilA: "#E7F0FF",
-    veilB: "#C6D8F2",
+    baseA: "#46241E",
+    baseB: "#6F3A2B",
+    baseC: "#A95A3A",
+    glowA: "#FFA774",
+    glowB: "#FFD19A",
+    tintA: "#F58E65",
+    tintB: "#F9B878",
+    veilA: "#FFE9DD",
+    veilB: "#FFD5BF",
   },
   "slate-gold": {
-    baseA: "#2A314B",
-    baseB: "#3A4E70",
-    baseC: "#6A6A76",
-    glowA: "#9DB3F2",
-    glowB: "#E8C57A",
-    tintA: "#6F83B4",
-    tintB: "#D8B26A",
-    veilA: "#F0EEFF",
-    veilB: "#D6D8EC",
+    baseA: "#4B2C1A",
+    baseB: "#7A4A21",
+    baseC: "#B6782F",
+    glowA: "#FFD17A",
+    glowB: "#FFE39A",
+    tintA: "#FFBD64",
+    tintB: "#F4A453",
+    veilA: "#FFF0D8",
+    veilB: "#FFDFAF",
   },
 };
+
+const STYLE_DEFAULT_PALETTE: Record<CanonicalCourseVisualStyle, CourseVisualPalette> = {
+  polyhedra: "graphite-aurora",
+  "function-fields": "indigo-mineral",
+  "projection-wireframe": "slate-gold",
+  topology: "violet-mint",
+  "analytic-sections": "cobalt-cyan",
+  "signal-waves": "indigo-mineral",
+};
+
+const STYLE_KEYWORD_RULES: Array<{
+  style: CanonicalCourseVisualStyle;
+  keywords: string[];
+}> = [
+  {
+    style: "projection-wireframe",
+    keywords: ["линейн", "вектор", "матриц", "пространств", "rank", "алгебр"],
+  },
+  {
+    style: "analytic-sections",
+    keywords: ["аналит", "геометр", "координат", "плоскост", "конус", "сечен"],
+  },
+  {
+    style: "topology",
+    keywords: ["алгебр", "уравнен", "тополог", "структур", "корн", "симметр"],
+  },
+  {
+    style: "polyhedra",
+    keywords: ["стереометр", "многогран", "объем", "пространствен", "кристалл"],
+  },
+  {
+    style: "signal-waves",
+    keywords: ["тригоном", "синус", "косинус", "гармони", "частот", "статист", "вероят"],
+  },
+  {
+    style: "function-fields",
+    keywords: ["матан", "предел", "производн", "интеграл", "функц", "график"],
+  },
+];
 
 const STYLE_ASSET_MAP: Record<
   CanonicalCourseVisualStyle,
@@ -187,6 +227,27 @@ const normalizeVisualStyle = (
   return null;
 };
 
+const normalizeContextText = (...values: Array<string | undefined>): string =>
+  values
+    .map((value) => (typeof value === "string" ? value.trim().toLowerCase() : ""))
+    .filter(Boolean)
+    .join(" ");
+
+const inferVisualStyleFromContext = (
+  input: Pick<CourseVisualStyleInput, "title" | "description" | "level">
+): CanonicalCourseVisualStyle | null => {
+  const context = normalizeContextText(input.title, input.description, input.level);
+  if (!context) return null;
+
+  for (const rule of STYLE_KEYWORD_RULES) {
+    if (rule.keywords.some((keyword) => context.includes(keyword))) {
+      return rule.style;
+    }
+  }
+
+  return null;
+};
+
 const pickSceneBySeed = (
   metadata: CourseVisualMetadata,
   mode: CourseVisualRenderMode
@@ -198,13 +259,20 @@ const pickSceneBySeed = (
   return scenes[index];
 };
 
-export const deriveCourseVisualMetadata = (courseId: string): CourseVisualMetadata => {
+export const deriveCourseVisualMetadata = (
+  courseId: string,
+  preferredStyle?: CanonicalCourseVisualStyle
+): CourseVisualMetadata => {
   const normalizedId = courseId.trim() || "course";
   const hash = hashString(normalizedId);
   const mixedSeed = (hash * 2654435761) >>> 0;
+  const visualStyle =
+    preferredStyle ?? CANONICAL_VISUAL_STYLES[hash % CANONICAL_VISUAL_STYLES.length];
   return {
-    visualStyle: CANONICAL_VISUAL_STYLES[hash % CANONICAL_VISUAL_STYLES.length],
-    visualPalette: COURSE_VISUAL_PALETTES[(hash >>> 5) % COURSE_VISUAL_PALETTES.length],
+    visualStyle,
+    visualPalette: preferredStyle
+      ? STYLE_DEFAULT_PALETTE[preferredStyle]
+      : COURSE_VISUAL_PALETTES[(hash >>> 5) % COURSE_VISUAL_PALETTES.length],
     visualSeed: mixedSeed % (MAX_VISUAL_SEED + 1),
     visualVariant: (hash >>> 11) % (MAX_VISUAL_VARIANT + 1),
   };
@@ -213,12 +281,15 @@ export const deriveCourseVisualMetadata = (courseId: string): CourseVisualMetada
 export const resolveCourseVisualMetadata = (
   input: CourseVisualStyleInput
 ): CourseVisualMetadata => {
-  const fallback = deriveCourseVisualMetadata(input.id);
+  const explicitStyle = normalizeVisualStyle(input.visualStyle);
+  const inferredStyle = explicitStyle ?? inferVisualStyleFromContext(input);
+  const fallback = deriveCourseVisualMetadata(input.id, inferredStyle ?? undefined);
+  const visualStyle = explicitStyle ?? inferredStyle ?? fallback.visualStyle;
   return {
-    visualStyle: normalizeVisualStyle(input.visualStyle) ?? fallback.visualStyle,
+    visualStyle,
     visualPalette: isVisualPalette(input.visualPalette)
       ? input.visualPalette
-      : fallback.visualPalette,
+      : STYLE_DEFAULT_PALETTE[visualStyle],
     visualSeed:
       clampInt(input.visualSeed, 0, MAX_VISUAL_SEED) ?? fallback.visualSeed,
     visualVariant:
@@ -234,20 +305,20 @@ export const buildCourseVisualLayers = (
   const isFeatured = mode === "featured";
 
   const baseGradient = isFeatured
-    ? `linear-gradient(148deg, color-mix(in srgb, ${palette.baseA} 90%, #0b152d) 0%, color-mix(in srgb, ${palette.baseB} 86%, #0f1d39) 50%, color-mix(in srgb, ${palette.baseC} 80%, #132546) 100%)`
-    : `linear-gradient(150deg, color-mix(in srgb, ${palette.baseA} 86%, #0c1730) 0%, color-mix(in srgb, ${palette.baseB} 82%, #11203d) 52%, color-mix(in srgb, ${palette.baseC} 76%, #162949) 100%)`;
+    ? `linear-gradient(152deg, color-mix(in srgb, ${palette.baseA} 88%, #1d1226) 0%, color-mix(in srgb, ${palette.baseB} 84%, #24162c) 50%, color-mix(in srgb, ${palette.baseC} 80%, #2a182d) 100%)`
+    : `linear-gradient(154deg, color-mix(in srgb, ${palette.baseA} 84%, #1d1226) 0%, color-mix(in srgb, ${palette.baseB} 80%, #24162c) 52%, color-mix(in srgb, ${palette.baseC} 76%, #2a182d) 100%)`;
 
   const glowGradient = isFeatured
-    ? `radial-gradient(circle at 82% 18%, color-mix(in srgb, ${palette.glowA} 40%, transparent), transparent 54%), radial-gradient(circle at 18% 86%, color-mix(in srgb, ${palette.glowB} 34%, transparent), transparent 58%), radial-gradient(circle at 34% 42%, color-mix(in srgb, ${palette.glowA} 24%, transparent), transparent 70%)`
-    : `radial-gradient(circle at 82% 18%, color-mix(in srgb, ${palette.glowA} 36%, transparent), transparent 56%), radial-gradient(circle at 18% 86%, color-mix(in srgb, ${palette.glowB} 28%, transparent), transparent 60%), radial-gradient(circle at 34% 42%, color-mix(in srgb, ${palette.glowA} 18%, transparent), transparent 72%)`;
+    ? `radial-gradient(circle at 82% 16%, color-mix(in srgb, ${palette.glowA} 44%, transparent), transparent 54%), radial-gradient(circle at 16% 86%, color-mix(in srgb, ${palette.glowB} 36%, transparent), transparent 58%), radial-gradient(circle at 40% 44%, color-mix(in srgb, ${palette.glowA} 26%, transparent), transparent 70%)`
+    : `radial-gradient(circle at 82% 18%, color-mix(in srgb, ${palette.glowA} 40%, transparent), transparent 56%), radial-gradient(circle at 18% 84%, color-mix(in srgb, ${palette.glowB} 30%, transparent), transparent 60%), radial-gradient(circle at 38% 42%, color-mix(in srgb, ${palette.glowA} 20%, transparent), transparent 72%)`;
 
   const shimmerGradient = isFeatured
-    ? `linear-gradient(116deg, transparent 8%, color-mix(in srgb, ${palette.tintA} 24%, transparent) 38%, color-mix(in srgb, ${palette.tintB} 18%, transparent) 56%, transparent 80%)`
-    : `linear-gradient(116deg, transparent 10%, color-mix(in srgb, ${palette.tintA} 20%, transparent) 40%, color-mix(in srgb, ${palette.tintB} 14%, transparent) 58%, transparent 82%)`;
+    ? `linear-gradient(116deg, transparent 8%, color-mix(in srgb, ${palette.tintA} 30%, transparent) 38%, color-mix(in srgb, ${palette.tintB} 24%, transparent) 56%, transparent 80%)`
+    : `linear-gradient(116deg, transparent 10%, color-mix(in srgb, ${palette.tintA} 24%, transparent) 40%, color-mix(in srgb, ${palette.tintB} 18%, transparent) 58%, transparent 82%)`;
 
   const veilGradient = isFeatured
-    ? `radial-gradient(128% 112% at 32% 38%, color-mix(in srgb, ${palette.veilA} 38%, transparent) 0%, color-mix(in srgb, ${palette.veilB} 18%, transparent) 46%, transparent 100%), linear-gradient(168deg, color-mix(in srgb, ${palette.veilB} 12%, transparent) 0%, transparent 72%)`
-    : `radial-gradient(128% 112% at 32% 38%, color-mix(in srgb, ${palette.veilA} 42%, transparent) 0%, color-mix(in srgb, ${palette.veilB} 22%, transparent) 48%, transparent 100%), linear-gradient(168deg, color-mix(in srgb, ${palette.veilB} 14%, transparent) 0%, transparent 72%)`;
+    ? `radial-gradient(126% 110% at 30% 40%, color-mix(in srgb, ${palette.veilA} 30%, transparent) 0%, color-mix(in srgb, ${palette.veilB} 16%, transparent) 46%, transparent 100%), linear-gradient(166deg, color-mix(in srgb, ${palette.veilB} 10%, transparent) 0%, transparent 72%)`
+    : `radial-gradient(126% 110% at 30% 40%, color-mix(in srgb, ${palette.veilA} 34%, transparent) 0%, color-mix(in srgb, ${palette.veilB} 18%, transparent) 48%, transparent 100%), linear-gradient(166deg, color-mix(in srgb, ${palette.veilB} 12%, transparent) 0%, transparent 72%)`;
 
   const sceneAsset = pickSceneBySeed(metadata, mode);
 

@@ -26,7 +26,6 @@
 body::before,
 body::after,
 .hero::before,
-.courses-preview::before,
 .cta::before,
 .courses-page::before,
 .course-details::before,
@@ -52,10 +51,44 @@ body::after,
 }
 
 .hero::before,
-.courses-preview::before,
 .cta::before {
   display: block !important;
   opacity: 0.22 !important;
+}
+
+/* Keep course preview visuals data-rich: local shelf backgrounds should not be flattened */
+.courses-preview [class*="course-visual-bg__layer--glow"],
+.courses-preview [class*="course-visual-bg__layer--shimmer"] {
+  display: block !important;
+}
+
+.courses-preview [class*="course-visual-bg__layer--base"] {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.courses-preview [class*="course-visual-bg__layer--pattern"] {
+  opacity: var(--course-visual-pattern-opacity, 1) !important;
+  filter: saturate(var(--course-visual-pattern-saturation, 1))
+    contrast(var(--course-visual-pattern-contrast, 1)) !important;
+}
+
+.courses-preview [class*="course-visual-bg__layer--glow"] {
+  opacity: var(--course-visual-glow-opacity, 0.8) !important;
+}
+
+.courses-preview [class*="course-visual-bg__layer--shimmer"] {
+  opacity: var(--course-visual-shimmer-opacity, 0.32) !important;
+}
+
+.courses-preview [class*="course-visual-bg__layer--veil"] {
+  opacity: var(--course-visual-veil-opacity, 0.22) !important;
+  filter: none !important;
+}
+
+.courses-preview [class*="course-visual-bg__layer--readability"] {
+  opacity: var(--course-visual-readability-opacity, 1) !important;
+  filter: none !important;
 }
 
 /* Page shells */

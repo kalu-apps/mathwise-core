@@ -1,16 +1,17 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="170" y="48" width="178" height="164" stroke="#D5EFFF" stroke-opacity="0.34" stroke-width="1.16"/>
-    <rect x="190" y="66" width="138" height="128" stroke="#CDEBFF" stroke-opacity="0.56" stroke-width="1.2"/>
-    <rect x="208" y="82" width="104" height="96" stroke="#8FD8FF" stroke-opacity="0.7" stroke-width="1.24"/>
-    <rect x="224" y="98" width="72" height="64" stroke="#66D8FF" stroke-opacity="0.82" stroke-width="1.32"/>
-    <path d="M170 48L190 66M348 48L328 66M170 212L190 194M348 212L328 194" stroke="#F0BB76" stroke-opacity="0.46" stroke-width="1" stroke-dasharray="3 7"/>
-  </g>
+  <defs>
+    <linearGradient id="wireB-lattice" x1="162" y1="52" x2="352" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF2DA"/>
+      <stop offset="0.58" stop-color="#FFC682"/>
+      <stop offset="1" stop-color="#CE5D7F"/>
+    </linearGradient>
+  </defs>
 
-  <g stroke="#8EB8EC" stroke-opacity="0.22" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 9">
-    <path d="M20 66L176 42"/>
-    <path d="M20 106L194 78"/>
-    <path d="M236 214L398 188"/>
-    <path d="M264 42L398 86"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9">
+    <rect x="162" y="54" width="186" height="154" rx="4" stroke="#FFD6AF" stroke-opacity="0.52" stroke-width="1.22"/>
+    <rect x="188" y="78" width="136" height="108" rx="3" stroke="#FFE8CC" stroke-opacity="0.76" stroke-width="1.16"/>
+    <rect x="212" y="98" width="92" height="72" rx="3" stroke="url(#wireB-lattice)" stroke-width="1.58"/>
+    <path d="M162 54L188 78M348 54L324 78M162 208L188 186M348 208L324 186" stroke="#FFC189" stroke-opacity="0.68" stroke-width="1.02" stroke-dasharray="4 8"/>
+    <path d="M212 98L304 170M304 98L212 170" stroke="#FFD7B1" stroke-opacity="0.54" stroke-width="1.04"/>
   </g>
 </svg>

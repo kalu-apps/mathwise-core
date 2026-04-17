@@ -1,23 +1,26 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <g stroke="#8EB8EC" stroke-opacity="0.22" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 9">
-    <path d="M18 76H196"/>
-    <path d="M18 114H212"/>
-    <path d="M244 46L398 92"/>
-    <path d="M224 214L398 188"/>
-  </g>
+  <defs>
+    <linearGradient id="wireA-cube" x1="172" y1="58" x2="344" y2="198" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFEFD2"/>
+      <stop offset="0.56" stop-color="#FFBF78"/>
+      <stop offset="1" stop-color="#D1607C"/>
+    </linearGradient>
+  </defs>
 
   <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="198" y="58" width="98" height="98" stroke="#D6EFFF" stroke-opacity="0.88" stroke-width="1.42"/>
-    <rect x="248" y="84" width="98" height="98" stroke="#8FD8FF" stroke-opacity="0.72" stroke-width="1.22"/>
-    <path d="M198 58L248 84M296 58L346 84M198 156L248 182M296 156L346 182" stroke="#D1ECFF" stroke-opacity="0.74" stroke-width="1.14"/>
-    <path d="M198 58L296 58L346 84" stroke="#F0BA75" stroke-opacity="0.5" stroke-width="1" stroke-dasharray="3 7"/>
+    <rect x="194" y="62" width="104" height="104" stroke="url(#wireA-cube)" stroke-width="1.84"/>
+    <rect x="248" y="92" width="104" height="104" stroke="#FFD7AD" stroke-opacity="0.82" stroke-width="1.54"/>
+    <path d="M194 62L248 92M298 62L352 92M194 166L248 196M298 166L352 196" stroke="#FFEAD0" stroke-opacity="0.78" stroke-width="1.24"/>
+
+    <path d="M66 216L194 62" stroke="#FFB271" stroke-opacity="0.82" stroke-width="1.42"/>
+    <path d="M66 216L352 196" stroke="#FF9E7C" stroke-opacity="0.76" stroke-width="1.32"/>
+    <path d="M66 216L352 92" stroke="#FFC889" stroke-opacity="0.74" stroke-width="1.3"/>
   </g>
 
-  <g stroke="#66D8FF" stroke-opacity="0.44" stroke-width="1" stroke-linecap="round">
-    <path d="M58 212L152 168L198 58"/>
-    <path d="M58 212L346 182"/>
-    <path d="M58 212L346 84"/>
+  <g fill="#FFF4E4" fill-opacity="0.92">
+    <circle cx="66" cy="216" r="3"/>
+    <circle cx="194" cy="62" r="2.6"/>
+    <circle cx="352" cy="92" r="2.6"/>
+    <circle cx="352" cy="196" r="2.6"/>
   </g>
-
-  <circle cx="58" cy="212" r="2.9" fill="#DDF6FF" fill-opacity="0.86"/>
 </svg>

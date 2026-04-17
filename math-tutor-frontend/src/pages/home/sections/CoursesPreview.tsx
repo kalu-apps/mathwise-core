@@ -177,23 +177,35 @@ export function CoursesPreview() {
               >
                 <CourseVisualBackground course={page.featured} mode="featured" />
                 <CardContent className="courses-preview__content courses-preview__content--featured">
-                  <h3 className="courses-preview__title">{page.featured.title}</h3>
-                  <p className="courses-preview__descriptor courses-preview__descriptor--featured">
-                    {page.featured.descriptor}
-                  </p>
-
-                  <div className="courses-preview__metrics">
-                    <span className="courses-preview__metric">{page.featured.level}</span>
-                    <span className="courses-preview__metric">{page.featured.formatLabel}</span>
-                    <span className="courses-preview__metric">{page.featured.supportLabel}</span>
+                  <div className="courses-preview__featured-zone courses-preview__featured-zone--sticker">
+                    <span className="courses-preview__sticker" aria-hidden="true">
+                      ✦
+                    </span>
                   </div>
 
-                  <Button
-                    className="courses-preview__button"
-                    onClick={() => navigate(`/courses/${page.featured.id}`)}
-                  >
-                    Открыть курс
-                  </Button>
+                  <div className="courses-preview__featured-zone courses-preview__featured-zone--main">
+                    <h3 className="courses-preview__title">{page.featured.title}</h3>
+                    <p className="courses-preview__descriptor courses-preview__descriptor--featured">
+                      {page.featured.descriptor}
+                    </p>
+                  </div>
+
+                  <div className="courses-preview__featured-zone courses-preview__featured-zone--meta">
+                    <div className="courses-preview__metrics">
+                      <span className="courses-preview__metric">{page.featured.level}</span>
+                      <span className="courses-preview__metric">{page.featured.formatLabel}</span>
+                      <span className="courses-preview__metric">{page.featured.supportLabel}</span>
+                    </div>
+                  </div>
+
+                  <div className="courses-preview__cta-row courses-preview__cta-row--featured">
+                    <Button
+                      className="courses-preview__button"
+                      onClick={() => navigate(`/courses/${page.featured.id}`)}
+                    >
+                      Открыть курс
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -207,22 +219,29 @@ export function CoursesPreview() {
                     >
                       <CourseVisualBackground course={course} mode="card" />
                       <CardContent className="courses-preview__content courses-preview__content--secondary">
-                        <h3 className="courses-preview__title courses-preview__title--secondary">{course.title}</h3>
-                        <p className="courses-preview__descriptor courses-preview__descriptor--secondary">
-                          {course.compactDescriptor}
-                        </p>
-
-                        <div className="courses-preview__metrics courses-preview__metrics--compact">
-                          <span className="courses-preview__metric">{course.level}</span>
-                          <span className="courses-preview__metric">{course.formatLabel}</span>
+                        <div className="courses-preview__secondary-main">
+                          <h3 className="courses-preview__title courses-preview__title--secondary">{course.title}</h3>
+                          <p className="courses-preview__descriptor courses-preview__descriptor--secondary">
+                            {course.compactDescriptor}
+                          </p>
                         </div>
 
-                        <Button
-                          className="courses-preview__button courses-preview__button--secondary"
-                          onClick={() => navigate(`/courses/${course.id}`)}
-                        >
-                          Открыть курс
-                        </Button>
+                        <div className="courses-preview__secondary-footer">
+                          <div className="courses-preview__metrics courses-preview__metrics--compact">
+                            <span className="courses-preview__metric">{course.level}</span>
+                            <span className="courses-preview__metric">{course.formatLabel}</span>
+                            <span className="courses-preview__metric">{course.supportLabel}</span>
+                          </div>
+
+                          <div className="courses-preview__cta-row courses-preview__cta-row--secondary">
+                            <Button
+                              className="courses-preview__button courses-preview__button--secondary"
+                              onClick={() => navigate(`/courses/${course.id}`)}
+                            >
+                              Открыть курс
+                            </Button>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}

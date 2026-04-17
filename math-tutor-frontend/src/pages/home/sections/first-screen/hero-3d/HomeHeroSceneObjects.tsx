@@ -279,8 +279,8 @@ function buildAccentOrbGeometry(palette: ScenePalette): SphereGeometry {
 function buildSupportPointTorusGeometry(palette: ScenePalette): BufferGeometry {
   const majorRadius = 0.8;
   const minorRadius = 0.24;
-  const uSegments = 156;
-  const vSegments = 84;
+  const uSegments = 132;
+  const vSegments = 72;
   const pointCount = uSegments * vSegments;
   const positions = new Float32Array(pointCount * 3);
   const colors = new Float32Array(pointCount * 3);
@@ -392,12 +392,12 @@ function SupportPointTorusArtifact({ mode, palette }: { mode: SceneMode; palette
   const geometry = useDisposableGeometry(useMemo(() => buildSupportPointTorusGeometry(palette), [palette]));
 
   return (
-    <points geometry={geometry} position={[-2.84, -1.26, -0.88]} rotation={[-0.34, 0.36, -0.28]} scale={0.52}>
+    <points geometry={geometry} position={[-4.55, -2.05, -1.45]} rotation={[-0.34, 0.36, -0.28]} scale={2.6}>
       <pointsMaterial
         vertexColors
         transparent
         opacity={mode === "dark" ? 0.96 : 0.88}
-        size={mode === "dark" ? 0.018 : 0.015}
+        size={mode === "dark" ? 0.0042 : 0.0038}
         sizeAttenuation
         depthWrite={false}
         blending={THREE.AdditiveBlending}

@@ -2,7 +2,8 @@
   --preview-content-max: min(100%, var(--layout-content-max));
   --preview-section-gap: 16px;
   --preview-shelf-gap: 14px;
-  --preview-shelf-nav-size: 46px;
+  --preview-shelf-nav-size: 50px;
+  --preview-side-panel-width: 56px;
 
   position: relative;
   padding: clamp(42px, 4.5vw, 58px) var(--layout-gutter) clamp(28px, 3.2vw, 42px);
@@ -59,21 +60,33 @@
   }
 
   &__cta.MuiButton-root {
-    min-height: 37px;
+    min-height: 39px;
     border: 0 !important;
-    border-radius: 10px !important;
-    padding: 0 13px !important;
+    border-radius: 11px !important;
+    padding: 0 15px !important;
     text-transform: none !important;
-    font-size: 13.5px !important;
-    font-weight: 630 !important;
-    color: color-mix(in srgb, var(--text-primary) 94%, #ddebff) !important;
-    background: color-mix(in srgb, var(--accent-primary) 18%, transparent) !important;
-    box-shadow: none !important;
-    transition: background-color 0.2s ease, transform 0.2s ease;
+    font-size: 13.8px !important;
+    font-weight: 660 !important;
+    letter-spacing: 0.005em;
+    color: color-mix(in srgb, #f7fbff 96%, #edf4ff) !important;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-primary) 68%, #6f8dff) 0%,
+      color-mix(in srgb, var(--accent-strong) 58%, #5d77ff) 100%
+    ) !important;
+    box-shadow:
+      0 9px 18px color-mix(in srgb, var(--accent-primary) 24%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #ffffff 22%, transparent) !important;
+    transition: background-position 0.24s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    background-size: 170% 170%;
+    background-position: 0% 40%;
 
     &:hover {
-      background: color-mix(in srgb, var(--accent-primary) 24%, transparent) !important;
-      transform: translateY(-1px);
+      background-position: 100% 60%;
+      transform: translateY(-1.5px);
+      box-shadow:
+        0 12px 20px color-mix(in srgb, var(--accent-primary) 28%, transparent),
+        inset 0 1px 0 color-mix(in srgb, #ffffff 28%, transparent) !important;
     }
   }
 
@@ -82,7 +95,34 @@
     z-index: 1;
     width: var(--preview-content-max);
     margin: 0 auto;
-    padding-inline: calc(var(--preview-shelf-nav-size) + 8px);
+    padding-inline: calc(var(--preview-shelf-nav-size) + 12px);
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      width: var(--preview-side-panel-width);
+      border-radius: 16px;
+      pointer-events: none;
+      border: 1px solid color-mix(in srgb, var(--border-subtle) 56%, transparent);
+      background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-elevated) 72%, transparent) 0%,
+        color-mix(in srgb, var(--surface-elevated) 48%, transparent) 100%
+      );
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    &::before {
+      left: 0;
+    }
+
+    &::after {
+      right: 0;
+    }
   }
 
   &__shelf-nav.MuiIconButton-root {
@@ -91,22 +131,22 @@
     transform: translateY(-50%);
     width: var(--preview-shelf-nav-size);
     height: var(--preview-shelf-nav-size);
-    border-radius: 14px !important;
+    border-radius: 15px !important;
     border: 0 !important;
-    color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary)) !important;
-    background: color-mix(in srgb, var(--surface-elevated) 74%, transparent) !important;
+    color: color-mix(in srgb, var(--text-primary) 90%, #d5e2ff) !important;
+    background: color-mix(in srgb, var(--surface-elevated) 82%, transparent) !important;
     box-shadow:
-      0 10px 18px color-mix(in srgb, #050b1f 12%, transparent),
-      inset 0 1px 0 color-mix(in srgb, #ffffff 12%, transparent) !important;
+      0 12px 20px color-mix(in srgb, #050b1f 14%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent) !important;
     transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
 
     .MuiSvgIcon-root {
-      font-size: 30px;
+      font-size: 33px;
     }
 
     &:hover:not(.Mui-disabled) {
       transform: translateY(-50%) scale(1.03);
-      background: color-mix(in srgb, var(--accent-primary) 24%, transparent) !important;
+      background: color-mix(in srgb, var(--accent-primary) 28%, transparent) !important;
       color: var(--text-primary) !important;
     }
 
@@ -165,15 +205,15 @@
     position: relative;
     min-height: 0;
     border-radius: 18px !important;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 76%, transparent) !important;
     background: linear-gradient(
       152deg,
-      color-mix(in srgb, var(--surface-elevated) 92%, transparent) 0%,
-      color-mix(in srgb, var(--surface-elevated) 82%, transparent) 100%
+      color-mix(in srgb, var(--surface-elevated) 94%, transparent) 0%,
+      color-mix(in srgb, var(--surface-elevated) 84%, transparent) 100%
     ) !important;
     box-shadow:
-      0 12px 22px color-mix(in srgb, #081024 14%, transparent),
-      inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent) !important;
+      0 14px 24px color-mix(in srgb, #081024 16%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent) !important;
     overflow: hidden;
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 
@@ -181,33 +221,69 @@
       transform: translateY(-2px);
       border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle)) !important;
       box-shadow:
-        0 16px 28px color-mix(in srgb, #081024 16%, transparent),
-        inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent) !important;
+        0 18px 30px color-mix(in srgb, #081024 18%, transparent),
+        inset 0 1px 0 color-mix(in srgb, #ffffff 18%, transparent) !important;
     }
   }
 
   &__card .course-visual-bg {
-    opacity: 0.4;
-    filter: saturate(0.9) contrast(1.02);
+    --course-visual-pattern-opacity: 0.92;
+    --course-visual-pattern-saturation: 1.16;
+    --course-visual-pattern-contrast: 1.14;
+    --course-visual-glow-opacity: 0.76;
+    --course-visual-shimmer-opacity: 0.28;
+    --course-visual-veil-opacity: 0.2;
+    --course-visual-readability-opacity: 1;
+    --course-visual-pattern-position: 84% 52%;
+    --course-visual-pattern-size: 116% auto;
   }
 
   &__card--featured.MuiCard-root {
     min-height: 336px;
-    border-color: color-mix(in srgb, var(--accent-primary) 32%, var(--border-subtle)) !important;
+    border-color: color-mix(in srgb, var(--accent-primary) 46%, var(--border-subtle)) !important;
     background: linear-gradient(
-      148deg,
-      color-mix(in srgb, var(--surface-elevated) 88%, color-mix(in srgb, var(--accent-primary) 14%, transparent)) 0%,
-      color-mix(in srgb, var(--surface-elevated) 79%, color-mix(in srgb, var(--accent-strong) 10%, transparent)) 100%
+      146deg,
+      color-mix(in srgb, var(--surface-elevated) 86%, color-mix(in srgb, var(--accent-primary) 20%, transparent)) 0%,
+      color-mix(in srgb, var(--surface-elevated) 76%, color-mix(in srgb, var(--accent-strong) 15%, transparent)) 100%
     ) !important;
+    box-shadow:
+      0 18px 32px color-mix(in srgb, #081024 21%, transparent),
+      0 0 0 1px color-mix(in srgb, var(--accent-primary) 28%, transparent) inset,
+      inset 0 1px 0 color-mix(in srgb, #ffffff 20%, transparent) !important;
   }
 
   &__card--featured .course-visual-bg {
-    opacity: 0.48;
-    filter: saturate(0.96) contrast(1.05);
+    --course-visual-pattern-opacity: 1;
+    --course-visual-pattern-saturation: 1.22;
+    --course-visual-pattern-contrast: 1.18;
+    --course-visual-glow-opacity: 0.84;
+    --course-visual-shimmer-opacity: 0.36;
+    --course-visual-veil-opacity: 0.16;
+    --course-visual-pattern-position: 86% 52%;
+    --course-visual-pattern-size: 122% auto;
+    --course-visual-readability: linear-gradient(
+        104deg,
+        rgba(18, 12, 24, 0.56) 0%,
+        rgba(18, 12, 24, 0.42) 38%,
+        rgba(18, 12, 24, 0.14) 66%,
+        rgba(18, 12, 24, 0.26) 100%
+      ),
+      radial-gradient(114% 86% at 44% 80%, rgba(18, 12, 24, 0.32) 0%, transparent 62%);
   }
 
   &__card--secondary.MuiCard-root {
     min-height: 162px;
+  }
+
+  &__card--secondary .course-visual-bg {
+    --course-visual-pattern-opacity: 0.9;
+    --course-visual-pattern-saturation: 1.14;
+    --course-visual-pattern-contrast: 1.12;
+    --course-visual-glow-opacity: 0.68;
+    --course-visual-shimmer-opacity: 0.22;
+    --course-visual-veil-opacity: 0.22;
+    --course-visual-pattern-size: 112% auto;
+    --course-visual-pattern-position: 84% 54%;
   }
 
   &__content.MuiCardContent-root {
@@ -221,13 +297,61 @@
   }
 
   &__content--featured.MuiCardContent-root {
-    padding: 18px !important;
-    gap: 11px;
+    padding: 17px 18px !important;
+    gap: 10px;
   }
 
   &__content--secondary.MuiCardContent-root {
-    padding: 14px !important;
+    padding: 13px 14px !important;
+    gap: 7px;
+  }
+
+  &__featured-zone {
+    display: block;
+  }
+
+  &__featured-zone--sticker {
+    min-height: 26px;
+  }
+
+  &__featured-zone--main {
+    display: grid;
     gap: 8px;
+  }
+
+  &__featured-zone--meta {
+    margin-top: 1px;
+  }
+
+  &__secondary-main {
+    display: grid;
+    gap: 6px;
+  }
+
+  &__secondary-footer {
+    margin-top: auto;
+    display: grid;
+    gap: 7px;
+  }
+
+  &__sticker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 11px 16px 13px 9px;
+    font-size: 16px;
+    line-height: 1;
+    font-weight: 760;
+    letter-spacing: 0;
+    color: #f8f5ff;
+    background: linear-gradient(132deg, #ff6d8a 0%, #ff62b1 46%, #8d82ff 100%);
+    box-shadow:
+      0 8px 16px color-mix(in srgb, #ff6d8a 33%, transparent),
+      0 0 0 1px color-mix(in srgb, #ffffff 20%, transparent) inset;
+    transform: rotate(-5.5deg);
+    transform-origin: left center;
   }
 
   &__title {
@@ -235,29 +359,29 @@
     font-size: 20px;
     line-height: 1.12;
     letter-spacing: -0.015em;
-    color: color-mix(in srgb, var(--text-primary) 96%, #e3edff);
+    color: color-mix(in srgb, var(--text-primary) 99%, #f0f5ff);
     text-wrap: balance;
   }
 
   &__title--secondary {
-    font-size: 18px;
-    line-height: 1.14;
+    font-size: 17px;
+    line-height: 1.15;
   }
 
   &__descriptor {
     margin: 0;
     font-size: 13px;
-    line-height: 1.42;
-    color: color-mix(in srgb, var(--text-secondary) 88%, #d0dcff);
+    line-height: 1.4;
+    color: color-mix(in srgb, var(--text-secondary) 93%, #dde6ff);
   }
 
   &__descriptor--featured {
-    min-height: 38px;
+    min-height: 36px;
     max-width: 54ch;
   }
 
   &__descriptor--secondary {
-    min-height: 36px;
+    min-height: 30px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
@@ -268,51 +392,69 @@
   &__metrics {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 7px;
   }
 
   &__metrics--compact {
-    gap: 5px;
+    gap: 6px;
   }
 
   &__metric {
     display: inline-flex;
     align-items: center;
     min-height: 22px;
-    padding: 0 8px;
+    padding: 0 9px;
     border-radius: 999px;
     font-size: 11px;
     line-height: 1;
-    font-weight: 620;
-    color: color-mix(in srgb, var(--text-primary) 90%, #dce7ff);
-    background: color-mix(in srgb, var(--surface-elevated) 76%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 66%, transparent);
+    font-weight: 650;
+    color: color-mix(in srgb, var(--text-primary) 95%, #edf3ff);
+    background: color-mix(in srgb, var(--surface-elevated) 86%, color-mix(in srgb, var(--accent-primary) 8%, transparent));
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, transparent);
     white-space: nowrap;
   }
 
-  &__button.MuiButton-root {
+  &__cta-row {
     margin-top: auto;
+    min-height: 38px;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  &__cta-row--secondary {
+    min-height: 34px;
+  }
+
+  &__button.MuiButton-root {
     align-self: flex-start;
-    min-height: 36px;
+    min-height: 37px;
     border: 0 !important;
-    border-radius: 9px !important;
-    padding: 0 12px !important;
+    border-radius: 10px !important;
+    padding: 0 13px !important;
     text-transform: none !important;
     font-size: 13px !important;
-    font-weight: 620 !important;
-    color: color-mix(in srgb, var(--text-primary) 92%, #dce8ff) !important;
-    background: color-mix(in srgb, var(--accent-primary) 14%, transparent) !important;
-    box-shadow: none !important;
+    font-weight: 650 !important;
+    letter-spacing: 0.003em;
+    color: color-mix(in srgb, #f5f9ff 96%, #e8efff) !important;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-primary) 58%, #7a93ff) 0%,
+      color-mix(in srgb, var(--accent-strong) 52%, #637dff) 100%
+    ) !important;
+    box-shadow:
+      0 8px 14px color-mix(in srgb, var(--accent-primary) 20%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #ffffff 22%, transparent) !important;
     transition: background-color 0.2s ease, transform 0.2s ease;
 
     &:hover {
-      background: color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
-      transform: translateY(-0.5px);
+      transform: translateY(-1px);
     }
   }
 
   &__button--secondary.MuiButton-root {
     min-height: 34px;
+    font-size: 12.8px !important;
+    padding: 0 12px !important;
   }
 }
 
@@ -330,56 +472,119 @@
 
   .courses-preview__subtitle,
   .courses-preview__descriptor {
-    color: color-mix(in srgb, #4f638d 88%, #6179a8);
+    color: color-mix(in srgb, #425a86 92%, #5c77aa);
   }
 
   .courses-preview__cta.MuiButton-root {
-    background: color-mix(in srgb, #dce8ff 70%, transparent) !important;
-    color: color-mix(in srgb, #2d446f 92%, #415989) !important;
+    color: #f5f9ff !important;
+    background: linear-gradient(135deg, #6e8fff 0%, #5f82ff 60%, #6f7df6 100%) !important;
+    box-shadow:
+      0 10px 16px color-mix(in srgb, #6f8dff 28%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #ffffff 26%, transparent) !important;
+  }
+
+  .courses-preview__shelf::before,
+  .courses-preview__shelf::after {
+    border-color: color-mix(in srgb, #c8d8ff 70%, transparent);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, #eef4ff 88%, transparent) 0%,
+      color-mix(in srgb, #e3ecff 72%, transparent) 100%
+    );
   }
 
   .courses-preview__shelf-nav.MuiIconButton-root {
-    background: color-mix(in srgb, #edf3ff 82%, transparent) !important;
-    color: color-mix(in srgb, #4c628f 92%, #6075a3) !important;
+    background: color-mix(in srgb, #edf4ff 92%, transparent) !important;
+    color: color-mix(in srgb, #3e5684 94%, #5b74a3) !important;
     box-shadow:
-      0 10px 18px color-mix(in srgb, #b1c5e8 16%, transparent),
+      0 12px 20px color-mix(in srgb, #adc1e8 20%, transparent),
       inset 0 1px 0 color-mix(in srgb, #ffffff 96%, transparent) !important;
   }
 
   .courses-preview__card.MuiCard-root {
     background: linear-gradient(
       154deg,
-      color-mix(in srgb, #f8fbff 92%, transparent) 0%,
-      color-mix(in srgb, #edf4ff 84%, transparent) 100%
+      color-mix(in srgb, #f8fbff 95%, transparent) 0%,
+      color-mix(in srgb, #edf4ff 88%, transparent) 100%
     ) !important;
-    border-color: color-mix(in srgb, #c9d8ff 64%, transparent) !important;
+    border-color: color-mix(in srgb, #c2d4ff 72%, transparent) !important;
     box-shadow:
-      0 12px 20px color-mix(in srgb, #afc3e8 14%, transparent),
-      inset 0 1px 0 color-mix(in srgb, #ffffff 94%, transparent) !important;
+      0 14px 22px color-mix(in srgb, #a8bfe7 20%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #ffffff 96%, transparent) !important;
+  }
+
+  .courses-preview__card .course-visual-bg {
+    --course-visual-pattern-opacity: 0.96;
+    --course-visual-pattern-saturation: 1.22;
+    --course-visual-pattern-contrast: 1.2;
+    --course-visual-glow-opacity: 0.74;
+    --course-visual-shimmer-opacity: 0.3;
+    --course-visual-veil-opacity: 0.12;
+    --course-visual-readability: linear-gradient(
+        104deg,
+        rgba(252, 244, 235, 0.58) 0%,
+        rgba(252, 244, 235, 0.42) 38%,
+        rgba(252, 244, 235, 0.14) 66%,
+        rgba(252, 244, 235, 0.24) 100%
+      ),
+      radial-gradient(114% 86% at 44% 80%, rgba(252, 244, 235, 0.46) 0%, transparent 62%);
   }
 
   .courses-preview__card--featured.MuiCard-root {
     background: linear-gradient(
       150deg,
-      color-mix(in srgb, #edf4ff 92%, transparent) 0%,
-      color-mix(in srgb, #e3ecff 86%, color-mix(in srgb, #d6e9ff 16%, transparent)) 100%
+      color-mix(in srgb, #eaf2ff 94%, color-mix(in srgb, #cfe0ff 18%, transparent)) 0%,
+      color-mix(in srgb, #dde8ff 90%, color-mix(in srgb, #d3e6ff 24%, transparent)) 100%
     ) !important;
-    border-color: color-mix(in srgb, #bfd2ff 72%, transparent) !important;
+    border-color: color-mix(in srgb, #afc7ff 84%, transparent) !important;
+    box-shadow:
+      0 18px 28px color-mix(in srgb, #9ab4e1 24%, transparent),
+      0 0 0 1px color-mix(in srgb, #94b3ff 34%, transparent) inset,
+      inset 0 1px 0 color-mix(in srgb, #ffffff 100%, transparent) !important;
+  }
+
+  .courses-preview__card--featured .course-visual-bg {
+    --course-visual-pattern-opacity: 1;
+    --course-visual-pattern-saturation: 1.25;
+    --course-visual-pattern-contrast: 1.22;
+    --course-visual-glow-opacity: 0.8;
+    --course-visual-shimmer-opacity: 0.34;
+    --course-visual-veil-opacity: 0.1;
+  }
+
+  .courses-preview__card--secondary .course-visual-bg {
+    --course-visual-pattern-opacity: 0.93;
+    --course-visual-pattern-saturation: 1.19;
+    --course-visual-pattern-contrast: 1.16;
+    --course-visual-glow-opacity: 0.68;
+    --course-visual-shimmer-opacity: 0.24;
+    --course-visual-veil-opacity: 0.14;
   }
 
   .courses-preview__title {
-    color: color-mix(in srgb, #1f3359 92%, #365086);
+    color: color-mix(in srgb, #1a2f57 95%, #324e81);
   }
 
   .courses-preview__metric {
-    background: color-mix(in srgb, #eff4ff 84%, transparent);
-    border-color: color-mix(in srgb, #cfdcff 64%, transparent);
-    color: color-mix(in srgb, #415781 90%, #6076a4);
+    background: color-mix(in srgb, #edf4ff 90%, transparent);
+    border-color: color-mix(in srgb, #c5d6ff 74%, transparent);
+    color: color-mix(in srgb, #30496f 94%, #4f678f);
   }
 
   .courses-preview__button.MuiButton-root {
-    background: color-mix(in srgb, #dce8ff 66%, transparent) !important;
-    color: color-mix(in srgb, #2f4570 92%, #425a8a) !important;
+    color: #f7fbff !important;
+    background: linear-gradient(136deg, #7698ff 0%, #6788ff 58%, #5f7df5 100%) !important;
+    box-shadow:
+      0 8px 14px color-mix(in srgb, #6f8dff 24%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #ffffff 24%, transparent) !important;
+  }
+
+  .courses-preview__sticker {
+    color: #fff8fd;
+    background: linear-gradient(132deg, #ff6f87 0%, #ff64a7 44%, #8c8eff 100%);
+    box-shadow:
+      0 8px 14px color-mix(in srgb, #ff7190 30%, transparent),
+      0 0 0 1px color-mix(in srgb, #ffffff 34%, transparent) inset;
   }
 }
 

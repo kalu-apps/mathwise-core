@@ -49,9 +49,9 @@ export function HomeHeroEnvironment() {
         <Canvas
           className="home-first-screen__environment-canvas"
           camera={{ position: [0, 0.02, 6.05], fov: 36.5 }}
-          dpr={mode === "light" ? [1, 1.45] : [0.95, 1.3]}
+          dpr={mode === "light" ? [0.9, 1.25] : [0.85, 1.15]}
           frameloop="demand"
-          performance={{ min: 0.62, max: 1.05, debounce: 260 }}
+          performance={{ min: 0.56, max: 1, debounce: 320 }}
           gl={{
             antialias: true,
             alpha: true,

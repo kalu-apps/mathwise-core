@@ -1,21 +1,26 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M286 56L218 160L286 226L354 160L286 56Z" fill="#A894FF" fill-opacity="0.1" stroke="#C5AEFF" stroke-opacity="0.42" stroke-width="1.16"/>
-  <path d="M286 56L286 226" stroke="#CFEAFF" stroke-opacity="0.58" stroke-width="1.2"/>
-  <path d="M218 160H354" stroke="#9CCEF8" stroke-opacity="0.5" stroke-width="1.12"/>
+  <defs>
+    <linearGradient id="anaB-plane" x1="152" y1="70" x2="392" y2="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF0D6" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#FF9A7B" stop-opacity="0.32"/>
+    </linearGradient>
+    <linearGradient id="anaB-curve" x1="178" y1="102" x2="398" y2="196" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE6C5"/>
+      <stop offset="0.48" stop-color="#FFAE79"/>
+      <stop offset="1" stop-color="#C95E8B"/>
+    </linearGradient>
+  </defs>
 
-  <polygon points="184,102 392,140 350,218 142,182" fill="#9E8FFF" fill-opacity="0.1" stroke="#C2AAFF" stroke-opacity="0.4" stroke-width="1.12"/>
+  <polygon points="146,94 388,138 342,230 98,186" fill="url(#anaB-plane)"/>
+  <path d="M202 80L344 112L316 194L176 164L202 80Z" fill="#FFE8CB" fill-opacity="0.18"/>
 
-  <g fill="none" stroke-linecap="round">
-    <path d="M176 188C224 138 252 124 286 118" stroke="#65D6FF" stroke-opacity="0.62" stroke-width="1.78"/>
-    <path d="M286 118C320 112 348 124 396 168" stroke="#65D6FF" stroke-opacity="0.62" stroke-width="1.78"/>
-    <path d="M176 212C226 160 254 148 286 142" stroke="#A498FF" stroke-opacity="0.56" stroke-width="1.56"/>
-    <path d="M286 142C318 136 346 148 396 192" stroke="#A498FF" stroke-opacity="0.56" stroke-width="1.56"/>
-    <path d="M122 132H408" stroke="#90BAEE" stroke-opacity="0.32" stroke-width="1.08"/>
-    <path d="M286 36V232" stroke="#90BAEE" stroke-opacity="0.32" stroke-width="1.08"/>
-  </g>
+  <path d="M176 188C226 138 252 124 286 118C320 112 348 124 398 172" stroke="url(#anaB-curve)" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M176 212C226 162 254 148 286 142C318 136 346 148 396 194" stroke="#FFE9D4" stroke-opacity="0.68" stroke-width="1.26" stroke-linecap="round"/>
 
-  <g fill="#E0F6FF" fill-opacity="0.84">
-    <circle cx="286" cy="118" r="2.7"/>
-    <circle cx="286" cy="142" r="2.7"/>
+  <g stroke="#FFD9BE" stroke-opacity="0.5" stroke-width="1" stroke-linecap="round">
+    <path d="M132 140H408"/>
+    <path d="M286 44V232"/>
+    <path d="M166 100L394 214" stroke-dasharray="4 8"/>
+    <path d="M156 214L392 100" stroke-dasharray="4 8"/>
   </g>
 </svg>

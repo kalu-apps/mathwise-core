@@ -1,33 +1,31 @@
 <svg width="420" height="260" viewBox="0 0 420 260" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="polyB-prism" x1="24" y1="34" x2="186" y2="214" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#E9F8FF" stop-opacity="0.9"/>
-      <stop offset="0.56" stop-color="#96D9FF" stop-opacity="0.64"/>
-      <stop offset="1" stop-color="#9196FF" stop-opacity="0.46"/>
+    <radialGradient id="polyB-bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 130) rotate(128) scale(194 138)">
+      <stop offset="0" stop-color="#FFD9B1" stop-opacity="0.64"/>
+      <stop offset="0.42" stop-color="#FFA77A" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#B15A74" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="polyB-main" x1="184" y1="68" x2="328" y2="218" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF3E4"/>
+      <stop offset="0.52" stop-color="#FFC38C"/>
+      <stop offset="1" stop-color="#D76A70"/>
+    </linearGradient>
+    <linearGradient id="polyB-side" x1="170" y1="88" x2="280" y2="232" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD9AA"/>
+      <stop offset="1" stop-color="#BE5A7E"/>
     </linearGradient>
   </defs>
 
-  <g stroke="#8CB8EB" stroke-opacity="0.24" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 9">
-    <path d="M18 72L172 42"/>
-    <path d="M24 114L188 82"/>
-    <path d="M236 214L398 186"/>
-    <path d="M256 44L398 88"/>
-  </g>
+  <ellipse cx="260" cy="132" rx="150" ry="102" fill="url(#polyB-bg)"/>
+  <ellipse cx="262" cy="212" rx="100" ry="20" fill="#20162A" fill-opacity="0.22"/>
 
-  <g transform="translate(30 28)" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M70 18L132 42L142 106L92 152L32 130L20 68Z" stroke="url(#polyB-prism)" stroke-width="1.46"/>
-    <path d="M102 34L164 58L174 122L124 168L64 146L52 84Z" stroke="#8FD8FF" stroke-opacity="0.78" stroke-width="1.28"/>
-    <path d="M70 18L102 34M132 42L164 58M142 106L174 122M92 152L124 168M32 130L64 146M20 68L52 84" stroke="#D4EEFF" stroke-opacity="0.76" stroke-width="1.14"/>
-    <path d="M82 74L146 98M70 102L134 126" stroke="#66D8FF" stroke-opacity="0.66" stroke-width="1.04"/>
-    <path d="M20 68L132 42L174 122L64 146Z" stroke="#F0BB76" stroke-opacity="0.52" stroke-width="1.02" stroke-dasharray="3 7"/>
-  </g>
-
-  <g fill="#E0F6FF" fill-opacity="0.86">
-    <circle cx="100" cy="46" r="2.7"/>
-    <circle cx="162" cy="70" r="2.7"/>
-    <circle cx="172" cy="134" r="2.7"/>
-    <circle cx="122" cy="180" r="2.7"/>
-    <circle cx="62" cy="158" r="2.7"/>
-    <circle cx="50" cy="96" r="2.7"/>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M192 78L274 46L346 94L334 180L250 218L174 168L192 78Z" fill="url(#polyB-main)"/>
+    <path d="M192 78L174 168L250 218L268 132L192 78Z" fill="url(#polyB-side)" fill-opacity="0.9"/>
+    <path d="M274 46L268 132L346 94" stroke="#FFEEDA" stroke-opacity="0.86" stroke-width="1.18"/>
+    <path d="M334 180L268 132L346 94" stroke="#FFE8D5" stroke-opacity="0.74" stroke-width="1.08"/>
+    <path d="M174 168L268 132L334 180" stroke="#FFE6D4" stroke-opacity="0.7" stroke-width="1.04"/>
+    <path d="M192 78L268 132L174 168" stroke="#FFECD9" stroke-opacity="0.72" stroke-width="1.08"/>
+    <path d="M192 78L274 46L346 94L334 180L250 218L174 168L192 78Z" stroke="#FFF1E3" stroke-opacity="0.82" stroke-width="1.12"/>
   </g>
 </svg>
