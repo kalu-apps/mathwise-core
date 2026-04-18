@@ -12,9 +12,10 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import GoogleIcon from "@mui/icons-material/Google";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
+import { faGoogle, faVk, faYandex } from "@fortawesome/free-brands-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { t } from "@/shared/i18n";
 import { ButtonPending } from "@/shared/ui/loading";
@@ -227,35 +228,17 @@ const mapSocialButton = (provider: SocialProvider) => {
 };
 
 const SocialProviderMark = ({ provider }: { provider: SocialProvider }) => {
-  if (provider === "google") {
-    return <GoogleIcon fontSize="small" />;
-  }
-  if (provider === "vk") {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <rect x="1" y="1" width="22" height="22" rx="6" fill="#2787F5" />
-        <path
-          d="M7.2 7.4h2.3c.2 0 .4.1.5.2l2.1 3c.2.2.4.2.5 0l2.1-3c.1-.1.3-.2.5-.2h2.2l-3.3 4.6 3.5 4.8h-2.3c-.2 0-.3-.1-.5-.2l-2.3-3.2c-.1-.2-.4-.2-.5 0l-2.4 3.2c-.1.1-.2.2-.4.2H6.8l3.5-4.8-3.1-4.6z"
-          fill="#fff"
-        />
-      </svg>
-    );
-  }
+  const iconByProvider: Record<SocialProvider, typeof faGoogle> = {
+    google: faGoogle,
+    vk: faVk,
+    yandex: faYandex,
+  };
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <rect x="1" y="1" width="22" height="22" rx="6" fill="#FC3F1D" />
-      <text
-        x="12"
-        y="16"
-        textAnchor="middle"
-        fontSize="11"
-        fontWeight="700"
-        fontFamily="Arial, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
-        fill="#fff"
-      >
-        Я
-      </text>
-    </svg>
+    <FontAwesomeIcon
+      icon={iconByProvider[provider]}
+      className={`auth-modal__social-brand auth-modal__social-brand--${provider}`}
+      aria-hidden="true"
+    />
   );
 };
 

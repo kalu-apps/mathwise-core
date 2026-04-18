@@ -322,26 +322,33 @@
   }
 
   &__social-badge {
-    width: 22px;
-    min-width: 22px;
-    height: 22px;
-    border-radius: 8px;
+    width: 18px;
+    min-width: 18px;
+    height: 18px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
 
     svg {
-      width: 22px;
-      height: 22px;
+      width: 14px;
+      height: 14px;
       display: block;
     }
   }
 
-  &__social-btn--google &__social-badge,
-  &__social-btn--yandex &__social-badge,
-  &__social-btn--vk &__social-badge {
-    border-radius: 6px;
+  &__social-brand {
+    font-size: 14px;
+    line-height: 1;
+    display: block;
+  }
+
+  &__social-brand--vk,
+  &__social-brand--yandex {
+    color: #ffffff;
+  }
+
+  &__social-brand--google {
+    color: #4285f4;
   }
 
   &__social-label {
