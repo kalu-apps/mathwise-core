@@ -602,15 +602,15 @@ export class ProfileService implements OnModuleInit {
       return [];
     }
 
-    const primaryPrefix = `${this.runtimeConfig.appEnv}/about_teacher/${folder}/`;
-    const fallbackPrefix = `about_teacher/${folder}/`;
+    const rootPrefix = `about_teacher/${folder}/`;
+    const envScopedPrefix = `${this.runtimeConfig.appEnv}/about_teacher/${folder}/`;
     const prefixes =
-      fallbackPrefix === primaryPrefix
-        ? [primaryPrefix]
-        : [primaryPrefix, fallbackPrefix];
+      rootPrefix === envScopedPrefix
+        ? [rootPrefix]
+        : [rootPrefix, envScopedPrefix];
     try {
       const maxKeys = Math.max(limit * 3, limit);
-      let usedPrefix = primaryPrefix;
+      let usedPrefix = rootPrefix;
       let listed: Awaited<ReturnType<typeof mediaStorageService.listObjectsByPrefix>> =
         [];
 
@@ -644,7 +644,7 @@ export class ProfileService implements OnModuleInit {
         return [];
       }
 
-      if (usedPrefix !== primaryPrefix) {
+      if (usedPrefix !== rootPrefix) {
         console.warn("[profile] about-teacher-assets-fallback-prefix", {
           folder,
           appEnv: this.runtimeConfig.appEnv,
