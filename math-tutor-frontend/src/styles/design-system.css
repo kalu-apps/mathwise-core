@@ -736,6 +736,34 @@ textarea::placeholder {
   padding-inline: 10px !important;
 }
 
+.ui-alert__actions--access {
+  align-items: center;
+}
+
+.ui-alert__actions .ui-alert__action-link.MuiButton-root {
+  min-height: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: color-mix(in srgb, var(--accent-primary) 82%, var(--text-primary)) !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  font-weight: 650 !important;
+}
+
+.ui-alert__actions .ui-alert__action-link.MuiButton-root:hover {
+  background: transparent !important;
+  color: color-mix(in srgb, var(--accent-primary) 94%, #4b7bff) !important;
+}
+
+.ui-alert__actions .ui-alert__action-link.MuiButton-root:focus-visible {
+  outline: 1px solid color-mix(in srgb, var(--accent-primary) 45%, transparent);
+  outline-offset: 2px;
+}
+
 .ui-section {
   padding-block: 64px;
 }

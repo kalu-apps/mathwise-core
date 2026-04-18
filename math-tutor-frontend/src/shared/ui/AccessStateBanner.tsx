@@ -1,5 +1,4 @@
 import { Alert, Button } from "@mui/material";
-import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
@@ -39,7 +38,7 @@ export function AccessStateBanner({
       className="ui-alert"
       action={
         actions.length > 0 ? (
-          <div className="ui-alert__actions">
+          <div className="ui-alert__actions ui-alert__actions--access">
             {actions.includes("recheck") && onRecheck && (
               <Button
                 color="inherit"
@@ -74,7 +73,7 @@ export function AccessStateBanner({
               <Button
                 color="inherit"
                 size="small"
-                startIcon={<LoginRoundedIcon fontSize="small" />}
+                className="ui-alert__action-link"
                 onClick={onLogin}
               >
                 {t("access.login")}

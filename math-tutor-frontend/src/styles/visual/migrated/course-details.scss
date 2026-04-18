@@ -1982,33 +1982,52 @@
 :root[data-theme="dark"] .course-details__card--premium {
   background:
     linear-gradient(
-      146deg,
-      #ffe8bf 0%,
-      #f4cf8d 22%,
-      #fff0cf 44%,
-      #dfb067 67%,
-      #f8dfb4 84%,
-      #c8924e 100%
+      148deg,
+      #f9ddb0 0%,
+      #f1c982 21%,
+      #ffefcd 41%,
+      #dfa55a 63%,
+      #f8d29b 82%,
+      #bc8040 100%
     ),
-    radial-gradient(88% 66% at 86% 12%, rgba(255, 245, 215, 0.44), transparent 74%);
-  border-color: color-mix(in srgb, #d2a763 84%, #8e6636);
-  --course-card-heading: #4a300f;
-  --course-card-plan: color-mix(in srgb, #5a3e16 86%, #876024);
-  --course-card-price: #3c250a;
-  --course-card-body: color-mix(in srgb, #4f3818 92%, #251808);
+    radial-gradient(86% 64% at 86% 11%, rgba(255, 244, 209, 0.52), transparent 73%),
+    radial-gradient(72% 58% at 10% 96%, rgba(255, 193, 112, 0.22), transparent 74%);
+  border-color: color-mix(in srgb, #deaf68 88%, #7d5020);
+  --course-card-heading: #34210a;
+  --course-card-plan: color-mix(in srgb, #66431a 85%, #8a5f29);
+  --course-card-price: #251604;
+  --course-card-body: color-mix(in srgb, #4b3110 90%, #24170a);
+  --course-card-dot-a: #d2963e;
+  --course-card-dot-b: #f6cf83;
+  box-shadow:
+    0 10px 18px rgba(26, 15, 4, 0.2),
+    0 2px 0 rgba(255, 240, 203, 0.26) inset;
 }
 
 :root[data-theme="dark"] .course-details__card--premium::before {
   background:
     linear-gradient(
-      112deg,
-      rgba(255, 252, 236, 0.86) 0%,
-      rgba(255, 236, 192, 0.36) 38%,
-      rgba(225, 172, 93, 0.14) 72%,
+      116deg,
+      rgba(255, 251, 231, 0.72) 0%,
+      rgba(255, 236, 190, 0.28) 35%,
+      rgba(228, 170, 88, 0.12) 67%,
       transparent 100%
     ),
-    radial-gradient(60% 64% at 88% 10%, rgba(255, 243, 205, 0.56), transparent 72%);
-  opacity: 0.58;
+    radial-gradient(58% 62% at 88% 10%, rgba(255, 242, 200, 0.5), transparent 72%);
+  opacity: 0.46;
+}
+
+:root[data-theme="dark"] .course-details__card--premium::after {
+  border-color: color-mix(in srgb, #fff2d2 36%, transparent);
+  opacity: 0.62;
+}
+
+:root[data-theme="dark"] .course-details__card--premium .course-details__card-tooltip {
+  color: color-mix(in srgb, #4e3412 92%, #2e1f0d);
+}
+
+:root[data-theme="dark"] .course-details__card--premium .course-details__card-tooltip .course-details__installment-line {
+  color: color-mix(in srgb, #593916 86%, #8a5f2a);
 }
 
 :root[data-theme="dark"] .course-details__card--basic {

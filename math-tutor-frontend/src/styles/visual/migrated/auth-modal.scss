@@ -294,6 +294,11 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0;
 
     svg {
       width: 18px;
@@ -306,6 +311,10 @@
     font-size: 14px;
     line-height: 1;
     display: block;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    filter: none !important;
   }
 
   &__social-brand--vk {
@@ -466,6 +475,28 @@
       background: color-mix(in srgb, var(--glass-tier-1-bg) 68%, transparent) !important;
       color: var(--text-primary) !important;
     }
+  }
+}
+
+:root[data-theme="dark"] .auth-modal {
+  .auth-modal__social-btn {
+    background: #ffffff !important;
+    border-color: #d7deeb !important;
+    color: #355181 !important;
+  }
+
+  .auth-modal__social-btn:hover {
+    background: #f7f9fe !important;
+    border-color: #c8d2e4 !important;
+  }
+
+  .auth-modal__social-label {
+    color: #355181 !important;
+  }
+
+  .auth-modal__official-shell {
+    background: #ffffff;
+    border-color: #d7deeb;
   }
 }
 

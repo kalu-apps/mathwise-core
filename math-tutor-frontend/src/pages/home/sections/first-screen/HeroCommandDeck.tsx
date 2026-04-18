@@ -15,12 +15,12 @@ export function HeroCommandDeck({
   return (
     <div className="home-first-screen__hero-command">
       <h1 className="home-first-screen__title" id="home-first-screen-title">
-        Соберите маршрут и держите математику в фокусе
+        Выберите свой маршрут для изучения математики
       </h1>
 
       <p className="home-first-screen__subtitle">
         Курсы, практика и разборы в едином контуре. Видно, что делать дальше и
-        где ускорить прогресс.
+        как улучшить результат.
       </p>
 
       <div className="home-first-screen__actions">
