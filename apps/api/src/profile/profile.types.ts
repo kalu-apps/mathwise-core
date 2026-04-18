@@ -148,3 +148,16 @@ export type AcceptTeacherInviteResponseDto = {
   sessionEstablished: boolean;
   nextPath: string;
 };
+
+export type AboutTeacherAssetDto = {
+  key: string;
+  fileName: string;
+  url: string;
+  contentType: string;
+};
+
+export type AboutTeacherPublicContentDto = {
+  avatar: AboutTeacherAssetDto | null;
+  diplomas: AboutTeacherAssetDto[];
+  reviews: AboutTeacherAssetDto[];
+};

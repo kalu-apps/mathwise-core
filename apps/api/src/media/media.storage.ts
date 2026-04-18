@@ -7,6 +7,7 @@ import {
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   ListPartsCommand,
   type CompletedPart,
   PutObjectCommand,
@@ -41,6 +42,61 @@ export class MediaStorageService {
 
   getAppEnv() {
     return this.runtimeConfig.appEnv;
+  }
+
+  async listObjectsByPrefix(params: {
+    prefix: string;
+    maxKeys?: number;
+  }): Promise<
+    Array<{
+      key: string;
+      size?: number;
+      etag?: string;
+      lastModified?: string;
+    }>
+  > {
+    if (!this.client) return [];
+    const maxKeys = Math.max(1, Math.min(500, Math.floor(params.maxKeys ?? 100)));
+    const objects: Array<{
+      key: string;
+      size?: number;
+      etag?: string;
+      lastModified?: string;
+    }> = [];
+    let continuationToken: string | undefined;
+
+    while (objects.length < maxKeys) {
+      const listed = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.runtimeConfig.s3Bucket,
+          Prefix: params.prefix,
+          ContinuationToken: continuationToken,
+          MaxKeys: Math.min(1000, maxKeys - objects.length),
+        })
+      );
+
+      const pageObjects = (listed.Contents ?? []).flatMap((item) => {
+        const key = item.Key?.trim();
+        if (!key) return [];
+        return [
+          {
+            key,
+            size: typeof item.Size === "number" ? item.Size : undefined,
+            etag: item.ETag?.trim() || undefined,
+            lastModified: item.LastModified?.toISOString(),
+          },
+        ];
+      });
+
+      objects.push(...pageObjects);
+
+      if (!listed.IsTruncated || !listed.NextContinuationToken) {
+        break;
+      }
+      continuationToken = listed.NextContinuationToken;
+    }
+
+    return objects.slice(0, maxKeys);
   }
 
   async healthcheck(): Promise<boolean> {

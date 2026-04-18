@@ -1,5 +1,6 @@
 import { profileGateway } from "@/shared/gateway";
 import type {
+  AboutTeacherPublicContentResponseContract,
   ProfileMeResponseContract,
   StudentProfileContextResponseContract,
   TeacherInviteAcceptResponseContract,
@@ -10,6 +11,10 @@ import type {
 
 export async function getProfileMe(): Promise<ProfileMeResponseContract> {
   return profileGateway.getProfileMe();
+}
+
+export async function getPublicAboutTeacherContent(): Promise<AboutTeacherPublicContentResponseContract> {
+  return profileGateway.getPublicAboutTeacherContent();
 }
 
 export async function getStudentProfileContext(): Promise<StudentProfileContextResponseContract> {

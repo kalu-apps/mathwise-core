@@ -8,6 +8,7 @@ import { CoursesRepository } from "../courses/courses.repository";
 import { DatabaseService } from "../db/database.service";
 import { markFullLessonContent, redactLessonForPreview } from "../lessons/lessons.redaction";
 import { LessonsRepository } from "../lessons/lessons.repository";
+import { MediaStorageService } from "../media/media.storage";
 import { ensureId, normalizeEmail, validateEmailFormat } from "../purchases/purchases.helpers";
 import {
   readProfileSeedData,
@@ -17,6 +18,8 @@ import {
 } from "./profile.seed";
 import { ProfileRepository } from "./profile.repository";
 import type {
+  AboutTeacherAssetDto,
+  AboutTeacherPublicContentDto,
   AcceptTeacherInvitePayloadDto,
   AcceptTeacherInviteResponseDto,
   CreateTeacherInvitePayloadDto,
@@ -45,6 +48,37 @@ const maskEmail = (email: string) => {
   return `${local.slice(0, 2)}***@${domain}`;
 };
 
+const ABOUT_TEACHER_IMAGE_EXTENSIONS = new Set([
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+  ".avif",
+  ".gif",
+]);
+
+const normalizeKeyFileName = (objectKey: string) => {
+  const segments = objectKey.split("/");
+  const last = segments[segments.length - 1];
+  return last?.trim() || objectKey;
+};
+
+const resolveContentTypeByFileName = (fileName: string) => {
+  const lower = fileName.toLowerCase();
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".webp")) return "image/webp";
+  if (lower.endsWith(".avif")) return "image/avif";
+  if (lower.endsWith(".gif")) return "image/gif";
+  return "image/jpeg";
+};
+
+const isImageObjectKey = (objectKey: string) => {
+  const lower = objectKey.toLowerCase();
+  return Array.from(ABOUT_TEACHER_IMAGE_EXTENSIONS).some((extension) =>
+    lower.endsWith(extension)
+  );
+};
+
 @Injectable()
 export class ProfileService implements OnModuleInit {
   private readonly runtimeConfig = getApiRuntimeConfig();
@@ -55,6 +89,8 @@ export class ProfileService implements OnModuleInit {
     private readonly authRepository: AuthRepository,
     private readonly coursesRepository: CoursesRepository,
     private readonly lessonsRepository: LessonsRepository,
+    @Optional()
+    private readonly mediaStorageService: MediaStorageService | null = null,
     @Optional()
     private readonly authService: AuthService | null = null,
     @Optional()
@@ -506,6 +542,20 @@ export class ProfileService implements OnModuleInit {
     return this.authRepository.findByRole("teacher");
   }
 
+  async getPublicAboutTeacherContent(): Promise<AboutTeacherPublicContentDto> {
+    const [avatarAssets, diplomas, reviews] = await Promise.all([
+      this.listPublicAboutTeacherAssets("avatar", 4),
+      this.listPublicAboutTeacherAssets("diplomas", 24),
+      this.listPublicAboutTeacherAssets("reviews", 24),
+    ]);
+
+    return {
+      avatar: avatarAssets[0] ?? null,
+      diplomas,
+      reviews,
+    };
+  }
+
   async updateProfile(userId: string, patch: {
     firstName?: string;
     lastName?: string;
@@ -527,6 +577,54 @@ export class ProfileService implements OnModuleInit {
         { error: "Teacher invite flow отключен в текущем runtime.", code: "teacher_invites_disabled" },
         404
       );
+    }
+  }
+
+  private async listPublicAboutTeacherAssets(
+    folder: "avatar" | "diplomas" | "reviews",
+    limit: number
+  ): Promise<AboutTeacherAssetDto[]> {
+    const mediaStorageService = this.mediaStorageService;
+    if (!mediaStorageService?.isEnabled()) return [];
+
+    const prefix = `${this.runtimeConfig.appEnv}/about_teacher/${folder}/`;
+    try {
+      const listed = await mediaStorageService.listObjectsByPrefix({
+        prefix,
+        maxKeys: Math.max(limit * 3, limit),
+      });
+
+      const imageObjects = listed
+        .filter((item) => item.key.startsWith(prefix))
+        .filter((item) => !item.key.endsWith("/"))
+        .filter((item) => isImageObjectKey(item.key))
+        .sort((a, b) => a.key.localeCompare(b.key, "ru", { sensitivity: "base" }))
+        .slice(0, limit);
+
+      if (imageObjects.length === 0) return [];
+
+      const signed = await Promise.all(
+        imageObjects.map(async (item) => {
+          const fileName = normalizeKeyFileName(item.key);
+          const signedUrl = await mediaStorageService.createSignedDownloadUrl({
+            objectKey: item.key,
+          });
+          return {
+            key: item.key,
+            fileName,
+            url: signedUrl.url,
+            contentType: resolveContentTypeByFileName(fileName),
+          } satisfies AboutTeacherAssetDto;
+        })
+      );
+      return signed;
+    } catch (error) {
+      console.error("[profile] about-teacher-assets-unavailable", {
+        folder,
+        appEnv: this.runtimeConfig.appEnv,
+        message: error instanceof Error ? error.message : "unknown_error",
+      });
+      return [];
     }
   }
 }

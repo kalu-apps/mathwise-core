@@ -33,6 +33,7 @@ import type {
   ProfileGateway,
 } from "./types";
 import type {
+  AboutTeacherPublicContentResponseContract,
   ProfileMeResponseContract,
   StudentProfileContextResponseContract,
   TeacherInviteAcceptResponseContract,
@@ -353,6 +354,11 @@ export const httpAccessGateway: AccessGateway = {
 export const httpProfileGateway: ProfileGateway = {
   async getProfileMe(): Promise<ProfileMeResponseContract> {
     return requestHttpJson<ProfileMeResponseContract>("/profile/me");
+  },
+  async getPublicAboutTeacherContent(): Promise<AboutTeacherPublicContentResponseContract> {
+    return requestHttpJson<AboutTeacherPublicContentResponseContract>(
+      "/public/about-teacher/content"
+    );
   },
   async getStudentProfileContext(): Promise<StudentProfileContextResponseContract> {
     return requestHttpJson<StudentProfileContextResponseContract>("/student/context");

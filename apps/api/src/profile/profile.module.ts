@@ -2,12 +2,13 @@ import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { CoursesModule } from "../courses/courses.module";
 import { LessonsModule } from "../lessons/lessons.module";
+import { MediaModule } from "../media/media.module";
 import { ProfileController } from "./profile.controller";
 import { ProfileRepository } from "./profile.repository";
 import { ProfileService } from "./profile.service";
 
 @Module({
-  imports: [AuthModule, CoursesModule, LessonsModule],
+  imports: [AuthModule, CoursesModule, LessonsModule, MediaModule],
   controllers: [ProfileController],
   providers: [ProfileService, ProfileRepository],
   exports: [ProfileService, ProfileRepository],

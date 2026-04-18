@@ -7,6 +7,19 @@ import type { AvailabilitySlot } from "@/features/teacher-availability/model/typ
 
 export type ProfileMeResponseContract = User | null;
 
+export type AboutTeacherAssetContract = {
+  key: string;
+  fileName: string;
+  url: string;
+  contentType: string;
+};
+
+export type AboutTeacherPublicContentResponseContract = {
+  avatar: AboutTeacherAssetContract | null;
+  diplomas: AboutTeacherAssetContract[];
+  reviews: AboutTeacherAssetContract[];
+};
+
 export type StudentProfileContextResponseContract = {
   profile: User | null;
   courses: Course[];

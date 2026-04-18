@@ -1,195 +1,786 @@
 .about-teacher-page {
-  max-width: 1200px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 40px 20px 80px;
-  font-family: var(--font-ui);
+  padding: clamp(26px, 3vw, 46px) clamp(16px, 2.2vw, 28px) clamp(70px, 8vw, 110px);
+  display: grid;
+  gap: clamp(20px, 2.8vw, 34px);
   color: var(--text-primary);
 
-  .MuiAlert-root {
-    margin-bottom: 18px;
+  &__alert {
+    margin: 0 !important;
   }
 
-  &__header {
-    text-align: center;
-    margin-bottom: 40px;
-
-    h1 {
-      font-size: 34px;
-      font-weight: 700;
-      margin-bottom: 10px;
-      background: linear-gradient(90deg, var(--accent-strong), #b18bff, #a78bfa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    p {
-      color: var(--text-secondary);
-      font-size: 15px;
-      margin: 0;
-    }
+  &__reveal {
+    opacity: 0;
+    filter: blur(7px);
+    transition:
+      opacity 560ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      transform 560ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      filter 560ms cubic-bezier(0.2, 0.7, 0.2, 1);
   }
 
-  &__empty {
-    text-align: center;
-    color: var(--text-secondary);
-    padding: 24px 0;
+  &__reveal--hero {
+    transform: translateY(20px);
+  }
+
+  &__reveal--proof {
+    transform: translateY(28px) scale(0.985);
+  }
+
+  &__reveal--reviews {
+    transform: translateY(20px) translateX(-8px);
+  }
+
+  &__reveal.is-visible {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
   }
 }
 
-.about-teacher-orbit {
+.about-teacher-hero {
   position: relative;
-  min-height: 560px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &::before {
-    content: "";
-    position: absolute;
-    width: 520px;
-    height: 520px;
-    border-radius: 50%;
-    border: 1px dashed rgba(99, 102, 241, 0.25);
-    background: radial-gradient(
-      circle,
-      rgba(99, 102, 241, 0.06) 0%,
-      rgba(99, 102, 241, 0) 70%
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: clamp(18px, 3vw, 36px);
+  padding: clamp(20px, 3vw, 34px);
+  border-radius: clamp(24px, 2.6vw, 34px);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 72%, #b8c7ff);
+  background:
+    radial-gradient(circle at 94% 8%, color-mix(in srgb, var(--accent-primary) 20%, transparent) 0%, transparent 54%),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--background-elevated) 86%, #f7f2ff),
+      color-mix(in srgb, var(--background-elevated) 92%, #e5efff)
     );
+  box-shadow: 0 22px 46px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+
+  &__content {
+    display: grid;
+    align-content: center;
+    gap: 14px;
+
+    h1 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 1.06;
+      letter-spacing: -0.02em;
+      color: color-mix(in srgb, var(--text-primary) 88%, #273778);
+      max-width: 15ch;
+    }
+
+    p {
+      margin: 0;
+      color: color-mix(in srgb, var(--text-secondary) 85%, #304b8e);
+      font-size: clamp(0.98rem, 1.65vw, 1.12rem);
+      line-height: 1.52;
+      max-width: 52ch;
+    }
   }
 
-  &__center {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    text-align: center;
+  &__eyebrow {
+    width: fit-content;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--text-primary) 74%, #4a5bd5);
+    background: color-mix(in srgb, var(--surface-elevated) 68%, #dfe7ff);
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 72%, #b9c7ff);
+  }
 
-    span {
-      font-size: 12px;
-      color: var(--text-secondary);
+  &__actions {
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    .MuiButton-root {
+      min-height: 44px;
+      border-radius: 12px;
+      padding: 0 18px;
+      font-weight: 600 !important;
+      letter-spacing: 0.01em;
+      text-transform: none;
+    }
+
+    .MuiButton-contained {
+      background: linear-gradient(115deg, #635bff, #4ea7ff) !important;
+      border: 0 !important;
+      box-shadow: 0 12px 26px color-mix(in srgb, #5861ff 34%, transparent) !important;
+    }
+
+    .MuiButton-outlined {
+      color: color-mix(in srgb, var(--text-primary) 86%, #33417f) !important;
+      border: 1px solid color-mix(in srgb, var(--border-subtle) 72%, #a6b9ff) !important;
+      background: color-mix(in srgb, var(--surface-elevated) 78%, #f7f9ff) !important;
+    }
+  }
+
+  &__visual {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: clamp(300px, 45vw, 520px);
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 8% 6% auto;
+      height: 60%;
+      border-radius: 999px;
+      background: radial-gradient(circle, color-mix(in srgb, #8a7dff 30%, transparent) 0%, transparent 70%);
+      pointer-events: none;
     }
   }
 
   &__avatar {
-    width: 180px !important;
-    height: 180px !important;
-    font-size: 48px !important;
-    border-radius: 36px !important;
-    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
-    border: 4px solid var(--surface-elevated);
-    background: var(--border-subtle);
+    max-width: 100%;
+    width: clamp(280px, 30vw, 430px);
   }
+}
 
-  &__name {
-    font-weight: 700;
-    font-size: 18px;
-  }
+.about-teacher-proof {
+  border-radius: clamp(20px, 2vw, 30px);
+  padding: clamp(20px, 2.5vw, 30px);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 72%, #b6c4ff);
+  background:
+    linear-gradient(
+      152deg,
+      color-mix(in srgb, var(--background-elevated) 90%, #f4f7ff),
+      color-mix(in srgb, var(--background-elevated) 94%, #f9f3ff)
+    );
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  display: grid;
+  gap: 18px;
 
-  &__card {
-    position: absolute;
-    width: 240px;
-    background: var(--surface-elevated);
-    border-radius: 18px;
-    padding: 16px;
-    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
-    border: 1px solid rgba(148, 163, 184, 0.2);
+  &__intro {
+    display: grid;
+    gap: 8px;
 
-    h3 {
-      margin: 0 0 8px;
-      font-size: 15px;
+    h2 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(1.52rem, 2.5vw, 2.2rem);
+      line-height: 1.15;
+      letter-spacing: -0.018em;
+      color: color-mix(in srgb, var(--text-primary) 88%, #2e3e86);
     }
 
-    ul {
+    p {
+      margin: 0;
+      color: color-mix(in srgb, var(--text-secondary) 86%, #35539f);
+      max-width: 70ch;
+      line-height: 1.52;
+    }
+  }
+
+  &__eyebrow {
+    width: fit-content;
+    font-size: 0.73rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--text-secondary) 84%, #4c5fd7);
+  }
+
+  &__metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  &__metric {
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b3c3ff);
+    background: color-mix(in srgb, var(--surface-elevated) 80%, #f7f8ff);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    display: grid;
+    gap: 5px;
+
+    h3 {
+      margin: 0;
+      font-size: 0.88rem;
+      color: color-mix(in srgb, var(--text-primary) 84%, #394b93);
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.82rem;
+      color: color-mix(in srgb, var(--text-secondary) 84%, #4961ad);
+    }
+  }
+
+  &__metric-value {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 2.1vw, 2rem);
+    line-height: 1;
+    color: color-mix(in srgb, #5860ff 65%, #9f65ff);
+    font-weight: 700;
+  }
+
+  &__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 14px;
+  }
+
+  &__education,
+  &__diplomas {
+    border-radius: 18px;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b2c2ff);
+    background: color-mix(in srgb, var(--surface-elevated) 84%, #f9f9ff);
+    padding: 16px;
+
+    h3 {
+      margin: 0 0 12px;
+      font-size: 1.04rem;
+      color: color-mix(in srgb, var(--text-primary) 86%, #32458b);
+    }
+  }
+
+  &__education {
+    ol {
       list-style: none;
       margin: 0;
       padding: 0;
       display: grid;
-      gap: 6px;
+      gap: 10px;
     }
 
     li {
-      font-size: 13px;
-      color: var(--text-secondary);
-      line-height: 1.4;
-      display: flex;
-      gap: 6px;
+      padding: 12px 12px 12px 14px;
+      border-radius: 12px;
+      border: 1px solid color-mix(in srgb, var(--border-subtle) 76%, #becbfd);
+      background: color-mix(in srgb, var(--surface-elevated) 86%, #ffffff);
+      display: grid;
+      gap: 4px;
 
-      &::before {
-        content: "";
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        margin-top: 6px;
-        background: linear-gradient(135deg, var(--accent-strong), #b18bff);
+      p,
+      small {
+        margin: 0;
+      }
+
+      p {
+        font-size: 0.9rem;
+        color: color-mix(in srgb, var(--text-secondary) 84%, #4f61a8);
+      }
+
+      small {
+        font-size: 0.82rem;
+        color: color-mix(in srgb, var(--text-secondary) 72%, #6575b8);
       }
     }
   }
 
-  &__card--top {
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
+  &__education-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+
+    strong {
+      color: color-mix(in srgb, var(--text-primary) 86%, #2f4585);
+      font-size: 0.92rem;
+      line-height: 1.35;
+    }
+
+    span {
+      font-size: 0.78rem;
+      color: color-mix(in srgb, var(--text-secondary) 72%, #596aad);
+      font-weight: 700;
+      white-space: nowrap;
+    }
   }
 
-  &__card--right {
-    right: -10px;
-    top: 50%;
-    transform: translateY(-50%);
+  &__diploma-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
   }
 
-  &__card--bottom {
-    bottom: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  &__card--left {
-    left: -10px;
-    top: 50%;
-    transform: translateY(-50%);
+  &__diploma-empty {
+    min-height: 180px;
+    border-radius: 12px;
+    border: 1px dashed color-mix(in srgb, var(--border-subtle) 70%, #bcc9fb);
+    background: color-mix(in srgb, var(--surface-elevated) 84%, #f6f8ff);
+    color: color-mix(in srgb, var(--text-secondary) 82%, #4d63a9);
+    font-size: 0.9rem;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 12px;
   }
 }
 
-@media (max-width: 1024px) {
-  .about-teacher-orbit {
-    min-height: unset;
-    flex-direction: column;
-    gap: 20px;
+.about-teacher-reviews {
+  border-radius: clamp(20px, 2vw, 30px);
+  padding: clamp(20px, 2.5vw, 30px);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b7c6ff);
+  background:
+    radial-gradient(circle at 96% 2%, color-mix(in srgb, #ffcb8d 20%, transparent) 0%, transparent 56%),
+    linear-gradient(
+      146deg,
+      color-mix(in srgb, var(--background-elevated) 88%, #fcf8ff),
+      color-mix(in srgb, var(--background-elevated) 92%, #eef4ff)
+    );
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
+  display: grid;
+  gap: 14px;
 
-    &::before {
-      display: none;
+  &__head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+
+    h2 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(1.42rem, 2.2vw, 2rem);
+      line-height: 1.15;
+      letter-spacing: -0.018em;
+      color: color-mix(in srgb, var(--text-primary) 88%, #2d4186);
     }
 
-    &__card {
-      position: static;
+    p {
+      margin: 6px 0 0;
+      color: color-mix(in srgb, var(--text-secondary) 82%, #4a63a7);
+    }
+  }
+
+  &__eyebrow {
+    display: inline-flex;
+    margin-bottom: 6px;
+    font-size: 0.74rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: color-mix(in srgb, var(--text-secondary) 82%, #5872d8);
+  }
+
+  &__controls {
+    display: flex;
+    gap: 8px;
+
+    .MuiIconButton-root {
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
+      border: 1px solid color-mix(in srgb, var(--border-subtle) 76%, #b8c7ff);
+      background: color-mix(in srgb, var(--surface-elevated) 84%, #f7f9ff);
+      color: color-mix(in srgb, var(--text-primary) 78%, #3a54a4);
+    }
+  }
+
+  &__rail {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(280px, 32%);
+    gap: 12px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 2px;
+
+    &::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--border-subtle) 72%, #aab7ef);
+    }
+  }
+
+  &__card {
+    scroll-snap-align: start;
+    border-radius: 16px;
+    padding: 14px;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b4c4ff);
+    background: color-mix(in srgb, var(--surface-elevated) 84%, #ffffff);
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+    min-height: 188px;
+    display: grid;
+    align-content: space-between;
+    gap: 12px;
+
+    p {
+      margin: 0;
+      color: color-mix(in srgb, var(--text-primary) 82%, #3a4f96);
+      line-height: 1.56;
+      font-size: 0.95rem;
+    }
+  }
+
+  &__card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    strong {
+      display: block;
+      color: color-mix(in srgb, var(--text-primary) 86%, #2f4489);
+      font-size: 0.92rem;
+      line-height: 1.2;
+    }
+
+    span {
+      display: block;
+      margin-top: 3px;
+      color: color-mix(in srgb, var(--text-secondary) 78%, #5169ab);
+      font-size: 0.78rem;
+      line-height: 1.2;
+    }
+  }
+
+  &__avatar {
+    width: 54px;
+    min-width: 54px;
+  }
+}
+
+.about-teacher-asset {
+  position: relative;
+  aspect-ratio: var(--about-teacher-asset-ratio, 4 / 3);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 72%, #b6c5ff);
+  background: color-mix(in srgb, var(--surface-elevated) 82%, #f3f6ff);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity 280ms ease;
+  }
+
+  &.is-loaded img {
+    opacity: 1;
+  }
+
+  &.is-clickable {
+    cursor: zoom-in;
+  }
+
+  &__skeleton {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      110deg,
+      color-mix(in srgb, var(--surface-elevated) 78%, #e9efff),
+      color-mix(in srgb, var(--surface-elevated) 86%, #ffffff),
+      color-mix(in srgb, var(--surface-elevated) 78%, #e9efff)
+    );
+    background-size: 260% 100%;
+    animation: about-teacher-skeleton 1.2s linear infinite;
+  }
+
+  &__fallback {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 8px;
+    font-size: 0.78rem;
+    color: color-mix(in srgb, var(--text-secondary) 82%, #4c65a9);
+    background: linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--surface-elevated) 82%, #eff4ff),
+      color-mix(in srgb, var(--surface-elevated) 88%, #ffffff)
+    );
+  }
+}
+
+.about-teacher-lightbox {
+  .MuiDialog-paper {
+    border-radius: 20px !important;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, #9db2ff) !important;
+    background: color-mix(in srgb, var(--surface-elevated) 86%, #f2f7ff) !important;
+    overflow: hidden;
+  }
+
+  &__header {
+    min-height: 58px;
+    padding: 0 10px 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 68%, #b8c7ff);
+
+    span {
+      font-size: 0.92rem;
+      color: color-mix(in srgb, var(--text-secondary) 76%, #4f62a5);
+      font-weight: 600;
+    }
+  }
+
+  &__stage {
+    min-height: min(76vh, 760px);
+    padding: clamp(10px, 2vw, 18px);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+
+    .MuiIconButton-root {
+      border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b3c3fd);
+      background: color-mix(in srgb, var(--surface-elevated) 82%, #f6f9ff);
+      color: color-mix(in srgb, var(--text-primary) 80%, #3a4f96);
+    }
+  }
+
+  &__canvas {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b5c4fe);
+    min-height: min(66vh, 660px);
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--surface-elevated) 84%, #edf3ff);
+
+    img {
+      display: block;
       width: 100%;
-      max-width: 520px;
+      height: 100%;
+      object-fit: contain;
+      background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--surface-elevated) 84%, #f5f9ff),
+        color-mix(in srgb, var(--surface-elevated) 90%, #ffffff)
+      );
+    }
+  }
+
+  &__fallback {
+    padding: 24px;
+    text-align: center;
+    color: color-mix(in srgb, var(--text-secondary) 82%, #4a62a8);
+  }
+}
+
+@keyframes about-teacher-skeleton {
+  0% {
+    background-position: 120% 0;
+  }
+
+  100% {
+    background-position: -120% 0;
+  }
+}
+
+[data-theme="dark"] {
+  .about-teacher-page {
+    color: color-mix(in srgb, var(--text-primary) 95%, #f4f7ff);
+  }
+
+  .about-teacher-hero,
+  .about-teacher-proof,
+  .about-teacher-reviews {
+    border-color: color-mix(in srgb, var(--border-subtle) 70%, #4f68b7);
+    box-shadow: 0 20px 46px rgba(2, 8, 30, 0.45);
+  }
+
+  .about-teacher-hero {
+    background:
+      radial-gradient(circle at 92% 8%, color-mix(in srgb, #6d64ff 42%, transparent) 0%, transparent 56%),
+      linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--surface-elevated) 82%, #101b43),
+        color-mix(in srgb, var(--surface-elevated) 88%, #101f4a)
+      );
+
+    &__content h1 {
+      color: color-mix(in srgb, var(--text-primary) 92%, #dee8ff);
     }
 
-    &__card--top,
-    &__card--right,
-    &__card--bottom,
-    &__card--left {
-      top: auto;
-      right: auto;
-      bottom: auto;
-      left: auto;
-      transform: none;
+    &__content p {
+      color: color-mix(in srgb, var(--text-secondary) 86%, #afc0ef);
+    }
+
+    &__eyebrow {
+      color: color-mix(in srgb, var(--text-secondary) 82%, #b8c8f6);
+      background: color-mix(in srgb, var(--surface-elevated) 76%, #253d78);
+      border-color: color-mix(in srgb, var(--border-subtle) 74%, #5770c2);
+    }
+
+    &__actions .MuiButton-outlined {
+      color: color-mix(in srgb, var(--text-primary) 92%, #d7e2ff) !important;
+      border-color: color-mix(in srgb, var(--border-subtle) 70%, #5e77c9) !important;
+      background: color-mix(in srgb, var(--surface-elevated) 82%, #203463) !important;
+    }
+  }
+
+  .about-teacher-proof,
+  .about-teacher-reviews {
+    background:
+      radial-gradient(circle at 96% 2%, color-mix(in srgb, #7a6aff 22%, transparent) 0%, transparent 56%),
+      linear-gradient(
+        146deg,
+        color-mix(in srgb, var(--surface-elevated) 82%, #111e45),
+        color-mix(in srgb, var(--surface-elevated) 88%, #10254f)
+      );
+  }
+
+  .about-teacher-proof__intro h2,
+  .about-teacher-reviews__head h2 {
+    color: color-mix(in srgb, var(--text-primary) 90%, #dce6ff);
+  }
+
+  .about-teacher-proof__intro p,
+  .about-teacher-reviews__head p {
+    color: color-mix(in srgb, var(--text-secondary) 84%, #afc0ef);
+  }
+
+  .about-teacher-proof__metric,
+  .about-teacher-proof__education,
+  .about-teacher-proof__diplomas,
+  .about-teacher-proof__education li,
+  .about-teacher-reviews__card,
+  .about-teacher-reviews__controls .MuiIconButton-root,
+  .about-teacher-lightbox .MuiDialog-paper,
+  .about-teacher-lightbox__stage .MuiIconButton-root,
+  .about-teacher-lightbox__canvas,
+  .about-teacher-asset,
+  .about-teacher-asset__fallback {
+    border-color: color-mix(in srgb, var(--border-subtle) 68%, #4f69b6);
+  }
+
+  .about-teacher-proof__metric,
+  .about-teacher-proof__education,
+  .about-teacher-proof__diplomas,
+  .about-teacher-proof__education li,
+  .about-teacher-reviews__card,
+  .about-teacher-reviews__controls .MuiIconButton-root,
+  .about-teacher-lightbox .MuiDialog-paper,
+  .about-teacher-lightbox__stage .MuiIconButton-root,
+  .about-teacher-lightbox__canvas,
+  .about-teacher-asset,
+  .about-teacher-asset__fallback {
+    background: color-mix(in srgb, var(--surface-elevated) 86%, #132554);
+    color: color-mix(in srgb, var(--text-primary) 90%, #d9e4ff);
+    box-shadow: 0 12px 24px rgba(2, 8, 30, 0.32);
+  }
+
+  .about-teacher-proof__education li p,
+  .about-teacher-proof__education li small,
+  .about-teacher-proof__education-head span,
+  .about-teacher-proof__metric p,
+  .about-teacher-reviews__card p,
+  .about-teacher-reviews__card-head span,
+  .about-teacher-lightbox__header span {
+    color: color-mix(in srgb, var(--text-secondary) 82%, #b8c6ec);
+  }
+
+  .about-teacher-proof__metric h3,
+  .about-teacher-proof__education-head strong,
+  .about-teacher-reviews__card-head strong {
+    color: color-mix(in srgb, var(--text-primary) 92%, #dbe6ff);
+  }
+}
+
+@media (max-width: 1120px) {
+  .about-teacher-hero {
+    grid-template-columns: 1fr;
+
+    &__content h1 {
+      max-width: none;
+    }
+
+    &__visual {
+      min-height: 280px;
+      order: -1;
+    }
+  }
+
+  .about-teacher-proof {
+    &__metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    &__body {
+      grid-template-columns: 1fr;
+    }
+
+    &__diploma-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .about-teacher-page {
-    padding: 28px 16px 60px;
+    padding: 20px 14px 54px;
+    gap: 16px;
   }
 
-  .about-teacher-orbit__avatar {
-    width: 150px !important;
-    height: 150px !important;
-    font-size: 40px !important;
-    border-radius: 28px !important;
+  .about-teacher-hero {
+    border-radius: 20px;
+    padding: 16px;
+
+    &__actions {
+      flex-direction: column;
+
+      .MuiButton-root {
+        width: 100%;
+      }
+    }
+
+    &__avatar {
+      width: min(100%, 380px);
+      margin: 0 auto;
+    }
+  }
+
+  .about-teacher-proof {
+    padding: 16px;
+
+    &__metrics {
+      grid-template-columns: 1fr;
+    }
+
+    &__diploma-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .about-teacher-reviews {
+    padding: 16px;
+
+    &__head {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    &__controls {
+      align-self: stretch;
+      justify-content: flex-end;
+    }
+
+    &__rail {
+      grid-auto-columns: minmax(240px, 90%);
+    }
+  }
+
+  .about-teacher-lightbox {
+    &__stage {
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }
+
+    &__canvas {
+      min-height: 56vh;
+      width: 100%;
+    }
   }
 }

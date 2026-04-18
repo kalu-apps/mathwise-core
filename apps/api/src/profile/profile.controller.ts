@@ -17,6 +17,7 @@ import {
 } from "../auth/auth.cookies";
 import { ProfileService } from "./profile.service";
 import type {
+  AboutTeacherPublicContentDto,
   AcceptTeacherInvitePayloadDto,
   AcceptTeacherInviteResponseDto,
   CreateTeacherInvitePayloadDto,
@@ -95,6 +96,11 @@ export class ProfileController {
   @Get("public/teachers")
   async getPublicTeachers(): Promise<AuthUserDto[]> {
     return this.profileService.getPublicTeachers();
+  }
+
+  @Get("public/about-teacher/content")
+  async getPublicAboutTeacherContent(): Promise<AboutTeacherPublicContentDto> {
+    return this.profileService.getPublicAboutTeacherContent();
   }
 
   @Get("student/context")
