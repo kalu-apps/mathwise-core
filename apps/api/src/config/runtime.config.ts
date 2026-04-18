@@ -5,6 +5,7 @@ export type ApiCookieSameSite = "Lax" | "Strict" | "None";
 export type ApiEmailDeliveryMode = "disabled" | "provider" | "smtp";
 export type ApiYooKassaMode = "disabled" | "test" | "prod";
 export type ApiAuthSocialProvider = "google" | "yandex" | "vk";
+export type ApiAuthSocialWidgetMode = "oauth_redirect";
 
 export type ApiAuthSocialProviderConfig = {
   enabled: boolean;
@@ -14,6 +15,18 @@ export type ApiAuthSocialProviderConfig = {
   tokenUrl: string;
   userInfoUrl: string;
   scope: string;
+};
+
+export type ApiAuthSocialWidgetProviderConfig = {
+  enabled: boolean;
+  clientId: string;
+  scriptUrl: string;
+  mode: ApiAuthSocialWidgetMode;
+};
+
+export type ApiAuthSocialWidgetsConfig = {
+  enabled: boolean;
+  providers: Record<ApiAuthSocialProvider, ApiAuthSocialWidgetProviderConfig>;
 };
 
 export type ApiRuntimeConfig = {
@@ -62,6 +75,7 @@ export type ApiRuntimeConfig = {
   authOauthStateTtlSec: number;
   authOauthRedirectBaseUrl: string;
   authOauthProviders: Record<ApiAuthSocialProvider, ApiAuthSocialProviderConfig>;
+  authOauthWidgets: ApiAuthSocialWidgetsConfig;
   emailDeliveryMode: ApiEmailDeliveryMode;
   emailProviderApiKey: string;
   emailSmtpHost: string;
@@ -536,6 +550,85 @@ export const getApiRuntimeConfig = (
         scope: "email",
       }),
     };
+  const authOauthWidgetsEnabled = parseBoolean(
+    process.env.AUTH_OAUTH_WIDGETS_ENABLED,
+    false
+  );
+  const parseWidgetMode = (
+    raw: string | undefined,
+    envName: string
+  ): ApiAuthSocialWidgetMode => {
+    const normalized = (raw ?? "oauth_redirect").trim().toLowerCase();
+    if (normalized === "oauth_redirect") return "oauth_redirect";
+    throw new Error(
+      `[api-runtime] Invalid ${envName} value: ${raw}. Allowed: oauth_redirect`
+    );
+  };
+  const buildSocialWidgetConfig = (
+    provider: ApiAuthSocialProvider,
+    defaults: { scriptUrl: string }
+  ): ApiAuthSocialWidgetProviderConfig => {
+    const upper = provider.toUpperCase();
+    const enabled = parseBoolean(
+      process.env[`AUTH_OAUTH_${upper}_WIDGET_ENABLED`],
+      false
+    );
+    const clientId =
+      process.env[`AUTH_OAUTH_${upper}_WIDGET_CLIENT_ID`]?.trim() ||
+      authOauthProviders[provider].clientId;
+    const scriptUrl =
+      process.env[`AUTH_OAUTH_${upper}_WIDGET_SCRIPT_URL`]?.trim() ||
+      defaults.scriptUrl;
+    const mode = parseWidgetMode(
+      process.env[`AUTH_OAUTH_${upper}_WIDGET_MODE`],
+      `AUTH_OAUTH_${upper}_WIDGET_MODE`
+    );
+
+    if (enabled && !clientId) {
+      throw new Error(
+        `[api-runtime] Missing required env for ${provider} oauth widget: AUTH_OAUTH_${upper}_WIDGET_CLIENT_ID`
+      );
+    }
+    if (enabled && !scriptUrl) {
+      throw new Error(
+        `[api-runtime] Missing required env for ${provider} oauth widget: AUTH_OAUTH_${upper}_WIDGET_SCRIPT_URL`
+      );
+    }
+    if (scriptUrl) {
+      try {
+        const parsed = new URL(scriptUrl);
+        if (!/^https?:$/.test(parsed.protocol)) {
+          throw new Error();
+        }
+      } catch {
+        throw new Error(
+          `[api-runtime] Invalid ${provider} oauth widget script URL: ${scriptUrl}`
+        );
+      }
+    }
+
+    return {
+      enabled,
+      clientId,
+      scriptUrl,
+      mode,
+    };
+  };
+  const authOauthWidgets: ApiAuthSocialWidgetsConfig = {
+    enabled: authOauthWidgetsEnabled,
+    providers: {
+      google: buildSocialWidgetConfig("google", {
+        scriptUrl: "https://accounts.google.com/gsi/client",
+      }),
+      yandex: buildSocialWidgetConfig("yandex", {
+        scriptUrl:
+          "https://yastatic.net/s3/passport-sdk/autofill/v1/sdk-suggest-with-polyfills-latest.js",
+      }),
+      vk: buildSocialWidgetConfig("vk", {
+        scriptUrl: "https://unpkg.com/@vkid/sdk@latest/dist-sdk/umd/index.js",
+      }),
+    },
+  };
 
   const emailDeliveryMode = parseEmailDeliveryMode(
     process.env.EMAIL_DELIVERY_MODE,
@@ -832,6 +925,7 @@ export const getApiRuntimeConfig = (
     authOauthStateTtlSec,
     authOauthRedirectBaseUrl,
     authOauthProviders,
+    authOauthWidgets,
     emailDeliveryMode,
     emailProviderApiKey,
     emailSmtpHost,

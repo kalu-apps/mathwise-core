@@ -48,6 +48,25 @@ export type AuthRecoveryVerifyResponseDto = {
   recoveryToken?: string;
 };
 
+export type AuthOauthWidgetModeDto = "oauth_redirect";
+
+export type AuthOauthWidgetProviderDto = {
+  provider: AuthSocialProvider;
+  oauthEnabled: boolean;
+  widgetEnabled: boolean;
+  ready: boolean;
+  interactive: boolean;
+  clientId: string | null;
+  scriptUrl: string | null;
+  mode: AuthOauthWidgetModeDto;
+};
+
+export type AuthOauthWidgetConfigResponseDto = {
+  ok: true;
+  widgetsEnabled: boolean;
+  providers: AuthOauthWidgetProviderDto[];
+};
+
 export type AuthPasswordResetResponseDto = {
   ok: boolean;
   message: string;

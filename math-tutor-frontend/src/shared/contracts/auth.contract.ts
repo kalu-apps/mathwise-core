@@ -23,6 +23,26 @@ export type AuthIdentityIntentChannelContract =
   | "yandex"
   | "vk";
 
+export type AuthSocialProviderContract = "google" | "yandex" | "vk";
+export type AuthOauthWidgetModeContract = "oauth_redirect";
+
+export type AuthOauthWidgetProviderContract = {
+  provider: AuthSocialProviderContract;
+  oauthEnabled: boolean;
+  widgetEnabled: boolean;
+  ready: boolean;
+  interactive: boolean;
+  clientId: string | null;
+  scriptUrl: string | null;
+  mode: AuthOauthWidgetModeContract;
+};
+
+export type AuthOauthWidgetConfigResponseContract = {
+  ok: true;
+  widgetsEnabled: boolean;
+  providers: AuthOauthWidgetProviderContract[];
+};
+
 export type AuthIdentityIntentStateContract =
   | "pending"
   | "verified"

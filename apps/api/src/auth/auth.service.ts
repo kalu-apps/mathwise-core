@@ -33,6 +33,7 @@ import type {
   AuthFirstPasswordCompleteResponseDto,
   AuthFirstPasswordStatusResponseDto,
   AuthIdentityCompletionStateDto,
+  AuthOauthWidgetConfigResponseDto,
   AuthIdentityCompletionStatusResponseDto,
   AuthLogoutResponseDto,
   AuthPasswordSaveResponseDto,
@@ -125,6 +126,38 @@ export class AuthService implements OnModuleInit {
     return SOCIAL_PROVIDERS.filter(
       (provider) => this.runtimeConfig.authOauthProviders[provider]?.enabled
     );
+  }
+
+  getOauthWidgetConfig(): AuthOauthWidgetConfigResponseDto {
+    const widgetsEnabled = this.runtimeConfig.authOauthWidgets.enabled;
+    const providers = SOCIAL_PROVIDERS.map((provider) => {
+      const oauthProviderConfig = this.runtimeConfig.authOauthProviders[provider];
+      const widgetProviderConfig =
+        this.runtimeConfig.authOauthWidgets.providers[provider];
+      const ready = Boolean(
+        widgetsEnabled &&
+          widgetProviderConfig?.enabled &&
+          widgetProviderConfig?.clientId &&
+          widgetProviderConfig?.scriptUrl
+      );
+      const interactive = Boolean(ready && oauthProviderConfig?.enabled);
+      return {
+        provider,
+        oauthEnabled: Boolean(oauthProviderConfig?.enabled),
+        widgetEnabled: Boolean(widgetProviderConfig?.enabled),
+        ready,
+        interactive,
+        clientId: ready ? widgetProviderConfig.clientId : null,
+        scriptUrl: ready ? widgetProviderConfig.scriptUrl : null,
+        mode: widgetProviderConfig.mode,
+      };
+    });
+
+    return {
+      ok: true,
+      widgetsEnabled,
+      providers,
+    };
   }
 
   async buildSocialLoginStartUrl(params: {

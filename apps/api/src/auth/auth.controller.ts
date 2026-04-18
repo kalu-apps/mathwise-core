@@ -21,6 +21,7 @@ import type {
   AuthFirstPasswordCompleteResponseDto,
   AuthFirstPasswordStatusResponseDto,
   AuthIdentityCompletionStatusResponseDto,
+  AuthOauthWidgetConfigResponseDto,
   AuthIdentityIntentStartResponseDto,
   AuthIdentityIntentStatusResponseDto,
   AuthIdentityIntentVerifyResponseDto,
@@ -117,6 +118,11 @@ export class AuthController {
     return {
       providers: this.authService.getEnabledSocialProviders(),
     };
+  }
+
+  @Get("oauth/widget-config")
+  getOauthWidgetConfig(): AuthOauthWidgetConfigResponseDto {
+    return this.authService.getOauthWidgetConfig();
   }
 
   @Get("oauth/:provider/start")

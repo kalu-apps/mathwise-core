@@ -9,7 +9,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import GoogleIcon from "@mui/icons-material/Google";
@@ -21,6 +21,8 @@ import { ButtonPending } from "@/shared/ui/loading";
 import type { AuthModalContext } from "@/features/auth/model/authUiStore";
 import {
   buildSocialLoginStartUrl,
+  getOauthWidgetConfig,
+  type OauthWidgetConfigResponse,
   requestPasswordReset,
   resetPasswordWithRecoveryToken,
   verifyPasswordResetCode,
@@ -43,6 +45,52 @@ type FlowMeta = {
   loginTitle: string;
   loginSubtitle: string;
   recoverTitle: string;
+};
+
+const externalScriptCache = new Map<string, Promise<void>>();
+const ensureExternalScript = (src: string) => {
+  const normalized = src.trim();
+  if (!normalized) {
+    return Promise.reject(new Error("Empty external script url"));
+  }
+  const cached = externalScriptCache.get(normalized);
+  if (cached) return cached;
+  const existing = document.querySelector<HTMLScriptElement>(
+    `script[data-auth-oauth-sdk="${CSS.escape(normalized)}"]`
+  );
+  if (existing?.dataset.loaded === "true") {
+    const done = Promise.resolve();
+    externalScriptCache.set(normalized, done);
+    return done;
+  }
+  const promise = new Promise<void>((resolve, reject) => {
+    const script = existing ?? document.createElement("script");
+    script.async = true;
+    script.defer = true;
+    script.src = normalized;
+    script.dataset.authOauthSdk = normalized;
+    const cleanup = () => {
+      script.removeEventListener("load", onLoad);
+      script.removeEventListener("error", onError);
+    };
+    const onLoad = () => {
+      script.dataset.loaded = "true";
+      cleanup();
+      resolve();
+    };
+    const onError = () => {
+      cleanup();
+      externalScriptCache.delete(normalized);
+      reject(new Error(`Failed to load external script: ${normalized}`));
+    };
+    script.addEventListener("load", onLoad);
+    script.addEventListener("error", onError);
+    if (!existing) {
+      document.head.appendChild(script);
+    }
+  });
+  externalScriptCache.set(normalized, promise);
+  return promise;
 };
 
 const blurActiveElement = () => {
@@ -197,8 +245,24 @@ export function AuthModal({
   const [socialLoadingProvider, setSocialLoadingProvider] = useState<SocialProvider | null>(
     null
   );
+  const [oauthWidgetConfig, setOauthWidgetConfig] = useState<OauthWidgetConfigResponse | null>(
+    null
+  );
+  const [oauthWidgetConfigLoaded, setOauthWidgetConfigLoaded] = useState(false);
+  const [officialWidgetRender, setOfficialWidgetRender] = useState<
+    Record<SocialProvider, "idle" | "rendered" | "failed">
+  >({
+    vk: "idle",
+    yandex: "idle",
+    google: "idle",
+  });
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const officialWidgetMounts = useRef<Record<SocialProvider, HTMLDivElement | null>>({
+    vk: null,
+    yandex: null,
+    google: null,
+  });
 
   const [recoverStep, setRecoverStep] = useState<RecoveryStep>(1);
   const [recoverLoading, setRecoverLoading] = useState(false);
@@ -216,10 +280,36 @@ export function AuthModal({
   const [recoverDebugCode, setRecoverDebugCode] = useState<string | null>(null);
 
   const normalizedEmail = normalizeEmailInput(email);
-  const socialProviders: SocialProvider[] = ["vk", "yandex", "google"];
+  const socialProviders = useMemo<SocialProvider[]>(
+    () => ["vk", "yandex", "google"],
+    []
+  );
+  const providerConfigByKey = useMemo(() => {
+    const byKey: Partial<Record<SocialProvider, OauthWidgetConfigResponse["providers"][number]>> =
+      {};
+    oauthWidgetConfig?.providers.forEach((provider) => {
+      byKey[provider.provider] = provider;
+    });
+    return byKey;
+  }, [oauthWidgetConfig]);
   const flowMeta = flowMetaByContext[context];
   const recoverStage = recoveryStageMeta[recoverStep];
   const subtitleText = viewMode === "login" ? flowMeta.loginSubtitle : recoverStage.subtitle;
+  const officialConfiguredProviders = useMemo(
+    () =>
+      socialProviders.filter((provider) => {
+        const config = providerConfigByKey[provider];
+        return Boolean(config?.ready && config.clientId && config.scriptUrl);
+      }),
+    [providerConfigByKey, socialProviders]
+  );
+  const officialRenderableProviders = useMemo(
+    () =>
+      officialConfiguredProviders.filter(
+        (provider) => officialWidgetRender[provider] !== "failed"
+      ),
+    [officialConfiguredProviders, officialWidgetRender]
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -229,6 +319,13 @@ export function AuthModal({
     setShowPassword(false);
     setSubmitLoading(false);
     setSocialLoadingProvider(null);
+    setOauthWidgetConfig(null);
+    setOauthWidgetConfigLoaded(false);
+    setOfficialWidgetRender({
+      vk: "idle",
+      yandex: "idle",
+      google: "idle",
+    });
     setError(initialError ?? null);
     setInfoMessage(null);
 
@@ -250,6 +347,144 @@ export function AuthModal({
     blurActiveElement();
     onClose();
   }, [onClose]);
+
+  useEffect(() => {
+    if (!open || viewMode !== "login") return;
+    let cancelled = false;
+    setOauthWidgetConfigLoaded(false);
+    getOauthWidgetConfig()
+      .then((payload) => {
+        if (cancelled) return;
+        setOauthWidgetConfig(payload);
+        setOauthWidgetConfigLoaded(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setOauthWidgetConfig(null);
+        setOauthWidgetConfigLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, viewMode]);
+
+  useEffect(() => {
+    if (!open || viewMode !== "login" || !oauthWidgetConfigLoaded) return;
+    let cancelled = false;
+
+    const renderProviderWidget = async (provider: SocialProvider) => {
+      const config = providerConfigByKey[provider];
+      const mount = officialWidgetMounts.current[provider];
+      if (!config?.ready || !config.clientId || !config.scriptUrl || !mount) {
+        return;
+      }
+
+      try {
+        await ensureExternalScript(config.scriptUrl);
+        if (cancelled) return;
+        mount.innerHTML = "";
+
+        if (provider === "google") {
+          const globalAny = window as unknown as Record<string, any>;
+          const googleId = globalAny.google?.accounts?.id;
+          if (!googleId?.initialize || !googleId?.renderButton) {
+            throw new Error("Google GIS SDK is unavailable");
+          }
+          googleId.initialize({
+            client_id: config.clientId,
+            callback: () => undefined,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+            context: "signin",
+          });
+          googleId.renderButton(mount, {
+            type: "standard",
+            theme: "outline",
+            shape: "rectangular",
+            size: "large",
+            text: "signin_with",
+            logo_alignment: "left",
+            locale: "ru",
+            width: Math.max(220, Math.floor(mount.clientWidth || 280)),
+          });
+        } else if (provider === "yandex") {
+          const globalAny = window as unknown as Record<string, any>;
+          const yaSuggest = globalAny.YaAuthSuggest;
+          if (!yaSuggest?.init) {
+            throw new Error("Yandex ID SDK is unavailable");
+          }
+          const parentId = mount.id || `auth-modal-yandex-widget`;
+          mount.id = parentId;
+          const suggestResult = await yaSuggest.init(
+            {
+              client_id: config.clientId,
+              response_type: "token",
+              redirect_uri: `${window.location.origin}/oauth/yandex/widget-preview`,
+            },
+            window.location.origin,
+            {
+              view: "button",
+              parentId,
+              buttonView: "main",
+              buttonTheme: "light",
+              buttonSize: "m",
+              buttonBorderRadius: 12,
+              buttonIcon: "ya",
+            }
+          );
+          if (typeof suggestResult?.handler === "function") {
+            await Promise.resolve(suggestResult.handler());
+          }
+        } else if (provider === "vk") {
+          const globalAny = window as unknown as Record<string, any>;
+          const VKID = globalAny.VKID;
+          if (!VKID?.Config?.init || !VKID?.OneTap) {
+            throw new Error("VK ID SDK is unavailable");
+          }
+          const appId = Number(config.clientId);
+          if (!Number.isFinite(appId) || appId <= 0) {
+            throw new Error("VK ID app id must be a positive number");
+          }
+          VKID.Config.init({
+            app: appId,
+            redirectUrl: `${window.location.origin}/oauth/vk/widget-preview`,
+            responseMode: VKID.ConfigResponseMode?.Redirect,
+            source: VKID.ConfigSource?.LOWCODE,
+            scope: "email",
+            state: "preview-widget",
+          });
+          const oneTap = new VKID.OneTap();
+          oneTap.render({
+            container: mount,
+            showAlternativeLogin: false,
+            oauthList: ["vk"],
+          });
+        }
+
+        if (!cancelled) {
+          setOfficialWidgetRender((prev) => ({ ...prev, [provider]: "rendered" }));
+        }
+      } catch {
+        if (!cancelled) {
+          setOfficialWidgetRender((prev) => ({ ...prev, [provider]: "failed" }));
+        }
+      }
+    };
+
+    officialConfiguredProviders.forEach((provider) => {
+      void renderProviderWidget(provider);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    officialConfiguredProviders,
+    open,
+    oauthWidgetConfigLoaded,
+    providerConfigByKey,
+    viewMode,
+  ]);
 
   const passwordVisibilityAdornment = (
     visible: boolean,
@@ -458,17 +693,39 @@ export function AuthModal({
     setRecoverMessage(null);
   };
 
-  const socialButtons = socialProviders.map((provider) => {
+  const handleOfficialWidgetStub = (provider: SocialProvider) => {
     const social = mapSocialButton(provider);
+    setError(null);
+    setInfoMessage(
+      t("auth.socialWidgetPreviewStub", {
+        provider: social.compactLabel,
+      })
+    );
+  };
+
+  const socialButtons = socialProviders
+    .filter((provider) => !officialRenderableProviders.includes(provider))
+    .map((provider) => {
+    const social = mapSocialButton(provider);
+    const providerConfig = providerConfigByKey[provider];
+    const providerOauthEnabled = providerConfig?.oauthEnabled ?? true;
+    const providerWidgetReady = providerConfig?.ready ?? false;
+    const providerDisabled =
+      Boolean(socialLoadingProvider) ||
+      (oauthWidgetConfigLoaded && !providerOauthEnabled);
     return (
       <Button
         key={provider}
         type="button"
-        variant="outlined"
-        className={`auth-modal__social-btn ${social.className}`}
+        variant={provider === "google" ? "outlined" : "contained"}
+        className={`auth-modal__social-btn ${social.className} ${
+          providerWidgetReady ? "auth-modal__social-btn--official-ready" : ""
+        }`}
         onClick={() => handleSocialLogin(provider)}
-        disabled={Boolean(socialLoadingProvider)}
+        disabled={providerDisabled}
         aria-label={social.label}
+        data-oauth-provider={provider}
+        data-oauth-widget-ready={providerWidgetReady ? "true" : "false"}
       >
         <span className="auth-modal__social-badge" aria-hidden="true">
           <SocialProviderMark provider={provider} />
@@ -480,6 +737,12 @@ export function AuthModal({
       </Button>
     );
   });
+  const hasEnabledSocialProviders =
+    oauthWidgetConfig?.providers.some((provider) => provider.oauthEnabled) ?? true;
+  const hasInteractiveOfficialProviders =
+    oauthWidgetConfig?.providers.some(
+      (provider) => provider.ready && provider.interactive
+    ) ?? false;
 
   const recoverPrimaryAction =
     recoverStep === 1
@@ -556,6 +819,7 @@ export function AuthModal({
               />
 
               <TextField
+                className="auth-modal__password-field"
                 label={t("auth.passwordLabel")}
                 type={showPassword ? "text" : "password"}
                 fullWidth
@@ -584,14 +848,14 @@ export function AuthModal({
               </ButtonPending>
             </Button>
 
-            <Button
-              className="auth-modal__link-btn auth-modal__forgot-btn"
-              variant="text"
+            <button
+              type="button"
+              className="auth-modal__forgot-btn"
               onClick={openRecovery}
               disabled={submitLoading || Boolean(socialLoadingProvider)}
             >
               {t("auth.passwordResetShow")}
-            </Button>
+            </button>
 
             <div className="auth-modal__divider-row" aria-hidden="true">
               <Divider className="auth-modal__divider-line" />
@@ -601,7 +865,55 @@ export function AuthModal({
               <Divider className="auth-modal__divider-line" />
             </div>
 
-            <div className="auth-modal__social-grid">{socialButtons}</div>
+            {officialRenderableProviders.length ? (
+              <div className="auth-modal__official-grid">
+                {officialRenderableProviders.map((provider) => {
+                  const config = providerConfigByKey[provider];
+                  const interactive = config?.interactive ?? false;
+                  return (
+                    <div key={`official-${provider}`} className="auth-modal__official-item">
+                      <div className="auth-modal__official-shell">
+                        <div
+                          className="auth-modal__official-mount"
+                          data-provider={provider}
+                          ref={(node) => {
+                            officialWidgetMounts.current[provider] = node;
+                          }}
+                        />
+                        {!interactive ? (
+                          <button
+                            type="button"
+                            className="auth-modal__official-overlay"
+                            aria-label={mapSocialButton(provider).label}
+                            onClick={() => handleOfficialWidgetStub(provider)}
+                          />
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            {socialButtons.length ? (
+              <div className="auth-modal__social-grid">{socialButtons}</div>
+            ) : null}
+
+            {oauthWidgetConfigLoaded &&
+            officialRenderableProviders.length > 0 &&
+            !hasInteractiveOfficialProviders ? (
+              <Typography variant="caption" className="auth-modal__social-hint">
+                {t("auth.socialWidgetPreviewOnly")}
+              </Typography>
+            ) : null}
+
+            {oauthWidgetConfigLoaded &&
+            officialRenderableProviders.length === 0 &&
+            !hasEnabledSocialProviders ? (
+              <Typography variant="caption" className="auth-modal__social-hint">
+                {t("auth.socialProvidersNotConfigured")}
+              </Typography>
+            ) : null}
           </>
         ) : (
           <>

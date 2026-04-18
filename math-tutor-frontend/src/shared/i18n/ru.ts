@@ -112,6 +112,12 @@ export const ru = {
     socialVk: "Войти через VK",
     socialYandex: "Войти через Яндекс",
     socialGoogle: "Войти через Google",
+    socialProvidersNotConfigured:
+      "Социальный вход станет доступен после подключения OAuth-провайдеров.",
+    socialWidgetPreviewOnly:
+      "Официальные кнопки подключены в режиме предпросмотра. OAuth-поток будет активирован после подключения провайдеров.",
+    socialWidgetPreviewStub:
+      "Официальная кнопка {{provider}} подключена в режиме предпросмотра.",
     socialErrorDefault:
       "Не удалось завершить вход через социальную сеть. Попробуйте ещё раз.",
     socialErrorProviderUnavailable:

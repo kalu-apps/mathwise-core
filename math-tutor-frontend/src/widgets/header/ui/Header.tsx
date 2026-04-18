@@ -95,8 +95,8 @@ export function Header() {
               />
             </IconButton>
             <div className="header__brand-copy">
-              <span className="header__brand-wordmark">Mathwise</span>
-              <span className="header__brand-subtle">Learning App</span>
+              <span className="header__brand-wordmark">МАССМАТ</span>
+              <span className="header__brand-subtle">обучение</span>
             </div>
           </div>
 

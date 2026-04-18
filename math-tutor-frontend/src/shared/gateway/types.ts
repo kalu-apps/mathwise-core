@@ -4,6 +4,7 @@ import type {
   AuthIdentityIntentVerifyResponseContract,
   AuthLogoutResponseContract,
   AuthMagicLinkRequestResponseContract,
+  AuthOauthWidgetConfigResponseContract,
   AuthSessionProbeResultContract,
   AuthSessionResponseContract,
 } from "@/shared/contracts/auth.contract";
@@ -94,6 +95,7 @@ export type AuthGateway = {
   getIdentityIntentStatus: (
     intentId: string
   ) => Promise<AuthIdentityIntentStatusResponseContract>;
+  getOauthWidgetConfig: () => Promise<AuthOauthWidgetConfigResponseContract>;
   probeSession: (signal?: AbortSignal) => Promise<AuthSessionProbeResultContract>;
 };
 

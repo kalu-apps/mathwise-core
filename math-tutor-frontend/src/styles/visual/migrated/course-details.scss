@@ -156,10 +156,35 @@
     padding: 18px;
     border-radius: 22px;
     border: 1px solid var(--card-border);
-    background: var(--surface-content);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface-content) 90%, #f8fbff),
+        color-mix(in srgb, var(--surface-content) 94%, #f2f7ff)
+      ),
+      repeating-linear-gradient(
+        0deg,
+        transparent 0,
+        transparent 31px,
+        color-mix(in srgb, var(--border-subtle) 28%, transparent) 31px,
+        color-mix(in srgb, var(--border-subtle) 28%, transparent) 32px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent 0,
+        transparent 31px,
+        color-mix(in srgb, var(--brand-soft) 14%, transparent) 31px,
+        color-mix(in srgb, var(--brand-soft) 14%, transparent) 32px
+      ),
+      radial-gradient(
+        100% 120% at 12% -8%,
+        color-mix(in srgb, var(--brand-soft) 12%, transparent),
+        transparent 52%
+      );
     box-shadow: var(--shadow-sm);
     min-width: 0;
     width: 100%;
+    isolation: isolate;
   }
 
   &__lessons-head {
@@ -1259,11 +1284,17 @@
 
   .course-details__card {
     position: relative;
+    --course-card-heading: color-mix(in srgb, var(--text-primary) 90%, #22395f);
+    --course-card-plan: color-mix(in srgb, var(--text-secondary) 78%, #5f7293);
+    --course-card-price: color-mix(in srgb, var(--text-primary) 90%, #273a60);
+    --course-card-body: color-mix(in srgb, var(--text-primary) 88%, #2f466e);
+    --course-card-dot-a: #90a9d4;
+    --course-card-dot-b: #d0ddf3;
     background: linear-gradient(
       152deg,
-      color-mix(in srgb, var(--surface-marketing) 90%, #e8f0ff) 0%,
-      color-mix(in srgb, var(--surface-marketing) 95%, #f4f8ff) 52%,
-      color-mix(in srgb, var(--surface-marketing) 92%, #eff7ff) 100%
+      color-mix(in srgb, var(--surface-marketing) 82%, #f3f7ff) 0%,
+      color-mix(in srgb, var(--surface-marketing) 86%, #eef4ff) 54%,
+      color-mix(in srgb, var(--surface-marketing) 84%, #e8f0ff) 100%
     );
     border: 1px solid color-mix(in srgb, var(--brand-soft) 40%, var(--card-border));
     border-radius: 24px;
@@ -1277,6 +1308,47 @@
     gap: 10px;
     box-shadow: 0 14px 28px color-mix(in srgb, var(--brand-shadow) 40%, transparent);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    isolation: isolate;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background:
+        linear-gradient(
+          118deg,
+          color-mix(in srgb, #ffffff 58%, transparent) 0%,
+          color-mix(in srgb, #ffffff 14%, transparent) 28%,
+          color-mix(in srgb, #ffffff 8%, transparent) 56%,
+          transparent 100%
+        ),
+        radial-gradient(
+          56% 62% at 86% 12%,
+          color-mix(in srgb, #ffffff 36%, transparent),
+          transparent 72%
+        );
+      opacity: 0.62;
+      z-index: 0;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: calc(24px - 1px);
+      pointer-events: none;
+      border: 1px solid color-mix(in srgb, #ffffff 24%, transparent);
+      opacity: 0.72;
+      z-index: 1;
+    }
+
+    > * {
+      position: relative;
+      z-index: 2;
+    }
 
     &:hover {
       transform: translateY(-2px);
@@ -1290,16 +1362,20 @@
       font-weight: 760;
       font-size: 17px;
       margin: 0;
-      color: var(--price-title-color);
+      color: var(--course-card-heading);
       min-width: 0;
       width: 100%;
       justify-content: flex-start;
       overflow-wrap: anywhere;
+      position: relative;
+      z-index: 2;
 
       .course-details__card-icon {
         font-size: 19px;
-        color: var(--price-icon-color);
-        filter: drop-shadow(0 3px 7px color-mix(in srgb, var(--price-icon-color) 22%, transparent));
+        color: color-mix(in srgb, var(--course-card-heading) 62%, #fefcff);
+        filter: drop-shadow(
+          0 3px 7px color-mix(in srgb, var(--course-card-heading) 16%, transparent)
+        );
       }
     }
 
@@ -1309,7 +1385,9 @@
       font-weight: 640;
       letter-spacing: 0.07em;
       text-transform: uppercase;
-      color: color-mix(in srgb, var(--text-secondary) 75%, var(--text-muted));
+      color: var(--course-card-plan);
+      position: relative;
+      z-index: 2;
     }
 
     &-price {
@@ -1318,7 +1396,7 @@
       line-height: 1.05;
       font-weight: 820;
       letter-spacing: -0.018em;
-      color: var(--price-value-color);
+      color: var(--course-card-price);
       display: flex;
       align-items: center;
       gap: 10px;
@@ -1326,6 +1404,8 @@
       max-width: 100%;
       overflow-wrap: anywhere;
       text-wrap: balance;
+      position: relative;
+      z-index: 2;
 
       .course-details__premium-icon {
         font-size: 20px;
@@ -1346,6 +1426,8 @@
       flex-wrap: wrap;
       line-height: 1.45;
       overflow-wrap: anywhere;
+      position: relative;
+      z-index: 2;
 
       .course-details__installment-meta {
         display: inline-flex;
@@ -1426,6 +1508,8 @@
       box-shadow: 0 8px 18px color-mix(in srgb, var(--brand-shadow) 35%, transparent);
       min-width: 0;
       transition: transform 0.22s ease, box-shadow 0.22s ease;
+      position: relative;
+      z-index: 2;
 
       &:hover {
         transform: translateY(-1px);
@@ -1449,36 +1533,113 @@
     }
   }
 
+  .course-details__promo-sticker {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 16px;
+    max-width: min(60%, 210px);
+    border-radius: 10px 16px 12px 14px;
+    font-size: 11px;
+    font-weight: 840;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #fff8eb;
+    background:
+      linear-gradient(145deg, #ff7f57 0%, #ff5c73 46%, #ff8f4e 100%),
+      radial-gradient(120% 120% at 12% 12%, rgba(255, 255, 255, 0.45), transparent 58%);
+    box-shadow:
+      0 12px 22px rgba(236, 92, 79, 0.38),
+      inset 0 1px 0 rgba(255, 255, 255, 0.42);
+    clip-path: polygon(8% 0, 100% 0, 94% 72%, 100% 100%, 0 100%, 0 12%);
+    transform: rotate(-8deg);
+    pointer-events: none;
+    text-align: center;
+    line-height: 1.15;
+  }
+
   .course-details__card--premium {
-    background: linear-gradient(
-      158deg,
-      color-mix(in srgb, var(--surface-marketing) 86%, #ffe9b8) 0%,
-      color-mix(in srgb, var(--surface-marketing) 92%, #dfe8ff) 54%,
-      color-mix(in srgb, var(--surface-marketing) 90%, #ecf7ff) 100%
-    );
-    border-color: color-mix(in srgb, var(--feedback-warning) 24%, var(--border-strong));
+    --course-card-heading: #5f451f;
+    --course-card-plan: color-mix(in srgb, #6e5430 86%, #9f7e49);
+    --course-card-price: #473311;
+    --course-card-body: color-mix(in srgb, #5a4527 92%, #24170a);
+    --course-card-dot-a: #d4a95f;
+    --course-card-dot-b: #f9d992;
+    background:
+      linear-gradient(
+        142deg,
+        #fff2d1 0%,
+        #efd19a 24%,
+        #f9e3ba 42%,
+        #d6ad68 63%,
+        #f6ddb0 82%,
+        #c79452 100%
+      ),
+      radial-gradient(92% 76% at 82% 10%, rgba(255, 245, 214, 0.56), transparent 70%);
+    border-color: color-mix(in srgb, #d8ad6a 78%, #a67d42);
 
     .course-details__card-price {
-      color: color-mix(in srgb, var(--brand-solid) 78%, #15263f);
-      text-shadow: 0 8px 20px color-mix(in srgb, var(--brand-solid) 16%, transparent);
+      text-shadow: 0 10px 22px rgba(113, 78, 25, 0.18);
     }
 
     .course-details__card-header {
-      color: color-mix(in srgb, var(--text-primary) 88%, #243e68);
+      color: var(--course-card-heading);
+    }
+
+    &::before {
+      background:
+        linear-gradient(
+          112deg,
+          rgba(255, 252, 236, 0.84) 0%,
+          rgba(255, 235, 189, 0.32) 38%,
+          rgba(236, 183, 105, 0.15) 72%,
+          transparent 100%
+        ),
+        radial-gradient(60% 64% at 88% 10%, rgba(255, 243, 205, 0.5), transparent 72%);
+      opacity: 0.76;
     }
   }
 
   .course-details__card--basic {
-    background: linear-gradient(
-      160deg,
-      color-mix(in srgb, var(--surface-marketing) 88%, #d8edff) 0%,
-      color-mix(in srgb, var(--surface-marketing) 94%, #ecefff) 60%,
-      color-mix(in srgb, var(--surface-marketing) 90%, #f2f7ff) 100%
-    );
-    border-color: color-mix(in srgb, var(--brand-violet) 16%, var(--border-subtle));
+    --course-card-heading: #3f4e63;
+    --course-card-plan: color-mix(in srgb, #5d6f86 88%, #8a9ab1);
+    --course-card-price: #2c3b50;
+    --course-card-body: color-mix(in srgb, #3f5067 88%, #243248);
+    --course-card-dot-a: #9fb4cc;
+    --course-card-dot-b: #eef3f9;
+    background:
+      linear-gradient(
+        145deg,
+        #f2f5fb 0%,
+        #dce3ed 22%,
+        #f9fbff 44%,
+        #c6cfdb 68%,
+        #eef2f8 84%,
+        #aab5c4 100%
+      ),
+      radial-gradient(84% 70% at 84% 14%, rgba(255, 255, 255, 0.56), transparent 72%);
+    border-color: color-mix(in srgb, #b2bfce 84%, #8a96a7);
 
     .course-details__card-price {
-      color: color-mix(in srgb, var(--text-primary) 88%, #26395a);
+      color: var(--course-card-price);
+    }
+
+    &::before {
+      background:
+        linear-gradient(
+          120deg,
+          rgba(255, 255, 255, 0.84) 0%,
+          rgba(238, 244, 252, 0.38) 36%,
+          rgba(186, 198, 216, 0.15) 68%,
+          transparent 100%
+        ),
+        radial-gradient(56% 62% at 88% 10%, rgba(255, 255, 255, 0.42), transparent 72%);
+      opacity: 0.72;
     }
   }
 }
@@ -1498,7 +1659,7 @@
     margin: 0;
     font-size: 14px;
     line-height: 1.42;
-    color: color-mix(in srgb, var(--text-primary) 88%, var(--brand-solid));
+    color: var(--course-card-body, color-mix(in srgb, var(--text-primary) 88%, var(--brand-solid)));
     overflow-wrap: anywhere;
 
     &::before {
@@ -1509,8 +1670,8 @@
       margin-top: 7px;
       background: linear-gradient(
         135deg,
-        color-mix(in srgb, var(--brand-solid) 66%, #6f7aff),
-        color-mix(in srgb, var(--accent-strong) 64%, #61d7d6)
+        var(--course-card-dot-a, color-mix(in srgb, var(--brand-solid) 66%, #6f7aff)),
+        var(--course-card-dot-b, color-mix(in srgb, var(--accent-strong) 64%, #61d7d6))
       );
       box-shadow: 0 4px 10px color-mix(in srgb, var(--brand-solid) 22%, transparent);
     }
@@ -1743,6 +1904,46 @@
   );
 }
 
+:root[data-theme="light"] .course-details__lessons {
+  background:
+    linear-gradient(180deg, rgba(251, 253, 255, 0.96), rgba(243, 248, 255, 0.94)),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 31px,
+      rgba(141, 161, 194, 0.16) 31px,
+      rgba(141, 161, 194, 0.16) 32px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 31px,
+      rgba(165, 182, 214, 0.12) 31px,
+      rgba(165, 182, 214, 0.12) 32px
+    ),
+    radial-gradient(100% 120% at 12% -8%, rgba(176, 195, 232, 0.16), transparent 52%);
+}
+
+:root[data-theme="dark"] .course-details__lessons {
+  background:
+    linear-gradient(180deg, rgba(20, 28, 46, 0.96), rgba(18, 25, 42, 0.94)),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 31px,
+      rgba(108, 134, 188, 0.19) 31px,
+      rgba(108, 134, 188, 0.19) 32px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 31px,
+      rgba(122, 145, 204, 0.15) 31px,
+      rgba(122, 145, 204, 0.15) 32px
+    ),
+    radial-gradient(100% 120% at 12% -8%, rgba(92, 123, 192, 0.18), transparent 52%);
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .course-details {
@@ -1951,15 +2152,13 @@
 .course-details {
   &__hero,
   &__block-card,
-  &__roadmap,
-  &__offer {
+  &__roadmap {
     background: var(--glass-tier-2-bg) !important;
     border-color: var(--glass-tier-2-border) !important;
     box-shadow: var(--glass-tier-2-shadow), inset 0 1px 0 var(--glass-tier-2-edge) !important;
     backdrop-filter: blur(var(--glass-tier-2-blur)) !important;
   }
 
-  &__card,
   &__purchase,
   &__checkout-summary,
   &__payment-method {

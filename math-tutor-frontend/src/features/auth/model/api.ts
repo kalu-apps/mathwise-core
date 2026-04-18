@@ -12,6 +12,8 @@ import type {
   AuthIdentityCompletionStatusResponseContract,
   AuthIdentityIntentChannelContract,
   AuthIdentityIntentConflictReasonContract,
+  AuthOauthWidgetConfigResponseContract,
+  AuthOauthWidgetProviderContract,
   AuthIdentityIntentStartResponseContract,
   AuthIdentityIntentStateContract,
   AuthIdentityIntentStatusResponseContract,
@@ -41,6 +43,8 @@ const getApiBase = () => {
 };
 
 export type SocialProvider = "google" | "yandex" | "vk";
+export type OauthWidgetProviderConfig = AuthOauthWidgetProviderContract;
+export type OauthWidgetConfigResponse = AuthOauthWidgetConfigResponseContract;
 
 export type IdentityIntentChannel = AuthIdentityIntentChannelContract;
 export type IdentityIntentState = AuthIdentityIntentStateContract;
@@ -111,6 +115,10 @@ export async function getIdentityIntentStatus(
   intentId: string
 ): Promise<IdentityIntentStatusResponse> {
   return authGateway.getIdentityIntentStatus(intentId);
+}
+
+export async function getOauthWidgetConfig(): Promise<OauthWidgetConfigResponse> {
+  return authGateway.getOauthWidgetConfig();
 }
 
 export type PasswordStatusResponse = AuthPasswordStatusResponseContract;

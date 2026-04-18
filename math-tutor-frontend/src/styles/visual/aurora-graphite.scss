@@ -251,7 +251,6 @@ label,
 .auth-modal .MuiFormControl-root .MuiOutlinedInput-root,
 .course-details__purchase,
 .course-details__checkout-summary,
-.course-details__card,
 .course-details__payment-method,
 .courses-page__search .MuiOutlinedInput-root,
 .courses-page__search .MuiInputBase-root,
@@ -315,7 +314,6 @@ button,
 .MuiButton-contained,
 .MuiButton-containedPrimary,
 .ui-btn--primary,
-.course-details__card-button,
 .booking-page__actions .MuiButton-root:first-child,
 .chat-page__send-button {
   background: var(--accent-gradient-soft) !important;
@@ -327,7 +325,6 @@ button,
 .MuiButton-contained:hover,
 .MuiButton-containedPrimary:hover,
 .ui-btn--primary:hover,
-.course-details__card-button:hover,
 .chat-page__send-button:hover {
   background: var(--accent-gradient-strong) !important;
   transform: translateY(-1px);
@@ -335,8 +332,7 @@ button,
 
 .MuiButton-outlined,
 .MuiButton-text,
-.ui-btn--secondary,
-.course-details__card-button--secondary {
+.ui-btn--secondary {
   background: var(--ag-tier2-bg) !important;
   color: var(--text-primary) !important;
   border: 1px solid var(--ag-tier2-border) !important;
@@ -348,6 +344,30 @@ button,
 .ui-btn--secondary:hover {
   background: color-mix(in srgb, var(--background-elevated) 78%, var(--accent-primary)) !important;
   border-color: var(--ag-border-strong) !important;
+}
+
+/* Course details purchase buttons keep local metallic treatment */
+.course-details__card .course-details__card-button {
+  background: var(--btn-primary-bg) !important;
+  color: var(--text-on-brand) !important;
+  border: 0 !important;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--brand-shadow) 35%, transparent) !important;
+}
+
+.course-details__card .course-details__card-button:hover {
+  background: var(--btn-primary-bg) !important;
+  box-shadow: 0 12px 22px color-mix(in srgb, var(--brand-shadow) 40%, transparent) !important;
+}
+
+.course-details__card .course-details__card-button--secondary {
+  color: color-mix(in srgb, var(--text-primary) 84%, var(--brand-violet)) !important;
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--surface-elevated) 90%, #e8f0ff),
+    color-mix(in srgb, var(--surface-elevated) 92%, #f4f6ff)
+  ) !important;
+  border: 1px solid color-mix(in srgb, var(--brand-soft) 35%, var(--border-subtle)) !important;
+  box-shadow: 0 8px 16px color-mix(in srgb, var(--brand-shadow) 20%, transparent) !important;
 }
 
 /* Inputs and controls */

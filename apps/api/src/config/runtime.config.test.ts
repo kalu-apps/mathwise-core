@@ -458,6 +458,57 @@ test("runtime config: enabled social oauth provider is parsed and exposed", () =
   }
 });
 
+test("runtime config: oauth widget config is disabled by default", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.AUTH_OAUTH_GOOGLE_ENABLED = "false";
+    delete process.env.AUTH_OAUTH_WIDGETS_ENABLED;
+    delete process.env.AUTH_OAUTH_GOOGLE_WIDGET_ENABLED;
+
+    const config = getApiRuntimeConfig();
+    assert.equal(config.authOauthWidgets.enabled, false);
+    assert.equal(config.authOauthWidgets.providers.google.enabled, false);
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("runtime config: oauth widget can be configured before oauth provider is enabled", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "stage";
+    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.AUTH_COOKIE_SECURE = "true";
+    process.env.AUTH_DEBUG_TOKENS = "false";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    process.env.AUTH_OAUTH_WIDGETS_ENABLED = "true";
+    process.env.AUTH_OAUTH_GOOGLE_ENABLED = "false";
+    process.env.AUTH_OAUTH_GOOGLE_WIDGET_ENABLED = "true";
+    process.env.AUTH_OAUTH_GOOGLE_WIDGET_CLIENT_ID = "google-widget-client-id";
+    process.env.AUTH_OAUTH_GOOGLE_WIDGET_SCRIPT_URL =
+      "https://accounts.google.com/gsi/client";
+    const config = getApiRuntimeConfig();
+    assert.equal(config.authOauthWidgets.enabled, true);
+    assert.equal(config.authOauthWidgets.providers.google.enabled, true);
+    assert.equal(config.authOauthProviders.google.enabled, false);
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
 test("runtime config: oauth redirect base url must match cors origin outside local", () => {
   const snapshot = { ...process.env };
   try {

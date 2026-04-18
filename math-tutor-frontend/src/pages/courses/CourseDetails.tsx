@@ -1431,6 +1431,7 @@ export default function CourseDetails() {
       )}
       <div className="course-details__offer course-details__offer--premium">
         <div className="course-details__card course-details__card--premium">
+          <span className="course-details__promo-sticker">Оптимальный выбор</span>
           <div className="course-details__card-header">
             <Star className="course-details__card-icon" />
             <span>Премиум</span>
