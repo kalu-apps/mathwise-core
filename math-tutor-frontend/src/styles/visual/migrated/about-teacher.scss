@@ -380,12 +380,12 @@
   &__rail {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(280px, 32%);
-    gap: 12px;
+    grid-auto-columns: minmax(300px, 38%);
+    gap: 14px;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory;
-    padding-bottom: 2px;
+    padding: 2px 2px 6px;
 
     &::-webkit-scrollbar {
       height: 8px;
@@ -400,47 +400,37 @@
   &__card {
     scroll-snap-align: start;
     border-radius: 16px;
-    padding: 14px;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b4c4ff);
-    background: color-mix(in srgb, var(--surface-elevated) 84%, #ffffff);
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 72%, #b6c4ff);
+    background: color-mix(in srgb, var(--surface-elevated) 86%, #f6f9ff);
     box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
-    min-height: 188px;
+    overflow: hidden;
+  }
+
+  &__screenshot {
+    width: 100%;
+    border: 0;
+    border-radius: 16px;
+    box-shadow: none;
+    background: color-mix(in srgb, var(--surface-elevated) 84%, #f2f5ff);
+
+    img {
+      object-fit: contain;
+      background: color-mix(in srgb, var(--surface-elevated) 82%, #eef3ff);
+    }
+  }
+
+  &__empty {
+    min-height: 120px;
+    border-radius: 14px;
+    border: 1px dashed color-mix(in srgb, var(--border-subtle) 70%, #b7c6ff);
+    background: color-mix(in srgb, var(--surface-elevated) 82%, #f5f8ff);
+    color: color-mix(in srgb, var(--text-secondary) 82%, #4f65a7);
     display: grid;
-    align-content: space-between;
-    gap: 12px;
-
-    p {
-      margin: 0;
-      color: color-mix(in srgb, var(--text-primary) 82%, #3a4f96);
-      line-height: 1.56;
-      font-size: 0.95rem;
-    }
-  }
-
-  &__card-head {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-    strong {
-      display: block;
-      color: color-mix(in srgb, var(--text-primary) 86%, #2f4489);
-      font-size: 0.92rem;
-      line-height: 1.2;
-    }
-
-    span {
-      display: block;
-      margin-top: 3px;
-      color: color-mix(in srgb, var(--text-secondary) 78%, #5169ab);
-      font-size: 0.78rem;
-      line-height: 1.2;
-    }
-  }
-
-  &__avatar {
-    width: 54px;
-    min-width: 54px;
+    place-items: center;
+    text-align: center;
+    padding: 16px;
+    font-size: 0.92rem;
+    line-height: 1.5;
   }
 }
 
@@ -676,16 +666,22 @@
   .about-teacher-proof__education li small,
   .about-teacher-proof__education-head span,
   .about-teacher-proof__metric p,
-  .about-teacher-reviews__card p,
-  .about-teacher-reviews__card-head span,
   .about-teacher-lightbox__header span {
     color: color-mix(in srgb, var(--text-secondary) 82%, #b8c6ec);
   }
 
   .about-teacher-proof__metric h3,
   .about-teacher-proof__education-head strong,
-  .about-teacher-reviews__card-head strong {
+  .about-teacher-reviews__empty {
     color: color-mix(in srgb, var(--text-primary) 92%, #dbe6ff);
+  }
+
+  .about-teacher-reviews__screenshot {
+    background: color-mix(in srgb, var(--surface-elevated) 86%, #142557);
+
+    img {
+      background: color-mix(in srgb, var(--surface-elevated) 84%, #102048);
+    }
   }
 }
 
@@ -768,7 +764,7 @@
     }
 
     &__rail {
-      grid-auto-columns: minmax(240px, 90%);
+      grid-auto-columns: minmax(240px, 92%);
     }
   }
 

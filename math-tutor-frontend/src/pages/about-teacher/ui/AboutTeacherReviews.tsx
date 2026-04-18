@@ -2,7 +2,6 @@ import { useMemo, useRef } from "react";
 import { IconButton } from "@mui/material";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
-import { ABOUT_TEACHER_REVIEW_FALLBACKS } from "../model/content";
 import type { AboutTeacherAsset } from "../model/types";
 import { AssetImage } from "./AssetImage";
 
@@ -13,14 +12,7 @@ type AboutTeacherReviewsProps = {
 export function AboutTeacherReviews({ reviews }: AboutTeacherReviewsProps) {
   const railRef = useRef<HTMLDivElement | null>(null);
 
-  const items = useMemo(() => {
-    const max = Math.max(reviews.length, ABOUT_TEACHER_REVIEW_FALLBACKS.length);
-    return Array.from({ length: max }, (_, index) => ({
-      asset: reviews[index] ?? null,
-      fallback:
-        ABOUT_TEACHER_REVIEW_FALLBACKS[index % ABOUT_TEACHER_REVIEW_FALLBACKS.length],
-    }));
-  }, [reviews]);
+  const items = useMemo(() => reviews, [reviews]);
 
   const scrollRail = (direction: "prev" | "next") => {
     const node = railRef.current;
@@ -58,27 +50,26 @@ export function AboutTeacherReviews({ reviews }: AboutTeacherReviewsProps) {
         </div>
       </div>
 
-      <div className="about-teacher-reviews__rail" ref={railRef}>
-        {items.map((item, index) => (
-          <article key={`${item.fallback.author}_${index}`} className="about-teacher-reviews__card">
-            <div className="about-teacher-reviews__card-head">
+      {items.length > 0 ? (
+        <div className="about-teacher-reviews__rail" ref={railRef}>
+          {items.map((item, index) => (
+            <article key={item.key} className="about-teacher-reviews__card">
               <AssetImage
-                src={item.asset?.url}
-                alt={`Отзыв ${item.fallback.author}`}
-                ratio="1 / 1"
-                className="about-teacher-reviews__avatar"
+                src={item.url}
+                alt={`Реальный отзыв ученика ${index + 1}`}
+                ratio="16 / 10"
+                className="about-teacher-reviews__screenshot"
                 showFallback
-                fallbackText={item.fallback.author.slice(0, 1)}
+                fallbackText="Отзыв недоступен"
               />
-              <div>
-                <strong>{item.fallback.author}</strong>
-                <span>{item.fallback.context}</span>
-              </div>
-            </div>
-            <p>“{item.fallback.quote}”</p>
-          </article>
-        ))}
-      </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="about-teacher-reviews__empty">
+          Отзывы пока загружаются. Скоро здесь появятся реальные скриншоты результатов учеников.
+        </div>
+      )}
     </section>
   );
 }
