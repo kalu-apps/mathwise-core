@@ -47,6 +47,79 @@ type FlowMeta = {
   recoverTitle: string;
 };
 
+type GoogleIdentitySdk = {
+  initialize: (options: {
+    client_id: string;
+    callback: (response: unknown) => void;
+    auto_select?: boolean;
+    cancel_on_tap_outside?: boolean;
+    context?: string;
+  }) => void;
+  renderButton: (
+    parent: HTMLElement,
+    options: {
+      type?: "standard" | "icon";
+      theme?: "outline" | "filled_blue" | "filled_black";
+      shape?: "rectangular" | "pill" | "circle" | "square";
+      size?: "large" | "medium" | "small";
+      text?: string;
+      logo_alignment?: "left" | "center";
+      locale?: string;
+      width?: number;
+    }
+  ) => void;
+};
+
+type YandexAuthSuggestSdk = {
+  init: (
+    authOptions: {
+      client_id: string;
+      response_type: string;
+      redirect_uri: string;
+    },
+    baseOrigin: string,
+    viewOptions: {
+      view: "button";
+      parentId: string;
+      buttonView: "main";
+      buttonTheme: "light" | "dark";
+      buttonSize: "m" | "l";
+      buttonBorderRadius: number;
+      buttonIcon: "ya";
+    }
+  ) => Promise<{ handler?: () => Promise<unknown> | unknown }>;
+};
+
+type VkIdOneTapSdk = {
+  render: (options: {
+    container: HTMLElement;
+    showAlternativeLogin: boolean;
+    oauthList: string[];
+  }) => void;
+};
+
+type VkIdSdk = {
+  Config: {
+    init: (options: {
+      app: number;
+      redirectUrl: string;
+      responseMode?: string;
+      source?: string;
+      scope?: string;
+      state?: string;
+    }) => void;
+  };
+  ConfigResponseMode?: { Redirect?: string };
+  ConfigSource?: { LOWCODE?: string };
+  OneTap: new () => VkIdOneTapSdk;
+};
+
+type OAuthWidgetWindow = Window & {
+  google?: { accounts?: { id?: GoogleIdentitySdk } };
+  YaAuthSuggest?: YandexAuthSuggestSdk;
+  VKID?: VkIdSdk;
+};
+
 const externalScriptCache = new Map<string, Promise<void>>();
 const ensureExternalScript = (src: string) => {
   const normalized = src.trim();
@@ -385,8 +458,8 @@ export function AuthModal({
         mount.innerHTML = "";
 
         if (provider === "google") {
-          const globalAny = window as unknown as Record<string, any>;
-          const googleId = globalAny.google?.accounts?.id;
+          const sdkWindow = window as OAuthWidgetWindow;
+          const googleId = sdkWindow.google?.accounts?.id;
           if (!googleId?.initialize || !googleId?.renderButton) {
             throw new Error("Google GIS SDK is unavailable");
           }
@@ -408,8 +481,8 @@ export function AuthModal({
             width: Math.max(220, Math.floor(mount.clientWidth || 280)),
           });
         } else if (provider === "yandex") {
-          const globalAny = window as unknown as Record<string, any>;
-          const yaSuggest = globalAny.YaAuthSuggest;
+          const sdkWindow = window as OAuthWidgetWindow;
+          const yaSuggest = sdkWindow.YaAuthSuggest;
           if (!yaSuggest?.init) {
             throw new Error("Yandex ID SDK is unavailable");
           }
@@ -436,8 +509,8 @@ export function AuthModal({
             await Promise.resolve(suggestResult.handler());
           }
         } else if (provider === "vk") {
-          const globalAny = window as unknown as Record<string, any>;
-          const VKID = globalAny.VKID;
+          const sdkWindow = window as OAuthWidgetWindow;
+          const VKID = sdkWindow.VKID;
           if (!VKID?.Config?.init || !VKID?.OneTap) {
             throw new Error("VK ID SDK is unavailable");
           }
