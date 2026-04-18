@@ -14,7 +14,7 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
-import { faGoogle, faVk, faYandex } from "@fortawesome/free-brands-svg-icons";
+import { faVk, faYandex } from "@fortawesome/free-brands-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { t } from "@/shared/i18n";
@@ -228,15 +228,46 @@ const mapSocialButton = (provider: SocialProvider) => {
 };
 
 const SocialProviderMark = ({ provider }: { provider: SocialProvider }) => {
-  const iconByProvider: Record<SocialProvider, typeof faGoogle> = {
-    google: faGoogle,
-    vk: faVk,
-    yandex: faYandex,
-  };
+  if (provider === "google") {
+    return (
+      <svg
+        className="auth-modal__social-brand auth-modal__social-brand--google"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          fill="#EA4335"
+          d="M12 10.18v3.96h5.49c-.24 1.27-.96 2.35-2.04 3.08l3.3 2.55c1.92-1.77 3.03-4.38 3.03-7.5 0-.72-.06-1.41-.2-2.09z"
+        />
+        <path
+          fill="#34A853"
+          d="M12 22c2.7 0 4.96-.89 6.61-2.43l-3.3-2.55c-.92.62-2.1.99-3.31.99-2.55 0-4.7-1.72-5.47-4.03L3.12 16.6C4.77 19.88 8.15 22 12 22z"
+        />
+        <path
+          fill="#FBBC05"
+          d="M6.53 13.98a5.98 5.98 0 0 1-.3-1.98c0-.69.11-1.35.3-1.98L3.12 7.4A9.97 9.97 0 0 0 2 12c0 1.64.39 3.2 1.12 4.6z"
+        />
+        <path
+          fill="#4285F4"
+          d="M12 5.99c1.47 0 2.79.51 3.83 1.51l2.87-2.87C16.96 2.99 14.7 2 12 2 8.15 2 4.77 4.12 3.12 7.4l3.41 2.62c.77-2.31 2.92-4.03 5.47-4.03z"
+        />
+      </svg>
+    );
+  }
+  if (provider === "vk") {
+    return (
+      <FontAwesomeIcon
+        icon={faVk}
+        className="auth-modal__social-brand auth-modal__social-brand--vk"
+        aria-hidden="true"
+      />
+    );
+  }
   return (
     <FontAwesomeIcon
-      icon={iconByProvider[provider]}
-      className={`auth-modal__social-brand auth-modal__social-brand--${provider}`}
+      icon={faYandex}
+      className="auth-modal__social-brand auth-modal__social-brand--yandex"
       aria-hidden="true"
     />
   );
@@ -773,7 +804,7 @@ export function AuthModal({
       <Button
         key={provider}
         type="button"
-        variant={provider === "google" ? "outlined" : "contained"}
+        variant="outlined"
         className={`auth-modal__social-btn ${social.className} ${
           providerWidgetReady ? "auth-modal__social-btn--official-ready" : ""
         }`}
