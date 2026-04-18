@@ -14,8 +14,6 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
-import { faVk, faYandex } from "@fortawesome/free-brands-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { t } from "@/shared/i18n";
 import { ButtonPending } from "@/shared/ui/loading";
@@ -257,19 +255,31 @@ const SocialProviderMark = ({ provider }: { provider: SocialProvider }) => {
   }
   if (provider === "vk") {
     return (
-      <FontAwesomeIcon
-        icon={faVk}
+      <svg
         className="auth-modal__social-brand auth-modal__social-brand--vk"
+        viewBox="0 0 448 512"
         aria-hidden="true"
-      />
+        focusable="false"
+      >
+        <path
+          fill="currentColor"
+          d="M75.6 168.3l51.1 0c1.7 85.5 39.4 121.7 69.3 129.2l0-129.2 48.2 0 0 73.7c29.5-3.2 60.5-36.8 70.9-73.7l48.2 0c-3.9 19.2-11.8 37.3-23.1 53.3s-25.7 29.5-42.5 39.6c18.7 9.3 35.2 22.4 48.4 38.5s22.9 34.9 28.3 55l-53 0c-4.9-17.5-14.8-33.1-28.6-45s-30.7-19.4-48.7-21.6l0 66.6-5.8 0c-102.1 0-160.3-70-162.8-186.5z"
+        />
+      </svg>
     );
   }
   return (
-    <FontAwesomeIcon
-      icon={faYandex}
+    <svg
       className="auth-modal__social-brand auth-modal__social-brand--yandex"
+      viewBox="0 0 256 512"
       aria-hidden="true"
-    />
+      focusable="false"
+    >
+      <path
+        fill="currentColor"
+        d="M153.1 315.8L65.7 512 2 512 98 302.2C52.9 279.3 22.8 237.8 22.8 161.1 22.7 53.7 90.8 0 171.7 0l82.3 0 0 512-55.1 0 0-196.2-45.8 0zM198.9 46.5l-29.4 0c-44.4 0-87.4 29.4-87.4 114.6 0 82.3 39.4 108.8 87.4 108.8l29.4 0 0-223.4z"
+      />
+    </svg>
   );
 };
 

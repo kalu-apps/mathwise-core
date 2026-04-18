@@ -288,9 +288,9 @@
   }
 
   &__social-badge {
-    width: 20px;
-    min-width: 20px;
-    height: 20px;
+    width: auto;
+    min-width: 0;
+    height: auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -299,11 +299,16 @@
     box-shadow: none !important;
     border-radius: 0 !important;
     padding: 0;
+    margin-inline-end: 2px;
 
     svg {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
       display: block;
+      background: transparent !important;
+      border: 0 !important;
+      box-shadow: none !important;
+      filter: none !important;
     }
   }
 
@@ -315,6 +320,13 @@
     border: 0 !important;
     box-shadow: none !important;
     filter: none !important;
+    isolation: isolate;
+    overflow: visible;
+
+    * {
+      background: transparent !important;
+      filter: none !important;
+    }
   }
 
   &__social-brand--vk {
@@ -491,7 +503,7 @@
   }
 
   .auth-modal__social-label {
-    color: #355181 !important;
+    color: #4b618d !important;
   }
 
   .auth-modal__official-shell {

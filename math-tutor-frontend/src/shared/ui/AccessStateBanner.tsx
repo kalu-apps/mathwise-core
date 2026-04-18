@@ -35,7 +35,7 @@ export function AccessStateBanner({
   return (
     <Alert
       severity={meta.severity as "info" | "warning"}
-      className="ui-alert"
+      className="ui-alert ui-alert--access-banner"
       action={
         actions.length > 0 ? (
           <div className="ui-alert__actions ui-alert__actions--access">

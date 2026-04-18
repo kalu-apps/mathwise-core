@@ -1967,7 +1967,7 @@
   --course-card-plan: color-mix(in srgb, #d6e4ff 72%, #90a4c8);
   --course-card-price: #f7fbff;
   --course-card-body: color-mix(in srgb, #dbe7ff 90%, #b9c9e8);
-  box-shadow: 0 7px 14px rgba(4, 8, 22, 0.19);
+  box-shadow: 0 5px 11px rgba(4, 8, 22, 0.14);
 }
 
 :root[data-theme="dark"] .course-details__card::before {
@@ -1982,52 +1982,72 @@
 :root[data-theme="dark"] .course-details__card--premium {
   background:
     linear-gradient(
-      148deg,
-      #f9ddb0 0%,
-      #f1c982 21%,
-      #ffefcd 41%,
-      #dfa55a 63%,
-      #f8d29b 82%,
-      #bc8040 100%
+      146deg,
+      #ffecc7 0%,
+      #ffd89b 20%,
+      #fff3d8 42%,
+      #f5c97d 63%,
+      #ffe4ba 82%,
+      #e6b36f 100%
     ),
-    radial-gradient(86% 64% at 86% 11%, rgba(255, 244, 209, 0.52), transparent 73%),
-    radial-gradient(72% 58% at 10% 96%, rgba(255, 193, 112, 0.22), transparent 74%);
-  border-color: color-mix(in srgb, #deaf68 88%, #7d5020);
-  --course-card-heading: #34210a;
-  --course-card-plan: color-mix(in srgb, #66431a 85%, #8a5f29);
-  --course-card-price: #251604;
-  --course-card-body: color-mix(in srgb, #4b3110 90%, #24170a);
-  --course-card-dot-a: #d2963e;
-  --course-card-dot-b: #f6cf83;
+    radial-gradient(84% 66% at 84% 10%, rgba(255, 247, 221, 0.62), transparent 72%),
+    radial-gradient(68% 56% at 8% 95%, rgba(255, 202, 124, 0.28), transparent 74%);
+  border-color: color-mix(in srgb, #e6ba79 90%, #9e6b2f);
+  --course-card-heading: #5b3b13;
+  --course-card-plan: #7a5422;
+  --course-card-price: #3b2507;
+  --course-card-body: #6f4b1d;
+  --course-card-dot-a: #cf983d;
+  --course-card-dot-b: #f5c97e;
   box-shadow:
-    0 10px 18px rgba(26, 15, 4, 0.2),
-    0 2px 0 rgba(255, 240, 203, 0.26) inset;
+    0 6px 14px rgba(45, 25, 4, 0.14),
+    0 1px 0 rgba(255, 244, 214, 0.56) inset;
 }
 
 :root[data-theme="dark"] .course-details__card--premium::before {
   background:
     linear-gradient(
       116deg,
-      rgba(255, 251, 231, 0.72) 0%,
-      rgba(255, 236, 190, 0.28) 35%,
-      rgba(228, 170, 88, 0.12) 67%,
+      rgba(255, 252, 236, 0.8) 0%,
+      rgba(255, 238, 194, 0.36) 35%,
+      rgba(230, 176, 93, 0.14) 67%,
       transparent 100%
     ),
-    radial-gradient(58% 62% at 88% 10%, rgba(255, 242, 200, 0.5), transparent 72%);
-  opacity: 0.46;
+    radial-gradient(58% 62% at 88% 10%, rgba(255, 244, 208, 0.56), transparent 72%);
+  opacity: 0.6;
 }
 
 :root[data-theme="dark"] .course-details__card--premium::after {
-  border-color: color-mix(in srgb, #fff2d2 36%, transparent);
-  opacity: 0.62;
+  border-color: color-mix(in srgb, #fff0cb 44%, transparent);
+  opacity: 0.74;
+}
+
+:root[data-theme="dark"] .course-details__card--premium .course-details__card-header {
+  color: #5b3b13;
+}
+
+:root[data-theme="dark"] .course-details__card--premium .course-details__card-plan {
+  color: #7a5422;
+}
+
+:root[data-theme="dark"] .course-details__card--premium .course-details__card-price {
+  color: #3b2507;
+}
+
+:root[data-theme="dark"] .course-details__card--premium .course-details__benefits li {
+  color: #6f4b1d;
 }
 
 :root[data-theme="dark"] .course-details__card--premium .course-details__card-tooltip {
-  color: color-mix(in srgb, #4e3412 92%, #2e1f0d);
+  color: #6f4b1d;
 }
 
 :root[data-theme="dark"] .course-details__card--premium .course-details__card-tooltip .course-details__installment-line {
-  color: color-mix(in srgb, #593916 86%, #8a5f2a);
+  color: #72491a;
+}
+
+:root[data-theme="dark"] .course-details__card--premium .course-details__split-help {
+  color: color-mix(in srgb, #72491a 72%, #a86c25);
 }
 
 :root[data-theme="dark"] .course-details__card--basic {

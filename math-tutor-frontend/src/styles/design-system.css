@@ -764,6 +764,33 @@ textarea::placeholder {
   outline-offset: 2px;
 }
 
+.ui-alert--access-banner {
+  align-items: center !important;
+}
+
+.ui-alert--access-banner .MuiAlert-message {
+  padding: 0 !important;
+  display: block;
+  white-space: nowrap;
+}
+
+.ui-alert--access-banner .MuiAlert-action {
+  margin: 0 0 0 10px !important;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ui-alert--access-banner .ui-alert__actions--access {
+  width: auto;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.ui-alert--access-banner .ui-alert__action-link.MuiButton-root {
+  white-space: nowrap;
+}
+
 .ui-section {
   padding-block: 64px;
 }
@@ -1545,6 +1572,19 @@ textarea {
 .ui-alert__actions .MuiButton-root {
   padding-inline: 8px !important;
 }
+
+  .ui-alert--access-banner .MuiAlert-action {
+    margin-left: 8px !important;
+  }
+
+  .ui-alert--access-banner .ui-alert__actions--access {
+    width: auto;
+    justify-content: flex-end;
+  }
+
+  .ui-alert--access-banner .MuiAlert-message {
+    white-space: normal;
+  }
 }
 
 .performance-banner-wrap {
