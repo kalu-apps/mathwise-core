@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import clsx from "clsx";
 
 type AssetImageProps = {
@@ -22,15 +22,11 @@ export function AssetImage({
   showFallback = true,
   fallbackText = "Нет изображения",
 }: AssetImageProps) {
-  const [loaded, setLoaded] = useState(false);
-  const [errored, setErrored] = useState(false);
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  const [erroredSrc, setErroredSrc] = useState<string | null>(null);
 
-  useEffect(() => {
-    setLoaded(false);
-    setErrored(false);
-  }, [src]);
-
-  const hasSource = Boolean(src) && !errored;
+  const hasSource = Boolean(src) && src !== erroredSrc;
+  const loaded = Boolean(src) && src === loadedSrc && hasSource;
 
   return (
     <div
@@ -60,10 +56,17 @@ export function AssetImage({
           src={src ?? undefined}
           alt={alt}
           loading={loading}
-          onLoad={() => setLoaded(true)}
+          onLoad={() => {
+            setLoadedSrc(src ?? null);
+            if (src && erroredSrc === src) {
+              setErroredSrc(null);
+            }
+          }}
           onError={() => {
-            setErrored(true);
-            setLoaded(false);
+            setErroredSrc(src ?? null);
+            if (src && loadedSrc === src) {
+              setLoadedSrc(null);
+            }
           }}
         />
       ) : null}

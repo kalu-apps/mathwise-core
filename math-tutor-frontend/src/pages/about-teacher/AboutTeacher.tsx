@@ -13,15 +13,15 @@ export default function AboutTeacher() {
   const { loading, error, avatar, diplomas, reviews } = useAboutTeacherContent();
   const [openDiplomaIndex, setOpenDiplomaIndex] = useState<number | null>(null);
 
-  const heroReveal = useReveal<HTMLDivElement>({
+  const { setNode: setHeroRevealNode, visible: isHeroVisible } = useReveal<HTMLDivElement>({
     threshold: 0.1,
     rootMargin: "0px 0px -8% 0px",
   });
-  const proofReveal = useReveal<HTMLDivElement>({
+  const { setNode: setProofRevealNode, visible: isProofVisible } = useReveal<HTMLDivElement>({
     threshold: 0.16,
     rootMargin: "0px 0px -10% 0px",
   });
-  const reviewsReveal = useReveal<HTMLDivElement>({
+  const { setNode: setReviewsRevealNode, visible: isReviewsVisible } = useReveal<HTMLDivElement>({
     threshold: 0.2,
     rootMargin: "0px 0px -12% 0px",
   });
@@ -43,9 +43,9 @@ export default function AboutTeacher() {
       ) : null}
 
       <div
-        ref={heroReveal.ref}
+        ref={setHeroRevealNode}
         className={`about-teacher-page__reveal about-teacher-page__reveal--hero ${
-          heroReveal.visible ? "is-visible" : ""
+          isHeroVisible ? "is-visible" : ""
         }`}
       >
         <AboutTeacherHero
@@ -57,18 +57,18 @@ export default function AboutTeacher() {
       </div>
 
       <div
-        ref={proofReveal.ref}
+        ref={setProofRevealNode}
         className={`about-teacher-page__reveal about-teacher-page__reveal--proof ${
-          proofReveal.visible ? "is-visible" : ""
+          isProofVisible ? "is-visible" : ""
         }`}
       >
         <AboutTeacherProof diplomas={diplomas} onOpenDiploma={setOpenDiplomaIndex} />
       </div>
 
       <div
-        ref={reviewsReveal.ref}
+        ref={setReviewsRevealNode}
         className={`about-teacher-page__reveal about-teacher-page__reveal--reviews ${
-          reviewsReveal.visible ? "is-visible" : ""
+          isReviewsVisible ? "is-visible" : ""
         }`}
       >
         <AboutTeacherReviews reviews={reviews} />

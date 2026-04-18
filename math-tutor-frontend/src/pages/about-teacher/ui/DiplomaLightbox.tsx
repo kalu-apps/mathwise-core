@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Dialog, IconButton } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
@@ -18,16 +18,13 @@ export function DiplomaLightbox({
   onClose,
   onSetIndex,
 }: DiplomaLightboxProps) {
-  const [errored, setErrored] = useState(false);
+  const [erroredUrl, setErroredUrl] = useState<string | null>(null);
   const open = openIndex !== null && openIndex >= 0 && openIndex < diplomas.length;
   const current = useMemo(
     () => (open && openIndex !== null ? diplomas[openIndex] : null),
     [diplomas, open, openIndex]
   );
-
-  useEffect(() => {
-    setErrored(false);
-  }, [current?.url, open]);
+  const isCurrentErrored = Boolean(current?.url) && current?.url === erroredUrl;
 
   const move = (direction: "next" | "prev") => {
     if (!open || openIndex === null) return;
@@ -58,12 +55,16 @@ export function DiplomaLightbox({
           </IconButton>
         ) : null}
         <div className="about-teacher-lightbox__canvas">
-          {current?.url && !errored ? (
+          {current?.url && !isCurrentErrored ? (
             <img
               src={current.url}
               alt="Просмотр диплома"
-              onLoad={() => setErrored(false)}
-              onError={() => setErrored(true)}
+              onLoad={() => {
+                if (current.url === erroredUrl) {
+                  setErroredUrl(null);
+                }
+              }}
+              onError={() => setErroredUrl(current.url)}
             />
           ) : (
             <div className="about-teacher-lightbox__fallback">

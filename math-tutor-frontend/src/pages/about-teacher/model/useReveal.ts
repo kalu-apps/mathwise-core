@@ -1,19 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 export function useReveal<T extends HTMLElement>(options?: {
   threshold?: number;
   rootMargin?: string;
 }) {
-  const ref = useRef<T | null>(null);
-  const [visible, setVisible] = useState(false);
+  const [node, setNode] = useState<T | null>(null);
+  const [visible, setVisible] = useState(
+    () => typeof IntersectionObserver === "undefined"
+  );
 
   useEffect(() => {
-    if (visible) return;
-    const node = ref.current;
-    if (!node || typeof IntersectionObserver === "undefined") {
-      setVisible(true);
-      return;
-    }
+    if (visible || !node || typeof IntersectionObserver === "undefined") return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -31,10 +28,10 @@ export function useReveal<T extends HTMLElement>(options?: {
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [visible, options?.threshold, options?.rootMargin]);
+  }, [node, visible, options?.threshold, options?.rootMargin]);
 
   return {
-    ref,
+    setNode,
     visible,
   };
 }
