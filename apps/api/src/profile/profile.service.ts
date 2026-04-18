@@ -1,5 +1,11 @@
 import crypto from "node:crypto";
-import { HttpException, Injectable, OnModuleInit, Optional } from "@nestjs/common";
+import {
+  HttpException,
+  Inject,
+  Injectable,
+  OnModuleInit,
+  Optional,
+} from "@nestjs/common";
 import { AuthService } from "../auth/auth.service";
 import { AuthRepository } from "../auth/auth.repository";
 import { SessionStore } from "../auth/session.store";
@@ -90,11 +96,14 @@ export class ProfileService implements OnModuleInit {
     private readonly coursesRepository: CoursesRepository,
     private readonly lessonsRepository: LessonsRepository,
     @Optional()
-    private readonly mediaStorageService: MediaStorageService | null = null,
+    @Inject(MediaStorageService)
+    private readonly mediaStorageService: MediaStorageService | undefined,
     @Optional()
-    private readonly authService: AuthService | null = null,
+    @Inject(AuthService)
+    private readonly authService: AuthService | undefined,
     @Optional()
-    private readonly sessionStore: SessionStore | null = null
+    @Inject(SessionStore)
+    private readonly sessionStore: SessionStore | undefined
   ) {}
 
   async onModuleInit() {
@@ -585,26 +594,66 @@ export class ProfileService implements OnModuleInit {
     limit: number
   ): Promise<AboutTeacherAssetDto[]> {
     const mediaStorageService = this.mediaStorageService;
-    if (!mediaStorageService?.isEnabled()) return [];
-
-    const prefix = `${this.runtimeConfig.appEnv}/about_teacher/${folder}/`;
-    try {
-      const listed = await mediaStorageService.listObjectsByPrefix({
-        prefix,
-        maxKeys: Math.max(limit * 3, limit),
+    if (!mediaStorageService?.isEnabled()) {
+      console.warn("[profile] about-teacher-media-storage-disabled", {
+        folder,
+        appEnv: this.runtimeConfig.appEnv,
       });
+      return [];
+    }
 
-      const imageObjects = listed
-        .filter((item) => item.key.startsWith(prefix))
+    const primaryPrefix = `${this.runtimeConfig.appEnv}/about_teacher/${folder}/`;
+    const fallbackPrefix = `about_teacher/${folder}/`;
+    const prefixes =
+      fallbackPrefix === primaryPrefix
+        ? [primaryPrefix]
+        : [primaryPrefix, fallbackPrefix];
+    try {
+      const maxKeys = Math.max(limit * 3, limit);
+      let usedPrefix = primaryPrefix;
+      let listed: Awaited<ReturnType<typeof mediaStorageService.listObjectsByPrefix>> =
+        [];
+
+      for (const prefix of prefixes) {
+        const candidate = await mediaStorageService.listObjectsByPrefix({
+          prefix,
+          maxKeys,
+        });
+        if (candidate.length > 0) {
+          listed = candidate;
+          usedPrefix = prefix;
+          break;
+        }
+      }
+
+      const nonFolderObjects = listed
         .filter((item) => !item.key.endsWith("/"))
-        .filter((item) => isImageObjectKey(item.key))
-        .sort((a, b) => a.key.localeCompare(b.key, "ru", { sensitivity: "base" }))
-        .slice(0, limit);
+        .sort((a, b) => a.key.localeCompare(b.key, "ru", { sensitivity: "base" }));
+      const imageObjects = nonFolderObjects.filter((item) => isImageObjectKey(item.key));
+      const selectedObjects = (imageObjects.length > 0 ? imageObjects : nonFolderObjects).slice(
+        0,
+        limit
+      );
 
-      if (imageObjects.length === 0) return [];
+      if (selectedObjects.length === 0) {
+        console.warn("[profile] about-teacher-assets-empty", {
+          folder,
+          appEnv: this.runtimeConfig.appEnv,
+          prefixes,
+        });
+        return [];
+      }
+
+      if (usedPrefix !== primaryPrefix) {
+        console.warn("[profile] about-teacher-assets-fallback-prefix", {
+          folder,
+          appEnv: this.runtimeConfig.appEnv,
+          usedPrefix,
+        });
+      }
 
       const signed = await Promise.all(
-        imageObjects.map(async (item) => {
+        selectedObjects.map(async (item) => {
           const fileName = normalizeKeyFileName(item.key);
           const signedUrl = await mediaStorageService.createSignedDownloadUrl({
             objectKey: item.key,
@@ -622,6 +671,7 @@ export class ProfileService implements OnModuleInit {
       console.error("[profile] about-teacher-assets-unavailable", {
         folder,
         appEnv: this.runtimeConfig.appEnv,
+        prefixes,
         message: error instanceof Error ? error.message : "unknown_error",
       });
       return [];

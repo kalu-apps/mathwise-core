@@ -136,7 +136,7 @@ const createService = (overrides?: {
     authRepository as never,
     coursesRepository as never,
     lessonsRepository as never,
-    null as never,
+    undefined,
     authService as never,
     sessionStore as never
   );

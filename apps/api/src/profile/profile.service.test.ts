@@ -67,7 +67,10 @@ test("profile: student context reconciles guest bookings by canonical email", as
     profileRepository as never,
     authRepository as never,
     coursesRepository as never,
-    lessonsRepository as never
+    lessonsRepository as never,
+    undefined,
+    undefined,
+    undefined
   );
 
   const context = await service.getStudentContext("student_1");
