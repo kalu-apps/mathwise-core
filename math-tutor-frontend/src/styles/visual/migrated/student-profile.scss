@@ -1,6 +1,6 @@
 .student-profile {
   max-width: 1320px;
-  margin: 0 auto;
+  margin: clamp(10px, 1.4vw, 18px) auto 0;
   padding: clamp(30px, 3.2vw, 42px) clamp(14px, 2vw, 24px) 40px;
   color: var(--text-primary);
 }

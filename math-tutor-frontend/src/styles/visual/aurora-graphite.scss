@@ -116,38 +116,31 @@ body::after,
 /* Notebook-grid background for personal cabinets (teacher/student). */
 .student-profile,
 .teacher-dashboard {
-  --cabinet-grid-paper-a: #f2d9ea;
-  --cabinet-grid-paper-b: #afc0ff;
-  --cabinet-grid-minor: rgba(255, 255, 255, 0.44);
-  --cabinet-grid-major: rgba(255, 255, 255, 0.28);
+  --cabinet-grid-paper-a: #e9dcf3;
+  --cabinet-grid-paper-b: #b3c5f8;
+  --cabinet-grid-minor: rgba(255, 255, 255, 0.2);
+  --cabinet-grid-smoke: rgba(246, 249, 255, 0.24);
+  --cabinet-grid-step: 32px;
   background:
-    repeating-linear-gradient(
-      0deg,
-      transparent 0,
-      transparent 31px,
-      var(--cabinet-grid-minor) 31px,
-      var(--cabinet-grid-minor) 32px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent 0,
-      transparent 31px,
-      var(--cabinet-grid-minor) 31px,
-      var(--cabinet-grid-minor) 32px
+    linear-gradient(
+      145deg,
+      var(--cabinet-grid-smoke) 0%,
+      color-mix(in srgb, var(--cabinet-grid-smoke) 60%, transparent) 52%,
+      transparent 100%
     ),
     repeating-linear-gradient(
       0deg,
       transparent 0,
-      transparent 155px,
-      var(--cabinet-grid-major) 155px,
-      var(--cabinet-grid-major) 157px
+      transparent calc(var(--cabinet-grid-step) - 1px),
+      var(--cabinet-grid-minor) calc(var(--cabinet-grid-step) - 1px),
+      var(--cabinet-grid-minor) var(--cabinet-grid-step)
     ),
     repeating-linear-gradient(
       90deg,
       transparent 0,
-      transparent 155px,
-      var(--cabinet-grid-major) 155px,
-      var(--cabinet-grid-major) 157px
+      transparent calc(var(--cabinet-grid-step) - 1px),
+      var(--cabinet-grid-minor) calc(var(--cabinet-grid-step) - 1px),
+      var(--cabinet-grid-minor) var(--cabinet-grid-step)
     ),
     linear-gradient(
       122deg,
@@ -156,18 +149,18 @@ body::after,
       var(--cabinet-grid-paper-b) 100%
     ) !important;
   border-radius: 24px;
-  border: 1px solid color-mix(in srgb, var(--brand-soft) 28%, var(--border-subtle));
-  box-shadow: 0 10px 22px color-mix(in srgb, var(--brand-shadow) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-soft) 20%, var(--border-subtle));
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--brand-shadow) 9%, transparent);
 }
 
 :root[data-theme="dark"] .student-profile,
 :root[data-theme="dark"] .teacher-dashboard {
-  --cabinet-grid-paper-a: #273660;
-  --cabinet-grid-paper-b: #1f2f5c;
-  --cabinet-grid-minor: rgba(132, 166, 230, 0.12);
-  --cabinet-grid-major: rgba(182, 209, 255, 0.16);
+  --cabinet-grid-paper-a: #24355f;
+  --cabinet-grid-paper-b: #1c2c52;
+  --cabinet-grid-minor: rgba(157, 192, 255, 0.085);
+  --cabinet-grid-smoke: rgba(28, 42, 78, 0.26);
   border-color: color-mix(in srgb, var(--brand-soft) 34%, var(--card-border));
-  box-shadow: 0 8px 18px rgba(4, 9, 28, 0.18);
+  box-shadow: 0 6px 14px rgba(4, 9, 28, 0.14);
 }
 
 .hero,
