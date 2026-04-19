@@ -5,9 +5,13 @@ import {
   Button,
   CircularProgress,
   Container,
+  Dialog,
+  IconButton,
 } from "@mui/material";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import DescriptionIcon from "@mui/icons-material/Description";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { VideoPlayer } from "@/entities/lesson/ui/VideoPlayer";
@@ -35,8 +39,16 @@ type LessonDetailsLocationState = {
   expandedBlockId?: string | null;
 };
 
+type LessonMaterialItem = NonNullable<Lesson["materials"]>[number];
+
 const isLikelyHlsSource = (value?: string) =>
-  Boolean(value && /\\.m3u8(?:$|[?#])/i.test(value.trim()));
+  Boolean(value && /\.m3u8(?:$|[?#])/i.test(value.trim()));
+
+const isImageMaterial = (material: LessonMaterialItem) =>
+  /\.(png|jpe?g|webp|gif|bmp|avif|svg)$/i.test(material.name);
+
+const buildPdfFirstPagePreviewUrl = (url: string) =>
+  `${url}${url.includes("#") ? "&" : "#"}page=1&view=FitH&toolbar=0&navpanes=0&scrollbar=0`;
 
 export default function LessonDetails() {
   const { id: lessonIdParam } = useParams<{ id: string }>();
@@ -69,6 +81,15 @@ export default function LessonDetails() {
   const [materialErrorById, setMaterialErrorById] = useState<Record<string, string>>(
     {}
   );
+  const [materialAccessById, setMaterialAccessById] = useState<
+    Record<string, { accessUrl: string; expiresAt?: string | null; downloadable: boolean }>
+  >({});
+  const [previewMaterial, setPreviewMaterial] = useState<{
+    id: string;
+    accessUrl: string;
+    isImage: boolean;
+    downloadable: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -137,6 +158,8 @@ export default function LessonDetails() {
         setPlaybackLoading(false);
         setMaterialLoadingById({});
         setMaterialErrorById({});
+        setMaterialAccessById({});
+        setPreviewMaterial(null);
 
         if (
           finalCanAccess &&
@@ -159,6 +182,8 @@ export default function LessonDetails() {
         setPlaybackLoading(false);
         setMaterialLoadingById({});
         setMaterialErrorById({});
+        setMaterialAccessById({});
+        setPreviewMaterial(null);
       } finally {
         if (active) setLoading(false);
       }
@@ -222,8 +247,18 @@ export default function LessonDetails() {
   ]);
 
   const handleOpenMaterial = useCallback(
-    async (materialId: string) => {
+    async (materialId: string, options?: { force?: boolean }) => {
       if (!lesson?.id) return;
+      const cached = materialAccessById[materialId];
+      const expiresAtMs = cached?.expiresAt ? new Date(cached.expiresAt).getTime() : null;
+      const now = Date.now();
+      if (
+        cached &&
+        !options?.force &&
+        (expiresAtMs === null || Number.isNaN(expiresAtMs) || expiresAtMs - now > 45_000)
+      ) {
+        return cached;
+      }
       setMaterialLoadingById((prev) => ({ ...prev, [materialId]: true }));
       setMaterialErrorById((prev) => ({ ...prev, [materialId]: "" }));
       try {
@@ -231,10 +266,19 @@ export default function LessonDetails() {
           lessonId: lesson.id,
           materialId,
         });
-        const opened = window.open(access.accessUrl, "_blank", "noopener,noreferrer");
-        if (!opened) {
-          window.location.assign(access.accessUrl);
-        }
+        setMaterialAccessById((prev) => ({
+          ...prev,
+          [materialId]: {
+            accessUrl: access.accessUrl,
+            expiresAt: access.expiresAt ?? null,
+            downloadable: access.downloadable,
+          },
+        }));
+        return {
+          accessUrl: access.accessUrl,
+          expiresAt: access.expiresAt ?? null,
+          downloadable: access.downloadable,
+        };
       } catch {
         setMaterialErrorById((prev) => ({
           ...prev,
@@ -244,7 +288,78 @@ export default function LessonDetails() {
         setMaterialLoadingById((prev) => ({ ...prev, [materialId]: false }));
       }
     },
-    [lesson?.id]
+    [lesson?.id, materialAccessById]
+  );
+
+  useEffect(() => {
+    const materials = lesson?.materials ?? [];
+    if (!lesson?.id || !canAccess || !materials.length) return;
+    let active = true;
+    const preloadMaterialAccess = async () => {
+      await Promise.all(
+        materials.map(async (material) => {
+          if (!material.mediaObjectId && !material.url) return;
+          if (materialAccessById[material.id]?.accessUrl) return;
+          try {
+            const access = await getLessonMaterialAccess({
+              lessonId: lesson.id,
+              materialId: material.id,
+            });
+            if (!active) return;
+            setMaterialAccessById((prev) => ({
+              ...prev,
+              [material.id]: {
+                accessUrl: access.accessUrl,
+                expiresAt: access.expiresAt ?? null,
+                downloadable: access.downloadable,
+              },
+            }));
+          } catch {
+            if (!active) return;
+            setMaterialErrorById((prev) => ({
+              ...prev,
+              [material.id]: "Не удалось подготовить предпросмотр материала.",
+            }));
+          }
+        })
+      );
+    };
+    void preloadMaterialAccess();
+    return () => {
+      active = false;
+    };
+  }, [canAccess, lesson?.id, lesson?.materials, materialAccessById]);
+
+  const handlePreviewMaterial = useCallback(
+    async (material: LessonMaterialItem) => {
+      if (!material.mediaObjectId && !material.url) return;
+      const access = await handleOpenMaterial(material.id);
+      if (!access?.accessUrl) return;
+      setPreviewMaterial({
+        id: material.id,
+        accessUrl: access.accessUrl,
+        isImage: isImageMaterial(material),
+        downloadable: access.downloadable,
+      });
+    },
+    [handleOpenMaterial]
+  );
+
+  const handleDownloadMaterial = useCallback(
+    async (event: React.MouseEvent<HTMLButtonElement>, material: LessonMaterialItem) => {
+      event.stopPropagation();
+      const access = await handleOpenMaterial(material.id, { force: true });
+      if (!access?.accessUrl) return;
+      const anchor = document.createElement("a");
+      anchor.href = access.accessUrl;
+      anchor.download = "";
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    },
+    [handleOpenMaterial]
   );
 
   if (!id) {
@@ -454,12 +569,11 @@ export default function LessonDetails() {
         <div className="lesson-details__top-nav">
           <BackNavButton onClick={handleBackToCourse} />
         </div>
-        <header className="lesson-details__hero">
-          <h1 className="lesson-details__title">{lesson.title}</h1>
+        <div className="lesson-details__hero" aria-label="Метаданные урока">
           <span className="lesson-details__duration-chip">
             Длительность: {durationText}
           </span>
-        </header>
+        </div>
 
         <div className="lesson-details__video-card">
           {hasPlayableVideo ? (
@@ -505,51 +619,97 @@ export default function LessonDetails() {
             )}
             <div className="lesson-details__materials-grid">
               {lesson.materials.map((m) => (
-                <article key={m.id} className="lesson-details__material-card">
-                  <span className="lesson-details__material-icon">
-                    {m.type === "pdf" ? (
-                      <PictureAsPdfIcon color="error" />
+                <article
+                  key={m.id}
+                  className="lesson-details__material-card"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    void handlePreviewMaterial(m);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      void handlePreviewMaterial(m);
+                    }
+                  }}
+                >
+                  <div className="lesson-details__material-preview">
+                    {materialLoadingById[m.id] ? (
+                      <div className="lesson-details__material-preview-fallback">
+                        <CircularProgress size={20} />
+                      </div>
+                    ) : materialAccessById[m.id]?.accessUrl ? (
+                      isImageMaterial(m) ? (
+                        <img
+                          src={materialAccessById[m.id].accessUrl}
+                          alt="Предпросмотр материала"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <iframe
+                          src={buildPdfFirstPagePreviewUrl(materialAccessById[m.id].accessUrl)}
+                          title="Предпросмотр первой страницы материала"
+                          loading="lazy"
+                        />
+                      )
                     ) : (
-                      <DescriptionIcon color="primary" />
-                    )}
-                  </span>
-                  <div className="lesson-details__material-content">
-                    <h3>{m.name}</h3>
-                    {materialErrorById[m.id] ? (
-                      <Alert severity="warning" className="ui-alert">
-                        {materialErrorById[m.id]}
-                      </Alert>
-                    ) : null}
-                    {!m.mediaObjectId && !m.url ? (
-                      <span>Материал еще не готов к выдаче.</span>
-                    ) : (
-                      <Button
-                        variant="text"
-                        size="small"
-                        disabled={Boolean(materialLoadingById[m.id])}
-                        onClick={() => {
-                          void handleOpenMaterial(m.id);
-                        }}
-                      >
-                        {materialLoadingById[m.id] ? (
-                          <>
-                            <CircularProgress size={14} sx={{ mr: 1 }} />
-                            Получаем доступ...
-                          </>
-                        ) : lesson.settings?.disablePrintableDownloads &&
-                          (m.type === "pdf" || m.type === "doc") ? (
-                          "Открыть для просмотра"
+                      <div className="lesson-details__material-preview-fallback">
+                        {m.type === "pdf" ? (
+                          <PictureAsPdfIcon color="error" />
                         ) : (
-                          "Открыть материал"
+                          <DescriptionIcon color="primary" />
                         )}
-                      </Button>
+                      </div>
                     )}
                   </div>
+                  {!lesson.settings?.disablePrintableDownloads &&
+                  (materialAccessById[m.id]?.downloadable ?? m.downloadable ?? true) ? (
+                    <button
+                      type="button"
+                      className="lesson-details__material-download"
+                      aria-label="Скачать материал"
+                      onClick={(event) => {
+                        void handleDownloadMaterial(event, m);
+                      }}
+                    >
+                      <DownloadRoundedIcon fontSize="inherit" />
+                    </button>
+                  ) : null}
+                  {materialErrorById[m.id] ? (
+                    <span className="lesson-details__material-error-text">
+                      {materialErrorById[m.id]}
+                    </span>
+                  ) : null}
                 </article>
               ))}
             </div>
           </section>
         )}
+        <Dialog
+          open={Boolean(previewMaterial)}
+          onClose={() => setPreviewMaterial(null)}
+          fullWidth
+          maxWidth="xl"
+          className="lesson-details__material-preview-dialog"
+        >
+          <IconButton
+            className="lesson-details__material-preview-close"
+            aria-label="Закрыть предпросмотр материала"
+            onClick={() => setPreviewMaterial(null)}
+          >
+            <CloseRoundedIcon />
+          </IconButton>
+          <div className="lesson-details__material-preview-modal-body">
+            {previewMaterial?.accessUrl ? (
+              previewMaterial.isImage ? (
+                <img src={previewMaterial.accessUrl} alt="Предпросмотр материала" />
+              ) : (
+                <iframe src={previewMaterial.accessUrl} title="Предпросмотр материала" />
+              )
+            ) : null}
+          </div>
+        </Dialog>
       </Container>
     </section>
   );

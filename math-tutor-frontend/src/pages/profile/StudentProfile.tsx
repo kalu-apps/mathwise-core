@@ -31,6 +31,7 @@ import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
 import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
+import CollectionsBookmarkRoundedIcon from "@mui/icons-material/CollectionsBookmarkRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DiamondRoundedIcon from "@mui/icons-material/DiamondRounded";
 import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
@@ -111,7 +112,7 @@ import {
   buildStudyCabinetWeekActivity,
   type StudyCabinetNote,
 } from "@/shared/lib/studyCabinet";
-import { getUserAvatarInitial } from "@/shared/lib/userDisplayName";
+import { formatUserBadgeName, getUserAvatarInitial } from "@/shared/lib/userDisplayName";
 
 const PROFILE_AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 
@@ -730,7 +731,7 @@ export default function StudentProfile() {
         {
           index: 3,
           label: "Учебный кабинет",
-          icon: <AutoStoriesRoundedIcon />,
+          icon: <CollectionsBookmarkRoundedIcon />,
         },
         {
           index: WORKBOOK_TAB_INDEX,
@@ -775,7 +776,7 @@ export default function StudentProfile() {
 
   if (!user) return null;
   const roleLabel = user.role === "teacher" ? "Преподаватель" : "Студент";
-  const identityName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
+  const identityName = formatUserBadgeName(user);
   const identityInitial = getUserAvatarInitial(user) || "С";
 
   const openProfileEditDialog = () => {

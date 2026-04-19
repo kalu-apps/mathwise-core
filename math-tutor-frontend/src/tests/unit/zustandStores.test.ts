@@ -20,9 +20,9 @@ describe("zustand orchestration stores", () => {
   it("keeps teacher dashboard ui counters in store", () => {
     const teacherStore = useTeacherDashboardUiStore.getState();
     teacherStore.setChatUnreadCount(4);
-    teacherStore.setStudyReminderCount((prev) => prev + 2);
+    teacherStore.setCoursesPage((prev) => prev + 2);
     expect(useTeacherDashboardUiStore.getState().chatUnreadCount).toBe(4);
-    expect(useTeacherDashboardUiStore.getState().studyReminderCount).toBe(2);
+    expect(useTeacherDashboardUiStore.getState().coursesPage).toBe(3);
   });
 
   it("resets course details checkout orchestration state", () => {

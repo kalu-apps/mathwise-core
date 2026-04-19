@@ -42,10 +42,9 @@
 }
 
 .lesson-details__hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  justify-content: flex-end;
   align-items: center;
-  gap: 10px;
   margin: 0 0 12px;
   padding: 0;
   border: 0 !important;
@@ -168,50 +167,154 @@
 
 .lesson-details__materials-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
 }
 
 .lesson-details__material-card {
-  border-radius: 14px;
+  position: relative;
+  border-radius: 16px;
   border: 1px solid var(--card-border);
   background: linear-gradient(180deg, var(--surface-soft), var(--surface-elevated));
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
-.lesson-details__material-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 14px;
+.lesson-details__material-card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--card-border));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent-primary) 18%, transparent);
+}
+
+.lesson-details__material-card:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--card-border));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent-primary) 18%, transparent),
+    0 10px 24px color-mix(in srgb, var(--accent-primary) 14%, transparent);
+}
+
+.lesson-details__material-preview {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--surface-soft) 84%, transparent),
+      color-mix(in srgb, var(--surface-elevated) 92%, transparent)
+    );
+}
+
+.lesson-details__material-preview img,
+.lesson-details__material-preview iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.lesson-details__material-preview img {
+  object-fit: contain;
+  background: var(--surface-soft);
+}
+
+.lesson-details__material-preview iframe {
+  pointer-events: none;
+}
+
+.lesson-details__material-preview-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--text-secondary) 76%, transparent);
+}
+
+.lesson-details__material-preview-fallback .MuiSvgIcon-root {
+  font-size: 32px;
+}
+
+.lesson-details__material-download {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: 0;
+  background: transparent;
+  width: 24px;
+  height: 24px;
+  padding: 0;
   display: inline-grid;
   place-items: center;
-  background: color-mix(in srgb, var(--brand-soft) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-soft) 24%, transparent);
-  flex-shrink: 0;
+  color: color-mix(in srgb, var(--text-primary) 76%, var(--accent-primary));
+  cursor: pointer;
+  z-index: 2;
 }
 
-.lesson-details__material-content {
-  min-width: 0;
+.lesson-details__material-download .MuiSvgIcon-root {
+  font-size: 20px;
+}
+
+.lesson-details__material-download:hover {
+  color: var(--accent-primary);
+}
+
+.lesson-details__material-download:focus-visible {
+  outline: none;
+  color: var(--accent-primary);
+}
+
+.lesson-details__material-error-text {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--feedback-warning) 70%, var(--text-primary));
+  background: color-mix(in srgb, var(--surface-elevated) 84%, transparent);
+  padding: 5px 7px;
+  border-radius: 8px;
+}
+
+.lesson-details__material-preview-dialog {
+  .MuiDialog-paper {
+    border-radius: 18px;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--surface-elevated) 96%, transparent);
+    border: 1px solid color-mix(in srgb, var(--card-border) 88%, transparent);
+    min-height: min(86vh, 760px);
+  }
+}
+
+.lesson-details__material-preview-close.MuiIconButton-root {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  color: var(--text-primary);
+}
+
+.lesson-details__material-preview-modal-body {
+  width: 100%;
+  min-height: min(86vh, 760px);
   display: grid;
-  gap: 3px;
+  place-items: center;
+  padding: 18px;
+}
 
-  h3 {
-    margin: 0;
-    font-size: 14px;
-    line-height: 1.35;
-    color: var(--text-primary);
-    word-break: break-word;
-  }
+.lesson-details__material-preview-modal-body img,
+.lesson-details__material-preview-modal-body iframe {
+  width: 100%;
+  height: min(80vh, 720px);
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
 
-  a {
-    font-size: 13px;
-    color: var(--accent-text);
-    font-weight: 700;
-    text-decoration: none;
-  }
+.lesson-details__material-preview-modal-body img {
+  object-fit: contain;
 }
 
 .lesson-details__locked-card {
@@ -259,16 +362,7 @@
   }
 
   .lesson-details__hero {
-    max-width: 100%;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .lesson-details__title {
-    max-width: 100%;
-    font-size: clamp(10px, 2.9vw, 13px);
-    line-height: 1.2;
+    margin: 0 0 10px;
   }
 
   .lesson-details__duration-chip {
@@ -292,11 +386,11 @@
   }
 
   .lesson-details__material-card {
-    padding: 9px 10px;
+    border-radius: 14px;
   }
 
   .lesson-details__materials-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 
   .lesson-details__locked-card {
@@ -306,6 +400,19 @@
 
 @media (max-width: 520px) {
   .lesson-details__materials-grid {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lesson-details__material-preview {
+    aspect-ratio: 1 / 1;
+  }
+
+  .lesson-details__material-preview-modal-body {
+    padding: 12px;
+  }
+
+  .lesson-details__material-preview-modal-body img,
+  .lesson-details__material-preview-modal-body iframe {
+    height: min(72vh, 560px);
   }
 }

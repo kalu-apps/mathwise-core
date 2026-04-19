@@ -6,12 +6,6 @@ import type { Booking } from "@/entities/booking/model/types";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
 import { getCourseContentItems } from "@/features/assessments/model/storage";
 import { getTeacherChatThreads } from "@/features/chat/model/api";
-import {
-  countDueSoonStudyCabinetReminders,
-  getStudyCabinetNotes,
-  recordStudyCabinetActivity,
-  type StudyCabinetNote,
-} from "@/shared/lib/studyCabinet";
 import { normalizeFutureSlots } from "@/features/booking/lib/schedule";
 import { dispatchDataUpdate } from "@/shared/lib/dataUpdateBus";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
@@ -34,7 +28,6 @@ export type TeacherDashboardStudentCardData = {
 type UseTeacherDashboardDataParams = {
   userId?: string;
   isTeacher: boolean;
-  tab: number;
   setCourses: Dispatch<SetStateAction<Course[]>>;
   setStudentCards: Dispatch<SetStateAction<TeacherDashboardStudentCardData[]>>;
   setLessonCounts: Dispatch<SetStateAction<Record<string, number>>>;
@@ -44,9 +37,6 @@ type UseTeacherDashboardDataParams = {
   setChatUnreadCount: Dispatch<SetStateAction<number>>;
   setStudentsWithFeedbackIds: Dispatch<SetStateAction<string[]>>;
   setChatThreadIdsByStudentId: Dispatch<SetStateAction<Record<string, string>>>;
-  setStudyNotes: Dispatch<SetStateAction<StudyCabinetNote[]>>;
-  setStudyReminderCount: Dispatch<SetStateAction<number>>;
-  setStudyActivityVersion: Dispatch<SetStateAction<number>>;
   setAvailability: Dispatch<SetStateAction<AvailabilitySlot[]>>;
   setAvailabilityLoading: Dispatch<SetStateAction<boolean>>;
   setAvailabilityError: Dispatch<SetStateAction<string | null>>;
@@ -118,7 +108,6 @@ const isUnauthorizedApiError = (error: unknown) => {
 export const useTeacherDashboardData = ({
   userId,
   isTeacher,
-  tab,
   setCourses,
   setStudentCards,
   setLessonCounts,
@@ -128,9 +117,6 @@ export const useTeacherDashboardData = ({
   setChatUnreadCount,
   setStudentsWithFeedbackIds,
   setChatThreadIdsByStudentId,
-  setStudyNotes,
-  setStudyReminderCount,
-  setStudyActivityVersion,
   setAvailability,
   setAvailabilityLoading,
   setAvailabilityError,
@@ -154,8 +140,6 @@ export const useTeacherDashboardData = ({
     setChatUnreadCount(0);
     setStudentsWithFeedbackIds([]);
     setChatThreadIdsByStudentId({});
-    setStudyNotes([]);
-    setStudyReminderCount(0);
   }, [
     setAvailability,
     setBookings,
@@ -165,8 +149,6 @@ export const useTeacherDashboardData = ({
     setLessonCounts,
     setStudentCards,
     setStudentsWithFeedbackIds,
-    setStudyNotes,
-    setStudyReminderCount,
     setTestCounts,
   ]);
 
@@ -367,17 +349,6 @@ export const useTeacherDashboardData = ({
     userId,
   ]);
 
-  const syncStudyNotes = useCallback(() => {
-    if (!userId || !isTeacher) {
-      setStudyNotes([]);
-      setStudyReminderCount(0);
-      return;
-    }
-    const notes = getStudyCabinetNotes("teacher", userId);
-    setStudyNotes(notes);
-    setStudyReminderCount(countDueSoonStudyCabinetReminders(notes, 90));
-  }, [userId, isTeacher, setStudyNotes, setStudyReminderCount]);
-
   useEffect(() => {
     hasPrimaryLoadRef.current = false;
     blockedUntilRef.current = 0;
@@ -427,48 +398,8 @@ export const useTeacherDashboardData = ({
     };
   }, [refreshChatUnread]);
 
-  useEffect(() => {
-    syncStudyNotes();
-    const unsubscribe = subscribeAppDataUpdates(() => {
-      syncStudyNotes();
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, [syncStudyNotes]);
-
-  useEffect(() => {
-    if (tab !== 4 || !userId || !isTeacher) return;
-    let lastMarkAt = Date.now();
-    const intervalId = window.setInterval(() => {
-      const now = Date.now();
-      const elapsedMinutes = Math.floor((now - lastMarkAt) / 60_000);
-      if (elapsedMinutes <= 0) return;
-      recordStudyCabinetActivity({
-        role: "teacher",
-        userId,
-        minutes: elapsedMinutes,
-      });
-      lastMarkAt = now;
-      setStudyActivityVersion((prev) => prev + 1);
-    }, 60_000);
-
-    return () => {
-      window.clearInterval(intervalId);
-      const now = Date.now();
-      const elapsedMinutes = Math.max(1, Math.floor((now - lastMarkAt) / 60_000));
-      recordStudyCabinetActivity({
-        role: "teacher",
-        userId,
-        minutes: elapsedMinutes,
-      });
-      setStudyActivityVersion((prev) => prev + 1);
-    };
-  }, [tab, userId, isTeacher, setStudyActivityVersion]);
-
   return {
     refreshAll,
     retryDashboardData,
-    syncStudyNotes,
   };
 };

@@ -29,18 +29,6 @@ export const useTeacherDashboardUiState = () => {
   const setChatUnreadCount = useTeacherDashboardUiStore(
     (state) => state.setChatUnreadCount
   );
-  const studyActivityVersion = useTeacherDashboardUiStore(
-    (state) => state.studyActivityVersion
-  );
-  const setStudyActivityVersion = useTeacherDashboardUiStore(
-    (state) => state.setStudyActivityVersion
-  );
-  const studyReminderCount = useTeacherDashboardUiStore(
-    (state) => state.studyReminderCount
-  );
-  const setStudyReminderCount = useTeacherDashboardUiStore(
-    (state) => state.setStudyReminderCount
-  );
   const slotsDateFilter = useTeacherDashboardUiStore(
     (state) => state.slotsDateFilter
   );
@@ -78,10 +66,6 @@ export const useTeacherDashboardUiState = () => {
     setCoursesPage,
     chatUnreadCount,
     setChatUnreadCount,
-    studyActivityVersion,
-    setStudyActivityVersion,
-    studyReminderCount,
-    setStudyReminderCount,
     slotsDateFilter,
     setSlotsDateFilter,
     tabMenuOpen,

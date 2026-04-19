@@ -16,8 +16,6 @@ type TeacherDashboardUiStore = {
   scheduledPage: number;
   completedPage: number;
   chatUnreadCount: number;
-  studyActivityVersion: number;
-  studyReminderCount: number;
   setTab: (next: StoreSetStateAction<number>) => void;
   setTabMenuOpen: (next: StoreSetStateAction<boolean>) => void;
   setStudentQuery: (next: StoreSetStateAction<string>) => void;
@@ -32,8 +30,6 @@ type TeacherDashboardUiStore = {
   setScheduledPage: (next: StoreSetStateAction<number>) => void;
   setCompletedPage: (next: StoreSetStateAction<number>) => void;
   setChatUnreadCount: (next: StoreSetStateAction<number>) => void;
-  setStudyActivityVersion: (next: StoreSetStateAction<number>) => void;
-  setStudyReminderCount: (next: StoreSetStateAction<number>) => void;
   resetTeacherDashboardUiState: () => void;
 };
 
@@ -52,8 +48,6 @@ const TEACHER_DASHBOARD_UI_DEFAULTS = {
   scheduledPage: 1,
   completedPage: 1,
   chatUnreadCount: 0,
-  studyActivityVersion: 0,
-  studyReminderCount: 0,
 };
 
 export const useTeacherDashboardUiStore = create<TeacherDashboardUiStore>((set) => ({
@@ -104,14 +98,6 @@ export const useTeacherDashboardUiStore = create<TeacherDashboardUiStore>((set) 
   setChatUnreadCount: (next) =>
     set((state) => ({
       chatUnreadCount: resolveStoreSetState(state.chatUnreadCount, next),
-    })),
-  setStudyActivityVersion: (next) =>
-    set((state) => ({
-      studyActivityVersion: resolveStoreSetState(state.studyActivityVersion, next),
-    })),
-  setStudyReminderCount: (next) =>
-    set((state) => ({
-      studyReminderCount: resolveStoreSetState(state.studyReminderCount, next),
     })),
   resetTeacherDashboardUiState: () => set(TEACHER_DASHBOARD_UI_DEFAULTS),
 }));

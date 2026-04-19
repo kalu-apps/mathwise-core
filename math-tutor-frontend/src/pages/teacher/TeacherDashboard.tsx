@@ -25,6 +25,7 @@ import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
 import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import SchoolRoundedIcon from "@mui/icons-material/SchoolRounded";
 import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
+import CollectionsBookmarkRoundedIcon from "@mui/icons-material/CollectionsBookmarkRounded";
 import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import RemoveRoundedIcon from "@mui/icons-material/RemoveRounded";
@@ -44,9 +45,9 @@ import { CourseWithLessonsEditor } from "@/features/course-editor/ui/CourseWithL
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 import { NewsFeedPanel } from "@/features/news-feed/ui/NewsFeedPanel";
 import { ListPagination } from "@/shared/ui/ListPagination";
-import { StudyCabinetPanel } from "@/shared/ui/StudyCabinetPanel";
 import { PasswordSecurityCard } from "@/features/auth/ui/PasswordSecurityCard";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
+import { formatUserBadgeName } from "@/shared/lib/userDisplayName";
 import {
   openExternalWhiteboard,
   WORKBOOK_POPUP_BLOCKED_MESSAGE,
@@ -117,13 +118,6 @@ import { generateId } from "@/shared/lib/id";
 import { formatRuPhoneDisplay, formatRuPhoneInput, toRuPhoneStorage } from "@/shared/lib/phone";
 import { t } from "@/shared/i18n";
 import { createNewsPost } from "@/entities/news/model/storage";
-import {
-  buildStudyCabinetWeekActivity,
-  createStudyCabinetNote,
-  deleteStudyCabinetNote,
-  updateStudyCabinetNote,
-  type StudyCabinetNote,
-} from "@/shared/lib/studyCabinet";
 
 import type { Course } from "@/entities/course/model/types";
 
@@ -157,10 +151,6 @@ export default function TeacherDashboard() {
     setCoursesPage,
     chatUnreadCount,
     setChatUnreadCount,
-    studyActivityVersion,
-    setStudyActivityVersion,
-    studyReminderCount,
-    setStudyReminderCount,
     slotsDateFilter,
     setSlotsDateFilter,
     tabMenuOpen,
@@ -196,7 +186,6 @@ export default function TeacherDashboard() {
   const [bookingSavingId, setBookingSavingId] = useState<string | null>(null);
   const [bookingDeletingId, setBookingDeletingId] = useState<string | null>(null);
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
-  const [studyNotes, setStudyNotes] = useState<StudyCabinetNote[]>([]);
   const [studentsWithFeedbackIds, setStudentsWithFeedbackIds] = useState<
     string[]
   >([]);
@@ -311,10 +300,9 @@ export default function TeacherDashboard() {
     user,
   ]);
 
-  const { refreshAll, retryDashboardData, syncStudyNotes } = useTeacherDashboardData({
+  const { refreshAll, retryDashboardData } = useTeacherDashboardData({
     userId,
     isTeacher,
-    tab,
     setCourses,
     setStudentCards,
     setLessonCounts,
@@ -324,9 +312,6 @@ export default function TeacherDashboard() {
     setChatUnreadCount,
     setStudentsWithFeedbackIds,
     setChatThreadIdsByStudentId,
-    setStudyNotes,
-    setStudyReminderCount,
-    setStudyActivityVersion,
     setAvailability,
     setAvailabilityLoading,
     setAvailabilityError,
@@ -344,13 +329,6 @@ export default function TeacherDashboard() {
     () => selectUpcomingBookingReminder(scheduledBookings),
     [scheduledBookings]
   );
-
-  const teacherStudyActivityDays = useMemo(() => {
-    const recalcSeed = studyActivityVersion;
-    void recalcSeed;
-    if (!userId) return [];
-    return buildStudyCabinetWeekActivity("teacher", userId);
-  }, [userId, studyActivityVersion]);
 
   const availabilityDateGroups = useMemo(
     () =>
@@ -482,75 +460,6 @@ export default function TeacherDashboard() {
     });
   }, [availability.length, bookings.length, courses.length, studentCards.length]);
 
-  const handleTeacherCreateNote = useCallback(
-    (payload: {
-      title: string;
-      body: string;
-      dueAt: string | null;
-      endAt: string | null;
-      remind: boolean;
-      color: string;
-      kind?: "prep" | "followup" | "focus" | "break" | "custom";
-      linkedBookingId?: string | null;
-    }) => {
-      if (!userId || !isTeacher) return;
-      createStudyCabinetNote({
-        role: "teacher",
-        userId,
-        title: payload.title,
-        body: payload.body,
-        dueAt: payload.dueAt,
-        endAt: payload.endAt,
-        remind: payload.remind,
-        color: payload.color,
-        kind: payload.kind,
-        linkedBookingId: payload.linkedBookingId,
-      });
-      syncStudyNotes();
-    },
-    [userId, isTeacher, syncStudyNotes]
-  );
-
-  const handleTeacherUpdateNote = useCallback(
-    (payload: {
-      noteId: string;
-      title: string;
-      body: string;
-      dueAt: string | null;
-      endAt: string | null;
-      remind: boolean;
-      color: string;
-      kind?: "prep" | "followup" | "focus" | "break" | "custom";
-      linkedBookingId?: string | null;
-    }) => {
-      if (!userId || !isTeacher) return;
-      updateStudyCabinetNote({
-        role: "teacher",
-        userId,
-        noteId: payload.noteId,
-        title: payload.title,
-        body: payload.body,
-        dueAt: payload.dueAt,
-        endAt: payload.endAt,
-        remind: payload.remind,
-        color: payload.color,
-        kind: payload.kind,
-        linkedBookingId: payload.linkedBookingId,
-      });
-      syncStudyNotes();
-    },
-    [userId, isTeacher, syncStudyNotes]
-  );
-
-  const handleTeacherDeleteNote = useCallback(
-    (noteId: string) => {
-      if (!userId || !isTeacher) return;
-      deleteStudyCabinetNote({ role: "teacher", userId, noteId });
-      syncStudyNotes();
-    },
-    [userId, isTeacher, syncStudyNotes]
-  );
-
   const handleCreateInviteLink = useCallback(async () => {
     if (!isTeacher) return;
     const targetEmailInput = window.prompt(
@@ -592,11 +501,6 @@ export default function TeacherDashboard() {
     }
   }, [isTeacher]);
 
-  const handleTeacherOpenSchedule = useCallback(() => {
-    setTab(3);
-    setSearchParams({ tab: TEACHER_TAB_KEYS[3] });
-  }, [setSearchParams, setTab]);
-
   const handleTeacherOpenWorkbook = useCallback(async () => {
     const launch = await openExternalWhiteboard({
       from: "/teacher/profile?tab=workbook",
@@ -610,30 +514,6 @@ export default function TeacherDashboard() {
       setDashboardError(WORKBOOK_POPUP_BLOCKED_MESSAGE);
     }
   }, [setDashboardError]);
-
-  const handleTeacherOpenStudentChat = useCallback(
-    (studentId: string) => {
-      const params = new URLSearchParams(searchParams);
-      params.set("tab", TEACHER_TAB_KEYS[TEACHER_CHAT_TAB_INDEX]);
-      const threadId = chatThreadIdsByStudentId[studentId];
-      if (threadId) {
-        params.set("threadId", threadId);
-        params.delete("studentId");
-      } else {
-        params.set("studentId", studentId);
-        params.delete("threadId");
-      }
-      setTab(TEACHER_CHAT_TAB_INDEX);
-      setSearchParams(params);
-    },
-    [
-      chatThreadIdsByStudentId,
-      searchParams,
-      setSearchParams,
-      setTab,
-      TEACHER_CHAT_TAB_INDEX,
-    ]
-  );
 
   const deleteCourseFull = async (courseId: string) => {
     await deleteCourseWithCascade(courseId, {
@@ -1152,11 +1032,7 @@ export default function TeacherDashboard() {
     {
       index: TEACHER_STUDY_TAB_INDEX,
       label: t("teacherDashboard.tabStudy"),
-      icon: (
-        <Badge color="warning" variant="dot" invisible={studyReminderCount <= 0}>
-          <AutoStoriesRoundedIcon />
-        </Badge>
-      ),
+      icon: <CollectionsBookmarkRoundedIcon />,
     },
     {
       index: TEACHER_WORKBOOK_TAB_INDEX,
@@ -1185,7 +1061,7 @@ export default function TeacherDashboard() {
 
   const activeTeacherTab =
     teacherTabItems.find((item) => item.index === tab) ?? teacherTabItems[0];
-  const identityName = `${user.firstName} ${user.lastName}`.trim();
+  const identityName = formatUserBadgeName(user);
   const identityInitials = `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase();
 
   return (
@@ -1962,25 +1838,9 @@ export default function TeacherDashboard() {
             </div>
           )}
 
-          <div
-            style={{ display: tab === TEACHER_STUDY_TAB_INDEX ? "block" : "none" }}
-            aria-hidden={tab !== TEACHER_STUDY_TAB_INDEX}
-          >
-            <StudyCabinetPanel
-              role="teacher"
-              userId={user.id}
-              bookings={bookings}
-              availability={availability}
-              notes={studyNotes}
-              activityDays={teacherStudyActivityDays}
-              chatUnreadCount={chatUnreadCount}
-              onOpenSchedule={handleTeacherOpenSchedule}
-              onOpenStudentChat={handleTeacherOpenStudentChat}
-              onCreateNote={handleTeacherCreateNote}
-              onUpdateNote={handleTeacherUpdateNote}
-              onDeleteNote={handleTeacherDeleteNote}
-            />
-          </div>
+          {tab === TEACHER_STUDY_TAB_INDEX && (
+            <div className="teacher-dashboard__section" />
+          )}
 
           {tab === TEACHER_WORKBOOK_TAB_INDEX && (
             <div className="teacher-dashboard__section teacher-dashboard__tool-launch">
