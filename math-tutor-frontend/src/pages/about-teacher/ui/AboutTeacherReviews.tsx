@@ -42,7 +42,6 @@ export function AboutTeacherReviews({ reviews }: AboutTeacherReviewsProps) {
   }, [reviewPages.length]);
 
   useEffect(() => {
-    setActivePage(0);
     const node = railRef.current;
     if (node) {
       node.scrollLeft = 0;
