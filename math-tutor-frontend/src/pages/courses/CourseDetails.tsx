@@ -676,26 +676,6 @@ export default function CourseDetails() {
     user?.role === "student" &&
     isAwaitingCheckoutPayment;
   const isPurchaseIdentityVerified = Boolean(user) || Boolean(purchaseIntentId);
-  const purchaseDialogFlowSteps = [
-    {
-      key: "verify",
-      title: "1. Подтверждение identity",
-      description: "Подтвердите владельца аккаунта перед checkout.",
-      state: isPurchaseIdentityVerified ? ("done" as const) : ("current" as const),
-    },
-    {
-      key: "payment",
-      title: "2. Оплата курса",
-      description: "Выберите способ оплаты и перейдите к провайдеру.",
-      state: isPurchaseIdentityVerified ? ("current" as const) : ("pending" as const),
-    },
-    {
-      key: "finalize",
-      title: "3. Финализация доступа",
-      description: "После оплаты система завершит профиль и откроет курс.",
-      state: "pending" as const,
-    },
-  ];
   const checkoutIdentityMarker = checkoutFlowStatus?.access?.identityState ?? "";
   const firstPasswordPending =
     checkoutFlowStatus?.identityCompletionState === "pending_first_password";
@@ -2163,13 +2143,6 @@ export default function CourseDetails() {
           closeAriaLabel="Закрыть форму покупки"
         />
         <DialogContent sx={stackedDialogContentSx}>
-          <OnboardingFlowPanel
-            kicker="Course onboarding"
-            title="verify identity → pay → finalize account"
-            description="Для неавторизованной покупки сначала подтверждается identity, затем создается checkout."
-            steps={purchaseDialogFlowSteps}
-            compact
-          />
           {!user && (
             <>
               <Typography color="text.secondary">

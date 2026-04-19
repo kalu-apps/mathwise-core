@@ -5,6 +5,7 @@ type AssetImageProps = {
   src?: string | null;
   alt: string;
   ratio?: string;
+  fit?: "cover" | "contain";
   className?: string;
   loading?: "lazy" | "eager";
   onClick?: () => void;
@@ -16,6 +17,7 @@ export function AssetImage({
   src,
   alt,
   ratio = "4 / 3",
+  fit = "cover",
   className,
   loading = "lazy",
   onClick,
@@ -38,6 +40,7 @@ export function AssetImage({
       style={
         {
           "--about-teacher-asset-ratio": ratio,
+          "--about-teacher-asset-fit": fit,
         } as CSSProperties
       }
       onClick={onClick}

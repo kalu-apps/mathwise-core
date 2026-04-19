@@ -18,7 +18,9 @@ export function AboutTeacherHero({
   return (
     <section className="about-teacher-hero" aria-labelledby="about-teacher-hero-title">
       <div className="about-teacher-hero__content">
-        <span className="about-teacher-hero__eyebrow">{ABOUT_TEACHER_HERO_COPY.eyebrow}</span>
+        {ABOUT_TEACHER_HERO_COPY.eyebrow ? (
+          <span className="about-teacher-hero__eyebrow">{ABOUT_TEACHER_HERO_COPY.eyebrow}</span>
+        ) : null}
         <h1 id="about-teacher-hero-title">{ABOUT_TEACHER_HERO_COPY.title}</h1>
         <p>{ABOUT_TEACHER_HERO_COPY.description}</p>
         <div className="about-teacher-hero__actions">

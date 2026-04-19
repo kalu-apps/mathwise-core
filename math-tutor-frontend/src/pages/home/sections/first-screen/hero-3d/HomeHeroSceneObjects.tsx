@@ -6,7 +6,6 @@ import {
   Color,
   Float32BufferAttribute,
   PlaneGeometry,
-  SphereGeometry,
   TorusGeometry,
   TorusKnotGeometry,
   type BufferAttribute,
@@ -176,7 +175,7 @@ function buildCoordinateLineGeometry(
 }
 
 function buildMainLoopGeometry(palette: ScenePalette): TorusGeometry {
-  const geometry = new TorusGeometry(0.96, 0.24, 56, 180, Math.PI * 2);
+  const geometry = new TorusGeometry(0.96, 0.24, 72, 256, Math.PI * 2);
 
   applyTriGradient(
     geometry,
@@ -190,7 +189,7 @@ function buildMainLoopGeometry(palette: ScenePalette): TorusGeometry {
 }
 
 function buildKnotGeometry(palette: ScenePalette): TorusKnotGeometry {
-  const geometry = new TorusKnotGeometry(0.5, 0.115, 180, 36, 2, 5);
+  const geometry = new TorusKnotGeometry(0.5, 0.115, 240, 52, 2, 5);
 
   applyTriGradient(
     geometry,
@@ -203,22 +202,8 @@ function buildKnotGeometry(palette: ScenePalette): TorusKnotGeometry {
   return geometry;
 }
 
-function buildOrbGeometry(palette: ScenePalette): SphereGeometry {
-  const geometry = new SphereGeometry(0.36, 48, 48);
-
-  applyTriGradient(
-    geometry,
-    palette.orbA,
-    palette.orbB,
-    palette.orbC,
-    (x, y, z) => y * 0.58 + x * 0.16 + z * 0.26
-  );
-
-  return geometry;
-}
-
 function buildRodGeometry(palette: ScenePalette): CapsuleGeometry {
-  const geometry = new CapsuleGeometry(0.115, 0.84, 14, 28);
+  const geometry = new CapsuleGeometry(0.115, 0.84, 18, 40);
 
   applyTriGradient(
     geometry,
@@ -231,23 +216,16 @@ function buildRodGeometry(palette: ScenePalette): CapsuleGeometry {
   return geometry;
 }
 
-function buildRoundedSolidGeometry(palette: ScenePalette): SphereGeometry {
-  const geometry = new SphereGeometry(0.46, 48, 48);
+function buildRoundedSolidGeometry(palette: ScenePalette): TorusKnotGeometry {
+  const geometry = new TorusKnotGeometry(0.44, 0.17, 190, 38, 2, 3);
   const position = geometry.attributes.position as BufferAttribute;
 
   for (let i = 0; i < position.count; i += 1) {
-    const x = position.getX(i);
-    const y = position.getY(i);
-    const z = position.getZ(i);
-    const nx = x / 0.46;
-    const ny = y / 0.46;
-    const nz = z / 0.46;
-    const exponent = 0.68;
-    const sx = Math.sign(nx) * Math.pow(Math.abs(nx), exponent);
-    const sy = Math.sign(ny) * Math.pow(Math.abs(ny), exponent);
-    const sz = Math.sign(nz) * Math.pow(Math.abs(nz), exponent);
-    const length = Math.sqrt(sx * sx + sy * sy + sz * sz) || 1;
-    position.setXYZ(i, (sx * 0.54) / length, (sy * 0.5) / length, (sz * 0.56) / length);
+    const x = position.getX(i) * 1.08;
+    const y = position.getY(i) * 0.92;
+    const z = position.getZ(i) * 1.14;
+    const bend = Math.sin(x * 1.35 + z * 0.42) * 0.02;
+    position.setXYZ(i, x + bend * 0.38, y + bend * 0.14, z - bend * 0.18);
   }
 
   position.needsUpdate = true;
@@ -264,8 +242,8 @@ function buildRoundedSolidGeometry(palette: ScenePalette): SphereGeometry {
   return geometry;
 }
 
-function buildAccentOrbGeometry(palette: ScenePalette): SphereGeometry {
-  const geometry = new SphereGeometry(0.18, 30, 30);
+function buildAccentOrbGeometry(palette: ScenePalette): TorusGeometry {
+  const geometry = new TorusGeometry(0.16, 0.06, 28, 84);
 
   applyTriGradient(
     geometry,
@@ -281,8 +259,8 @@ function buildAccentOrbGeometry(palette: ScenePalette): SphereGeometry {
 function buildSupportPointTorusGeometry(palette: ScenePalette): BufferGeometry {
   const majorRadius = 0.8;
   const minorRadius = 0.24;
-  const uSegments = 96;
-  const vSegments = 52;
+  const uSegments = 132;
+  const vSegments = 74;
   const pointCount = uSegments * vSegments;
   const positions = new Float32Array(pointCount * 3);
   const colors = new Float32Array(pointCount * 3);
@@ -411,7 +389,6 @@ function SupportPointTorusArtifact({ mode, palette }: { mode: SceneMode; palette
 function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: ScenePalette }) {
   const loopGeometry = useDisposableGeometry(useMemo(() => buildMainLoopGeometry(palette), [palette]));
   const knotGeometry = useDisposableGeometry(useMemo(() => buildKnotGeometry(palette), [palette]));
-  const orbGeometry = useDisposableGeometry(useMemo(() => buildOrbGeometry(palette), [palette]));
   const rodGeometry = useDisposableGeometry(useMemo(() => buildRodGeometry(palette), [palette]));
   const solidGeometry = useDisposableGeometry(useMemo(() => buildRoundedSolidGeometry(palette), [palette]));
   const accentGeometry = useDisposableGeometry(useMemo(() => buildAccentOrbGeometry(palette), [palette]));
@@ -421,56 +398,46 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
       <mesh
         geometry={loopGeometry}
         position={[0.82, 1.08, -0.02]}
-        rotation={[0.34, 0.92, 0.24]}
-        scale={[0.5, 0.5, 0.5]}
+        rotation={[0.58, 1.18, -0.12]}
+        scale={[0.6, 0.6, 0.6]}
       >
         <meshPhysicalMaterial
           vertexColors
-          roughness={mode === "dark" ? 0.14 : 0.1}
-          metalness={mode === "dark" ? 0.32 : 0.4}
+          roughness={mode === "dark" ? 0.1 : 0.07}
+          metalness={mode === "dark" ? 0.42 : 0.5}
           clearcoat={1}
-          clearcoatRoughness={mode === "dark" ? 0.08 : 0.05}
+          clearcoatRoughness={mode === "dark" ? 0.05 : 0.03}
           emissive={palette.loopGlow}
-          emissiveIntensity={mode === "dark" ? 0.22 : 0.28}
+          emissiveIntensity={mode === "dark" ? 0.34 : 0.44}
         />
       </mesh>
 
       <mesh
         geometry={knotGeometry}
         position={[-3.78, -1.16, -0.52]}
-        rotation={[0.32, -0.26, 0.44]}
-        scale={[1.6, 1.6, 1.6]}
+        rotation={[0.28, -0.22, 0.52]}
+        scale={[1.92, 1.92, 1.92]}
       >
         <meshPhysicalMaterial
           vertexColors
-          roughness={mode === "dark" ? 0.22 : 0.14}
-          metalness={mode === "dark" ? 0.16 : 0.28}
+          roughness={mode === "dark" ? 0.18 : 0.12}
+          metalness={mode === "dark" ? 0.24 : 0.36}
           clearcoat={0.94}
-          clearcoatRoughness={mode === "dark" ? 0.14 : 0.08}
+          clearcoatRoughness={mode === "dark" ? 0.1 : 0.06}
           emissive={palette.knotB}
-          emissiveIntensity={mode === "dark" ? 0.06 : 0.08}
-        />
-      </mesh>
-
-      <mesh geometry={orbGeometry} position={[-1.25, 0.92, 0.56]}>
-        <meshPhysicalMaterial
-          vertexColors
-          roughness={mode === "dark" ? 0.16 : 0.1}
-          metalness={mode === "dark" ? 0.14 : 0.24}
-          clearcoat={1}
-          clearcoatRoughness={mode === "dark" ? 0.08 : 0.05}
-          emissive={palette.orbB}
-          emissiveIntensity={mode === "dark" ? 0.1 : 0.14}
+          emissiveIntensity={mode === "dark" ? 0.12 : 0.16}
         />
       </mesh>
 
       <mesh geometry={solidGeometry} position={[-0.58, -0.02, 0.08]} rotation={[0.22, -0.28, 0.1]}>
         <meshPhysicalMaterial
           vertexColors
-          roughness={0.24}
-          metalness={0.18}
-          clearcoat={0.78}
-          clearcoatRoughness={0.16}
+          roughness={mode === "dark" ? 0.2 : 0.15}
+          metalness={mode === "dark" ? 0.22 : 0.3}
+          clearcoat={0.92}
+          clearcoatRoughness={mode === "dark" ? 0.13 : 0.09}
+          emissive={palette.solidB}
+          emissiveIntensity={mode === "dark" ? 0.05 : 0.08}
         />
       </mesh>
 
@@ -484,27 +451,17 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
         />
       </mesh>
 
-      <mesh geometry={accentGeometry} position={[-3.25, -0.92, 0.08]}>
+      <mesh geometry={accentGeometry} position={[-2.38, -1.22, -0.46]} scale={0.72}>
         <meshPhysicalMaterial
           vertexColors
-          roughness={mode === "dark" ? 0.16 : 0.12}
-          metalness={mode === "dark" ? 0.14 : 0.24}
-          clearcoat={0.98}
-          clearcoatRoughness={mode === "dark" ? 0.12 : 0.08}
-          transparent
-          opacity={mode === "dark" ? 0.92 : 0.9}
-        />
-      </mesh>
-
-      <mesh geometry={accentGeometry} position={[-2.48, -1.28, -0.38]} scale={0.74}>
-        <meshPhysicalMaterial
-          vertexColors
-          roughness={mode === "dark" ? 0.18 : 0.14}
-          metalness={mode === "dark" ? 0.12 : 0.22}
+          roughness={mode === "dark" ? 0.14 : 0.1}
+          metalness={mode === "dark" ? 0.2 : 0.3}
           clearcoat={0.94}
-          clearcoatRoughness={mode === "dark" ? 0.12 : 0.08}
+          clearcoatRoughness={mode === "dark" ? 0.1 : 0.06}
           transparent
-          opacity={mode === "dark" ? 0.82 : 0.84}
+          opacity={mode === "dark" ? 0.86 : 0.88}
+          emissive={palette.accentB}
+          emissiveIntensity={mode === "dark" ? 0.06 : 0.1}
         />
       </mesh>
     </group>
@@ -516,70 +473,70 @@ function paletteByMode(mode: SceneMode): ScenePalette {
     return {
       ambient: "#f1a8ff",
       key: "#fff6ff",
-      fill: "#ff6fa6",
-      rim: "#8c7bff",
+      fill: "#ff8f67",
+      rim: "#b07bff",
       planeSurfaceNear: "#1f2f61",
       planeSurfaceFar: "#101e43",
       gridMajorA: "#5f7dff",
-      gridMajorB: "#ff67c8",
+      gridMajorB: "#ff86bf",
       gridMinor: "#72e4ff",
-      loopA: "#4b3cff",
-      loopB: "#ff4f9f",
-      loopC: "#ff8b5f",
-      loopGlow: "#ff8ad8",
-      knotA: "#6a52ff",
-      knotB: "#ff5fbe",
-      knotC: "#ff9961",
-      orbA: "#5a4fff",
-      orbB: "#ff5fa8",
-      orbC: "#ffb46a",
-      rodA: "#7d5bff",
-      rodB: "#ff5f93",
-      rodC: "#ff9b73",
-      solidA: "#5f55ff",
-      solidB: "#ff6cbc",
-      solidC: "#ffad6e",
-      accentA: "#7b66ff",
-      accentB: "#ff61b2",
-      accentC: "#ffb46f",
-      supportTorusA: "#5f52ff",
-      supportTorusB: "#ff68bf",
-      supportTorusC: "#ffb06f",
+      loopA: "#6a4dff",
+      loopB: "#ff6da5",
+      loopC: "#ff9f5d",
+      loopGlow: "#ff8cd8",
+      knotA: "#7b63ff",
+      knotB: "#ff80c7",
+      knotC: "#ffb36a",
+      orbA: "#806fff",
+      orbB: "#ff8abb",
+      orbC: "#ffcb7c",
+      rodA: "#8f6aff",
+      rodB: "#ff749f",
+      rodC: "#ffaf78",
+      solidA: "#7d6bff",
+      solidB: "#ff89c8",
+      solidC: "#ffc181",
+      accentA: "#9a7bff",
+      accentB: "#ff8dcf",
+      accentC: "#ffce84",
+      supportTorusA: "#7a6cff",
+      supportTorusB: "#ff84cc",
+      supportTorusC: "#ffc178",
     };
   }
 
   return {
-    ambient: "#ffc7f3",
+    ambient: "#ffd1f0",
     key: "#ffffff",
-    fill: "#ff8ea1",
-    rim: "#8aa2ff",
+    fill: "#ffae84",
+    rim: "#c58cff",
     planeSurfaceNear: "#adb7ff",
     planeSurfaceFar: "#8d9ee8",
     gridMajorA: "#4e80ff",
-    gridMajorB: "#ff5fb2",
+    gridMajorB: "#ff87c5",
     gridMinor: "#3ddfff",
-    loopA: "#7f6eff",
-    loopB: "#ff67af",
-    loopC: "#ff974d",
-    loopGlow: "#ff8ac7",
-    knotA: "#8b7aff",
-    knotB: "#ff62a8",
-    knotC: "#ffad53",
-    orbA: "#8f87ff",
-    orbB: "#ff70b4",
-    orbC: "#ffc26a",
-    rodA: "#9a86ff",
-    rodB: "#ff7aa6",
-    rodC: "#ffb768",
-    solidA: "#8f82ff",
-    solidB: "#ff76bf",
-    solidC: "#ffc274",
-    accentA: "#a68dff",
-    accentB: "#ff92c5",
-    accentC: "#ffd294",
-    supportTorusA: "#6f72ff",
-    supportTorusB: "#ff78be",
-    supportTorusC: "#ffbe63",
+    loopA: "#9a86ff",
+    loopB: "#ff8ec3",
+    loopC: "#ffb26a",
+    loopGlow: "#ff9ad2",
+    knotA: "#a08fff",
+    knotB: "#ff96c9",
+    knotC: "#ffc979",
+    orbA: "#a69bff",
+    orbB: "#ffa3cc",
+    orbC: "#ffd58a",
+    rodA: "#b19cff",
+    rodB: "#ff9ebc",
+    rodC: "#ffc680",
+    solidA: "#a598ff",
+    solidB: "#ff9ed3",
+    solidC: "#ffd48f",
+    accentA: "#b79dff",
+    accentB: "#ffabda",
+    accentC: "#ffdca3",
+    supportTorusA: "#9a8eff",
+    supportTorusB: "#ff98d6",
+    supportTorusC: "#ffd08a",
   };
 }
 
@@ -592,6 +549,16 @@ export function HomeHeroSceneObjects({ mode }: HomeHeroSceneObjectsProps) {
       <directionalLight intensity={mode === "dark" ? 0.96 : 1.14} color={palette.key} position={[4.2, 5.2, 4.9]} />
       <pointLight intensity={mode === "dark" ? 0.24 : 0.34} color={palette.fill} position={[2.1, 1.2, 2.4]} />
       <pointLight intensity={mode === "dark" ? 0.21 : 0.29} color={palette.rim} position={[-1.4, -0.8, 2.2]} />
+      <pointLight
+        intensity={mode === "dark" ? 0.34 : 0.42}
+        color={mode === "dark" ? "#ff8a5c" : "#ff9f78"}
+        position={[1.8, 0.92, 1.8]}
+      />
+      <pointLight
+        intensity={mode === "dark" ? 0.28 : 0.36}
+        color={mode === "dark" ? "#d07bff" : "#c38dff"}
+        position={[-1.9, 0.28, 1.9]}
+      />
 
       <CoordinatePlane mode={mode} palette={palette} />
       <SupportPointTorusArtifact mode={mode} palette={palette} />

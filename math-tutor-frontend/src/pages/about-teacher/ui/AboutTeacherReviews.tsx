@@ -22,19 +22,31 @@ export function AboutTeacherReviews({ reviews }: AboutTeacherReviewsProps) {
     return pages;
   }, [items]);
   const hasMultiplePages = reviewPages.length > 1;
+  const [activePage, setActivePage] = useState(0);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(hasMultiplePages);
 
   const updateScrollState = useCallback(() => {
     const node = railRef.current;
     if (!node) return;
-    const tolerance = 4;
-    const maxScrollLeft = Math.max(0, node.scrollWidth - node.clientWidth);
-    setCanScrollPrev(node.scrollLeft > tolerance);
-    setCanScrollNext(node.scrollLeft < maxScrollLeft - tolerance);
-  }, []);
+    const pageWidth = node.clientWidth;
+    const maxPageIndex = Math.max(0, reviewPages.length - 1);
+    const currentPage =
+      pageWidth > 0
+        ? Math.min(maxPageIndex, Math.max(0, Math.round(node.scrollLeft / pageWidth)))
+        : 0;
+
+    setActivePage(currentPage);
+    setCanScrollPrev(currentPage > 0);
+    setCanScrollNext(currentPage < maxPageIndex);
+  }, [reviewPages.length]);
 
   useEffect(() => {
+    setActivePage(0);
+    const node = railRef.current;
+    if (node) {
+      node.scrollLeft = 0;
+    }
     const frame = window.requestAnimationFrame(() => {
       updateScrollState();
     });
@@ -63,9 +75,16 @@ export function AboutTeacherReviews({ reviews }: AboutTeacherReviewsProps) {
   const scrollRail = (direction: "prev" | "next") => {
     const node = railRef.current;
     if (!node) return;
-    const amount = Math.max(320, Math.round(node.clientWidth * 0.92));
-    node.scrollBy({
-      left: direction === "next" ? amount : -amount,
+    const maxPageIndex = Math.max(0, reviewPages.length - 1);
+    const targetPage = Math.min(
+      maxPageIndex,
+      Math.max(0, activePage + (direction === "next" ? 1 : -1))
+    );
+    setActivePage(targetPage);
+    setCanScrollPrev(targetPage > 0);
+    setCanScrollNext(targetPage < maxPageIndex);
+    node.scrollTo({
+      left: targetPage * node.clientWidth,
       behavior: "smooth",
     });
   };
@@ -75,7 +94,7 @@ export function AboutTeacherReviews({ reviews }: AboutTeacherReviewsProps) {
       <div className="about-teacher-reviews__head">
         <div>
           <span className="about-teacher-reviews__eyebrow">Отзывы учеников</span>
-          <h2 id="about-teacher-reviews-title">Говорят результатом, а не обещаниями</h2>
+          <h2 id="about-teacher-reviews-title">Реальные отзывы учеников</h2>
           <p>Реальные впечатления учеников после системной работы по программе.</p>
         </div>
       </div>
@@ -114,6 +133,7 @@ export function AboutTeacherReviews({ reviews }: AboutTeacherReviewsProps) {
                       src={item.url}
                       alt={`Реальный отзыв ученика ${pageIndex * 4 + itemIndex + 1}`}
                       ratio="16 / 10"
+                      fit="contain"
                       className="about-teacher-reviews__screenshot"
                       showFallback
                       fallbackText="Отзыв недоступен"

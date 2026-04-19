@@ -42,7 +42,7 @@ export function DiplomaLightbox({
       className="about-teacher-lightbox"
     >
       <div className="about-teacher-lightbox__header">
-        <span>{current?.fileName ?? "Диплом"}</span>
+        <span>Просмотр диплома</span>
         <IconButton aria-label="Закрыть превью диплома" onClick={onClose}>
           <CloseRoundedIcon />
         </IconButton>

@@ -542,7 +542,7 @@ export function AuthModal({
         data-oauth-provider={provider}
         data-oauth-widget-ready={providerWidgetReady ? "true" : "false"}
       >
-        <span className="auth-modal__social-badge" aria-hidden="true">
+        <span className="auth-modal__social-mark" aria-hidden="true">
           <SocialProviderMark provider={provider} />
         </span>
         <span className="auth-modal__social-label">{social.compactLabel}</span>

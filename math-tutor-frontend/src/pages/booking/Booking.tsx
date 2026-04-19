@@ -43,10 +43,8 @@ import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { PageLoader } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
-import { OnboardingFlowPanel } from "@/shared/ui/OnboardingFlowPanel";
 import { mapBookingHoldResolutionMessage } from "@/pages/booking/model/bookingHoldBridge";
 import {
-  buildBookingFlowSteps,
   confirmHoldAfterAuth,
   createLegacyBookingAfterAuth,
   isBookingV2UnavailableError,
@@ -171,29 +169,6 @@ export default function Booking() {
   const firstAvailableDate = useMemo(
     () => calendarDays.find((day) => availableDateSet.has(day.value))?.value ?? calendarDays[0]?.value ?? "",
     [calendarDays, availableDateSet]
-  );
-  const bookingFlowSteps = useMemo(
-    () =>
-      buildBookingFlowSteps({
-        bookingOpen,
-        selectedSlotId,
-        guestCheckoutOpen,
-        pendingAuthOpen,
-        pendingAuthRebookSlotId,
-        pendingAuthHoldId,
-        bookingSaving,
-        userPresent: Boolean(user),
-      }),
-    [
-      bookingOpen,
-      selectedSlotId,
-      guestCheckoutOpen,
-      pendingAuthOpen,
-      pendingAuthRebookSlotId,
-      pendingAuthHoldId,
-      bookingSaving,
-      user,
-    ]
   );
 
   const mobileDialogActionSx = isMobile
@@ -669,13 +644,6 @@ export default function Booking() {
           onCompleteProfile={() => navigate("/profile")}
         />
       )}
-      <OnboardingFlowPanel
-        className="booking-page__onboarding"
-        kicker="Индивидуальный контур"
-        title="Запись на занятие: slot hold → регистрация → подтверждение"
-        description="Путь записи собран как единый onboarding flow: сначала слот, затем identity и только после этого финальное подтверждение."
-        steps={bookingFlowSteps}
-      />
       <div className="booking-page__hero">
         <div className="booking-page__hero-shade" />
         <div className="booking-page__hero-content">

@@ -290,13 +290,14 @@
     }
   }
 
-  &__social-badge {
+  &__social-mark {
     width: auto;
     min-width: 0;
     height: auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    line-height: 0;
     background: transparent !important;
     border: 0 !important;
     box-shadow: none !important;
@@ -312,6 +313,15 @@
       border: 0 !important;
       box-shadow: none !important;
       filter: none !important;
+    }
+
+    *,
+    *::before,
+    *::after {
+      background: transparent !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
     }
   }
 

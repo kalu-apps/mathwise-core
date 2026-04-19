@@ -140,7 +140,7 @@
 
   &__avatar {
     max-width: 100%;
-    width: clamp(280px, 30vw, 430px);
+    width: clamp(224px, 24vw, 344px);
   }
 }
 
@@ -188,49 +188,13 @@
     color: color-mix(in srgb, var(--text-secondary) 84%, #4c5fd7);
   }
 
-  &__metrics {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  &__metric {
-    padding: 14px;
-    border-radius: 16px;
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b3c3ff);
-    background: color-mix(in srgb, var(--surface-elevated) 80%, #f7f8ff);
-    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
-    display: grid;
-    gap: 5px;
-
-    h3 {
-      margin: 0;
-      font-size: 0.88rem;
-      color: color-mix(in srgb, var(--text-primary) 84%, #394b93);
-    }
-
-    p {
-      margin: 0;
-      font-size: 0.82rem;
-      color: color-mix(in srgb, var(--text-secondary) 84%, #4961ad);
-    }
-  }
-
-  &__metric-value {
-    font-family: var(--font-display);
-    font-size: clamp(1.4rem, 2.1vw, 2rem);
-    line-height: 1;
-    color: color-mix(in srgb, #5860ff 65%, #9f65ff);
-    font-weight: 700;
-  }
-
   &__body {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
     gap: 14px;
   }
 
-  &__education,
+  &__education-track,
   &__diplomas {
     border-radius: 18px;
     border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b2c2ff);
@@ -244,38 +208,82 @@
     }
   }
 
-  &__education {
-    ol {
-      list-style: none;
+  &__education-track {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+
+  &__education-card {
+    padding: 12px 12px 12px 14px;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 76%, #becbfd);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+
+    p,
+    small {
       margin: 0;
-      padding: 0;
-      display: grid;
-      gap: 10px;
     }
 
-    li {
-      padding: 12px 12px 12px 14px;
-      border-radius: 12px;
-      border: 1px solid color-mix(in srgb, var(--border-subtle) 76%, #becbfd);
-      background: color-mix(in srgb, var(--surface-elevated) 86%, #ffffff);
-      display: grid;
-      gap: 4px;
-
-      p,
-      small {
-        margin: 0;
-      }
-
-      p {
-        font-size: 0.9rem;
-        color: color-mix(in srgb, var(--text-secondary) 84%, #4f61a8);
-      }
-
-      small {
-        font-size: 0.82rem;
-        color: color-mix(in srgb, var(--text-secondary) 72%, #6575b8);
-      }
+    p {
+      font-size: 0.9rem;
+      color: color-mix(in srgb, var(--text-secondary) 84%, #4f61a8);
     }
+
+    small {
+      font-size: 0.82rem;
+      color: color-mix(in srgb, var(--text-secondary) 72%, #6575b8);
+    }
+  }
+
+  &__education-card--v1 {
+    background: linear-gradient(
+      136deg,
+      color-mix(in srgb, #edf3ff 88%, #ffffff),
+      color-mix(in srgb, #e5efff 82%, #f8faff)
+    );
+  }
+
+  &__education-card--v2 {
+    background: linear-gradient(
+      136deg,
+      color-mix(in srgb, #f4ecff 86%, #ffffff),
+      color-mix(in srgb, #ece5ff 84%, #faf7ff)
+    );
+  }
+
+  &__education-card--v3 {
+    background: linear-gradient(
+      136deg,
+      color-mix(in srgb, #fff3e8 88%, #ffffff),
+      color-mix(in srgb, #ffe9d5 80%, #fff6eb)
+    );
+  }
+
+  &__education-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, #b8c7ff);
+    background: color-mix(in srgb, var(--surface-elevated) 86%, #ffffff);
+    color: color-mix(in srgb, var(--text-primary) 80%, #4f62b6);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+
+    .MuiSvgIcon-root {
+      font-size: 1.05rem;
+    }
+  }
+
+  &__education-content {
+    display: grid;
+    gap: 4px;
   }
 
   &__education-head {
@@ -297,10 +305,65 @@
     }
   }
 
-  &__diploma-grid {
+  &__diploma-layout {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
+  }
+
+  &__diploma-top {
+    display: grid;
+    grid-template-columns: minmax(200px, 0.85fr) minmax(0, 1.35fr);
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  &__diploma-bottom {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  &__metric {
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b3c3ff);
+    background: linear-gradient(
+      142deg,
+      color-mix(in srgb, var(--surface-elevated) 86%, #f2f6ff),
+      color-mix(in srgb, var(--surface-elevated) 90%, #f8faff)
+    );
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    display: grid;
+    align-content: center;
+    gap: 5px;
+
+    h4 {
+      margin: 0;
+      font-size: 0.88rem;
+      color: color-mix(in srgb, var(--text-primary) 84%, #394b93);
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.82rem;
+      color: color-mix(in srgb, var(--text-secondary) 84%, #4961ad);
+    }
+  }
+
+  &__metric-value {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 2.1vw, 2rem);
+    line-height: 1;
+    color: color-mix(in srgb, #5860ff 65%, #9f65ff);
+    font-weight: 700;
+  }
+
+  &__diploma--primary {
+    min-height: 184px;
+  }
+
+  &__diploma--secondary {
+    min-height: 148px;
   }
 
   &__diploma-empty {
@@ -460,11 +523,7 @@
     border-radius: 15px;
     box-shadow: none;
     background: color-mix(in srgb, var(--surface-elevated) 84%, #f2f5ff);
-
-    img {
-      object-fit: contain;
-      background: color-mix(in srgb, var(--surface-elevated) 82%, #eef3ff);
-    }
+    padding: 6px;
   }
 
   &__empty {
@@ -494,10 +553,11 @@
   img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: var(--about-teacher-asset-fit, cover);
     display: block;
     opacity: 0;
     transition: opacity 280ms ease;
+    background: color-mix(in srgb, var(--surface-elevated) 82%, #eef3ff);
   }
 
   &.is-loaded img {
@@ -681,9 +741,9 @@
   }
 
   .about-teacher-proof__metric,
-  .about-teacher-proof__education,
+  .about-teacher-proof__education-track,
+  .about-teacher-proof__education-card,
   .about-teacher-proof__diplomas,
-  .about-teacher-proof__education li,
   .about-teacher-reviews__card,
   .about-teacher-lightbox .MuiDialog-paper,
   .about-teacher-lightbox__stage .MuiIconButton-root,
@@ -694,9 +754,9 @@
   }
 
   .about-teacher-proof__metric,
-  .about-teacher-proof__education,
+  .about-teacher-proof__education-track,
+  .about-teacher-proof__education-card,
   .about-teacher-proof__diplomas,
-  .about-teacher-proof__education li,
   .about-teacher-reviews__card,
   .about-teacher-lightbox .MuiDialog-paper,
   .about-teacher-lightbox__stage .MuiIconButton-root,
@@ -708,18 +768,48 @@
     box-shadow: 0 12px 24px rgba(2, 8, 30, 0.32);
   }
 
-  .about-teacher-proof__education li p,
-  .about-teacher-proof__education li small,
+  .about-teacher-proof__education-card p,
+  .about-teacher-proof__education-card small,
   .about-teacher-proof__education-head span,
   .about-teacher-proof__metric p,
   .about-teacher-lightbox__header span {
     color: color-mix(in srgb, var(--text-secondary) 82%, #b8c6ec);
   }
 
-  .about-teacher-proof__metric h3,
+  .about-teacher-proof__metric h4,
   .about-teacher-proof__education-head strong,
   .about-teacher-reviews__empty {
     color: color-mix(in srgb, var(--text-primary) 92%, #dbe6ff);
+  }
+
+  .about-teacher-proof__education-icon {
+    border-color: color-mix(in srgb, var(--border-subtle) 68%, #4f69b6);
+    background: color-mix(in srgb, var(--surface-elevated) 88%, #1a2d63);
+    color: color-mix(in srgb, var(--text-primary) 90%, #d2deff);
+  }
+
+  .about-teacher-proof__education-card--v1 {
+    background: linear-gradient(
+      136deg,
+      color-mix(in srgb, var(--surface-elevated) 90%, #14295f),
+      color-mix(in srgb, var(--surface-elevated) 84%, #1b2f66)
+    );
+  }
+
+  .about-teacher-proof__education-card--v2 {
+    background: linear-gradient(
+      136deg,
+      color-mix(in srgb, var(--surface-elevated) 90%, #2a245f),
+      color-mix(in srgb, var(--surface-elevated) 84%, #322a72)
+    );
+  }
+
+  .about-teacher-proof__education-card--v3 {
+    background: linear-gradient(
+      136deg,
+      color-mix(in srgb, var(--surface-elevated) 90%, #39254f),
+      color-mix(in srgb, var(--surface-elevated) 84%, #45305a)
+    );
   }
 
   .about-teacher-reviews__screenshot {
@@ -753,15 +843,15 @@
   }
 
   .about-teacher-proof {
-    &__metrics {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     &__body {
       grid-template-columns: 1fr;
     }
 
-    &__diploma-grid {
+    &__diploma-top {
+      grid-template-columns: 1fr;
+    }
+
+    &__diploma-bottom {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
@@ -794,11 +884,11 @@
   .about-teacher-proof {
     padding: 16px;
 
-    &__metrics {
+    &__diploma-bottom {
       grid-template-columns: 1fr;
     }
 
-    &__diploma-grid {
+    &__diploma-top {
       grid-template-columns: 1fr;
     }
   }
