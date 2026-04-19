@@ -318,6 +318,8 @@
 }
 
 .about-teacher-reviews {
+  --about-teacher-reviews-nav-size: clamp(58px, 4vw, 72px);
+
   border-radius: clamp(20px, 2vw, 30px);
   padding: clamp(20px, 2.5vw, 30px);
   border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b7c6ff);
@@ -334,7 +336,7 @@
 
   &__head {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 14px;
 
@@ -364,42 +366,88 @@
   }
 
   &__controls {
-    display: flex;
-    gap: 8px;
+    display: none;
+  }
 
-    .MuiIconButton-root {
-      width: 40px;
-      height: 40px;
-      border-radius: 11px;
-      border: 1px solid color-mix(in srgb, var(--border-subtle) 76%, #b8c7ff);
-      background: color-mix(in srgb, var(--surface-elevated) 84%, #f7f9ff);
-      color: color-mix(in srgb, var(--text-primary) 78%, #3a54a4);
+  &__shelf {
+    position: relative;
+    z-index: 1;
+    overflow: visible;
+  }
+
+  &__shelf--with-nav {
+    padding-inline: calc(var(--about-teacher-reviews-nav-size) + 12px);
+  }
+
+  &__shelf-nav.MuiIconButton-root {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: auto;
+    height: auto;
+    padding: 4px !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+    color: color-mix(in srgb, var(--text-primary) 95%, #dfe8ff) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    z-index: 5;
+    transition: transform 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+
+    .MuiSvgIcon-root {
+      font-size: var(--about-teacher-reviews-nav-size);
     }
+
+    &:hover:not(.Mui-disabled) {
+      transform: translateY(-50%) scale(1.03);
+      background: transparent !important;
+      color: color-mix(in srgb, var(--accent-primary) 68%, var(--text-primary)) !important;
+    }
+
+    &.Mui-disabled,
+    &.is-inactive {
+      opacity: 0.62;
+      color: color-mix(in srgb, var(--text-secondary) 88%, #b3c5e9) !important;
+    }
+  }
+
+  &__shelf-nav--prev {
+    left: 10px;
+  }
+
+  &__shelf-nav--next {
+    right: 10px;
   }
 
   &__rail {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(300px, 38%);
-    gap: 14px;
+    display: flex;
+    gap: 0;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory;
-    padding: 2px 2px 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 2px;
 
     &::-webkit-scrollbar {
-      height: 8px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--border-subtle) 72%, #aab7ef);
+      display: none;
     }
   }
 
-  &__card {
+  &__page {
+    flex: 0 0 100%;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+    gap: 14px;
     scroll-snap-align: start;
-    border-radius: 16px;
+    scroll-snap-stop: always;
+    padding: 2px;
+  }
+
+  &__card {
+    border-radius: 15px;
     border: 1px solid color-mix(in srgb, var(--border-subtle) 72%, #b6c4ff);
     background: color-mix(in srgb, var(--surface-elevated) 86%, #f6f9ff);
     box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
@@ -409,7 +457,7 @@
   &__screenshot {
     width: 100%;
     border: 0;
-    border-radius: 16px;
+    border-radius: 15px;
     box-shadow: none;
     background: color-mix(in srgb, var(--surface-elevated) 84%, #f2f5ff);
 
@@ -637,7 +685,6 @@
   .about-teacher-proof__diplomas,
   .about-teacher-proof__education li,
   .about-teacher-reviews__card,
-  .about-teacher-reviews__controls .MuiIconButton-root,
   .about-teacher-lightbox .MuiDialog-paper,
   .about-teacher-lightbox__stage .MuiIconButton-root,
   .about-teacher-lightbox__canvas,
@@ -651,7 +698,6 @@
   .about-teacher-proof__diplomas,
   .about-teacher-proof__education li,
   .about-teacher-reviews__card,
-  .about-teacher-reviews__controls .MuiIconButton-root,
   .about-teacher-lightbox .MuiDialog-paper,
   .about-teacher-lightbox__stage .MuiIconButton-root,
   .about-teacher-lightbox__canvas,
@@ -682,6 +728,13 @@
     img {
       background: color-mix(in srgb, var(--surface-elevated) 84%, #102048);
     }
+  }
+
+  .about-teacher-reviews__shelf-nav.MuiIconButton-root {
+    color: color-mix(in srgb, var(--text-primary) 94%, #dce7ff) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    filter: none;
   }
 }
 
@@ -751,6 +804,8 @@
   }
 
   .about-teacher-reviews {
+    --about-teacher-reviews-nav-size: clamp(48px, 9vw, 58px);
+
     padding: 16px;
 
     &__head {
@@ -758,13 +813,12 @@
       flex-direction: column;
     }
 
-    &__controls {
-      align-self: stretch;
-      justify-content: flex-end;
+    &__shelf--with-nav {
+      padding-inline: calc(var(--about-teacher-reviews-nav-size) + 6px);
     }
 
-    &__rail {
-      grid-auto-columns: minmax(240px, 92%);
+    &__page {
+      gap: 10px;
     }
   }
 
