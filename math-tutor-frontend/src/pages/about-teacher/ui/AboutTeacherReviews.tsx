@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { IconButton } from "@mui/material";
+import { Dialog, IconButton } from "@mui/material";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import type { AboutTeacherAsset } from "../model/types";
@@ -25,6 +26,14 @@ export function AboutTeacherReviews({ reviews }: AboutTeacherReviewsProps) {
   const [activePage, setActivePage] = useState(0);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(hasMultiplePages);
+  const [openReviewIndex, setOpenReviewIndex] = useState<number | null>(null);
+  const [previewErroredUrl, setPreviewErroredUrl] = useState<string | null>(null);
+
+  const isPreviewOpen =
+    openReviewIndex !== null && openReviewIndex >= 0 && openReviewIndex < items.length;
+  const currentReview = isPreviewOpen && openReviewIndex !== null ? items[openReviewIndex] : null;
+  const isCurrentReviewErrored =
+    Boolean(currentReview?.url) && currentReview?.url === previewErroredUrl;
 
   const updateScrollState = useCallback(() => {
     const node = railRef.current;
@@ -88,83 +97,143 @@ export function AboutTeacherReviews({ reviews }: AboutTeacherReviewsProps) {
     });
   };
 
-  return (
-    <section className="about-teacher-reviews" aria-labelledby="about-teacher-reviews-title">
-      <div className="about-teacher-reviews__head">
-        <div>
-          <span className="about-teacher-reviews__eyebrow">Отзывы учеников</span>
-          <h2 id="about-teacher-reviews-title">Реальные отзывы учеников</h2>
-          <p>Реальные впечатления учеников после системной работы по программе.</p>
-        </div>
-      </div>
+  const movePreview = (direction: "prev" | "next") => {
+    if (!items.length || openReviewIndex === null) return;
+    const delta = direction === "next" ? 1 : -1;
+    const target = (openReviewIndex + delta + items.length) % items.length;
+    setOpenReviewIndex(target);
+  };
 
-      {items.length > 0 ? (
-        <div
-          className={`about-teacher-reviews__shelf ${
-            hasMultiplePages
-              ? "about-teacher-reviews__shelf--with-nav"
-              : "about-teacher-reviews__shelf--without-nav"
-          }`}
-        >
-          {hasMultiplePages ? (
-            <IconButton
-              className={`about-teacher-reviews__shelf-nav about-teacher-reviews__shelf-nav--prev ${
-                canScrollPrev ? "" : "is-inactive"
-              }`}
-              aria-label="Предыдущие отзывы"
-              onClick={() => {
-                if (!canScrollPrev) return;
-                scrollRail("prev");
-              }}
-              disableRipple
-              disableTouchRipple
-            >
+  return (
+    <>
+      <section className="about-teacher-reviews" aria-labelledby="about-teacher-reviews-title">
+        <div className="about-teacher-reviews__head">
+          <div>
+            <h2 id="about-teacher-reviews-title">
+              Впечатления учеников после системной работы по программе
+            </h2>
+          </div>
+        </div>
+
+        {items.length > 0 ? (
+          <div
+            className={`about-teacher-reviews__shelf ${
+              hasMultiplePages
+                ? "about-teacher-reviews__shelf--with-nav"
+                : "about-teacher-reviews__shelf--without-nav"
+            }`}
+          >
+            {hasMultiplePages ? (
+              <IconButton
+                className={`about-teacher-reviews__shelf-nav about-teacher-reviews__shelf-nav--prev ${
+                  canScrollPrev ? "" : "is-inactive"
+                }`}
+                aria-label="Предыдущие отзывы"
+                onClick={() => {
+                  if (!canScrollPrev) return;
+                  scrollRail("prev");
+                }}
+                disableRipple
+                disableTouchRipple
+              >
+                <ChevronLeftRoundedIcon />
+              </IconButton>
+            ) : null}
+
+            <div className="about-teacher-reviews__rail" ref={railRef}>
+              {reviewPages.map((page, pageIndex) => (
+                <div key={`review-page-${pageIndex}`} className="about-teacher-reviews__page">
+                  {page.map((item, itemIndex) => {
+                    const absoluteIndex = pageIndex * 4 + itemIndex;
+                    return (
+                      <article key={item.key} className="about-teacher-reviews__card">
+                        <AssetImage
+                          src={item.url}
+                          alt={`Реальный отзыв ученика ${absoluteIndex + 1}`}
+                          ratio="16 / 10"
+                          fit="contain"
+                          className="about-teacher-reviews__screenshot"
+                          onClick={() => setOpenReviewIndex(absoluteIndex)}
+                          showFallback
+                          fallbackText="Отзыв недоступен"
+                        />
+                      </article>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
+            {hasMultiplePages ? (
+              <IconButton
+                className={`about-teacher-reviews__shelf-nav about-teacher-reviews__shelf-nav--next ${
+                  canScrollNext ? "" : "is-inactive"
+                }`}
+                aria-label="Следующие отзывы"
+                onClick={() => {
+                  if (!canScrollNext) return;
+                  scrollRail("next");
+                }}
+                disableRipple
+                disableTouchRipple
+              >
+                <ChevronRightRoundedIcon />
+              </IconButton>
+            ) : null}
+          </div>
+        ) : (
+          <div className="about-teacher-reviews__empty">
+            Отзывы пока загружаются. Скоро здесь появятся реальные скриншоты результатов учеников.
+          </div>
+        )}
+      </section>
+
+      <Dialog
+        open={isPreviewOpen}
+        onClose={() => setOpenReviewIndex(null)}
+        maxWidth="xl"
+        fullWidth
+        className="about-teacher-reviews-lightbox"
+      >
+        <div className="about-teacher-reviews-lightbox__header">
+          <span>Предпросмотр отзыва</span>
+          <IconButton aria-label="Закрыть предпросмотр отзыва" onClick={() => setOpenReviewIndex(null)}>
+            <CloseRoundedIcon />
+          </IconButton>
+        </div>
+
+        <div className="about-teacher-reviews-lightbox__stage">
+          {items.length > 1 ? (
+            <IconButton aria-label="Предыдущий отзыв" onClick={() => movePreview("prev")}>
               <ChevronLeftRoundedIcon />
             </IconButton>
           ) : null}
-
-          <div className="about-teacher-reviews__rail" ref={railRef}>
-            {reviewPages.map((page, pageIndex) => (
-              <div key={`review-page-${pageIndex}`} className="about-teacher-reviews__page">
-                {page.map((item, itemIndex) => (
-                  <article key={item.key} className="about-teacher-reviews__card">
-                    <AssetImage
-                      src={item.url}
-                      alt={`Реальный отзыв ученика ${pageIndex * 4 + itemIndex + 1}`}
-                      ratio="16 / 10"
-                      fit="contain"
-                      className="about-teacher-reviews__screenshot"
-                      showFallback
-                      fallbackText="Отзыв недоступен"
-                    />
-                  </article>
-                ))}
+          <div className="about-teacher-reviews-lightbox__canvas">
+            {currentReview?.url && !isCurrentReviewErrored ? (
+              <img
+                src={currentReview.url}
+                alt="Предпросмотр отзыва ученика"
+                onLoad={() => {
+                  if (currentReview.url === previewErroredUrl) {
+                    setPreviewErroredUrl(null);
+                  }
+                }}
+                onError={() => setPreviewErroredUrl(currentReview.url)}
+              />
+            ) : (
+              <div className="about-teacher-reviews-lightbox__fallback">
+                Не удалось загрузить изображение отзыва.
               </div>
-            ))}
+            )}
           </div>
 
-          {hasMultiplePages ? (
-            <IconButton
-              className={`about-teacher-reviews__shelf-nav about-teacher-reviews__shelf-nav--next ${
-                canScrollNext ? "" : "is-inactive"
-              }`}
-              aria-label="Следующие отзывы"
-              onClick={() => {
-                if (!canScrollNext) return;
-                scrollRail("next");
-              }}
-              disableRipple
-              disableTouchRipple
-            >
+          {items.length > 1 ? (
+            <IconButton aria-label="Следующий отзыв" onClick={() => movePreview("next")}>
               <ChevronRightRoundedIcon />
             </IconButton>
           ) : null}
         </div>
-      ) : (
-        <div className="about-teacher-reviews__empty">
-          Отзывы пока загружаются. Скоро здесь появятся реальные скриншоты результатов учеников.
-        </div>
-      )}
-    </section>
+      </Dialog>
+    </>
   );
 }

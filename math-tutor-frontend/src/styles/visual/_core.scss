@@ -69,6 +69,85 @@
   z-index: 1;
 }
 
+/* Personal cabinets: full-viewport calm background field */
+.student-profile,
+.teacher-dashboard,
+.teacher-student-profile {
+  min-height: calc(100vh - var(--header-height, 72px));
+  min-height: calc(100dvh - var(--header-height, 72px));
+  isolation: isolate;
+}
+
+.student-profile::before,
+.teacher-dashboard::before,
+.teacher-student-profile::before {
+  inset: 0 auto 0 50%;
+  right: auto;
+  width: 100vw;
+  min-height: 100%;
+  transform: translateX(-50%);
+  opacity: 1;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--background-base) 95%, #f4f7ff) 0%,
+      color-mix(in srgb, var(--background-base) 93%, #edf3ff) 54%,
+      color-mix(in srgb, var(--background-base) 95%, #f8fbff) 100%
+    ),
+    radial-gradient(
+      90% 68% at 12% 2%,
+      color-mix(in srgb, var(--brand-soft) 9%, transparent),
+      transparent 74%
+    ),
+    radial-gradient(
+      82% 62% at 90% 100%,
+      color-mix(in srgb, var(--brand-solid) 8%, transparent),
+      transparent 78%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--border-subtle) 20%, transparent) 0 1px,
+      transparent 1px 28px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--border-subtle) 18%, transparent) 0 1px,
+      transparent 1px 28px
+    );
+}
+
+[data-theme="dark"] .student-profile::before,
+[data-theme="dark"] .teacher-dashboard::before,
+[data-theme="dark"] .teacher-student-profile::before {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--background-base) 94%, #08142d) 0%,
+      color-mix(in srgb, var(--background-base) 92%, #09162f) 56%,
+      color-mix(in srgb, var(--background-base) 95%, #071226) 100%
+    ),
+    radial-gradient(
+      86% 58% at 14% 4%,
+      color-mix(in srgb, #8b5cf6 9%, transparent),
+      transparent 74%
+    ),
+    radial-gradient(
+      78% 56% at 88% 96%,
+      color-mix(in srgb, #22d3ee 7%, transparent),
+      transparent 80%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--border-subtle) 26%, transparent) 0 1px,
+      transparent 1px 30px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--border-subtle) 22%, transparent) 0 1px,
+      transparent 1px 30px
+    );
+}
+
 @supports (content-visibility: auto) {
   .courses-preview,
   .courses-page,
@@ -97,6 +176,15 @@
   .about-teacher-page::before,
   .tp2::before {
     opacity: 0.2;
+  }
+}
+
+@media (max-width: 768px) {
+  .student-profile::before,
+  .teacher-dashboard::before,
+  .teacher-student-profile::before {
+    opacity: 1;
+    background-size: auto, auto, auto, auto, auto;
   }
 }
 

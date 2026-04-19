@@ -67,7 +67,8 @@
       font-size: clamp(2rem, 4vw, 3.2rem);
       line-height: 1.06;
       letter-spacing: -0.02em;
-      color: color-mix(in srgb, var(--text-primary) 88%, #273778);
+      color: color-mix(in srgb, var(--text-primary) 74%, #44548f);
+      text-wrap: balance;
       max-width: 15ch;
     }
 
@@ -194,24 +195,14 @@
     gap: 14px;
   }
 
-  &__education-track,
   &__diplomas {
     border-radius: 18px;
     border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b2c2ff);
     background: color-mix(in srgb, var(--surface-elevated) 84%, #f9f9ff);
     padding: 16px;
-
-    h3 {
-      margin: 0 0 12px;
-      font-size: 1.04rem;
-      color: color-mix(in srgb, var(--text-primary) 86%, #32458b);
-    }
   }
 
-  &__education-track {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  &__education-list {
     display: grid;
     gap: 10px;
   }
@@ -515,6 +506,12 @@
     background: color-mix(in srgb, var(--surface-elevated) 86%, #f6f9ff);
     box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
     overflow: hidden;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+    }
   }
 
   &__screenshot {
@@ -667,6 +664,73 @@
   }
 }
 
+.about-teacher-reviews-lightbox {
+  .MuiDialog-paper {
+    border-radius: 20px !important;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, #9db2ff) !important;
+    background: color-mix(in srgb, var(--surface-elevated) 86%, #f2f7ff) !important;
+    overflow: hidden;
+  }
+
+  &__header {
+    min-height: 58px;
+    padding: 0 10px 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 68%, #b8c7ff);
+
+    span {
+      font-size: 0.92rem;
+      color: color-mix(in srgb, var(--text-secondary) 76%, #4f62a5);
+      font-weight: 600;
+    }
+  }
+
+  &__stage {
+    min-height: min(84vh, 860px);
+    padding: clamp(10px, 2vw, 18px);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+
+    .MuiIconButton-root {
+      border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b3c3fd);
+      background: color-mix(in srgb, var(--surface-elevated) 82%, #f6f9ff);
+      color: color-mix(in srgb, var(--text-primary) 80%, #3a4f96);
+    }
+  }
+
+  &__canvas {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b5c4fe);
+    min-height: min(74vh, 760px);
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--surface-elevated) 84%, #edf3ff);
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--surface-elevated) 84%, #f5f9ff),
+        color-mix(in srgb, var(--surface-elevated) 90%, #ffffff)
+      );
+    }
+  }
+
+  &__fallback {
+    padding: 24px;
+    text-align: center;
+    color: color-mix(in srgb, var(--text-secondary) 82%, #4a62a8);
+  }
+}
+
 @keyframes about-teacher-skeleton {
   0% {
     background-position: 120% 0;
@@ -699,7 +763,7 @@
       );
 
     &__content h1 {
-      color: color-mix(in srgb, var(--text-primary) 92%, #dee8ff);
+      color: color-mix(in srgb, var(--text-primary) 88%, #d4dfff);
     }
 
     &__content p {
@@ -741,7 +805,6 @@
   }
 
   .about-teacher-proof__metric,
-  .about-teacher-proof__education-track,
   .about-teacher-proof__education-card,
   .about-teacher-proof__diplomas,
   .about-teacher-reviews__card,
@@ -754,7 +817,6 @@
   }
 
   .about-teacher-proof__metric,
-  .about-teacher-proof__education-track,
   .about-teacher-proof__education-card,
   .about-teacher-proof__diplomas,
   .about-teacher-reviews__card,
@@ -825,6 +887,20 @@
     background: transparent !important;
     box-shadow: none !important;
     filter: none;
+  }
+
+  .about-teacher-reviews-lightbox .MuiDialog-paper,
+  .about-teacher-reviews-lightbox__stage .MuiIconButton-root,
+  .about-teacher-reviews-lightbox__canvas,
+  .about-teacher-reviews-lightbox__fallback {
+    border-color: color-mix(in srgb, var(--border-subtle) 68%, #4f69b6);
+    background: color-mix(in srgb, var(--surface-elevated) 86%, #132554);
+    color: color-mix(in srgb, var(--text-primary) 90%, #d9e4ff);
+    box-shadow: 0 12px 24px rgba(2, 8, 30, 0.32);
+  }
+
+  .about-teacher-reviews-lightbox__header span {
+    color: color-mix(in srgb, var(--text-secondary) 82%, #b8c6ec);
   }
 }
 

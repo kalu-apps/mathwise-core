@@ -44,9 +44,6 @@ type ScenePalette = {
   solidA: string;
   solidB: string;
   solidC: string;
-  accentA: string;
-  accentB: string;
-  accentC: string;
   supportTorusA: string;
   supportTorusB: string;
   supportTorusC: string;
@@ -242,20 +239,6 @@ function buildRoundedSolidGeometry(palette: ScenePalette): TorusKnotGeometry {
   return geometry;
 }
 
-function buildAccentOrbGeometry(palette: ScenePalette): TorusGeometry {
-  const geometry = new TorusGeometry(0.16, 0.06, 28, 84);
-
-  applyTriGradient(
-    geometry,
-    palette.accentA,
-    palette.accentB,
-    palette.accentC,
-    (x, y, z) => x * 0.38 + y * 0.32 + z * 0.22
-  );
-
-  return geometry;
-}
-
 function buildSupportPointTorusGeometry(palette: ScenePalette): BufferGeometry {
   const majorRadius = 0.8;
   const minorRadius = 0.24;
@@ -391,7 +374,6 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
   const knotGeometry = useDisposableGeometry(useMemo(() => buildKnotGeometry(palette), [palette]));
   const rodGeometry = useDisposableGeometry(useMemo(() => buildRodGeometry(palette), [palette]));
   const solidGeometry = useDisposableGeometry(useMemo(() => buildRoundedSolidGeometry(palette), [palette]));
-  const accentGeometry = useDisposableGeometry(useMemo(() => buildAccentOrbGeometry(palette), [palette]));
 
   return (
     <group position={[1.7, 0.06, -1.22]} rotation={[0.04, -0.24, 0.03]}>
@@ -408,7 +390,7 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
           clearcoat={1}
           clearcoatRoughness={mode === "dark" ? 0.05 : 0.03}
           emissive={palette.loopGlow}
-          emissiveIntensity={mode === "dark" ? 0.34 : 0.44}
+          emissiveIntensity={mode === "dark" ? 0.18 : 0.24}
         />
       </mesh>
 
@@ -451,19 +433,6 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
         />
       </mesh>
 
-      <mesh geometry={accentGeometry} position={[-2.38, -1.22, -0.46]} scale={0.72}>
-        <meshPhysicalMaterial
-          vertexColors
-          roughness={mode === "dark" ? 0.14 : 0.1}
-          metalness={mode === "dark" ? 0.2 : 0.3}
-          clearcoat={0.94}
-          clearcoatRoughness={mode === "dark" ? 0.1 : 0.06}
-          transparent
-          opacity={mode === "dark" ? 0.86 : 0.88}
-          emissive={palette.accentB}
-          emissiveIntensity={mode === "dark" ? 0.06 : 0.1}
-        />
-      </mesh>
     </group>
   );
 }
@@ -481,9 +450,9 @@ function paletteByMode(mode: SceneMode): ScenePalette {
       gridMajorB: "#ff86bf",
       gridMinor: "#72e4ff",
       loopA: "#6a4dff",
-      loopB: "#ff6da5",
+      loopB: "#8f5dff",
       loopC: "#ff9f5d",
-      loopGlow: "#ff8cd8",
+      loopGlow: "#ff9b74",
       knotA: "#7b63ff",
       knotB: "#ff80c7",
       knotC: "#ffb36a",
@@ -496,9 +465,6 @@ function paletteByMode(mode: SceneMode): ScenePalette {
       solidA: "#7d6bff",
       solidB: "#ff89c8",
       solidC: "#ffc181",
-      accentA: "#9a7bff",
-      accentB: "#ff8dcf",
-      accentC: "#ffce84",
       supportTorusA: "#7a6cff",
       supportTorusB: "#ff84cc",
       supportTorusC: "#ffc178",
@@ -516,9 +482,9 @@ function paletteByMode(mode: SceneMode): ScenePalette {
     gridMajorB: "#ff87c5",
     gridMinor: "#3ddfff",
     loopA: "#9a86ff",
-    loopB: "#ff8ec3",
+    loopB: "#b58dff",
     loopC: "#ffb26a",
-    loopGlow: "#ff9ad2",
+    loopGlow: "#ffb08f",
     knotA: "#a08fff",
     knotB: "#ff96c9",
     knotC: "#ffc979",
@@ -531,9 +497,6 @@ function paletteByMode(mode: SceneMode): ScenePalette {
     solidA: "#a598ff",
     solidB: "#ff9ed3",
     solidC: "#ffd48f",
-    accentA: "#b79dff",
-    accentB: "#ffabda",
-    accentC: "#ffdca3",
     supportTorusA: "#9a8eff",
     supportTorusB: "#ff98d6",
     supportTorusC: "#ffd08a",

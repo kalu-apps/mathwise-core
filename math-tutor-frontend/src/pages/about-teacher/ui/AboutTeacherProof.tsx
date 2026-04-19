@@ -28,14 +28,15 @@ export function AboutTeacherProof({ diplomas, onOpenDiploma }: AboutTeacherProof
       </div>
 
       <div className="about-teacher-proof__body">
-        <ol className="about-teacher-proof__education-track" aria-label="Образовательные организации">
+        <div className="about-teacher-proof__education-list" role="list" aria-label="Образовательные организации">
           {ABOUT_TEACHER_EDUCATION.map((item, index) => {
             const Icon = educationIcons[index % educationIcons.length];
             const variant = ((index % 3) + 1) as 1 | 2 | 3;
             return (
-              <li
+              <article
                 key={`${item.title}_${item.years}`}
                 className={`about-teacher-proof__education-card about-teacher-proof__education-card--v${variant}`}
+                role="listitem"
               >
                 <span className="about-teacher-proof__education-icon" aria-hidden="true">
                   <Icon fontSize="small" />
@@ -48,13 +49,12 @@ export function AboutTeacherProof({ diplomas, onOpenDiploma }: AboutTeacherProof
                   <p>{item.subtitle}</p>
                   <small>{item.description}</small>
                 </div>
-              </li>
+              </article>
             );
           })}
-        </ol>
+        </div>
 
         <div className="about-teacher-proof__diplomas">
-          <h3>Дипломы и подтверждения</h3>
           {diplomas.length > 0 ? (
             <div className="about-teacher-proof__diploma-layout">
               <div className="about-teacher-proof__diploma-top">
