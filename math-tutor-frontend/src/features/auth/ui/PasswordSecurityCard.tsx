@@ -332,20 +332,20 @@ export function PasswordSecurityCard({
           {success && <Alert severity="success">{success}</Alert>}
 
           <div className="password-security__quick-actions">
-            <Button
-              variant={isRowPresentation ? "text" : "outlined"}
-              startIcon={
-                isRowPresentation
-                  ? undefined
-                  : hasPassword
-                  ? <SyncLockRoundedIcon fontSize="small" />
-                  : <KeyRoundedIcon fontSize="small" />
-              }
+            <button
+              type="button"
               className="password-security__quick-btn"
               onClick={hasPassword ? openChangePanel : openCreatePanel}
             >
+              {!isRowPresentation ? (
+                hasPassword ? (
+                  <SyncLockRoundedIcon fontSize="inherit" />
+                ) : (
+                  <KeyRoundedIcon fontSize="inherit" />
+                )
+              ) : null}
               {hasPassword ? "Изменить пароль" : "Создать пароль"}
-            </Button>
+            </button>
           </div>
 
           {!isRowPresentation && mode !== "closed" ? (

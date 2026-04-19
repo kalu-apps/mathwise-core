@@ -1112,20 +1112,34 @@ export function StudentStudyCabinetPanel({
               <h2>Здесь появится ваш маршрут обучения</h2>
               <p>После покупки курса здесь появятся следующие шаги и задачи.</p>
               <div className="study-cabinet-panel__hero-nav">
-                <Button className="study-cabinet-panel__hero-btn" variant="contained" onClick={onBrowseCourses}>
-                  Выбрать курс
-                </Button>
-                <Button className="study-cabinet-panel__hero-btn study-cabinet-panel__hero-btn--chat" variant="outlined" onClick={onWorkbookClick}>
-                  Рабочая тетрадь
-                </Button>
-                <Button
-                  className="study-cabinet-panel__hero-btn"
-                  variant="outlined"
-                  onClick={onChatClick}
-                  disabled={chatDisabled || chatLocked}
-                >
-                  Чат
-                </Button>
+                {onBrowseCourses ? (
+                  <Button
+                    className="study-cabinet-panel__hero-btn"
+                    variant="contained"
+                    onClick={onBrowseCourses}
+                  >
+                    Выбрать курс
+                  </Button>
+                ) : null}
+                {onWorkbookClick ? (
+                  <Button
+                    className="study-cabinet-panel__hero-btn study-cabinet-panel__hero-btn--chat"
+                    variant="outlined"
+                    onClick={onWorkbookClick}
+                  >
+                    Рабочая тетрадь
+                  </Button>
+                ) : null}
+                {onChatClick ? (
+                  <Button
+                    className="study-cabinet-panel__hero-btn"
+                    variant="outlined"
+                    onClick={onChatClick}
+                    disabled={chatDisabled || chatLocked}
+                  >
+                    Чат
+                  </Button>
+                ) : null}
               </div>
             </div>
           </div>
@@ -1171,28 +1185,34 @@ export function StudentStudyCabinetPanel({
               <div className="study-cabinet-panel__student-inline-error">{reportExportError}</div>
             ) : null}
             <div className="study-cabinet-panel__hero-nav study-cabinet-panel__student-hero-nav">
-              <Button
-                className="study-cabinet-panel__hero-btn study-cabinet-panel__hero-btn--chat"
-                variant="contained"
-                onClick={onWorkbookClick}
-              >
-                Рабочая тетрадь
-              </Button>
-              <Button
-                className="study-cabinet-panel__hero-btn"
-                variant="outlined"
-                onClick={onChatClick}
-                disabled={chatDisabled || chatLocked}
-              >
-                Чат{chatLocked ? " (закрыт)" : ""}
-              </Button>
-              <Button
-                className="study-cabinet-panel__hero-btn"
-                variant="outlined"
-                onClick={onBrowseCourses}
-              >
-                Каталог курсов
-              </Button>
+              {onWorkbookClick ? (
+                <Button
+                  className="study-cabinet-panel__hero-btn study-cabinet-panel__hero-btn--chat"
+                  variant="contained"
+                  onClick={onWorkbookClick}
+                >
+                  Рабочая тетрадь
+                </Button>
+              ) : null}
+              {onChatClick ? (
+                <Button
+                  className="study-cabinet-panel__hero-btn"
+                  variant="outlined"
+                  onClick={onChatClick}
+                  disabled={chatDisabled || chatLocked}
+                >
+                  Чат{chatLocked ? " (закрыт)" : ""}
+                </Button>
+              ) : null}
+              {onBrowseCourses ? (
+                <Button
+                  className="study-cabinet-panel__hero-btn"
+                  variant="outlined"
+                  onClick={onBrowseCourses}
+                >
+                  Каталог курсов
+                </Button>
+              ) : null}
             </div>
             <div className="study-cabinet-panel__student-hero-grid">
               <div className="study-cabinet-panel__student-lead">

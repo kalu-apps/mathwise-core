@@ -41,16 +41,20 @@ export function DiplomaLightbox({
       fullWidth
       className="about-teacher-lightbox"
     >
-      <div className="about-teacher-lightbox__header">
-        <span>Просмотр диплома</span>
-        <IconButton aria-label="Закрыть превью диплома" onClick={onClose}>
+      <div className="about-teacher-lightbox__stage">
+        <IconButton
+          className="about-teacher-lightbox__close"
+          aria-label="Закрыть превью диплома"
+          onClick={onClose}
+        >
           <CloseRoundedIcon />
         </IconButton>
-      </div>
-
-      <div className="about-teacher-lightbox__stage">
         {diplomas.length > 1 ? (
-          <IconButton aria-label="Предыдущий диплом" onClick={() => move("prev")}>
+          <IconButton
+            className="about-teacher-lightbox__nav"
+            aria-label="Предыдущий диплом"
+            onClick={() => move("prev")}
+          >
             <ChevronLeftRoundedIcon />
           </IconButton>
         ) : null}
@@ -73,7 +77,11 @@ export function DiplomaLightbox({
           )}
         </div>
         {diplomas.length > 1 ? (
-          <IconButton aria-label="Следующий диплом" onClick={() => move("next")}>
+          <IconButton
+            className="about-teacher-lightbox__nav"
+            aria-label="Следующий диплом"
+            onClick={() => move("next")}
+          >
             <ChevronRightRoundedIcon />
           </IconButton>
         ) : null}

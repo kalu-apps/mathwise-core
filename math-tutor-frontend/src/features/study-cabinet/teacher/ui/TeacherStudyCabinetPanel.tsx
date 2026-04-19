@@ -854,14 +854,26 @@ export function TeacherStudyCabinetPanel({
                 Операционный центр преподавателя: ближайшие занятия, напоминания и доступ к ключевым разделам без дублирования расписания, чата и аналитики.
               </p>
               <div className="study-cabinet-panel__hero-nav study-cabinet-panel__teacher-hero-nav">
-                <button type="button" className="study-cabinet-panel__hero-btn" onClick={onWorkbookClick}>
-                  <AutoStoriesRoundedIcon fontSize="small" />
-                  <span>Рабочая тетрадь</span>
-                </button>
-                <button type="button" className="study-cabinet-panel__hero-btn study-cabinet-panel__hero-btn--chat" onClick={onChatClick}>
-                  <ForumRoundedIcon fontSize="small" />
-                  <span>Чат</span>
-                </button>
+                {onWorkbookClick ? (
+                  <button
+                    type="button"
+                    className="study-cabinet-panel__hero-btn"
+                    onClick={onWorkbookClick}
+                  >
+                    <AutoStoriesRoundedIcon fontSize="small" />
+                    <span>Рабочая тетрадь</span>
+                  </button>
+                ) : null}
+                {onChatClick ? (
+                  <button
+                    type="button"
+                    className="study-cabinet-panel__hero-btn study-cabinet-panel__hero-btn--chat"
+                    onClick={onChatClick}
+                  >
+                    <ForumRoundedIcon fontSize="small" />
+                    <span>Чат</span>
+                  </button>
+                ) : null}
                 <button type="button" className="study-cabinet-panel__hero-btn" onClick={onOpenSchedule}>
                   <CalendarMonthRoundedIcon fontSize="small" />
                   <span>Расписание</span>

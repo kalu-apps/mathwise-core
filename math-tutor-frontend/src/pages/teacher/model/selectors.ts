@@ -48,6 +48,7 @@ export const TEACHER_TAB_KEYS = [
   "courses",
   "booking",
   "study",
+  "workbook",
   "chat",
   "stats",
 ] as const;

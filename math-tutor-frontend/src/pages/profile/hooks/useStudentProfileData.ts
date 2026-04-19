@@ -29,12 +29,19 @@ import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { getStudentProfileContext } from "@/entities/profile/model/storage";
 import { getMyCapabilities } from "@/features/capabilities/model/api";
 
-type TabName = "profile" | "courses" | "lessons" | "study" | "chat";
+type TabName =
+  | "profile"
+  | "courses"
+  | "lessons"
+  | "study"
+  | "workbook"
+  | "chat";
 
 type UseStudentProfileDataParams = {
   user: User | null;
   userId?: string;
   tab: number;
+  WORKBOOK_TAB_INDEX: number;
   CHAT_TAB_INDEX: number;
   chatAccessAvailable: boolean;
   location: {
@@ -75,6 +82,7 @@ export const useStudentProfileData = ({
   user,
   userId,
   tab,
+  WORKBOOK_TAB_INDEX,
   CHAT_TAB_INDEX,
   chatAccessAvailable,
   location,
@@ -105,17 +113,16 @@ export const useStudentProfileData = ({
       if (tabIndex === 1) return "courses";
       if (tabIndex === 2) return "lessons";
       if (tabIndex === 3) return "study";
+      if (tabIndex === WORKBOOK_TAB_INDEX) return "workbook";
       if (tabIndex === CHAT_TAB_INDEX) return "chat";
       return "profile";
     },
-    [CHAT_TAB_INDEX]
+    [WORKBOOK_TAB_INDEX, CHAT_TAB_INDEX]
   );
 
   const setTabWithQuery = useCallback(
     (nextTab: number, options?: { replace?: boolean }) => {
-      const safeTab =
-        !chatAccessAvailable && nextTab === CHAT_TAB_INDEX ? 0 : nextTab;
-      const nextTabParam = resolveTabParam(safeTab);
+      const nextTabParam = resolveTabParam(nextTab);
       const params = new URLSearchParams(location.search);
       params.set("tab", nextTabParam);
       const nextSearch = params.toString();
@@ -125,11 +132,9 @@ export const useStudentProfileData = ({
         navigate(nextUrl, { replace: options?.replace ?? true });
         return;
       }
-      setTab((prev) => (prev === safeTab ? prev : safeTab));
+      setTab((prev) => (prev === nextTab ? prev : nextTab));
     },
     [
-      chatAccessAvailable,
-      CHAT_TAB_INDEX,
       location.pathname,
       location.search,
       navigate,
@@ -144,14 +149,14 @@ export const useStudentProfileData = ({
     if (tabParam === "courses") nextTab = 1;
     else if (tabParam === "lessons") nextTab = 2;
     else if (tabParam === "study") nextTab = 3;
-    else if (tabParam === "chat")
-      nextTab = chatAccessAvailable ? CHAT_TAB_INDEX : 0;
+    else if (tabParam === "workbook") nextTab = WORKBOOK_TAB_INDEX;
+    else if (tabParam === "chat") nextTab = CHAT_TAB_INDEX;
     else if (tabParam === "profile" || tabParam === null) nextTab = 0;
 
     if (nextTab !== tab) {
       setTab(nextTab);
     }
-  }, [location.search, tab, chatAccessAvailable, CHAT_TAB_INDEX, setTab]);
+  }, [location.search, tab, WORKBOOK_TAB_INDEX, CHAT_TAB_INDEX, setTab]);
 
   useEffect(() => {
     if (!user) return;
@@ -510,12 +515,6 @@ export const useStudentProfileData = ({
       unsubscribe();
     };
   }, [chatAccessAvailable, loadChatUnread, setChatUnreadCount]);
-
-  useEffect(() => {
-    if (!chatAccessAvailable && tab === CHAT_TAB_INDEX) {
-      setTabWithQuery(0, { replace: true });
-    }
-  }, [chatAccessAvailable, tab, CHAT_TAB_INDEX, setTabWithQuery]);
 
   useEffect(() => {
     if (tab !== 3) return;

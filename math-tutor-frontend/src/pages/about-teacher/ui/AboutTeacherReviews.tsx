@@ -195,16 +195,20 @@ export function AboutTeacherReviews({ reviews }: AboutTeacherReviewsProps) {
         fullWidth
         className="about-teacher-reviews-lightbox"
       >
-        <div className="about-teacher-reviews-lightbox__header">
-          <span>Предпросмотр отзыва</span>
-          <IconButton aria-label="Закрыть предпросмотр отзыва" onClick={() => setOpenReviewIndex(null)}>
+        <div className="about-teacher-reviews-lightbox__stage">
+          <IconButton
+            className="about-teacher-reviews-lightbox__close"
+            aria-label="Закрыть предпросмотр отзыва"
+            onClick={() => setOpenReviewIndex(null)}
+          >
             <CloseRoundedIcon />
           </IconButton>
-        </div>
-
-        <div className="about-teacher-reviews-lightbox__stage">
           {items.length > 1 ? (
-            <IconButton aria-label="Предыдущий отзыв" onClick={() => movePreview("prev")}>
+            <IconButton
+              className="about-teacher-reviews-lightbox__nav"
+              aria-label="Предыдущий отзыв"
+              onClick={() => movePreview("prev")}
+            >
               <ChevronLeftRoundedIcon />
             </IconButton>
           ) : null}
@@ -228,7 +232,11 @@ export function AboutTeacherReviews({ reviews }: AboutTeacherReviewsProps) {
           </div>
 
           {items.length > 1 ? (
-            <IconButton aria-label="Следующий отзыв" onClick={() => movePreview("next")}>
+            <IconButton
+              className="about-teacher-reviews-lightbox__nav"
+              aria-label="Следующий отзыв"
+              onClick={() => movePreview("next")}
+            >
               <ChevronRightRoundedIcon />
             </IconButton>
           ) : null}

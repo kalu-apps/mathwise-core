@@ -304,10 +304,22 @@
 }
 
 .student-profile__tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
   white-space: normal;
   line-height: 1.2;
   text-align: left;
+}
+
+.student-profile__tab-label--premium {
+  gap: 7px;
+}
+
+.student-profile__tab-diamond {
+  font-size: 15px !important;
+  color: color-mix(in srgb, #f7b731 78%, var(--feedback-warning));
 }
 
 .student-profile__tabs-mobile {
@@ -387,6 +399,9 @@
 }
 
 .student-profile__tabs-drawer-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   font-weight: 650;
   line-height: 1.28;
@@ -411,6 +426,44 @@
   color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.4;
+}
+
+.student-profile__tool-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.student-profile__tool-panel-shell {
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+  background: color-mix(in srgb, var(--background-elevated) 95%, transparent);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.student-profile__tool-panel-shell .MuiButton-root {
+  text-transform: none;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 650;
+  min-height: 38px;
+}
+
+.student-profile__locked-tools-content {
+  padding-top: 6px !important;
+}
+
+.student-profile__locked-tools-content p {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.student-profile__locked-tools-actions {
+  justify-content: flex-end;
 }
 
 .student-profile__courses {

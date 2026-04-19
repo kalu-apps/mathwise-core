@@ -35,6 +35,7 @@ import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
 import AttachFileRoundedIcon from "@mui/icons-material/AttachFileRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 import AppsRoundedIcon from "@mui/icons-material/AppsRounded";
 
 import { StudentCard } from "@/entities/student/ui/StudentCard";
@@ -125,6 +126,8 @@ import {
 } from "@/shared/lib/studyCabinet";
 
 import type { Course } from "@/entities/course/model/types";
+
+const PROFILE_AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 
 export default function TeacherDashboard() {
   const { user, updateUser } = useAuth();
@@ -219,11 +222,17 @@ export default function TeacherDashboard() {
     firstName: user?.firstName ?? "",
     lastName: user?.lastName ?? "",
     phone: user?.phone ?? "",
+    photo: user?.photo ?? "",
   });
   const slotDateInputRef = useRef<HTMLInputElement | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   const userId = user?.id;
   const isTeacher = user?.role === "teacher";
+  const TEACHER_STUDY_TAB_INDEX = 4;
+  const TEACHER_WORKBOOK_TAB_INDEX = 5;
+  const TEACHER_CHAT_TAB_INDEX = 6;
+  const TEACHER_STATS_TAB_INDEX = 7;
 
   useEffect(() => {
     resetTeacherDashboardUiState();
@@ -246,8 +255,9 @@ export default function TeacherDashboard() {
       firstName: user.firstName ?? "",
       lastName: user.lastName ?? "",
       phone: user.phone ?? "",
+      photo: user.photo ?? "",
     });
-  }, [user?.id, user?.firstName, user?.lastName, user?.phone]);
+  }, [user?.id, user?.firstName, user?.lastName, user?.phone, user?.photo]);
 
   const openProfileEditDialog = useCallback(() => {
     if (!user) return;
@@ -255,6 +265,7 @@ export default function TeacherDashboard() {
       firstName: user.firstName ?? "",
       lastName: user.lastName ?? "",
       phone: user.phone ?? "",
+      photo: user.photo ?? "",
     });
     setProfileError(null);
     setProfileEditOpen(true);
@@ -280,6 +291,7 @@ export default function TeacherDashboard() {
         firstName,
         lastName,
         phone: toRuPhoneStorage(profileDraft.phone),
+        photo: profileDraft.photo,
       });
       updateUser(updated);
       setProfileEditOpen(false);
@@ -290,7 +302,14 @@ export default function TeacherDashboard() {
     } finally {
       setProfileSaving(false);
     }
-  }, [profileDraft.firstName, profileDraft.lastName, profileDraft.phone, updateUser, user]);
+  }, [
+    profileDraft.firstName,
+    profileDraft.lastName,
+    profileDraft.phone,
+    profileDraft.photo,
+    updateUser,
+    user,
+  ]);
 
   const { refreshAll, retryDashboardData, syncStudyNotes } = useTeacherDashboardData({
     userId,
@@ -578,10 +597,24 @@ export default function TeacherDashboard() {
     setSearchParams({ tab: TEACHER_TAB_KEYS[3] });
   }, [setSearchParams, setTab]);
 
+  const handleTeacherOpenWorkbook = useCallback(async () => {
+    const launch = await openExternalWhiteboard({
+      from: "/teacher/profile?tab=workbook",
+    });
+    if (!launch.ok) {
+      setDashboardError(
+        launch.error ??
+          "Не удалось открыть рабочую тетрадь. Проверьте настройки запуска."
+      );
+    } else if (launch.code === "popup_blocked") {
+      setDashboardError(WORKBOOK_POPUP_BLOCKED_MESSAGE);
+    }
+  }, [setDashboardError]);
+
   const handleTeacherOpenStudentChat = useCallback(
     (studentId: string) => {
       const params = new URLSearchParams(searchParams);
-      params.set("tab", TEACHER_TAB_KEYS[5]);
+      params.set("tab", TEACHER_TAB_KEYS[TEACHER_CHAT_TAB_INDEX]);
       const threadId = chatThreadIdsByStudentId[studentId];
       if (threadId) {
         params.set("threadId", threadId);
@@ -590,10 +623,16 @@ export default function TeacherDashboard() {
         params.set("studentId", studentId);
         params.delete("threadId");
       }
-      setTab(5);
+      setTab(TEACHER_CHAT_TAB_INDEX);
       setSearchParams(params);
     },
-    [chatThreadIdsByStudentId, searchParams, setSearchParams, setTab]
+    [
+      chatThreadIdsByStudentId,
+      searchParams,
+      setSearchParams,
+      setTab,
+      TEACHER_CHAT_TAB_INDEX,
+    ]
   );
 
   const deleteCourseFull = async (courseId: string) => {
@@ -1111,7 +1150,7 @@ export default function TeacherDashboard() {
       icon: <EventAvailableRoundedIcon />,
     },
     {
-      index: 4,
+      index: TEACHER_STUDY_TAB_INDEX,
       label: t("teacherDashboard.tabStudy"),
       icon: (
         <Badge color="warning" variant="dot" invisible={studyReminderCount <= 0}>
@@ -1120,7 +1159,12 @@ export default function TeacherDashboard() {
       ),
     },
     {
-      index: 5,
+      index: TEACHER_WORKBOOK_TAB_INDEX,
+      label: "Рабочая тетрадь",
+      icon: <AutoStoriesRoundedIcon />,
+    },
+    {
+      index: TEACHER_CHAT_TAB_INDEX,
       label: "Чат",
       icon: (
         <Badge
@@ -1133,7 +1177,7 @@ export default function TeacherDashboard() {
       ),
     },
     {
-      index: 6,
+      index: TEACHER_STATS_TAB_INDEX,
       label: t("teacherDashboard.tabStats"),
       icon: <InsightsRoundedIcon />,
     },
@@ -1143,7 +1187,6 @@ export default function TeacherDashboard() {
     teacherTabItems.find((item) => item.index === tab) ?? teacherTabItems[0];
   const identityName = `${user.firstName} ${user.lastName}`.trim();
   const identityInitials = `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase();
-  const identityPhone = formatRuPhoneDisplay(user.phone ?? "") || "Телефон не указан";
 
   return (
     <div className="teacher-dashboard">
@@ -1171,6 +1214,14 @@ export default function TeacherDashboard() {
         {!isNonDesktop ? (
           <div className="teacher-dashboard__nav-shell">
             <section className="teacher-dashboard__identity-card">
+              <IconButton
+                className="teacher-dashboard__identity-edit-icon"
+                onClick={openProfileEditDialog}
+                aria-label="Редактировать профиль"
+                size="small"
+              >
+                <EditRoundedIcon fontSize="small" />
+              </IconButton>
               <div className="teacher-dashboard__identity-main">
                 <Avatar
                   className="teacher-dashboard__identity-avatar"
@@ -1183,18 +1234,8 @@ export default function TeacherDashboard() {
                   <span className="teacher-dashboard__identity-role">
                     {user.role === "teacher" ? "Преподаватель" : "Студент"}
                   </span>
-                  <span>{user.email}</span>
-                  <span>{identityPhone}</span>
                 </div>
               </div>
-              <Button
-                className="teacher-dashboard__identity-edit"
-                variant="outlined"
-                startIcon={<EditRoundedIcon />}
-                onClick={openProfileEditDialog}
-              >
-                Редактировать
-              </Button>
             </section>
             <Tabs
               orientation="vertical"
@@ -1272,6 +1313,14 @@ export default function TeacherDashboard() {
           ) : null}
           {isNonDesktop ? (
             <section className="teacher-dashboard__identity-card teacher-dashboard__identity-card--mobile">
+              <IconButton
+                className="teacher-dashboard__identity-edit-icon"
+                onClick={openProfileEditDialog}
+                aria-label="Редактировать профиль"
+                size="small"
+              >
+                <EditRoundedIcon fontSize="small" />
+              </IconButton>
               <div className="teacher-dashboard__identity-main">
                 <Avatar
                   className="teacher-dashboard__identity-avatar"
@@ -1284,47 +1333,14 @@ export default function TeacherDashboard() {
                   <span className="teacher-dashboard__identity-role">
                     {user.role === "teacher" ? "Преподаватель" : "Студент"}
                   </span>
-                  <span>{user.email}</span>
-                  <span>{identityPhone}</span>
                 </div>
               </div>
-              <Button
-                className="teacher-dashboard__identity-edit"
-                variant="outlined"
-                startIcon={<EditRoundedIcon />}
-                onClick={openProfileEditDialog}
-              >
-                Редактировать
-              </Button>
             </section>
           ) : null}
           {/* PROFILE */}
           {tab === 0 && (
-            <div className="teacher-dashboard__profile-layout">
-              <div className="teacher-dashboard__profile-main">
-                <section className="teacher-dashboard__invite-shell teacher-dashboard__profile-shell">
-                  <div className="teacher-dashboard__invite-copy">
-                    <span>Профиль</span>
-                    <h3>Личные данные и безопасность входа</h3>
-                    <p>
-                      Управляйте именем, фамилией, телефоном и паролем в одном
-                      компактном окне.
-                    </p>
-                  </div>
-                  <div className="teacher-dashboard__section-actions">
-                    <Button
-                      variant="contained"
-                      startIcon={<EditRoundedIcon />}
-                      onClick={openProfileEditDialog}
-                    >
-                      Редактировать профиль
-                    </Button>
-                  </div>
-                </section>
-              </div>
-              <div className="teacher-dashboard__profile-news">
-                <NewsFeedPanel user={user} />
-              </div>
+            <div className="teacher-dashboard__profile-feed">
+              <NewsFeedPanel user={user} />
             </div>
           )}
           {/* STUDENTS */}
@@ -1455,7 +1471,7 @@ export default function TeacherDashboard() {
                   showChatAction={studentsWithFeedbackIds.includes(student.id)}
                   onOpenChat={() => {
                     const params = new URLSearchParams(searchParams);
-                    params.set("tab", TEACHER_TAB_KEYS[5]);
+                    params.set("tab", TEACHER_TAB_KEYS[TEACHER_CHAT_TAB_INDEX]);
                     const threadId = chatThreadIdsByStudentId[student.id];
                     if (threadId) {
                       params.set("threadId", threadId);
@@ -1464,7 +1480,7 @@ export default function TeacherDashboard() {
                       params.set("studentId", student.id);
                       params.delete("threadId");
                     }
-                    setTab(5);
+                    setTab(TEACHER_CHAT_TAB_INDEX);
                     setSearchParams(params);
                   }}
                 />
@@ -1946,30 +1962,16 @@ export default function TeacherDashboard() {
             </div>
           )}
 
-          <div style={{ display: tab === 4 ? "block" : "none" }} aria-hidden={tab !== 4}>
+          <div
+            style={{ display: tab === TEACHER_STUDY_TAB_INDEX ? "block" : "none" }}
+            aria-hidden={tab !== TEACHER_STUDY_TAB_INDEX}
+          >
             <StudyCabinetPanel
               role="teacher"
               userId={user.id}
               bookings={bookings}
               availability={availability}
               notes={studyNotes}
-              onWorkbookClick={async () => {
-                const launch = await openExternalWhiteboard({
-                  from: "/teacher/profile?tab=study",
-                });
-                if (!launch.ok) {
-                  setDashboardError(
-                    launch.error ??
-                      "Не удалось открыть рабочую тетрадь. Проверьте настройки запуска."
-                  );
-                } else if (launch.code === "popup_blocked") {
-                  setDashboardError(WORKBOOK_POPUP_BLOCKED_MESSAGE);
-                }
-              }}
-              onChatClick={() => {
-                setTab(5);
-                setSearchParams({ tab: TEACHER_TAB_KEYS[5] });
-              }}
               activityDays={teacherStudyActivityDays}
               chatUnreadCount={chatUnreadCount}
               onOpenSchedule={handleTeacherOpenSchedule}
@@ -1980,11 +1982,37 @@ export default function TeacherDashboard() {
             />
           </div>
 
-          {tab === 5 && (
+          {tab === TEACHER_WORKBOOK_TAB_INDEX && (
+            <div className="teacher-dashboard__section teacher-dashboard__tool-launch">
+              <div className="teacher-dashboard__invite-shell">
+                <div className="teacher-dashboard__invite-copy">
+                  <span>Рабочая тетрадь</span>
+                  <h3>Откройте внешний рабочий контур</h3>
+                  <p>
+                    Цифровая тетрадь доступна отдельной вкладкой для быстрых разборов
+                    и работы с материалами курса.
+                  </p>
+                </div>
+                <div className="teacher-dashboard__section-actions">
+                  <Button
+                    variant="contained"
+                    startIcon={<AutoStoriesRoundedIcon />}
+                    onClick={() => {
+                      void handleTeacherOpenWorkbook();
+                    }}
+                  >
+                    Открыть рабочую тетрадь
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === TEACHER_CHAT_TAB_INDEX && (
             <ChatPage />
           )}
 
-          {tab === 6 && (
+          {tab === TEACHER_STATS_TAB_INDEX && (
             <div className="teacher-dashboard__empty">
               {t("teacherDashboard.statsSoon")}
             </div>
@@ -2006,10 +2034,56 @@ export default function TeacherDashboard() {
         />
         <DialogContent className="teacher-dashboard__profile-edit-content">
           <div className="teacher-dashboard__profile-edit-head">
-            <h3>Личные данные</h3>
-            <span>Изменения применяются к аккаунту преподавателя.</span>
+            <h3>Профиль преподавателя</h3>
+            <span>Изменения применяются к аккаунту.</span>
           </div>
           {profileError ? <Alert severity="error">{profileError}</Alert> : null}
+          <div className="teacher-dashboard__profile-edit-avatar-row">
+            <button
+              type="button"
+              className="teacher-dashboard__profile-edit-avatar-control"
+              onClick={() => avatarInputRef.current?.click()}
+              aria-label="Изменить фото профиля"
+            >
+              <Avatar
+                src={profileDraft.photo || undefined}
+                className="teacher-dashboard__profile-edit-avatar-media"
+              >
+                {identityInitials || "П"}
+              </Avatar>
+              <span className="teacher-dashboard__profile-edit-avatar-icon" aria-hidden>
+                <PhotoCameraRoundedIcon fontSize="inherit" />
+              </span>
+            </button>
+            <div className="teacher-dashboard__profile-edit-avatar-copy">
+              <strong>Фото профиля</strong>
+              <span>PNG, JPG или WEBP до 2 МБ</span>
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              ref={avatarInputRef}
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (!file.type.startsWith("image/")) {
+                  setProfileError("Загрузите изображение в формате PNG, JPG или WEBP.");
+                  event.target.value = "";
+                  return;
+                }
+                if (file.size > PROFILE_AVATAR_MAX_BYTES) {
+                  setProfileError("Слишком большой файл аватара. Максимальный размер — 2 МБ.");
+                  event.target.value = "";
+                  return;
+                }
+                setProfileError(null);
+                const dataUrl = await fileToDataUrl(file);
+                setProfileDraft((prev) => ({ ...prev, photo: dataUrl }));
+                event.target.value = "";
+              }}
+            />
+          </div>
           <div className="teacher-dashboard__profile-edit-grid">
             <TextField
               label="Имя"
@@ -2054,7 +2128,11 @@ export default function TeacherDashboard() {
               InputProps={{ readOnly: true }}
             />
           </div>
-          <PasswordSecurityCard className="teacher-dashboard__profile-edit-security" />
+          <PasswordSecurityCard
+            className="teacher-dashboard__profile-edit-security"
+            presentation="row"
+            title="Пароль"
+          />
         </DialogContent>
         <DialogActions className="teacher-dashboard__profile-edit-actions">
           <Button

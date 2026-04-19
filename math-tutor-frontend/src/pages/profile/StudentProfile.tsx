@@ -116,7 +116,8 @@ import { getUserAvatarInitial } from "@/shared/lib/userDisplayName";
 const PROFILE_AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 
 export default function StudentProfile() {
-  const CHAT_TAB_INDEX = 4;
+  const WORKBOOK_TAB_INDEX = 4;
+  const CHAT_TAB_INDEX = 5;
   const { user, updateUser, openAuthModal, openRecoverModal } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -181,6 +182,9 @@ export default function StudentProfile() {
     severity: "success" | "warning" | "error";
     message: string;
   } | null>(null);
+  const [lockedToolsModal, setLockedToolsModal] = useState<
+    "workbook" | "chat" | null
+  >(null);
   const [chatEligibility, setChatEligibility] =
     useState<TeacherChatEligibility | null>(null);
   const [studyNotes, setStudyNotes] = useState<StudyCabinetNote[]>([]);
@@ -221,6 +225,7 @@ export default function StudentProfile() {
     user,
     userId,
     tab,
+    WORKBOOK_TAB_INDEX,
     CHAT_TAB_INDEX,
     chatAccessAvailable,
     location,
@@ -252,6 +257,25 @@ export default function StudentProfile() {
       setTabMenuOpen(false);
     }
   }, [isNonDesktop, setTabMenuOpen, tabMenuOpen]);
+
+  useEffect(() => {
+    if (chatAccessAvailable) return;
+    if (tab === WORKBOOK_TAB_INDEX) {
+      setLockedToolsModal("workbook");
+      setTabWithQuery(3, { replace: true });
+      return;
+    }
+    if (tab === CHAT_TAB_INDEX) {
+      setLockedToolsModal("chat");
+      setTabWithQuery(3, { replace: true });
+    }
+  }, [
+    chatAccessAvailable,
+    tab,
+    WORKBOOK_TAB_INDEX,
+    CHAT_TAB_INDEX,
+    setTabWithQuery,
+  ]);
 
   const upcomingBooking = useMemo(() => selectUpcomingBooking(bookings), [bookings]);
   const unpaidCompletedBooking = useMemo(
@@ -611,29 +635,6 @@ export default function StudentProfile() {
     );
   };
 
-  const handleOpenTeacherChat = async () => {
-    try {
-      const eligibility = chatEligibility ?? (await getTeacherChatEligibility());
-      if (!eligibility.available) {
-        setChatNotice({
-          severity: "warning",
-          message:
-            "Чат с преподавателем доступен после покупки премиум-курса или записи на индивидуальное занятие.",
-        });
-        return;
-      }
-      setChatEligibility(eligibility);
-      setTabWithQuery(CHAT_TAB_INDEX, { replace: true });
-    } catch (error) {
-      setChatNotice({
-        severity: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Не удалось открыть чат с преподавателем.",
-      });
-    }
-  };
   const handleOpenWorkbook = async () => {
     try {
       const eligibility = chatEligibility ?? (await getTeacherChatEligibility());
@@ -673,6 +674,26 @@ export default function StudentProfile() {
       });
     }
   };
+
+  const handleStudentTabSelect = (nextTab: number) => {
+    if (nextTab === WORKBOOK_TAB_INDEX) {
+      if (!chatAccessAvailable) {
+        setLockedToolsModal("workbook");
+        return;
+      }
+      setTabWithQuery(WORKBOOK_TAB_INDEX, { replace: true });
+      return;
+    }
+    if (nextTab === CHAT_TAB_INDEX) {
+      if (!chatAccessAvailable) {
+        setLockedToolsModal("chat");
+        return;
+      }
+      setTabWithQuery(CHAT_TAB_INDEX, { replace: true });
+      return;
+    }
+    setTabWithQuery(nextTab, { replace: true });
+  };
   const mobileDialogActionSx = isMobile
     ? {
         minWidth: 44,
@@ -711,25 +732,39 @@ export default function StudentProfile() {
           label: "Учебный кабинет",
           icon: <AutoStoriesRoundedIcon />,
         },
-        ...(chatAccessAvailable
-          ? [
-              {
-                index: CHAT_TAB_INDEX,
-                label: "Чат",
-                icon: (
-                  <Badge
-                    color="error"
-                    badgeContent={chatUnreadCount > 99 ? "99+" : chatUnreadCount}
-                    invisible={chatUnreadCount <= 0}
-                  >
-                    <ForumRoundedIcon />
-                  </Badge>
-                ),
-              },
-            ]
-          : []),
-      ] satisfies Array<{ index: number; label: string; icon: ReactNode }>,
-    [chatAccessAvailable, CHAT_TAB_INDEX, chatUnreadCount, scheduledCount]
+        {
+          index: WORKBOOK_TAB_INDEX,
+          label: "Рабочая тетрадь",
+          premium: true,
+          icon: <AutoStoriesRoundedIcon />,
+        },
+        {
+          index: CHAT_TAB_INDEX,
+          label: "Чат",
+          premium: true,
+          icon: (
+            <Badge
+              color="error"
+              badgeContent={chatUnreadCount > 99 ? "99+" : chatUnreadCount}
+              invisible={chatUnreadCount <= 0 || !chatAccessAvailable}
+            >
+              <ForumRoundedIcon />
+            </Badge>
+          ),
+        },
+      ] satisfies Array<{
+        index: number;
+        label: string;
+        icon: ReactNode;
+        premium?: boolean;
+      }>,
+    [
+      CHAT_TAB_INDEX,
+      WORKBOOK_TAB_INDEX,
+      chatAccessAvailable,
+      chatUnreadCount,
+      scheduledCount,
+    ]
   );
 
   const activeStudentTab = useMemo(
@@ -803,6 +838,40 @@ export default function StudentProfile() {
           {chatNotice?.message}
         </Alert>
       </Snackbar>
+      <Dialog
+        open={lockedToolsModal !== null}
+        onClose={() => setLockedToolsModal(null)}
+        fullWidth
+        maxWidth="xs"
+        className="ui-dialog ui-dialog--compact student-profile__locked-tools-modal"
+      >
+        <DialogTitleWithClose
+          title="Премиум-инструменты"
+          onClose={() => setLockedToolsModal(null)}
+          closeAriaLabel="Закрыть уведомление"
+        />
+        <DialogContent className="student-profile__locked-tools-content">
+          <p>
+            {lockedToolsModal === "chat"
+              ? "Чат с преподавателем доступен после покупки премиум-курса или записи на индивидуальное занятие."
+              : "Рабочая тетрадь доступна после покупки премиум-курса или записи на индивидуальное занятие."}
+          </p>
+        </DialogContent>
+        <DialogActions className="student-profile__locked-tools-actions">
+          <Button color="inherit" onClick={() => setLockedToolsModal(null)}>
+            Понятно
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setLockedToolsModal(null);
+              setTabWithQuery(2, { replace: true });
+            }}
+          >
+            Индивидуальные занятия
+          </Button>
+        </DialogActions>
+      </Dialog>
       {unpaidCompletedBooking && (
         <div className="student-profile__reminder student-profile__reminder--priority">
           {`Оплата занятия ${formatBookingReminderDate(unpaidCompletedBooking)} не подтверждена.`}
@@ -879,13 +948,24 @@ export default function StudentProfile() {
             <Tabs
               orientation="vertical"
               value={tab}
-              onChange={(_, next) => setTabWithQuery(next, { replace: true })}
+              onChange={(_, next) => handleStudentTabSelect(next)}
               className="student-profile__tabs"
             >
               {studentTabItems.map((item) => (
                 <Tab
                   key={item.index}
-                  label={<span className="student-profile__tab-label">{item.label}</span>}
+                  label={
+                    <span
+                      className={`student-profile__tab-label ${
+                        item.premium ? "student-profile__tab-label--premium" : ""
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      {item.premium ? (
+                        <DiamondRoundedIcon className="student-profile__tab-diamond" />
+                      ) : null}
+                    </span>
+                  }
                   icon={item.icon}
                   iconPosition="start"
                 />
@@ -1751,12 +1831,6 @@ export default function StudentProfile() {
           bookings={bookings}
           notes={studyNotes}
           activityDays={studyActivityDays}
-          onWorkbookClick={() => {
-            void handleOpenWorkbook();
-          }}
-          onChatClick={() => {
-            void handleOpenTeacherChat();
-          }}
           onBrowseCourses={() => {
             navigate("/courses", {
               state: { from: "/student/profile?tab=study" },
@@ -1796,7 +1870,28 @@ export default function StudentProfile() {
         />
       </div>
 
-          {tab === CHAT_TAB_INDEX && chatAccessAvailable && <ChatPage />}
+      {tab === WORKBOOK_TAB_INDEX && (
+        <section className="student-profile__tool-panel">
+          <div className="student-profile__page-head">
+            <div>
+              <h2>Рабочая тетрадь</h2>
+              <p>Открывайте цифровую тетрадь и фиксируйте решения в одном месте.</p>
+            </div>
+          </div>
+          <div className="student-profile__tool-panel-shell">
+            <Button
+              variant="contained"
+              onClick={() => {
+                void handleOpenWorkbook();
+              }}
+            >
+              Открыть рабочую тетрадь
+            </Button>
+          </div>
+        </section>
+      )}
+
+      {tab === CHAT_TAB_INDEX && chatAccessAvailable && <ChatPage />}
         </div>
       </div>
       {isNonDesktop ? (
@@ -1823,12 +1918,17 @@ export default function StudentProfile() {
                   tab === item.index ? "is-active" : ""
                 }`}
                 onClick={() => {
-                  setTabWithQuery(item.index, { replace: true });
+                  handleStudentTabSelect(item.index);
                   setTabMenuOpen(false);
                 }}
               >
                 <span className="student-profile__tabs-drawer-icon">{item.icon}</span>
-                <span className="student-profile__tabs-drawer-label">{item.label}</span>
+                <span className="student-profile__tabs-drawer-label">
+                  <span>{item.label}</span>
+                  {item.premium ? (
+                    <DiamondRoundedIcon className="student-profile__tab-diamond" />
+                  ) : null}
+                </span>
               </button>
             ))}
           </div>

@@ -605,33 +605,49 @@
     overflow: hidden;
   }
 
-  &__header {
-    min-height: 58px;
-    padding: 0 10px 0 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 68%, #b8c7ff);
-
-    span {
-      font-size: 0.92rem;
-      color: color-mix(in srgb, var(--text-secondary) 76%, #4f62a5);
-      font-weight: 600;
-    }
-  }
-
   &__stage {
+    position: relative;
     min-height: min(76vh, 760px);
     padding: clamp(10px, 2vw, 18px);
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 8px;
+  }
 
-    .MuiIconButton-root {
-      border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b3c3fd);
-      background: color-mix(in srgb, var(--surface-elevated) 82%, #f6f9ff);
-      color: color-mix(in srgb, var(--text-primary) 80%, #3a4f96);
+  &__close.MuiIconButton-root {
+    position: absolute;
+    top: clamp(8px, 1vw, 14px);
+    right: clamp(8px, 1vw, 14px);
+    z-index: 2;
+    padding: 4px;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: color-mix(in srgb, var(--text-secondary) 86%, #4e62a6) !important;
+  }
+
+  &__nav.MuiIconButton-root {
+    padding: 2px;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: color-mix(in srgb, var(--text-primary) 88%, #3f57a5) !important;
+    transition: transform 180ms ease, color 180ms ease, opacity 180ms ease;
+
+    .MuiSvgIcon-root {
+      font-size: clamp(2rem, 2.2vw, 2.5rem);
+    }
+
+    &:hover:not(.Mui-disabled) {
+      transform: scale(1.03);
+      color: color-mix(in srgb, var(--accent-primary) 72%, #2f56c8) !important;
+    }
+
+    &.Mui-disabled {
+      opacity: 0.45;
     }
   }
 
@@ -672,33 +688,49 @@
     overflow: hidden;
   }
 
-  &__header {
-    min-height: 58px;
-    padding: 0 10px 0 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 68%, #b8c7ff);
-
-    span {
-      font-size: 0.92rem;
-      color: color-mix(in srgb, var(--text-secondary) 76%, #4f62a5);
-      font-weight: 600;
-    }
-  }
-
   &__stage {
+    position: relative;
     min-height: min(84vh, 860px);
     padding: clamp(10px, 2vw, 18px);
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 8px;
+  }
 
-    .MuiIconButton-root {
-      border: 1px solid color-mix(in srgb, var(--border-subtle) 74%, #b3c3fd);
-      background: color-mix(in srgb, var(--surface-elevated) 82%, #f6f9ff);
-      color: color-mix(in srgb, var(--text-primary) 80%, #3a4f96);
+  &__close.MuiIconButton-root {
+    position: absolute;
+    top: clamp(8px, 1vw, 14px);
+    right: clamp(8px, 1vw, 14px);
+    z-index: 2;
+    padding: 4px;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: color-mix(in srgb, var(--text-secondary) 86%, #4e62a6) !important;
+  }
+
+  &__nav.MuiIconButton-root {
+    padding: 2px;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: color-mix(in srgb, var(--text-primary) 88%, #3f57a5) !important;
+    transition: transform 180ms ease, color 180ms ease, opacity 180ms ease;
+
+    .MuiSvgIcon-root {
+      font-size: clamp(2rem, 2.2vw, 2.5rem);
+    }
+
+    &:hover:not(.Mui-disabled) {
+      transform: scale(1.03);
+      color: color-mix(in srgb, var(--accent-primary) 72%, #2f56c8) !important;
+    }
+
+    &.Mui-disabled {
+      opacity: 0.45;
     }
   }
 
@@ -809,7 +841,6 @@
   .about-teacher-proof__diplomas,
   .about-teacher-reviews__card,
   .about-teacher-lightbox .MuiDialog-paper,
-  .about-teacher-lightbox__stage .MuiIconButton-root,
   .about-teacher-lightbox__canvas,
   .about-teacher-asset,
   .about-teacher-asset__fallback {
@@ -821,7 +852,6 @@
   .about-teacher-proof__diplomas,
   .about-teacher-reviews__card,
   .about-teacher-lightbox .MuiDialog-paper,
-  .about-teacher-lightbox__stage .MuiIconButton-root,
   .about-teacher-lightbox__canvas,
   .about-teacher-asset,
   .about-teacher-asset__fallback {
@@ -833,8 +863,7 @@
   .about-teacher-proof__education-card p,
   .about-teacher-proof__education-card small,
   .about-teacher-proof__education-head span,
-  .about-teacher-proof__metric p,
-  .about-teacher-lightbox__header span {
+  .about-teacher-proof__metric p {
     color: color-mix(in srgb, var(--text-secondary) 82%, #b8c6ec);
   }
 
@@ -890,7 +919,6 @@
   }
 
   .about-teacher-reviews-lightbox .MuiDialog-paper,
-  .about-teacher-reviews-lightbox__stage .MuiIconButton-root,
   .about-teacher-reviews-lightbox__canvas,
   .about-teacher-reviews-lightbox__fallback {
     border-color: color-mix(in srgb, var(--border-subtle) 68%, #4f69b6);
@@ -899,8 +927,14 @@
     box-shadow: 0 12px 24px rgba(2, 8, 30, 0.32);
   }
 
-  .about-teacher-reviews-lightbox__header span {
-    color: color-mix(in srgb, var(--text-secondary) 82%, #b8c6ec);
+  .about-teacher-lightbox__close.MuiIconButton-root,
+  .about-teacher-reviews-lightbox__close.MuiIconButton-root,
+  .about-teacher-lightbox__nav.MuiIconButton-root,
+  .about-teacher-reviews-lightbox__nav.MuiIconButton-root {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: color-mix(in srgb, var(--text-primary) 92%, #dbe6ff) !important;
   }
 }
 
