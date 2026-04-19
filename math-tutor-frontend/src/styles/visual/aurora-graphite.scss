@@ -118,8 +118,8 @@ body::after,
 .teacher-dashboard {
   --cabinet-grid-paper-a: #f2d9ea;
   --cabinet-grid-paper-b: #afc0ff;
-  --cabinet-grid-minor: rgba(255, 255, 255, 0.62);
-  --cabinet-grid-major: rgba(255, 255, 255, 0.4);
+  --cabinet-grid-minor: rgba(255, 255, 255, 0.44);
+  --cabinet-grid-major: rgba(255, 255, 255, 0.28);
   background:
     repeating-linear-gradient(
       0deg,
@@ -164,10 +164,10 @@ body::after,
 :root[data-theme="dark"] .teacher-dashboard {
   --cabinet-grid-paper-a: #273660;
   --cabinet-grid-paper-b: #1f2f5c;
-  --cabinet-grid-minor: rgba(132, 166, 230, 0.24);
-  --cabinet-grid-major: rgba(182, 209, 255, 0.3);
+  --cabinet-grid-minor: rgba(132, 166, 230, 0.12);
+  --cabinet-grid-major: rgba(182, 209, 255, 0.16);
   border-color: color-mix(in srgb, var(--brand-soft) 34%, var(--card-border));
-  box-shadow: 0 10px 24px rgba(4, 9, 28, 0.3);
+  box-shadow: 0 8px 18px rgba(4, 9, 28, 0.18);
 }
 
 .hero,

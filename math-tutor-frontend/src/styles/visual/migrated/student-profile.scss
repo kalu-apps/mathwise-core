@@ -1,7 +1,7 @@
 .student-profile {
   max-width: 1320px;
   margin: 0 auto;
-  padding: 24px clamp(14px, 2vw, 24px) 40px;
+  padding: clamp(30px, 3.2vw, 42px) clamp(14px, 2vw, 24px) 40px;
   color: var(--text-primary);
 }
 
@@ -1207,7 +1207,7 @@
 
 @media (max-width: 900px) {
   .student-profile {
-    padding: 18px 14px 28px;
+    padding: 24px 14px 28px;
   }
 
   .student-profile__courses {

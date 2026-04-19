@@ -51,7 +51,8 @@ export default function AboutTeacher() {
         <AboutTeacherHero
           avatarUrl={heroAvatarUrl}
           onPrimaryAction={() => navigate("/courses")}
-          onSecondaryAction={() => navigate("/booking")}
+          onBookingAction={() => navigate("/booking")}
+          onSecondaryAction={() => navigate("/contact")}
           showAvatarFallback={!loading}
         />
       </div>

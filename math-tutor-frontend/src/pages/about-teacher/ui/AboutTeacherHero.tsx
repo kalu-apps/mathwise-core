@@ -5,6 +5,7 @@ import { AssetImage } from "./AssetImage";
 type AboutTeacherHeroProps = {
   avatarUrl?: string | null;
   onPrimaryAction: () => void;
+  onBookingAction: () => void;
   onSecondaryAction: () => void;
   showAvatarFallback?: boolean;
 };
@@ -12,6 +13,7 @@ type AboutTeacherHeroProps = {
 export function AboutTeacherHero({
   avatarUrl,
   onPrimaryAction,
+  onBookingAction,
   onSecondaryAction,
   showAvatarFallback = true,
 }: AboutTeacherHeroProps) {
@@ -26,6 +28,9 @@ export function AboutTeacherHero({
         <div className="about-teacher-hero__actions">
           <Button variant="contained" onClick={onPrimaryAction}>
             {ABOUT_TEACHER_HERO_COPY.primaryCta}
+          </Button>
+          <Button variant="outlined" onClick={onBookingAction}>
+            {ABOUT_TEACHER_HERO_COPY.bookingCta}
           </Button>
           <Button variant="outlined" onClick={onSecondaryAction}>
             {ABOUT_TEACHER_HERO_COPY.secondaryCta}
