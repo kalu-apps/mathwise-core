@@ -35,9 +35,13 @@ export function AboutTeacherReviews({ reviews }: AboutTeacherReviewsProps) {
   }, []);
 
   useEffect(() => {
-    setCanScrollPrev(false);
-    setCanScrollNext(hasMultiplePages);
-    updateScrollState();
+    const frame = window.requestAnimationFrame(() => {
+      updateScrollState();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
   }, [hasMultiplePages, reviewPages.length, updateScrollState]);
 
   useEffect(() => {
