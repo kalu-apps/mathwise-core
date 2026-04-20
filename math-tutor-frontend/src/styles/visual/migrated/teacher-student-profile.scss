@@ -227,69 +227,78 @@
 }
 
 .teacher-student-profile__course-progress {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10px;
-  min-width: 160px;
-}
-
-.teacher-student-profile__progress-ring-card {
-  --progress-color: var(--accent-strong);
-  --progress-glow: color-mix(in srgb, var(--accent-strong) 30%, transparent);
-  --progress-start: var(--progress-color);
-  --progress-end: color-mix(in srgb, var(--progress-color) 72%, #ffffff);
-  --progress-percent-display: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 0;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.teacher-student-profile__progress-ring {
-  position: relative;
-  width: 68px;
-  height: 68px;
   display: grid;
-  place-items: center;
+  justify-items: stretch;
+  align-content: start;
+  gap: 9px;
+  min-width: 190px;
+  border-left: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
+  padding-left: 14px;
 }
 
-.teacher-student-profile__progress-ring-arc {
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  background:
-    conic-gradient(
-      from -90deg,
-      var(--progress-start) 0%,
-      var(--progress-end) calc(var(--progress-percent-display) * 1%),
-      color-mix(in srgb, var(--text-muted) 28%, transparent) calc(var(--progress-percent-display) * 1%),
-      color-mix(in srgb, var(--text-muted) 28%, transparent) 100%
-    );
-  box-shadow: 0 0 16px var(--progress-glow);
-  -webkit-mask:
-    radial-gradient(circle, transparent 58%, #000 59%);
-  mask:
-    radial-gradient(circle, transparent 58%, #000 59%);
+.teacher-student-profile__course-progress-lines {
+  display: grid;
+  gap: 10px;
+  width: 100%;
 }
 
-.teacher-student-profile__progress-ring > span {
-  position: relative;
-  z-index: 1;
-  font-weight: 700;
-  font-size: 12px;
-  color: color-mix(in srgb, var(--progress-color) 76%, var(--text-primary));
+.teacher-student-profile__course-progress-line {
+  display: grid;
+  gap: 6px;
 }
 
-.teacher-student-profile__progress-label {
-  font-size: 11px;
-  color: color-mix(in srgb, var(--progress-color) 74%, var(--text-secondary));
+.teacher-student-profile__course-progress-line-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+}
+
+.teacher-student-profile__course-progress-line-head span {
+  color: color-mix(in srgb, var(--text-secondary) 92%, transparent);
+}
+
+.teacher-student-profile__course-progress-line-head strong {
+  color: color-mix(in srgb, var(--text-primary) 88%, transparent);
+  font-size: 11.5px;
   font-weight: 620;
+}
+
+.teacher-student-profile__course-progress-track {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--background-soft) 82%, transparent);
+  overflow: visible;
+}
+
+.teacher-student-profile__course-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #ffffff 26%, transparent) inset;
+}
+
+.teacher-student-profile__course-progress-point {
+  position: absolute;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--background-elevated) 86%, transparent);
+  transform: translate(-50%, -50%);
+}
+
+.teacher-student-profile__course-progress-track--empty .teacher-student-profile__course-progress-fill {
+  width: 4% !important;
+  opacity: 0.45;
+}
+
+.teacher-student-profile__course-progress-track--empty .teacher-student-profile__course-progress-point {
+  left: 4px !important;
+  background: color-mix(in srgb, var(--text-muted) 66%, var(--accent-primary)) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--text-muted) 14%, transparent) !important;
 }
 
 .teacher-student-profile__bookings {
@@ -503,16 +512,12 @@
   }
 
   .teacher-student-profile__course-progress {
-    justify-self: start;
-    align-self: center;
-    flex-direction: row;
-    gap: 8px;
+    justify-self: stretch;
+    align-self: start;
+    width: 100%;
     min-width: 0;
-  }
-
-  .teacher-student-profile__progress-ring {
-    width: 58px;
-    height: 58px;
+    border-left: 0;
+    padding-left: 0;
   }
 
   .teacher-student-profile__course-main h3 {

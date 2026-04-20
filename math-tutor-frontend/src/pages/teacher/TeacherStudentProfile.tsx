@@ -4,7 +4,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -557,14 +556,22 @@ export default function TeacherStudentProfile() {
                 const knowledgeVisual = buildProgressVisual(
                   course.testsKnowledgePercent
                 );
-                const learningRingStyle = {
-                  "--progress-color": learningVisual.color,
-                  "--progress-glow": learningVisual.glow,
-                } as CSSProperties;
-                const knowledgeRingStyle = {
-                  "--progress-color": knowledgeVisual.color,
-                  "--progress-glow": knowledgeVisual.glow,
-                } as CSSProperties;
+                const progressItems = [
+                  {
+                    key: "learning",
+                    label: "Изучено",
+                    visual: learningVisual,
+                  },
+                  ...(course.totalTests > 0
+                    ? [
+                        {
+                          key: "tests",
+                          label: "Сдано",
+                          visual: knowledgeVisual,
+                        },
+                      ]
+                    : []),
+                ];
                 const courseMetaLine = `Уровень: ${course.level} • Уроки: ${course.viewedCount}/${course.totalLessons}${
                   course.totalTests > 0
                     ? ` • Тесты: ${course.completedTests}/${course.totalTests}`
@@ -600,52 +607,49 @@ export default function TeacherStudentProfile() {
                       </span>
                     </div>
                     <div className="teacher-student-profile__course-progress">
-                      <div
-                        className="teacher-student-profile__progress-ring-card"
-                        style={learningRingStyle}
-                      >
-                        <div className="teacher-student-profile__progress-ring">
-                          <span
-                            className="teacher-student-profile__progress-ring-arc"
-                            style={
-                              {
-                                "--progress-percent-display": learningVisual.displayPercent,
-                                "--progress-start": learningVisual.start,
-                                "--progress-end": learningVisual.end,
-                                "--progress-color": learningVisual.color,
-                              } as CSSProperties
-                            }
-                          />
-                          <span>{learningVisual.percent}%</span>
-                        </div>
-                        <span className="teacher-student-profile__progress-label">
-                          Изучено
-                        </span>
+                      <div className="teacher-student-profile__course-progress-lines">
+                        {progressItems.map((item) => {
+                          const progressPercent = item.visual.percent;
+                          const fillPercent = Math.max(
+                            progressPercent,
+                            progressPercent === 0 ? 4 : 0
+                          );
+                          return (
+                            <div
+                              key={item.key}
+                              className="teacher-student-profile__course-progress-line"
+                            >
+                              <div className="teacher-student-profile__course-progress-line-head">
+                                <span>{item.label}</span>
+                                <strong>{progressPercent}%</strong>
+                              </div>
+                              <div
+                                className={`teacher-student-profile__course-progress-track ${
+                                  progressPercent === 0
+                                    ? "teacher-student-profile__course-progress-track--empty"
+                                    : ""
+                                }`}
+                              >
+                                <span
+                                  className="teacher-student-profile__course-progress-fill"
+                                  style={{
+                                    width: `${fillPercent}%`,
+                                    background: `linear-gradient(90deg, ${item.visual.start}, ${item.visual.end})`,
+                                  }}
+                                />
+                                <span
+                                  className="teacher-student-profile__course-progress-point"
+                                  style={{
+                                    left: `${progressPercent}%`,
+                                    background: item.visual.end,
+                                    boxShadow: `0 0 0 3px ${item.visual.glow}`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                      {course.totalTests > 0 ? (
-                        <div
-                          className="teacher-student-profile__progress-ring-card"
-                          style={knowledgeRingStyle}
-                        >
-                          <div className="teacher-student-profile__progress-ring">
-                            <span
-                              className="teacher-student-profile__progress-ring-arc"
-                              style={
-                                {
-                                  "--progress-percent-display": knowledgeVisual.displayPercent,
-                                  "--progress-start": knowledgeVisual.start,
-                                  "--progress-end": knowledgeVisual.end,
-                                  "--progress-color": knowledgeVisual.color,
-                                } as CSSProperties
-                              }
-                            />
-                            <span>{knowledgeVisual.percent}%</span>
-                          </div>
-                          <span className="teacher-student-profile__progress-label">
-                            Сдано
-                          </span>
-                        </div>
-                      ) : null}
                     </div>
                   </div>
                 );
