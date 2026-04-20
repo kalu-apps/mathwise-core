@@ -566,13 +566,15 @@ export default function LessonDetails() {
             ) : null}
           </div>
         ) : null}
-        <div className="lesson-details__top-nav">
-          <BackNavButton onClick={handleBackToCourse} />
-        </div>
-        <div className="lesson-details__hero" aria-label="Метаданные урока">
-          <span className="lesson-details__duration-chip">
-            Длительность: {durationText}
-          </span>
+        <div className="lesson-details__top-bar">
+          <div className="lesson-details__top-nav">
+            <BackNavButton onClick={handleBackToCourse} />
+          </div>
+          <div className="lesson-details__hero" aria-label="Метаданные урока">
+            <span className="lesson-details__duration-chip">
+              Длительность: {durationText}
+            </span>
+          </div>
         </div>
 
         <div className="lesson-details__video-card">

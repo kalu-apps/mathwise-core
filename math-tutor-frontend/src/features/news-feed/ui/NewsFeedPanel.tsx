@@ -71,7 +71,7 @@ const emptyDraft: NewsDraft = {
   title: "",
   content: "",
   tone: "general",
-  highlighted: false,
+  highlighted: true,
   imageUrl: "",
   externalUrl: "",
 };
@@ -165,14 +165,6 @@ export function NewsFeedPanel({ user }: Props) {
     return "Сохранить";
   }, [editDraft, updatingId]);
 
-  const feedTitle = useMemo(
-    () => (isTeacher ? "Лента объявлений" : "Объявления"),
-    [isTeacher]
-  );
-  const feedKicker = useMemo(
-    () => (isTeacher ? "Лента" : "Обновления"),
-    [isTeacher]
-  );
   const composerToneOptions = useMemo(
     () =>
       isTeacher
@@ -219,7 +211,7 @@ export function NewsFeedPanel({ user }: Props) {
         title: draft.title.trim(),
         content: draft.content.trim(),
         tone: draft.tone,
-        highlighted: draft.highlighted,
+        highlighted: true,
         imageUrl: draft.imageUrl || undefined,
         externalUrl: normalizeExternalUrl(draft.externalUrl) || undefined,
       });
@@ -245,7 +237,7 @@ export function NewsFeedPanel({ user }: Props) {
       title: item.title,
       content: item.content,
       tone: item.tone,
-      highlighted: item.highlighted,
+      highlighted: true,
       imageUrl: item.imageUrl ?? "",
       externalUrl: item.externalUrl ?? "",
     });
@@ -262,7 +254,7 @@ export function NewsFeedPanel({ user }: Props) {
           title: editDraft.title.trim(),
           content: editDraft.content.trim(),
           tone: editDraft.tone,
-          highlighted: editDraft.highlighted,
+          highlighted: true,
           imageUrl: editDraft.imageUrl,
           externalUrl: normalizeExternalUrl(editDraft.externalUrl),
         },
@@ -322,15 +314,7 @@ export function NewsFeedPanel({ user }: Props) {
       })}
     >
       <div className="news-feed__header">
-        <div>
-          <span className="news-feed__kicker">{feedKicker}</span>
-          <h2>{feedTitle}</h2>
-          <p>
-            {isTeacher
-              ? "Публикуйте обновления для студентов."
-              : "Новые материалы и важные сообщения преподавателя."}
-          </p>
-        </div>
+        <span className="news-feed__wall-badge">Стена объявлений</span>
         {isTeacher && (
           <Button
             className={cn("news-feed__add", {
@@ -533,82 +517,76 @@ export function NewsFeedPanel({ user }: Props) {
                         ),
                       }}
                     />
-                    <div className="news-feed__tone-list">
-                      {composerToneOptions.map((tone) => (
-                        <button
-                          key={`${item.id}-${tone}`}
-                          type="button"
-                          className={cn(
-                            "news-feed__tone",
-                            `news-feed__tone--${tone}`,
-                            {
-                              "is-active": editDraft.tone === tone,
+                    <div className="news-feed__tone-row">
+                      <div className="news-feed__tone-list">
+                        {composerToneOptions.map((tone) => (
+                          <button
+                            key={`${item.id}-${tone}`}
+                            type="button"
+                            className={cn(
+                              "news-feed__tone",
+                              `news-feed__tone--${tone}`,
+                              {
+                                "is-active": editDraft.tone === tone,
+                              }
+                            )}
+                            onClick={() =>
+                              setEditDraft((prev) =>
+                                prev ? { ...prev, tone } : prev
+                              )
                             }
-                          )}
-                          onClick={() =>
-                            setEditDraft((prev) =>
-                              prev ? { ...prev, tone } : prev
-                            )
+                          >
+                            {toneLabels[tone]}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="news-feed__media-actions">
+                        <Tooltip
+                          title={
+                            editDraft.imageUrl
+                              ? "Заменить изображение"
+                              : "Добавить изображение"
                           }
                         >
-                          {toneLabels[tone]}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="news-feed__composer-actions">
-                      <Button
-                        variant={editDraft.highlighted ? "contained" : "outlined"}
-                        onClick={() =>
-                          setEditDraft((prev) =>
-                            prev
-                              ? {
-                                  ...prev,
-                                  highlighted: !prev.highlighted,
-                                }
-                              : prev
-                          )
-                        }
-                      >
-                        {editDraft.highlighted
-                          ? "Подсветка включена"
-                          : "Подсветить новость"}
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        startIcon={<ImageRoundedIcon />}
-                        onClick={() => editImageInputRef.current?.click()}
-                      >
-                        {editDraft.imageUrl
-                          ? "Заменить изображение"
-                          : "Добавить изображение"}
-                      </Button>
-                      <input
-                        hidden
-                        ref={editImageInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          const imageUrl = await fileToDataUrl(file);
-                          setEditDraft((prev) =>
-                            prev ? { ...prev, imageUrl } : prev
-                          );
-                          e.target.value = "";
-                        }}
-                      />
-                      {editDraft.imageUrl && (
-                        <Button
-                          color="inherit"
-                          onClick={() =>
+                          <IconButton
+                            className="news-feed__media-icon"
+                            onClick={() => editImageInputRef.current?.click()}
+                            aria-label="Добавить изображение"
+                          >
+                            <ImageRoundedIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <input
+                          hidden
+                          ref={editImageInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const imageUrl = await fileToDataUrl(file);
                             setEditDraft((prev) =>
-                              prev ? { ...prev, imageUrl: "" } : prev
-                            )
-                          }
-                        >
-                          Убрать изображение
-                        </Button>
-                      )}
+                              prev ? { ...prev, imageUrl } : prev
+                            );
+                            e.target.value = "";
+                          }}
+                        />
+                        {editDraft.imageUrl && (
+                          <Tooltip title="Убрать изображение">
+                            <IconButton
+                              className="news-feed__media-icon news-feed__media-icon--clear"
+                              onClick={() =>
+                                setEditDraft((prev) =>
+                                  prev ? { ...prev, imageUrl: "" } : prev
+                                )
+                              }
+                              aria-label="Убрать изображение"
+                            >
+                              <CloseRoundedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </div>
                     </div>
                     {editDraft.imageUrl && (
                       <div className="news-feed__image-wrap">
@@ -741,66 +719,62 @@ export function NewsFeedPanel({ user }: Props) {
               />
             </div>
 
-            <div className="news-feed__tone-list news-feed__tone-list--create">
-              {composerToneOptions.map((tone) => (
-                <button
-                  key={tone}
-                  type="button"
-                  className={cn("news-feed__tone", `news-feed__tone--${tone}`, {
-                    "is-active": draft.tone === tone,
-                  })}
-                  onClick={() => setDraft((prev) => ({ ...prev, tone }))}
-                >
-                  {toneLabels[tone]}
-                </button>
-              ))}
-            </div>
-
-            <div className="news-feed__composer-actions news-feed__composer-actions--create">
-              <Button
-                variant={draft.highlighted ? "contained" : "text"}
-                onClick={() =>
-                  setDraft((prev) => ({
-                    ...prev,
-                    highlighted: !prev.highlighted,
-                  }))
-                }
-              >
-                {draft.highlighted ? "Подсветка включена" : "Подсветить новость"}
-              </Button>
-
-              <Button
-                variant="text"
-                startIcon={<ImageRoundedIcon />}
-                onClick={() => createImageInputRef.current?.click()}
-              >
-                {draft.imageUrl ? "Заменить изображение" : "Добавить изображение"}
-              </Button>
-              <input
-                hidden
-                ref={createImageInputRef}
-                type="file"
-                accept="image/*"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const imageUrl = await fileToDataUrl(file);
-                  setDraft((prev) => ({ ...prev, imageUrl }));
-                  e.target.value = "";
-                }}
-              />
-
-              {draft.imageUrl && (
-                <Button
-                  color="inherit"
-                  variant="text"
-                  onClick={() =>
-                    setDraft((prev) => ({ ...prev, imageUrl: "" }))
+            <div className="news-feed__tone-row news-feed__tone-row--create">
+              <div className="news-feed__tone-list news-feed__tone-list--create">
+                {composerToneOptions.map((tone) => (
+                  <button
+                    key={tone}
+                    type="button"
+                    className={cn("news-feed__tone", `news-feed__tone--${tone}`, {
+                      "is-active": draft.tone === tone,
+                    })}
+                    onClick={() => setDraft((prev) => ({ ...prev, tone }))}
+                  >
+                    {toneLabels[tone]}
+                  </button>
+                ))}
+              </div>
+              <div className="news-feed__media-actions">
+                <Tooltip
+                  title={
+                    draft.imageUrl ? "Заменить изображение" : "Добавить изображение"
                   }
                 >
-                  Убрать изображение
-                </Button>
-              )}
+                  <IconButton
+                    className="news-feed__media-icon"
+                    onClick={() => createImageInputRef.current?.click()}
+                    aria-label="Добавить изображение"
+                  >
+                    <ImageRoundedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <input
+                  hidden
+                  ref={createImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const imageUrl = await fileToDataUrl(file);
+                    setDraft((prev) => ({ ...prev, imageUrl }));
+                    e.target.value = "";
+                  }}
+                />
+                {draft.imageUrl && (
+                  <Tooltip title="Убрать изображение">
+                    <IconButton
+                      className="news-feed__media-icon news-feed__media-icon--clear"
+                      onClick={() =>
+                        setDraft((prev) => ({ ...prev, imageUrl: "" }))
+                      }
+                      aria-label="Убрать изображение"
+                    >
+                      <CloseRoundedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </div>
             </div>
 
             {draft.imageUrl && (

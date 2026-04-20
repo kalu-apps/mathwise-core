@@ -1061,11 +1061,13 @@ textarea {
 }
 
 .MuiOutlinedInput-notchedOutline {
-  border-color: var(--input-border) !important;
+  border-color: transparent !important;
+  border-width: 0 !important;
 }
 
 .Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: var(--brand-soft) !important;
+  border-color: transparent !important;
+  border-width: 0 !important;
 }
 
 .MuiInputLabel-root,
@@ -1073,6 +1075,21 @@ textarea {
 .MuiFormHelperText-root,
 .MuiTypography-caption {
   color: var(--text-muted) !important;
+}
+
+/* Global form policy: keep hint inside the field, avoid floating label above content */
+.MuiInputLabel-root.MuiInputLabel-shrink.MuiFormLabel-filled {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Prevent empty notch gap when floating label is hidden */
+.MuiInputLabel-root.MuiInputLabel-shrink.MuiFormLabel-filled
+  + .MuiInputBase-root
+  .MuiOutlinedInput-notchedOutline
+  legend {
+  max-width: 0.01px !important;
 }
 
 .MuiTabs-root {

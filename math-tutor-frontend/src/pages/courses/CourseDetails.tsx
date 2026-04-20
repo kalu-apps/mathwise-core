@@ -162,6 +162,188 @@ const mapPurchaseFlowErrorMessage = (error: unknown): string => {
   }
 };
 
+type ProgressSineCardProps = {
+  label: string;
+  subtitle: string;
+  percent: number;
+  visual: ReturnType<typeof buildCourseProgressVisual>;
+};
+
+type ProgressChartPoint = {
+  x: number;
+  y: number;
+};
+
+const PROGRESS_SINE_SCENE = {
+  xMin: 16,
+  xMax: 304,
+  yMin: 16,
+  yMax: 152,
+  xAxis: 84,
+  yAxis: 48,
+  amplitude: 28,
+  cycles: 1.36,
+  phase: -0.45,
+} as const;
+
+const PROGRESS_GRID_VERTICAL = Array.from({ length: 12 }, (_, index) => 16 + index * 26);
+const PROGRESS_GRID_HORIZONTAL = Array.from({ length: 6 }, (_, index) => 20 + index * 24);
+
+const clampProgressPercent = (value: number) =>
+  Math.max(0, Math.min(100, Math.round(value)));
+
+const toProgressPath = (points: ProgressChartPoint[]) =>
+  points
+    .map((point, index) =>
+      `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`
+    )
+    .join(" ");
+
+const getProgressSinePoint = (ratio: number): ProgressChartPoint => {
+  const normalized = Math.max(0, Math.min(1, ratio));
+  const span = PROGRESS_SINE_SCENE.xMax - PROGRESS_SINE_SCENE.xMin;
+  const x = PROGRESS_SINE_SCENE.xMin + span * normalized;
+  const angle =
+    normalized * Math.PI * 2 * PROGRESS_SINE_SCENE.cycles + PROGRESS_SINE_SCENE.phase;
+  const y = PROGRESS_SINE_SCENE.xAxis - PROGRESS_SINE_SCENE.amplitude * Math.sin(angle);
+  return { x, y };
+};
+
+const sampleProgressSinePoints = (start: number, end: number, steps = 112) => {
+  const startRatio = Math.max(0, Math.min(1, start));
+  const endRatio = Math.max(0, Math.min(1, end));
+  if (endRatio <= startRatio) {
+    return [getProgressSinePoint(startRatio)];
+  }
+  const total = Math.max(8, Math.round((endRatio - startRatio) * steps));
+  return Array.from({ length: total + 1 }, (_, index) => {
+    const t = startRatio + ((endRatio - startRatio) * index) / total;
+    return getProgressSinePoint(t);
+  });
+};
+
+function ProgressSineCard({ label, subtitle, percent, visual }: ProgressSineCardProps) {
+  const safePercent = clampProgressPercent(percent);
+  const progressRatio = safePercent / 100;
+  const completedPath = useMemo(
+    () => toProgressPath(sampleProgressSinePoints(0, progressRatio, 168)),
+    [progressRatio]
+  );
+  const remainingPath = useMemo(
+    () => toProgressPath(sampleProgressSinePoints(progressRatio, 1, 168)),
+    [progressRatio]
+  );
+  const markerPoint = useMemo(
+    () => getProgressSinePoint(progressRatio),
+    [progressRatio]
+  );
+  const badgeX = Math.min(248, Math.max(58, markerPoint.x + 14));
+  const badgeY = Math.min(132, Math.max(26, markerPoint.y - 20));
+
+  return (
+    <article
+      className="course-details__roadmap-progress-card"
+      style={
+        {
+          "--progress-color": visual.color,
+          "--progress-glow": visual.glow,
+        } as CSSProperties
+      }
+    >
+      <div className="course-details__roadmap-progress-chart" aria-hidden>
+        <svg
+          className="course-details__roadmap-progress-chart-svg"
+          viewBox="0 0 320 170"
+          role="presentation"
+          focusable="false"
+        >
+          <rect
+            className="course-details__roadmap-progress-plane"
+            x={PROGRESS_SINE_SCENE.xMin}
+            y={PROGRESS_SINE_SCENE.yMin}
+            width={PROGRESS_SINE_SCENE.xMax - PROGRESS_SINE_SCENE.xMin}
+            height={PROGRESS_SINE_SCENE.yMax - PROGRESS_SINE_SCENE.yMin}
+            rx={12}
+          />
+          <g>
+            {PROGRESS_GRID_VERTICAL.map((x) => (
+              <line
+                key={`progress-grid-v-${x}`}
+                className="course-details__roadmap-progress-grid-line"
+                x1={x}
+                y1={PROGRESS_SINE_SCENE.yMin}
+                x2={x}
+                y2={PROGRESS_SINE_SCENE.yMax}
+              />
+            ))}
+            {PROGRESS_GRID_HORIZONTAL.map((y) => (
+              <line
+                key={`progress-grid-h-${y}`}
+                className="course-details__roadmap-progress-grid-line"
+                x1={PROGRESS_SINE_SCENE.xMin}
+                y1={y}
+                x2={PROGRESS_SINE_SCENE.xMax}
+                y2={y}
+              />
+            ))}
+          </g>
+          <line
+            className="course-details__roadmap-progress-axis"
+            x1={PROGRESS_SINE_SCENE.xMin}
+            y1={PROGRESS_SINE_SCENE.xAxis}
+            x2={PROGRESS_SINE_SCENE.xMax}
+            y2={PROGRESS_SINE_SCENE.xAxis}
+          />
+          <line
+            className="course-details__roadmap-progress-axis"
+            x1={PROGRESS_SINE_SCENE.yAxis}
+            y1={PROGRESS_SINE_SCENE.yMin}
+            x2={PROGRESS_SINE_SCENE.yAxis}
+            y2={PROGRESS_SINE_SCENE.yMax}
+          />
+          <path
+            className="course-details__roadmap-progress-sine course-details__roadmap-progress-sine--remaining"
+            d={remainingPath}
+          />
+          <path
+            className="course-details__roadmap-progress-sine course-details__roadmap-progress-sine--completed"
+            d={completedPath}
+          />
+          <circle
+            className="course-details__roadmap-progress-marker-glow"
+            cx={markerPoint.x}
+            cy={markerPoint.y}
+            r={10}
+          />
+          <circle
+            className="course-details__roadmap-progress-marker"
+            cx={markerPoint.x}
+            cy={markerPoint.y}
+            r={4.5}
+          />
+          <g transform={`translate(${badgeX.toFixed(2)} ${badgeY.toFixed(2)})`}>
+            <rect
+              className="course-details__roadmap-progress-badge-bg"
+              x={-32}
+              y={-12}
+              width={64}
+              height={24}
+              rx={12}
+            />
+            <text className="course-details__roadmap-progress-badge-text" textAnchor="middle" y={4}>
+              {safePercent}%
+            </text>
+          </g>
+        </svg>
+      </div>
+      <div className="course-details__roadmap-progress-copy">
+        <strong>{label}</strong>
+        <span>{subtitle}</span>
+      </div>
+    </article>
+  );
+}
+
 const STAGE_PAYMENT_CONFIRM_ENABLED = isStagePaymentConfirmEnabled();
 
 export default function CourseDetails() {
@@ -1568,49 +1750,19 @@ export default function CourseDetails() {
         hasCourseTests ? "" : "course-details__roadmap-progress--single"
       } ${showInlineRoadmapProgress ? "course-details__roadmap-progress--inline" : ""}`}
     >
-      <article
-        className="course-details__roadmap-progress-card"
-        style={
-          {
-            "--progress-color": learningProgressVisual.color,
-            "--progress-glow": learningProgressVisual.glow,
-          } as CSSProperties
-        }
-      >
-        <div className="course-details__roadmap-progress-ring">
-          <CircularProgress
-            variant="determinate"
-            value={learningProgressPercent}
-            size={74}
-            thickness={4.8}
-            sx={{ color: "var(--progress-color)" }}
-          />
-          <span>{learningProgressPercent}%</span>
-        </div>
-        <strong>Изучено</strong>
-      </article>
+      <ProgressSineCard
+        label="Изучено"
+        subtitle="Прогресс изучения материалов"
+        percent={learningProgressPercent}
+        visual={learningProgressVisual}
+      />
       {hasCourseTests ? (
-        <article
-          className="course-details__roadmap-progress-card"
-          style={
-            {
-              "--progress-color": knowledgeProgressVisual.color,
-              "--progress-glow": knowledgeProgressVisual.glow,
-            } as CSSProperties
-          }
-        >
-          <div className="course-details__roadmap-progress-ring">
-            <CircularProgress
-              variant="determinate"
-              value={knowledgeProgressPercent}
-              size={74}
-              thickness={4.8}
-              sx={{ color: "var(--progress-color)" }}
-            />
-            <span>{knowledgeProgressPercent}%</span>
-          </div>
-          <strong>Сдано</strong>
-        </article>
+        <ProgressSineCard
+          label="Сдано"
+          subtitle="Прогресс по тестам курса"
+          percent={knowledgeProgressPercent}
+          visual={knowledgeProgressVisual}
+        />
       ) : null}
     </div>
   ) : null;

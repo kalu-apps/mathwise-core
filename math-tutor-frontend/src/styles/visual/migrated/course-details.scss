@@ -528,30 +528,107 @@
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--progress-color) 20%, transparent),
     0 10px 20px var(--progress-glow);
-  padding: 10px 12px;
+  padding: 10px;
+  display: grid;
+  gap: 9px;
+}
+
+.course-details__roadmap-progress-chart {
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--progress-color) 32%, transparent);
+  background:
+    radial-gradient(
+      circle at 16% 16%,
+      color-mix(in srgb, var(--progress-color) 18%, transparent),
+      transparent 58%
+    ),
+    color-mix(in srgb, var(--surface-content) 90%, transparent);
+  padding: 6px;
+}
+
+.course-details__roadmap-progress-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.course-details__roadmap-progress-plane {
+  fill: transparent;
+  stroke: color-mix(in srgb, var(--progress-color) 26%, transparent);
+  stroke-width: 1;
+}
+
+.course-details__roadmap-progress-grid-line {
+  stroke: color-mix(in srgb, var(--progress-color) 18%, var(--border-subtle));
+  stroke-width: 0.84;
+  opacity: 0.62;
+}
+
+.course-details__roadmap-progress-axis {
+  stroke: color-mix(in srgb, var(--progress-color) 34%, transparent);
+  stroke-width: 1.1;
+  opacity: 0.72;
+}
+
+.course-details__roadmap-progress-sine {
+  fill: none;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.course-details__roadmap-progress-sine--completed {
+  stroke: var(--progress-color);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--progress-glow) 72%, transparent));
+}
+
+.course-details__roadmap-progress-sine--remaining {
+  stroke: color-mix(in srgb, var(--progress-color) 30%, var(--border-subtle));
+  stroke-dasharray: 6 6;
+  stroke-width: 2.2;
+  opacity: 0.82;
+}
+
+.course-details__roadmap-progress-marker-glow {
+  fill: color-mix(in srgb, var(--progress-color) 42%, transparent);
+}
+
+.course-details__roadmap-progress-marker {
+  fill: color-mix(in srgb, #ffffff 76%, var(--progress-color));
+  stroke: color-mix(in srgb, var(--progress-color) 80%, #ffffff);
+  stroke-width: 1.5;
+}
+
+.course-details__roadmap-progress-badge-bg {
+  fill: color-mix(in srgb, var(--surface-content) 86%, transparent);
+  stroke: color-mix(in srgb, var(--progress-color) 52%, transparent);
+  stroke-width: 1;
+}
+
+.course-details__roadmap-progress-badge-text {
+  fill: color-mix(in srgb, var(--progress-color) 74%, var(--text-primary));
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.course-details__roadmap-progress-copy {
   display: grid;
   justify-items: center;
-  gap: 8px;
+  gap: 2px;
+  text-align: center;
 }
 
-.course-details__roadmap-progress-card strong {
+.course-details__roadmap-progress-copy strong {
   font-size: 12px;
-  color: color-mix(in srgb, var(--progress-color) 68%, var(--text-primary));
+  line-height: 1.2;
+  color: color-mix(in srgb, var(--progress-color) 70%, var(--text-primary));
 }
 
-.course-details__roadmap-progress-ring {
-  position: relative;
-  width: 74px;
-  height: 74px;
-  display: grid;
-  place-items: center;
-}
-
-.course-details__roadmap-progress-ring span {
-  position: absolute;
-  font-size: 12px;
-  font-weight: 700;
-  color: color-mix(in srgb, var(--progress-color) 72%, var(--text-primary));
+.course-details__roadmap-progress-copy span {
+  font-size: 11px;
+  line-height: 1.3;
+  color: color-mix(in srgb, var(--text-secondary) 92%, var(--progress-color));
 }
 
 .course-details__roadmap {

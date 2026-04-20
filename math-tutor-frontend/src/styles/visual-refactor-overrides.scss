@@ -32,3 +32,23 @@
 @use "./visual/aurora-graphite";
 @use "./visual/migrated/home-first-screen";
 @use "./visual/migrated/home-footer";
+
+/* Unified input contour policy: one visible border per field (outer shell only). */
+.MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline,
+.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline,
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-width: 0 !important;
+  border-color: transparent !important;
+}
+
+/* Prevent duplicate inner contour on MUI-controlled native inputs. */
+.MuiInputBase-root input,
+.MuiInputBase-root textarea,
+.MuiOutlinedInput-root input,
+.MuiOutlinedInput-root textarea {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
