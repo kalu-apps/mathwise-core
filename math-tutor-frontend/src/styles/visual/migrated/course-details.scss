@@ -512,19 +512,21 @@
   --progress-color: var(--accent-strong);
   --progress-glow: color-mix(in srgb, var(--accent-strong) 30%, transparent);
   border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--progress-color) 32%, var(--card-border));
+  border: 1px solid color-mix(in srgb, var(--progress-color) 42%, var(--card-border));
   background: color-mix(in srgb, var(--surface-soft) 95%, transparent);
-  box-shadow: none;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--progress-color) 18%, transparent),
+    0 4px 14px color-mix(in srgb, var(--progress-glow) 20%, transparent);
   padding: 10px;
   display: grid;
   gap: 8px;
 }
 
 .course-details__roadmap-progress-chart {
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--progress-color) 22%, var(--border-subtle));
-  background: color-mix(in srgb, var(--surface-content) 98%, transparent);
-  padding: 6px;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
 }
 
 .course-details__roadmap-progress-chart-svg {
@@ -535,8 +537,7 @@
 
 .course-details__roadmap-progress-plane {
   fill: color-mix(in srgb, var(--surface-content) 98%, transparent);
-  stroke: color-mix(in srgb, var(--progress-color) 20%, var(--border-subtle));
-  stroke-width: 1;
+  stroke: none;
 }
 
 .course-details__roadmap-progress-grid-line {
@@ -575,18 +576,6 @@
   stroke-width: 1.5;
 }
 
-.course-details__roadmap-progress-percent {
-  font-size: 12.5px;
-  font-weight: 780;
-  letter-spacing: 0.01em;
-  text-shadow:
-    0 0 5px color-mix(in srgb, var(--progress-glow) 72%, transparent),
-    0 1px 0 color-mix(in srgb, #ffffff 14%, transparent);
-  paint-order: stroke;
-  stroke: color-mix(in srgb, var(--surface-content) 88%, transparent);
-  stroke-width: 0.7;
-}
-
 .course-details__roadmap-progress-copy {
   display: grid;
   justify-items: center;
@@ -594,15 +583,29 @@
   text-align: center;
 }
 
-.course-details__roadmap-progress-copy strong {
-  font-size: 12px;
-  line-height: 1.2;
-  color: color-mix(in srgb, var(--progress-color) 62%, var(--text-primary));
+.course-details__roadmap-progress-copy-head {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
 }
 
-.course-details__roadmap-progress-copy span {
-  font-size: 11px;
-  line-height: 1.3;
+.course-details__roadmap-progress-copy strong {
+  font-size: 16px;
+  line-height: 1.22;
+  font-weight: 740;
+  color: color-mix(in srgb, var(--progress-color) 66%, var(--text-primary));
+}
+
+.course-details__roadmap-progress-copy-percent {
+  font-size: 15px;
+  line-height: 1.18;
+  font-weight: 780;
+  color: color-mix(in srgb, var(--progress-color) 90%, var(--text-primary));
+}
+
+.course-details__roadmap-progress-copy-subtitle {
+  font-size: 12px;
+  line-height: 1.35;
   color: color-mix(in srgb, var(--text-secondary) 92%, var(--progress-color));
 }
 

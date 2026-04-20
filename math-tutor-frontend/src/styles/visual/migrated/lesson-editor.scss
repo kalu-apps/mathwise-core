@@ -305,9 +305,10 @@
   .MuiTextField-root.course-editor-dialog__description-field
     .MuiOutlinedInput-root
     .MuiInputBase-inputMultiline {
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
-    line-height: 1.45;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    line-height: 1.5;
+    overflow: visible;
   }
 
   .MuiDialogActions-root {

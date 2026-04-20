@@ -104,7 +104,7 @@
   position: relative;
   display: grid;
   gap: 10px;
-  border-radius: 2px;
+  border-radius: 0;
   border: 1px solid var(--news-tone-border);
   background:
     linear-gradient(
@@ -544,4 +544,9 @@
       color-mix(in srgb, var(--news-tone-surface, var(--background-elevated)) 88%, transparent),
       color-mix(in srgb, var(--background-elevated) 94%, transparent)
     ) !important;
+}
+
+/* Keep news cards rectangular even with global aurora tier-2 card rounding. */
+.news-feed.news-feed .news-feed__item {
+  border-radius: 0 !important;
 }

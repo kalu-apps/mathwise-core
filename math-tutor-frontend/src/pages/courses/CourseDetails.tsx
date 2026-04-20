@@ -305,8 +305,6 @@ function ProgressSineCard({ label, subtitle, percent }: ProgressSineCardProps) {
   const axisStroke = progressHsla(animatedPercent, 70, 0.88, 76);
   const markerCore = progressHsla(animatedPercent, 65, 0.98, 78);
   const markerStroke = progressHsla(animatedPercent, 42, 0.96, 90);
-  const percentTextGradientStart = progressHsla(animatedPercent, 58, 1, 92);
-  const percentTextGradientEnd = progressHsla(Math.min(100, animatedPercent + 28), 44, 1, 86);
 
   const completedPath = useMemo(
     () => toProgressPath(sampleProgressSinePoints(0, progressRatio, 168)),
@@ -320,17 +318,6 @@ function ProgressSineCard({ label, subtitle, percent }: ProgressSineCardProps) {
     () => getProgressSinePoint(progressRatio),
     [progressRatio]
   );
-  const percentLabelX = clampNumber(
-    markerPoint.x + 12,
-    PROGRESS_SINE_SCENE.xMin + 10,
-    PROGRESS_SINE_SCENE.xMax - 8
-  );
-  const percentLabelY = clampNumber(
-    markerPoint.y - 12,
-    PROGRESS_SINE_SCENE.yMin + 12,
-    PROGRESS_SINE_SCENE.yMax - 8
-  );
-
   return (
     <div
       className="course-details__roadmap-progress-panel"
@@ -359,10 +346,6 @@ function ProgressSineCard({ label, subtitle, percent }: ProgressSineCardProps) {
               <stop offset="55%" stopColor={progressHsla(animatedPercent, 64, 0.52, 78)} />
               <stop offset="100%" stopColor={progressHsla(animatedPercent, 60, 0, 76)} />
             </radialGradient>
-            <linearGradient id={`${uid}-percent`} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor={percentTextGradientStart} />
-              <stop offset="100%" stopColor={percentTextGradientEnd} />
-            </linearGradient>
           </defs>
           <rect
             className="course-details__roadmap-progress-plane"
@@ -434,19 +417,16 @@ function ProgressSineCard({ label, subtitle, percent }: ProgressSineCardProps) {
             r={4.5}
             style={{ fill: markerCore, stroke: markerStroke }}
           />
-          <text
-            className="course-details__roadmap-progress-percent"
-            x={percentLabelX}
-            y={percentLabelY}
-            style={{ fill: `url(#${uid}-percent)` }}
-          >
-            {animatedPercent}%
-          </text>
         </svg>
       </div>
       <div className="course-details__roadmap-progress-copy">
-        <strong>{label}</strong>
-        <span>{subtitle}</span>
+        <div className="course-details__roadmap-progress-copy-head">
+          <strong>{label}</strong>
+          <span className="course-details__roadmap-progress-copy-percent">
+            {animatedPercent}%
+          </span>
+        </div>
+        <span className="course-details__roadmap-progress-copy-subtitle">{subtitle}</span>
       </div>
     </div>
   );
