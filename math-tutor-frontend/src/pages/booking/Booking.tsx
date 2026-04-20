@@ -705,7 +705,7 @@ export default function Booking() {
         onClose={() => setBookingOpen(false)}
         fullWidth
         maxWidth="md"
-        className="ui-dialog ui-dialog--wide booking-dialog"
+        className="ui-dialog booking-dialog"
         disableRestoreFocus
       >
         <DialogTitleWithClose
@@ -729,7 +729,7 @@ export default function Booking() {
               {t("booking.noTeacherSlots")}
             </div>
           )}
-          <div className="booking-calendar__section">
+          <div className="booking-calendar__group">
             <div className="booking-calendar__section-title">
               <h4>{t("booking.dateTitle")}</h4>
               <span>
@@ -769,7 +769,7 @@ export default function Booking() {
             </div>
           </div>
 
-          <div className="booking-calendar__section">
+          <div className="booking-calendar__group">
             <div className="booking-calendar__section-title">
               <h4>{t("booking.timeTitle")}</h4>
               <span>
@@ -799,7 +799,7 @@ export default function Booking() {
               </div>
             )}
           </div>
-          <div className="booking-calendar__section">
+          <div className="booking-calendar__group">
               <FormControlLabel
                 control={
                   <Checkbox

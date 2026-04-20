@@ -244,10 +244,15 @@
     background: linear-gradient(135deg, var(--accent-strong), var(--brand-soft));
   }
 
-  &__section {
+  &__group {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
 
     h4 {
       margin: 0;
@@ -414,6 +419,52 @@
   }
 }
 
+/* Booking dialog compact tech polish */
+.MuiDialog-root.booking-dialog .MuiDialog-paper {
+  width: min(92vw, 560px) !important;
+  max-width: min(92vw, 560px) !important;
+  border-radius: 22px !important;
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--surface-popover) 95%, #c5d7ff) 0%,
+      color-mix(in srgb, var(--surface-popover) 97%, #b8cbff) 58%,
+      color-mix(in srgb, var(--surface-popover) 96%, #f0f5ff) 100%
+    ) !important;
+  border: 1px solid color-mix(in srgb, var(--brand-soft) 38%, var(--border-subtle)) !important;
+  box-shadow:
+    0 18px 36px color-mix(in srgb, var(--brand-solid) 18%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 62%, transparent) !important;
+}
+
+.MuiDialog-root.booking-dialog .MuiDialogTitle-root {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 80%, var(--brand-soft));
+}
+
+.MuiDialog-root.booking-dialog .booking-calendar {
+  gap: 16px;
+}
+
+.MuiDialog-root.booking-dialog .booking-calendar__day {
+  border-radius: 12px;
+  padding: 7px 5px 9px;
+}
+
+.MuiDialog-root.booking-dialog .booking-calendar__group,
+.MuiDialog-root.booking-dialog .booking-calendar__section {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+@media (max-width: 600px) {
+  .MuiDialog-root.booking-dialog .MuiDialog-paper {
+    width: min(96vw, 560px) !important;
+    max-width: min(96vw, 560px) !important;
+  }
+}
+
 @media (max-width: 900px) {
   .booking-calendar__grid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -453,10 +504,10 @@
 
   .booking-calendar__section,
   .booking-calendar__summary {
-    background: var(--glass-tier-1-bg) !important;
-    border-color: var(--glass-tier-1-border) !important;
-    box-shadow: var(--glass-tier-1-shadow), inset 0 1px 0 var(--glass-tier-1-edge) !important;
-    backdrop-filter: blur(var(--glass-tier-1-blur)) !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
   }
 
   &__hero h1,

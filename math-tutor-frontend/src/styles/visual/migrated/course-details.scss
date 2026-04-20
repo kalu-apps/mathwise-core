@@ -2434,11 +2434,19 @@
     backdrop-filter: blur(var(--glass-tier-1-blur)) !important;
   }
 
-  &__title,
-  &__title-premium {
+  &__title {
     color: var(--text-primary) !important;
     background: none !important;
     -webkit-text-fill-color: currentColor !important;
+  }
+
+  &__title-premium {
+    color: color-mix(in srgb, var(--feedback-warning) 84%, #ffd77d) !important;
+    background: none !important;
+    -webkit-text-fill-color: currentColor !important;
+    filter: drop-shadow(
+      0 8px 14px color-mix(in srgb, var(--feedback-warning) 42%, transparent)
+    );
   }
 
   &__kicker,
