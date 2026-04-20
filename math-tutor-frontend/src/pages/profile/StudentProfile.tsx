@@ -19,7 +19,6 @@ import {
   FormControlLabel,
   IconButton,
   InputAdornment,
-  LinearProgress,
   Snackbar,
   Tab,
   Tabs,
@@ -1125,24 +1124,51 @@ export default function StudentProfile() {
                 0,
                 Math.min(100, Math.round(testsKnowledgePercent))
               );
+              const progressItems = [
+                {
+                  key: "content",
+                  label: "Контент",
+                  value: learningPercent,
+                },
+                ...(totalTests > 0
+                  ? [
+                      {
+                        key: "tests",
+                        label: "Тесты",
+                        value: testsPercent,
+                      },
+                    ]
+                  : []),
+              ];
               const showPaymentAction =
                 financialView.paymentMethod === "bnpl" &&
                 financialView.financialStatus !== "ok";
               return (
                 <div key={course.id} className="student-profile__course-card">
                   <div className="student-profile__course-main">
-                    <h3>
-                      <span className="student-profile__course-title-row">
-                        <span className="student-profile__course-title">
-                          <span className="student-profile__course-title-text">
-                            {course.title}
+                    <div className="student-profile__course-head">
+                      <h3>
+                        <span className="student-profile__course-title-row">
+                          <span className="student-profile__course-title">
+                            <span className="student-profile__course-title-text">
+                              {course.title}
+                            </span>
+                            {isPremium && (
+                              <DiamondRoundedIcon className="student-profile__premium" />
+                            )}
                           </span>
-                          {isPremium && (
-                            <DiamondRoundedIcon className="student-profile__premium" />
-                          )}
                         </span>
+                      </h3>
+                      <span
+                        className={`student-profile__course-status ${
+                          isCourseCompleted
+                            ? "student-profile__course-status--completed"
+                            : "student-profile__course-status--active"
+                        }`}
+                      >
+                        {isCourseCompleted ? "Завершён" : "В процессе"}
                       </span>
-                    </h3>
+                    </div>
                     <div className="student-profile__course-meta">
                       <span className="student-profile__course-meta-level">
                         Уровень: {course.level}
@@ -1208,44 +1234,39 @@ export default function StudentProfile() {
                   </div>
 
                   <div className="student-profile__course-progress">
-                    <span
-                      className={`student-profile__course-status student-profile__course-status--corner ${
-                        progress >= 100
-                          ? "student-profile__course-status--completed"
-                          : "student-profile__course-status--active"
-                      } ui-status-chip ${
-                        progress >= 100
-                          ? "ui-status-chip--completed"
-                          : "ui-status-chip--inprogress"
-                      }`}
-                    >
-                      {progress >= 100 ? "Завершён" : "В процессе"}
-                    </span>
                     <div className="student-profile__course-progress-lines">
-                      <div className="student-profile__course-progress-line">
-                        <div className="student-profile__course-progress-line-head">
-                          <span>Контент</span>
-                          <strong>{learningPercent}%</strong>
-                        </div>
-                        <LinearProgress
-                          variant="determinate"
-                          value={learningPercent}
-                          className="student-profile__course-progress-bar"
-                        />
-                      </div>
-                      {totalTests > 0 ? (
-                        <div className="student-profile__course-progress-line">
+                      {progressItems.map((item) => (
+                        <div
+                          key={item.key}
+                          className="student-profile__course-progress-line"
+                        >
                           <div className="student-profile__course-progress-line-head">
-                            <span>Тесты</span>
-                            <strong>{testsPercent}%</strong>
+                            <span>{item.label}</span>
+                            <strong>{item.value}%</strong>
                           </div>
-                          <LinearProgress
-                            variant="determinate"
-                            value={testsPercent}
-                            className="student-profile__course-progress-bar"
-                          />
+                          <div
+                            className={`student-profile__course-progress-track ${
+                              item.value === 0
+                                ? "student-profile__course-progress-track--empty"
+                                : ""
+                            }`}
+                          >
+                            <span
+                              className="student-profile__course-progress-fill"
+                              style={{
+                                width: `${Math.max(
+                                  item.value,
+                                  item.value === 0 ? 4 : 0
+                                )}%`,
+                              }}
+                            />
+                            <span
+                              className="student-profile__course-progress-point"
+                              style={{ left: `${item.value}%` }}
+                            />
+                          </div>
                         </div>
-                      ) : null}
+                      ))}
                     </div>
                   </div>
                 </div>
