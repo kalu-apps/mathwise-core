@@ -28,6 +28,15 @@ import { ListSkeleton } from "@/shared/ui/loading";
 import { ListPagination } from "@/shared/ui/ListPagination";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
 
+const formatTemplateUpdatedAt = (iso: string) => {
+  const value = new Date(iso);
+  if (Number.isNaN(value.getTime())) return "Дата не указана";
+  return value.toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "short",
+  });
+};
+
 export default function TeacherTestTemplatesPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -229,32 +238,42 @@ export default function TeacherTestTemplatesPage() {
             {pagedTemplates.map((template) => (
               <article key={template.id} className="assessment-templates-page__card">
                 <div className="assessment-templates-page__card-main">
-                  <Typography variant="h6">{template.title}</Typography>
-                  <span
-                    className={`assessment-templates-page__status ui-status-chip ${
-                      template.status === "published"
-                        ? "ui-status-chip--paid"
-                        : "ui-status-chip--scheduled"
-                    }`}
-                  >
-                    {template.status === "published" ? "Опубликован" : "Черновик"}
-                  </span>
-                  <span
-                    className={`assessment-templates-page__status ui-status-chip ${
-                      template.assessmentKind === "exam"
-                        ? "ui-status-chip--warning"
-                        : "ui-status-chip--new"
-                    }`}
-                  >
-                    {template.assessmentKind === "exam" ? "Экзамен" : "Зачет"}
-                  </span>
+                  <div className="assessment-templates-page__card-top">
+                    <Typography variant="h6">{template.title}</Typography>
+                    <span
+                      className={`assessment-templates-page__status ui-status-chip ${
+                        template.status === "published"
+                          ? "ui-status-chip--paid"
+                          : "ui-status-chip--scheduled"
+                      }`}
+                    >
+                      {template.status === "published" ? "Опубликован" : "Черновик"}
+                    </span>
+                  </div>
+                  {template.description?.trim() ? (
+                    <Typography variant="body2" className="assessment-templates-page__card-description">
+                      {template.description}
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" className="assessment-templates-page__card-description is-muted">
+                      Без описания.
+                    </Typography>
+                  )}
                   <div className="assessment-templates-page__meta">
-                    <span>Вопросов: {template.questions.length}</span>
-                    <span>
-                      Время:{" "}
+                    <span className="assessment-templates-page__meta-chip">
+                      {template.assessmentKind === "exam" ? "Экзамен" : "Зачет"}
+                    </span>
+                    <span className="assessment-templates-page__meta-chip">
+                      {template.questions.length}{" "}
+                      {template.questions.length === 1 ? "вопрос" : "вопросов"}
+                    </span>
+                    <span className="assessment-templates-page__meta-chip">
                       {template.durationMinutes > 0
-                        ? `${template.durationMinutes} мин.`
-                        : "не задано"}
+                        ? `${template.durationMinutes} мин`
+                        : "Время не задано"}
+                    </span>
+                    <span className="assessment-templates-page__meta-chip is-subtle">
+                      Обновлено {formatTemplateUpdatedAt(template.updatedAt)}
                     </span>
                   </div>
                 </div>

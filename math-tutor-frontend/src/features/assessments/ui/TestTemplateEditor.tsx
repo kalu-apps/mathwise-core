@@ -596,11 +596,12 @@ export function TestTemplateEditor({
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               multiline
-              minRows={2}
+              minRows={1}
               inputProps={{ "aria-label": "Описание теста" }}
               fullWidth
               disabled={readOnly}
               size="small"
+              className="assessment-editor__field-description"
             />
             <div className="assessment-editor__kind">
               <span className="assessment-editor__kind-label">Формат проверки</span>
@@ -757,11 +758,11 @@ export function TestTemplateEditor({
                   })
                 }
                 multiline
-                minRows={4}
+                minRows={1}
                 inputProps={{ "aria-label": "Вопрос" }}
                 fullWidth
                 disabled={readOnly}
-                className="assessment-editor__field-compact"
+                className="assessment-editor__field-compact assessment-editor__field-question"
                 size="small"
               />
               {!readOnly && (
@@ -842,11 +843,11 @@ export function TestTemplateEditor({
                   })
                 }
                 multiline
-                minRows={3}
+                minRows={1}
                 inputProps={{ "aria-label": "Пояснение после проверки" }}
                 fullWidth
                 disabled={readOnly}
-                className="assessment-editor__field-compact"
+                className="assessment-editor__field-compact assessment-editor__field-explanation"
                 size="small"
               />
             </Stack>
