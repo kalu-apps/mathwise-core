@@ -573,6 +573,19 @@
   background: color-mix(in srgb, var(--background-elevated) 96%, transparent) !important;
   box-shadow: 0 12px 24px color-mix(in srgb, #111827 8%, transparent) !important;
   padding: 16px 18px;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.student-profile .student-profile__course-card:hover {
+  border-color: color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle)) !important;
+  box-shadow: 0 14px 26px color-mix(in srgb, #111827 11%, transparent) !important;
+  transform: translateY(-1px);
+}
+
+.student-profile .student-profile__course-card:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-primary) 55%, transparent);
+  outline-offset: 2px;
 }
 
 .student-profile__course-head {
@@ -626,34 +639,15 @@
 }
 
 .student-profile__course-meta-progress {
-  color: var(--text-primary);
-  font-weight: 600;
+  color: color-mix(in srgb, var(--text-primary) 90%, var(--text-secondary));
+  font-weight: 560;
 }
 
-.student-profile__course-payment {
-  margin-top: 10px;
+.student-profile__course-progress-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.student-profile__course-payment-line {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.student-profile__course-payment-line--accent {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.student-profile__course-actions {
-  margin-top: 13px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-height: 22px;
 }
 
 .student-profile__course-link {
@@ -678,6 +672,29 @@
   transform: translateY(-1px);
 }
 
+.student-profile__course-link--inline {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--accent-primary) 84%, var(--text-primary));
+  font-size: 12.25px;
+  font-weight: 540;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+.student-profile__course-link--inline:hover {
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--accent-strong) 90%, var(--text-primary));
+  text-decoration: underline;
+  transform: none;
+}
+
 .student-profile__course-link--ghost {
   border-color: var(--border-subtle);
   background: var(--background-soft);
@@ -685,7 +702,7 @@
 }
 
 .student-profile__course-link-icon {
-  font-size: 16px !important;
+  font-size: 14px !important;
 }
 
 .student-profile__course-progress {
@@ -698,31 +715,9 @@
   padding-left: 14px;
 }
 
-.student-profile__course-status {
-  width: fit-content;
-  padding: 5px 9px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--border-subtle) 86%, transparent);
-  font-size: 11px;
-  font-weight: 560;
-  line-height: 1;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-}
-
-.student-profile__course-status--active {
-  color: color-mix(in srgb, var(--accent-primary) 76%, var(--text-primary));
-  background: color-mix(in srgb, var(--accent-primary) 9%, transparent);
-}
-
-.student-profile__course-status--completed {
-  color: color-mix(in srgb, var(--feedback-success) 84%, var(--text-primary));
-  background: color-mix(in srgb, var(--feedback-success) 10%, transparent);
-}
-
 .student-profile__course-progress-lines {
   display: grid;
-  gap: 11px;
+  gap: 10px;
   width: 100%;
 }
 
@@ -751,9 +746,9 @@
 
 .student-profile__course-progress-track {
   position: relative;
-  height: 7px;
+  height: 8px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--background-soft) 88%, transparent);
+  background: color-mix(in srgb, var(--background-soft) 82%, transparent);
   overflow: visible;
 }
 
@@ -761,22 +756,19 @@
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--accent-primary) 76%, #62cbff),
-    color-mix(in srgb, var(--accent-strong) 68%, #8f95ff)
-  );
+  background: linear-gradient(90deg, #ff6b57, #90d640);
+  box-shadow: 0 0 0 1px color-mix(in srgb, #ffffff 26%, transparent) inset;
 }
 
 .student-profile__course-progress-point {
   position: absolute;
   top: 50%;
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: 999px;
   border: 2px solid color-mix(in srgb, var(--background-elevated) 86%, transparent);
   background: color-mix(in srgb, var(--accent-primary) 78%, #6ec8ff);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-primary) 16%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 18%, transparent);
   transform: translate(-50%, -50%);
 }
 
@@ -786,22 +778,9 @@
 }
 
 .student-profile__course-progress-track--empty .student-profile__course-progress-point {
-  left: 0 !important;
+  left: 4px !important;
   background: color-mix(in srgb, var(--text-muted) 66%, var(--accent-primary));
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--text-muted) 14%, transparent);
-}
-
-.student-profile__course-progress-line:nth-child(2) .student-profile__course-progress-fill {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, #f3a44f 76%, #f7cc6f),
-    color-mix(in srgb, #ff7f8d 66%, #f3a44f)
-  );
-}
-
-.student-profile__course-progress-line:nth-child(2) .student-profile__course-progress-point {
-  background: color-mix(in srgb, #f3a44f 88%, #ff7f8d);
-  box-shadow: 0 0 0 4px color-mix(in srgb, #f3a44f 17%, transparent);
 }
 
 .student-profile__lessons {
@@ -1339,10 +1318,6 @@
     border-top: 1px solid color-mix(in srgb, var(--border-subtle) 78%, transparent);
     padding-left: 0;
     padding-top: 12px;
-  }
-
-  .student-profile__course-status {
-    align-self: flex-start;
   }
 
   .student-profile__lessons-layout {

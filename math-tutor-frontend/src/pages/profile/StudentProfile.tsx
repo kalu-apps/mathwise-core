@@ -43,7 +43,6 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import CreditCardRoundedIcon from "@mui/icons-material/CreditCardRounded";
 import AppsRoundedIcon from "@mui/icons-material/AppsRounded";
 import {
   createBooking,
@@ -80,7 +79,6 @@ import {
 } from "@/pages/profile/model/selectors";
 import { useStudentProfileUiState } from "@/pages/profile/hooks/useStudentProfileUiState";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
-import { selectPurchaseFinancialView } from "@/entities/purchase/model/selectors";
 import { BnplReminderFeed } from "@/entities/purchase/ui/BnplReminderFeed";
 import {
   getTeacherChatEligibility,
@@ -1077,7 +1075,6 @@ export default function StudentProfile() {
           {pagedCourseItems.map(
             ({
               course,
-              purchase,
               progress,
               viewedCount,
               totalLessons,
@@ -1086,65 +1083,59 @@ export default function StudentProfile() {
               testsKnowledgePercent,
               isPremium,
             }) => {
-              const financialView = selectPurchaseFinancialView(purchase);
-              const nextDateLabel =
-                financialView.nextPaymentDate &&
-                new Date(financialView.nextPaymentDate).toLocaleDateString("ru-RU");
-              const bnplStatusClass =
-                financialView.financialStatus === "suspended"
-                  ? "ui-status-chip--danger"
-                  : financialView.financialStatus === "restricted"
-                  ? "ui-status-chip--warning"
-                  : financialView.financialStatus === "grace"
-                  ? "ui-status-chip--warning"
-                  : financialView.financialStatus === "upcoming"
-                  ? "ui-status-chip--scheduled"
-                  : "ui-status-chip--paid";
-              const bnplStatusLabel =
-                financialView.financialStatus === "ok"
-                  ? "Норма"
-                  : financialView.financialStatus === "upcoming"
-                  ? "Платёж скоро"
-                  : financialView.financialStatus === "grace"
-                  ? "Льготный период"
-                  : financialView.financialStatus === "restricted"
-                  ? "Нужна оплата"
-                  : "Доступ приостановлен";
               const profileCoursesFrom = "/student/profile?tab=courses";
-              const isCourseCompleted =
-                viewedCount >= totalLessons &&
-                (totalTests === 0 ||
-                  (completedTests >= totalTests && testsKnowledgePercent > 0));
-              const courseCtaLabel = isCourseCompleted
-                ? "Открыть курс"
-                : "Продолжить";
-              const paymentActionLabel = "Оплата";
+              const courseCtaLabel = "Продолжить";
               const learningPercent = Math.max(0, Math.min(100, Math.round(progress)));
               const testsPercent = Math.max(
                 0,
                 Math.min(100, Math.round(testsKnowledgePercent))
               );
+              const resolveProgressPalette = (value: number) => {
+                const clamped = Math.max(0, Math.min(100, value));
+                const hue = Math.round((clamped / 100) * 130);
+                const startHue = Math.max(4, hue - 18);
+                const endHue = Math.min(140, hue + 14);
+                return {
+                  start: `hsl(${startHue} 84% 56%)`,
+                  end: `hsl(${endHue} 88% 63%)`,
+                };
+              };
               const progressItems = [
                 {
                   key: "content",
-                  label: "Контент",
+                  label: "Изучено",
                   value: learningPercent,
                 },
                 ...(totalTests > 0
                   ? [
                       {
                         key: "tests",
-                        label: "Тесты",
+                        label: "Сдано",
                         value: testsPercent,
                       },
                     ]
                   : []),
               ];
-              const showPaymentAction =
-                financialView.paymentMethod === "bnpl" &&
-                financialView.financialStatus !== "ok";
+              const navigateToCourse = () => {
+                navigate(`/courses/${course.id}`, {
+                  state: { from: profileCoursesFrom },
+                });
+              };
               return (
-                <div key={course.id} className="student-profile__course-card">
+                <div
+                  key={course.id}
+                  className="student-profile__course-card"
+                  role="button"
+                  tabIndex={0}
+                  onClick={navigateToCourse}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      navigateToCourse();
+                    }
+                  }}
+                  aria-label={`Открыть курс ${course.title}`}
+                >
                   <div className="student-profile__course-main">
                     <div className="student-profile__course-head">
                       <h3>
@@ -1159,15 +1150,6 @@ export default function StudentProfile() {
                           </span>
                         </span>
                       </h3>
-                      <span
-                        className={`student-profile__course-status ${
-                          isCourseCompleted
-                            ? "student-profile__course-status--completed"
-                            : "student-profile__course-status--active"
-                        }`}
-                      >
-                        {isCourseCompleted ? "Завершён" : "В процессе"}
-                      </span>
                     </div>
                     <div className="student-profile__course-meta">
                       <span className="student-profile__course-meta-level">
@@ -1177,36 +1159,62 @@ export default function StudentProfile() {
                         {`Уроков: ${viewedCount}/${totalLessons}${
                           totalTests > 0
                             ? ` • Тестов: ${completedTests}/${totalTests}`
-                            : ""
+                          : ""
                         }`}
                       </span>
                     </div>
-                    <div className="student-profile__course-payment">
-                      {financialView.paymentMethod === "bnpl" ? (
-                        <>
-                          <span className="student-profile__course-payment-line student-profile__course-payment-line--accent">
-                            {nextDateLabel
-                              ? `Следующий платёж: ${nextDateLabel}`
-                              : "Оплата частями"}
-                          </span>
-                          <span className={`ui-status-chip ${bnplStatusClass}`}>
-                            {bnplStatusLabel}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="student-profile__course-payment-line student-profile__course-payment-line--accent">
-                          Оплачен
-                        </span>
-                      )}
+                  </div>
+
+                  <div className="student-profile__course-progress">
+                    <div className="student-profile__course-progress-lines">
+                      {progressItems.map((item) => {
+                        const palette = resolveProgressPalette(item.value);
+                        return (
+                          <div
+                            key={item.key}
+                            className="student-profile__course-progress-line"
+                          >
+                            <div className="student-profile__course-progress-line-head">
+                              <span>{item.label}</span>
+                              <strong>{item.value}%</strong>
+                            </div>
+                            <div
+                              className={`student-profile__course-progress-track ${
+                                item.value === 0
+                                  ? "student-profile__course-progress-track--empty"
+                                  : ""
+                              }`}
+                            >
+                              <span
+                                className="student-profile__course-progress-fill"
+                                style={{
+                                  width: `${Math.max(
+                                    item.value,
+                                    item.value === 0 ? 4 : 0
+                                  )}%`,
+                                  background: `linear-gradient(90deg, ${palette.start}, ${palette.end})`,
+                                }}
+                              />
+                              <span
+                                className="student-profile__course-progress-point"
+                                style={{
+                                  left: `${item.value}%`,
+                                  background: palette.end,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div className="student-profile__course-actions">
+                    <div className="student-profile__course-progress-actions">
                       <button
-                        className="student-profile__course-link"
-                        onClick={() =>
-                          navigate(`/courses/${course.id}`, {
-                            state: { from: profileCoursesFrom },
-                          })
-                        }
+                        type="button"
+                        className="student-profile__course-link student-profile__course-link--inline"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          navigateToCourse();
+                        }}
                       >
                         <AutoStoriesRoundedIcon
                           fontSize="inherit"
@@ -1214,59 +1222,6 @@ export default function StudentProfile() {
                         />
                         {courseCtaLabel}
                       </button>
-                      {showPaymentAction ? (
-                        <button
-                          className="student-profile__course-link student-profile__course-link--ghost"
-                          onClick={() =>
-                            navigate(`/profile/purchases/${purchase.id}`, {
-                              state: { from: profileCoursesFrom },
-                            })
-                          }
-                        >
-                          <CreditCardRoundedIcon
-                            fontSize="inherit"
-                            className="student-profile__course-link-icon"
-                          />
-                          {paymentActionLabel}
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="student-profile__course-progress">
-                    <div className="student-profile__course-progress-lines">
-                      {progressItems.map((item) => (
-                        <div
-                          key={item.key}
-                          className="student-profile__course-progress-line"
-                        >
-                          <div className="student-profile__course-progress-line-head">
-                            <span>{item.label}</span>
-                            <strong>{item.value}%</strong>
-                          </div>
-                          <div
-                            className={`student-profile__course-progress-track ${
-                              item.value === 0
-                                ? "student-profile__course-progress-track--empty"
-                                : ""
-                            }`}
-                          >
-                            <span
-                              className="student-profile__course-progress-fill"
-                              style={{
-                                width: `${Math.max(
-                                  item.value,
-                                  item.value === 0 ? 4 : 0
-                                )}%`,
-                              }}
-                            />
-                            <span
-                              className="student-profile__course-progress-point"
-                              style={{ left: `${item.value}%` }}
-                            />
-                          </div>
-                        </div>
-                      ))}
                     </div>
                   </div>
                 </div>

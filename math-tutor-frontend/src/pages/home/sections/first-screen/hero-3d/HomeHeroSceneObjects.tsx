@@ -2,10 +2,8 @@ import { useEffect, useMemo } from "react";
 import {
   AdditiveBlending,
   BufferGeometry,
-  CapsuleGeometry,
   Color,
   Float32BufferAttribute,
-  PlaneGeometry,
   TorusGeometry,
   TorusKnotGeometry,
   type BufferAttribute,
@@ -23,8 +21,6 @@ type ScenePalette = {
   key: string;
   fill: string;
   rim: string;
-  planeSurfaceNear: string;
-  planeSurfaceFar: string;
   gridMajorA: string;
   gridMajorB: string;
   gridMinor: string;
@@ -38,9 +34,6 @@ type ScenePalette = {
   orbA: string;
   orbB: string;
   orbC: string;
-  rodA: string;
-  rodB: string;
-  rodC: string;
   solidA: string;
   solidB: string;
   solidC: string;
@@ -109,30 +102,6 @@ function applyTriGradient(
   geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
 }
 
-function buildCoordinatePlaneSurface(mode: SceneMode, palette: ScenePalette): PlaneGeometry {
-  const geometry = new PlaneGeometry(9.8, 5.95, 40, 26);
-  const position = geometry.attributes.position as BufferAttribute;
-
-  for (let i = 0; i < position.count; i += 1) {
-    const x = position.getX(i);
-    const y = position.getY(i);
-    position.setZ(i, sampleFieldHeight(x, y));
-  }
-
-  position.needsUpdate = true;
-  geometry.computeVertexNormals();
-
-  applyTriGradient(
-    geometry,
-    palette.planeSurfaceNear,
-    mode === "dark" ? "#273c87" : "#9eaef8",
-    palette.planeSurfaceFar,
-    (x, y, z) => y * 0.7 - z * 0.3 + x * 0.08
-  );
-
-  return geometry;
-}
-
 function buildCoordinateLineGeometry(
   size: number,
   divisions: number,
@@ -194,20 +163,6 @@ function buildKnotGeometry(palette: ScenePalette): TorusKnotGeometry {
     palette.knotB,
     palette.knotC,
     (x, y, z) => y * 0.56 + z * 0.26 - x * 0.22
-  );
-
-  return geometry;
-}
-
-function buildRodGeometry(palette: ScenePalette): CapsuleGeometry {
-  const geometry = new CapsuleGeometry(0.115, 0.84, 18, 40);
-
-  applyTriGradient(
-    geometry,
-    palette.rodA,
-    palette.rodB,
-    palette.rodC,
-    (x, y, z) => y * 0.76 + z * 0.22 - x * 0.1
   );
 
   return geometry;
@@ -298,27 +253,12 @@ function buildSupportPointTorusGeometry(palette: ScenePalette): BufferGeometry {
 }
 
 function CoordinatePlane({ mode, palette }: { mode: SceneMode; palette: ScenePalette }) {
-  const surfaceGeometry = useDisposableGeometry(
-    useMemo(() => buildCoordinatePlaneSurface(mode, palette), [mode, palette])
-  );
   const minorGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 18, 18, "both"), []));
   const majorXGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 10, 20, "x"), []));
   const majorZGeometry = useDisposableGeometry(useMemo(() => buildCoordinateLineGeometry(9.6, 10, 20, "z"), []));
 
   return (
     <group position={[0.08, -1.2, -2.34]} rotation={[-0.9, 0.14, -0.02]}>
-      <mesh geometry={surfaceGeometry}>
-        <meshPhysicalMaterial
-          vertexColors
-          roughness={mode === "dark" ? 0.4 : 0.22}
-          metalness={mode === "dark" ? 0.1 : 0.18}
-          clearcoat={mode === "dark" ? 0.3 : 0.5}
-          clearcoatRoughness={mode === "dark" ? 0.26 : 0.16}
-          transparent
-          opacity={mode === "dark" ? 0.34 : 0.3}
-        />
-      </mesh>
-
       <lineSegments geometry={minorGeometry}>
         <lineBasicMaterial
           color={palette.gridMinor}
@@ -372,7 +312,6 @@ function SupportPointTorusArtifact({ mode, palette }: { mode: SceneMode; palette
 function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: ScenePalette }) {
   const loopGeometry = useDisposableGeometry(useMemo(() => buildMainLoopGeometry(palette), [palette]));
   const knotGeometry = useDisposableGeometry(useMemo(() => buildKnotGeometry(palette), [palette]));
-  const rodGeometry = useDisposableGeometry(useMemo(() => buildRodGeometry(palette), [palette]));
   const solidGeometry = useDisposableGeometry(useMemo(() => buildRoundedSolidGeometry(palette), [palette]));
 
   return (
@@ -423,16 +362,6 @@ function MuseumGeometryCluster({ mode, palette }: { mode: SceneMode; palette: Sc
         />
       </mesh>
 
-      <mesh geometry={rodGeometry} position={[-3.06, 1.16, 0.18]} rotation={[-0.28, 0.34, 0.9]}>
-        <meshPhysicalMaterial
-          vertexColors
-          roughness={mode === "dark" ? 0.22 : 0.15}
-          metalness={mode === "dark" ? 0.2 : 0.28}
-          clearcoat={0.96}
-          clearcoatRoughness={mode === "dark" ? 0.14 : 0.08}
-        />
-      </mesh>
-
     </group>
   );
 }
@@ -444,8 +373,6 @@ function paletteByMode(mode: SceneMode): ScenePalette {
       key: "#fff6ff",
       fill: "#ff8f67",
       rim: "#b07bff",
-      planeSurfaceNear: "#1f2f61",
-      planeSurfaceFar: "#101e43",
       gridMajorA: "#5f7dff",
       gridMajorB: "#ff86bf",
       gridMinor: "#72e4ff",
@@ -459,9 +386,6 @@ function paletteByMode(mode: SceneMode): ScenePalette {
       orbA: "#806fff",
       orbB: "#ff8abb",
       orbC: "#ffcb7c",
-      rodA: "#8f6aff",
-      rodB: "#ff749f",
-      rodC: "#ffaf78",
       solidA: "#7d6bff",
       solidB: "#ff89c8",
       solidC: "#ffc181",
@@ -476,8 +400,6 @@ function paletteByMode(mode: SceneMode): ScenePalette {
     key: "#ffffff",
     fill: "#ffae84",
     rim: "#c58cff",
-    planeSurfaceNear: "#adb7ff",
-    planeSurfaceFar: "#8d9ee8",
     gridMajorA: "#4e80ff",
     gridMajorB: "#ff87c5",
     gridMinor: "#3ddfff",
@@ -491,9 +413,6 @@ function paletteByMode(mode: SceneMode): ScenePalette {
     orbA: "#a69bff",
     orbB: "#ffa3cc",
     orbC: "#ffd58a",
-    rodA: "#b19cff",
-    rodB: "#ff9ebc",
-    rodC: "#ffc680",
     solidA: "#a598ff",
     solidB: "#ff9ed3",
     solidC: "#ffd48f",

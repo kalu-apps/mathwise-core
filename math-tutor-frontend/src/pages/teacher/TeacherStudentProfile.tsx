@@ -9,7 +9,6 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Avatar,
-  CircularProgress,
   IconButton,
   Skeleton,
   TextField,
@@ -82,8 +81,13 @@ const buildProgressVisual = (value: number) => {
   const saturation = Math.round(92 - normalized * 14);
   const lightness = percent === 0 ? 46 : Math.round(48 + normalized * 8);
   const color = `hsl(${hue} ${saturation}% ${lightness}%)`;
+  const startHue = Math.max(0, hue - 16);
+  const endHue = Math.min(138, hue + 14);
+  const start = `hsl(${startHue} ${Math.max(78, saturation - 6)}% ${Math.max(42, lightness - 6)}%)`;
+  const end = `hsl(${endHue} ${Math.max(82, saturation + 2)}% ${Math.min(70, lightness + 10)}%)`;
   const glow = `hsla(${hue} 96% ${Math.max(44, lightness)}% / 0.32)`;
-  return { percent, color, glow };
+  const displayPercent = percent === 0 ? 2 : percent;
+  return { percent, displayPercent, color, start, end, glow };
 };
 
 export default function TeacherStudentProfile() {
@@ -584,14 +588,10 @@ export default function TeacherStudentProfile() {
                         <span>{courseMetaLine}</span>
                       </div>
                       <span
-                        className={`teacher-student-profile__course-status teacher-student-profile__course-status--row ${
+                        className={`teacher-student-profile__course-study-state ${
                           course.progress >= 100
-                            ? "teacher-student-profile__course-status--completed"
-                            : "teacher-student-profile__course-status--active"
-                        } ui-status-chip ${
-                          course.progress >= 100
-                            ? "ui-status-chip--completed"
-                            : "ui-status-chip--inprogress"
+                            ? "teacher-student-profile__course-study-state--completed"
+                            : "teacher-student-profile__course-study-state--active"
                         }`}
                       >
                         {course.progress >= 100
@@ -605,12 +605,16 @@ export default function TeacherStudentProfile() {
                         style={learningRingStyle}
                       >
                         <div className="teacher-student-profile__progress-ring">
-                          <CircularProgress
-                            variant="determinate"
-                            value={learningVisual.percent}
-                            size={68}
-                            thickness={4.2}
-                            sx={{ color: learningVisual.color }}
+                          <span
+                            className="teacher-student-profile__progress-ring-arc"
+                            style={
+                              {
+                                "--progress-percent-display": learningVisual.displayPercent,
+                                "--progress-start": learningVisual.start,
+                                "--progress-end": learningVisual.end,
+                                "--progress-color": learningVisual.color,
+                              } as CSSProperties
+                            }
                           />
                           <span>{learningVisual.percent}%</span>
                         </div>
@@ -624,12 +628,16 @@ export default function TeacherStudentProfile() {
                           style={knowledgeRingStyle}
                         >
                           <div className="teacher-student-profile__progress-ring">
-                            <CircularProgress
-                              variant="determinate"
-                              value={knowledgeVisual.percent}
-                              size={68}
-                              thickness={4.2}
-                              sx={{ color: knowledgeVisual.color }}
+                            <span
+                              className="teacher-student-profile__progress-ring-arc"
+                              style={
+                                {
+                                  "--progress-percent-display": knowledgeVisual.displayPercent,
+                                  "--progress-start": knowledgeVisual.start,
+                                  "--progress-end": knowledgeVisual.end,
+                                  "--progress-color": knowledgeVisual.color,
+                                } as CSSProperties
+                              }
                             />
                             <span>{knowledgeVisual.percent}%</span>
                           </div>
