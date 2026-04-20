@@ -45,16 +45,16 @@
 }
 
 .news-feed__add {
-  min-height: 38px !important;
-  border-radius: 11px !important;
+  min-height: 32px !important;
+  border-radius: 8px !important;
   border: 1px solid color-mix(in srgb, var(--accent-primary) 30%, var(--border-subtle)) !important;
   background: color-mix(in srgb, var(--accent-primary) 14%, var(--background-elevated)) !important;
   color: var(--text-primary) !important;
   text-transform: none !important;
-  font-size: 13px !important;
-  font-weight: 650 !important;
+  font-size: 12px !important;
+  font-weight: 560 !important;
   box-shadow: none !important;
-  padding-inline: 12px !important;
+  padding-inline: 10px !important;
 }
 
 .news-feed__add--compact {
@@ -104,7 +104,7 @@
   position: relative;
   display: grid;
   gap: 10px;
-  border-radius: 9px;
+  border-radius: 2px;
   border: 1px solid var(--news-tone-border);
   background:
     linear-gradient(
@@ -121,8 +121,8 @@
   left: 0;
   top: 0;
   bottom: 0;
-  width: 5px;
-  border-radius: 9px 0 0 9px;
+  width: 6px;
+  border-radius: 0;
   background: var(--news-tone-edge);
 }
 
@@ -172,7 +172,16 @@
   margin: 0;
   font-size: 16px;
   line-height: 1.24;
-  color: var(--text-primary);
+  font-weight: 740;
+  color: transparent;
+  background-image: linear-gradient(
+    126deg,
+    color-mix(in srgb, var(--news-tone-edge) 82%, var(--text-primary)),
+    color-mix(in srgb, var(--news-tone-edge) 54%, var(--text-primary))
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: 0 1px 0 color-mix(in srgb, #ffffff 9%, transparent);
 }
 
 .news-feed__item p {
@@ -304,6 +313,21 @@
 .news-feed__compose-fields .MuiInputBase-input,
 .news-feed__compose-fields .MuiInputBase-inputMultiline {
   box-shadow: none !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.news-feed__create-dialog .MuiInputLabel-root,
+.news-feed__editor .MuiInputLabel-root,
+.news-feed__compose-fields .MuiInputLabel-root {
+  display: none !important;
+}
+
+.news-feed__create-dialog .MuiOutlinedInput-notchedOutline legend,
+.news-feed__editor .MuiOutlinedInput-notchedOutline legend,
+.news-feed__compose-fields .MuiOutlinedInput-notchedOutline legend {
+  display: none !important;
+  width: 0 !important;
 }
 
 .news-feed__tone-list {
@@ -415,7 +439,7 @@
 .news-feed__create-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 10px;
   padding: 8px 20px 16px !important;
   border-top: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
@@ -427,11 +451,6 @@
   text-transform: none;
   font-size: 12px;
   font-weight: 650;
-}
-
-.news-feed__create-hint {
-  font-size: 12px;
-  color: var(--text-secondary);
 }
 
 .news-feed__pager {
@@ -474,11 +493,8 @@
 
   .news-feed__create-actions {
     flex-wrap: wrap;
-    align-items: stretch;
-  }
-
-  .news-feed__create-hint {
-    width: 100%;
+    align-items: center;
+    justify-content: flex-end;
   }
 }
 
@@ -521,6 +537,11 @@
 
 .news-feed.news-feed .news-feed__item,
 .news-feed.news-feed .news-feed__create-dialog .MuiDialog-paper {
-  border-color: color-mix(in srgb, var(--border-subtle) 92%, transparent) !important;
-  background: color-mix(in srgb, var(--background-elevated) 96%, transparent) !important;
+  border-color: var(--news-tone-border, color-mix(in srgb, var(--border-subtle) 92%, transparent)) !important;
+  background:
+    linear-gradient(
+      134deg,
+      color-mix(in srgb, var(--news-tone-surface, var(--background-elevated)) 88%, transparent),
+      color-mix(in srgb, var(--background-elevated) 94%, transparent)
+    ) !important;
 }

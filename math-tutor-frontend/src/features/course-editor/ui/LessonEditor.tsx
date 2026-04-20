@@ -707,12 +707,13 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
           >
             {saveError && <RecoverableErrorAlert error={saveError} />}
             <TextField
-              label={t("lessonEditor.lessonNameLabel")}
+              placeholder={t("lessonEditor.lessonNameLabel")}
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);
                 if (saveError) setSaveError(null);
               }}
+              inputProps={{ "aria-label": t("lessonEditor.lessonNameLabel") }}
               fullWidth
               required
               disabled={isSaving}

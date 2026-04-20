@@ -132,7 +132,9 @@ export class BookingsService implements OnModuleInit {
     const slots = await this.bookingsRepository.findAvailabilityByTeacher(
       normalizedTeacherId,
       {
-        futureOnly: true,
+        // Public booking UIs apply the final "future slot" filter in client-local time.
+        // Returning the raw set here avoids server/client timezone drift around day boundaries.
+        futureOnly: false,
       }
     );
 

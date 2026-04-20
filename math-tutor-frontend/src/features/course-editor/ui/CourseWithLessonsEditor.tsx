@@ -1231,19 +1231,20 @@ export function CourseWithLessonsEditor({
               />
             ) : null}
             <TextField
-              label={t("courseEditor.courseNameLabel")}
+              placeholder={`${t("courseEditor.courseNameLabel")} *`}
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);
                 if (saveError) setSaveError(null);
               }}
+              inputProps={{ "aria-label": t("courseEditor.courseNameLabel") }}
               fullWidth
               required
               size="small"
             />
             <TextField
               className="course-editor-dialog__description-field"
-              label={t("courseEditor.descriptionLabel")}
+              placeholder={`${t("courseEditor.descriptionLabel")} *`}
               value={description}
               onChange={(e) => {
                 setDescription(e.target.value);
@@ -1251,44 +1252,54 @@ export function CourseWithLessonsEditor({
               }}
               multiline
               minRows={3}
+              inputProps={{ "aria-label": t("courseEditor.descriptionLabel") }}
               fullWidth
               required
               size="small"
             />
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
-                label={t("courseEditor.levelLabel")}
+                placeholder={`${t("courseEditor.levelLabel")} *`}
                 value={level}
                 onChange={(e) => {
                   setLevel(e.target.value);
                   if (saveError) setSaveError(null);
                 }}
+                inputProps={{ "aria-label": t("courseEditor.levelLabel") }}
                 fullWidth
                 required
                 size="small"
               />
               <TextField
-                label={t("courseEditor.guidedPriceLabel")}
+                placeholder={`${t("courseEditor.guidedPriceLabel")} *`}
                 type="text"
                 value={priceGuided}
                 onChange={(e) => {
                   setPriceGuided(e.target.value.replace(/[^\d]/g, ""));
                   if (saveError) setSaveError(null);
                 }}
-                inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+                inputProps={{
+                  inputMode: "numeric",
+                  pattern: "[0-9]*",
+                  "aria-label": t("courseEditor.guidedPriceLabel"),
+                }}
                 fullWidth
                 required
                 size="small"
               />
               <TextField
-                label={t("courseEditor.selfPriceLabel")}
+                placeholder={`${t("courseEditor.selfPriceLabel")} *`}
                 type="text"
                 value={priceSelf}
                 onChange={(e) => {
                   setPriceSelf(e.target.value.replace(/[^\d]/g, ""));
                   if (saveError) setSaveError(null);
                 }}
-                inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+                inputProps={{
+                  inputMode: "numeric",
+                  pattern: "[0-9]*",
+                  "aria-label": t("courseEditor.selfPriceLabel"),
+                }}
                 fullWidth
                 required
                 size="small"
@@ -1330,22 +1341,24 @@ export function CourseWithLessonsEditor({
                       spacing={1}
                     >
                       <TextField
-                        label="Название блока"
+                        placeholder="Название блока"
                         value={block.title}
                         onChange={(event) =>
                           updateMaterialBlock(block.id, { title: event.target.value })
                         }
+                        inputProps={{ "aria-label": "Название блока" }}
                         fullWidth
                         size="small"
                       />
                       <TextField
-                        label="Описание блока"
+                        placeholder="Описание блока"
                         value={block.description}
                         onChange={(event) =>
                           updateMaterialBlock(block.id, {
                             description: event.target.value,
                           })
                         }
+                        inputProps={{ "aria-label": "Описание блока" }}
                         fullWidth
                         size="small"
                       />
@@ -1515,11 +1528,11 @@ export function CourseWithLessonsEditor({
                                   <TextField
                                     select
                                     size="small"
-                                    label="Блок"
                                     value={item.blockId}
                                     onChange={(event) =>
                                       setQueueItemBlock(item.id, event.target.value)
                                     }
+                                    inputProps={{ "aria-label": "Блок" }}
                                     sx={{ minWidth: 176 }}
                                   >
                                     {courseBlocks.map((block) => (
@@ -1696,11 +1709,11 @@ export function CourseWithLessonsEditor({
                                 <TextField
                                   select
                                   size="small"
-                                  label="Блок"
                                   value={item.blockId}
                                   onChange={(event) =>
                                     setQueueItemBlock(item.id, event.target.value)
                                   }
+                                  inputProps={{ "aria-label": "Блок" }}
                                   sx={{ minWidth: 176 }}
                                 >
                                   {courseBlocks.map((block) => (

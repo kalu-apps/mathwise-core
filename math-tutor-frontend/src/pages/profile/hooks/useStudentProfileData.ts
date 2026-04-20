@@ -18,7 +18,10 @@ import {
   getTeacherChatThreads,
 } from "@/features/chat/model/api";
 import type { TeacherChatEligibility } from "@/features/chat/model/types";
-import { normalizeFutureSlots } from "@/features/booking/lib/schedule";
+import {
+  normalizeTeacherAvailabilityMap,
+  pickTeacherWithAvailability,
+} from "@/features/booking/lib/teacherSelection";
 import {
   getStudyCabinetNotes,
   recordStudyCabinetActivity,
@@ -393,20 +396,21 @@ export const useStudentProfileData = ({
       setScheduleError(null);
       const context = await getStudentProfileContext();
       const teachers = context.teachers;
-      const currentTeacher = teachers[0] ?? null;
-      setTeacher(currentTeacher);
+      const normalizedAvailabilityByTeacherId = normalizeTeacherAvailabilityMap(
+        teachers,
+        context.teacherAvailabilityByTeacherId
+      );
+      const currentTeacher = pickTeacherWithAvailability(
+        teachers,
+        normalizedAvailabilityByTeacherId
+      );
       if (!currentTeacher) {
+        setTeacher(null);
         setAvailability([]);
         return;
       }
-      const slots = context.teacherAvailabilityByTeacherId[currentTeacher.id] ?? [];
-      const normalized = slots.map((slot) => ({
-        id: slot.id,
-        date: slot.date,
-        startTime: slot.startTime ?? "",
-        endTime: slot.endTime ?? "",
-      }));
-      setAvailability(normalizeFutureSlots(normalized));
+      setTeacher(currentTeacher);
+      setAvailability(normalizedAvailabilityByTeacherId[currentTeacher.id] ?? []);
     } catch {
       setScheduleError("Не удалось загрузить свободные слоты преподавателя.");
       setTeacher(null);

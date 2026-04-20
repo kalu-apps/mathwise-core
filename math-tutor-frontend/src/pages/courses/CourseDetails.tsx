@@ -80,7 +80,6 @@ import { markLessonOpened } from "@/entities/purchase/model/openedLessons";
 import { useCourseDetailsData } from "@/pages/courses/hooks/useCourseDetailsData";
 import { useCourseDetailsUiState } from "@/pages/courses/hooks/useCourseDetailsUiState";
 import {
-  buildCourseProgressVisual,
   getAssessmentKindByItem,
 } from "@/pages/courses/model/mappers";
 import {
@@ -166,7 +165,6 @@ type ProgressSineCardProps = {
   label: string;
   subtitle: string;
   percent: number;
-  visual: ReturnType<typeof buildCourseProgressVisual>;
 };
 
 type ProgressChartPoint = {
@@ -175,22 +173,40 @@ type ProgressChartPoint = {
 };
 
 const PROGRESS_SINE_SCENE = {
-  xMin: 16,
-  xMax: 304,
-  yMin: 16,
-  yMax: 152,
-  xAxis: 84,
-  yAxis: 48,
-  amplitude: 28,
-  cycles: 1.36,
-  phase: -0.45,
+  xMin: 20,
+  xMax: 300,
+  yMin: 20,
+  yMax: 150,
+  xAxis: 80,
+  yAxis: 40,
+  amplitude: 24,
+  cycles: 1.45,
+  phase: -0.35,
 } as const;
 
-const PROGRESS_GRID_VERTICAL = Array.from({ length: 12 }, (_, index) => 16 + index * 26);
-const PROGRESS_GRID_HORIZONTAL = Array.from({ length: 6 }, (_, index) => 20 + index * 24);
+const PROGRESS_GRID_VERTICAL = Array.from(
+  { length: ((PROGRESS_SINE_SCENE.xMax - PROGRESS_SINE_SCENE.xMin) / 20) + 1 },
+  (_, index) => PROGRESS_SINE_SCENE.xMin + index * 20
+);
+const PROGRESS_GRID_HORIZONTAL = Array.from(
+  { length: ((PROGRESS_SINE_SCENE.yMax - PROGRESS_SINE_SCENE.yMin) / 20) + 1 },
+  (_, index) => PROGRESS_SINE_SCENE.yMin + index * 20
+);
 
 const clampProgressPercent = (value: number) =>
   Math.max(0, Math.min(100, Math.round(value)));
+
+const clampNumber = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
+
+const getProgressHue = (percent: number) => 6 + clampNumber(percent, 0, 100) * 1.14;
+
+const progressHsla = (
+  percent: number,
+  lightness: number,
+  alpha = 1,
+  saturation = 84
+) => `hsla(${getProgressHue(percent).toFixed(2)} ${saturation}% ${lightness}% / ${alpha})`;
 
 const toProgressPath = (points: ProgressChartPoint[]) =>
   points
@@ -222,9 +238,60 @@ const sampleProgressSinePoints = (start: number, end: number, steps = 112) => {
   });
 };
 
-function ProgressSineCard({ label, subtitle, percent, visual }: ProgressSineCardProps) {
+function ProgressSineCard({ label, subtitle, percent }: ProgressSineCardProps) {
   const safePercent = clampProgressPercent(percent);
-  const progressRatio = safePercent / 100;
+  const [animatedRatio, setAnimatedRatio] = useState(0);
+  const uid = useMemo(
+    () => `progress-sine-${label.toLowerCase().replace(/\s+/g, "-")}-${Math.random().toString(36).slice(2, 8)}`,
+    [label]
+  );
+  const progressRatio = clampNumber(animatedRatio, 0, 1);
+  const animatedPercent = Math.round(progressRatio * 100);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      setAnimatedRatio(safePercent / 100);
+      return;
+    }
+    const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    if (media?.matches) {
+      setAnimatedRatio(safePercent / 100);
+      return;
+    }
+
+    let frame = 0;
+    let startedAt = 0;
+    const target = safePercent / 100;
+    const duration = 1100 + target * 380;
+    setAnimatedRatio(0);
+
+    const tick = (timestamp: number) => {
+      if (!startedAt) startedAt = timestamp;
+      const elapsed = timestamp - startedAt;
+      const t = clampNumber(elapsed / duration, 0, 1);
+      const eased = 1 - Math.pow(1 - t, 2.25);
+      setAnimatedRatio(target * eased);
+      if (t < 1) {
+        frame = window.requestAnimationFrame(tick);
+      }
+    };
+
+    frame = window.requestAnimationFrame(tick);
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [safePercent]);
+
+  const completedGradientStart = progressHsla(Math.max(0, animatedPercent - 30), 58, 1, 82);
+  const completedGradientEnd = progressHsla(animatedPercent, 52, 1, 86);
+  const completedGradientEdge = progressHsla(Math.min(100, animatedPercent + 14), 50, 1, 84);
+  const remainingStroke = progressHsla(Math.max(18, animatedPercent), 66, 0.48, 72);
+  const axisStroke = progressHsla(animatedPercent, 70, 0.88, 76);
+  const markerCore = progressHsla(animatedPercent, 65, 0.98, 78);
+  const markerStroke = progressHsla(animatedPercent, 42, 0.96, 90);
+  const percentTextGradientStart = progressHsla(animatedPercent, 58, 1, 92);
+  const percentTextGradientEnd = progressHsla(Math.min(100, animatedPercent + 28), 44, 1, 86);
+
   const completedPath = useMemo(
     () => toProgressPath(sampleProgressSinePoints(0, progressRatio, 168)),
     [progressRatio]
@@ -237,16 +304,24 @@ function ProgressSineCard({ label, subtitle, percent, visual }: ProgressSineCard
     () => getProgressSinePoint(progressRatio),
     [progressRatio]
   );
-  const badgeX = Math.min(248, Math.max(58, markerPoint.x + 14));
-  const badgeY = Math.min(132, Math.max(26, markerPoint.y - 20));
+  const percentLabelX = clampNumber(
+    markerPoint.x + 12,
+    PROGRESS_SINE_SCENE.xMin + 10,
+    PROGRESS_SINE_SCENE.xMax - 8
+  );
+  const percentLabelY = clampNumber(
+    markerPoint.y - 12,
+    PROGRESS_SINE_SCENE.yMin + 12,
+    PROGRESS_SINE_SCENE.yMax - 8
+  );
 
   return (
-    <article
-      className="course-details__roadmap-progress-card"
+    <div
+      className="course-details__roadmap-progress-panel"
       style={
         {
-          "--progress-color": visual.color,
-          "--progress-glow": visual.glow,
+          "--progress-color": completedGradientEnd,
+          "--progress-glow": progressHsla(animatedPercent, 52, 0.34, 84),
         } as CSSProperties
       }
     >
@@ -257,6 +332,22 @@ function ProgressSineCard({ label, subtitle, percent, visual }: ProgressSineCard
           role="presentation"
           focusable="false"
         >
+          <defs>
+            <linearGradient id={`${uid}-line`} x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0%" stopColor={completedGradientStart} />
+              <stop offset="68%" stopColor={completedGradientEnd} />
+              <stop offset="100%" stopColor={completedGradientEdge} />
+            </linearGradient>
+            <radialGradient id={`${uid}-head-glow`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor={progressHsla(animatedPercent, 68, 0.94, 82)} />
+              <stop offset="55%" stopColor={progressHsla(animatedPercent, 64, 0.52, 78)} />
+              <stop offset="100%" stopColor={progressHsla(animatedPercent, 60, 0, 76)} />
+            </radialGradient>
+            <linearGradient id={`${uid}-percent`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor={percentTextGradientStart} />
+              <stop offset="100%" stopColor={percentTextGradientEnd} />
+            </linearGradient>
+          </defs>
           <rect
             className="course-details__roadmap-progress-plane"
             x={PROGRESS_SINE_SCENE.xMin}
@@ -293,6 +384,7 @@ function ProgressSineCard({ label, subtitle, percent, visual }: ProgressSineCard
             y1={PROGRESS_SINE_SCENE.xAxis}
             x2={PROGRESS_SINE_SCENE.xMax}
             y2={PROGRESS_SINE_SCENE.xAxis}
+            style={{ stroke: axisStroke }}
           />
           <line
             className="course-details__roadmap-progress-axis"
@@ -300,47 +392,47 @@ function ProgressSineCard({ label, subtitle, percent, visual }: ProgressSineCard
             y1={PROGRESS_SINE_SCENE.yMin}
             x2={PROGRESS_SINE_SCENE.yAxis}
             y2={PROGRESS_SINE_SCENE.yMax}
+            style={{ stroke: axisStroke }}
           />
           <path
             className="course-details__roadmap-progress-sine course-details__roadmap-progress-sine--remaining"
             d={remainingPath}
+            style={{ stroke: remainingStroke }}
           />
           <path
             className="course-details__roadmap-progress-sine course-details__roadmap-progress-sine--completed"
             d={completedPath}
+            stroke={`url(#${uid}-line)`}
           />
           <circle
             className="course-details__roadmap-progress-marker-glow"
             cx={markerPoint.x}
             cy={markerPoint.y}
             r={10}
+            fill={`url(#${uid}-head-glow)`}
           />
           <circle
             className="course-details__roadmap-progress-marker"
             cx={markerPoint.x}
             cy={markerPoint.y}
             r={4.5}
+            style={{ fill: markerCore, stroke: markerStroke }}
           />
-          <g transform={`translate(${badgeX.toFixed(2)} ${badgeY.toFixed(2)})`}>
-            <rect
-              className="course-details__roadmap-progress-badge-bg"
-              x={-32}
-              y={-12}
-              width={64}
-              height={24}
-              rx={12}
-            />
-            <text className="course-details__roadmap-progress-badge-text" textAnchor="middle" y={4}>
-              {safePercent}%
-            </text>
-          </g>
+          <text
+            className="course-details__roadmap-progress-percent"
+            x={percentLabelX}
+            y={percentLabelY}
+            style={{ fill: `url(#${uid}-percent)` }}
+          >
+            {animatedPercent}%
+          </text>
         </svg>
       </div>
       <div className="course-details__roadmap-progress-copy">
         <strong>{label}</strong>
         <span>{subtitle}</span>
       </div>
-    </article>
+    </div>
   );
 }
 
@@ -1742,8 +1834,6 @@ export default function CourseDetails() {
       ? Math.round((viewedLessonsCount / lessons.length) * 100)
       : 0;
   const knowledgeProgressPercent = testsKnowledgeProgress.averageBestPercent;
-  const learningProgressVisual = buildCourseProgressVisual(learningProgressPercent);
-  const knowledgeProgressVisual = buildCourseProgressVisual(knowledgeProgressPercent);
   const roadmapProgressSection = user?.role === "student" && hasPurchase ? (
     <div
       className={`course-details__roadmap-progress ${
@@ -1754,14 +1844,12 @@ export default function CourseDetails() {
         label="Изучено"
         subtitle="Прогресс изучения материалов"
         percent={learningProgressPercent}
-        visual={learningProgressVisual}
       />
       {hasCourseTests ? (
         <ProgressSineCard
           label="Сдано"
           subtitle="Прогресс по тестам курса"
           percent={knowledgeProgressPercent}
-          visual={knowledgeProgressVisual}
         />
       ) : null}
     </div>

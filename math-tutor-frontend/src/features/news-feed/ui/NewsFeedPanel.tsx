@@ -150,21 +150,6 @@ export function NewsFeedPanel({ user }: Props) {
     editDraft.content.trim().length > 0 &&
     !updatingId;
 
-  const createValidationHint = useMemo(() => {
-    if (saving) return "Публикация...";
-    if (!draft.title.trim()) return "Добавьте заголовок.";
-    if (!draft.content.trim()) return "Добавьте текст новости.";
-    return "Готово к публикации.";
-  }, [draft.content, draft.title, saving]);
-
-  const updateValidationHint = useMemo(() => {
-    if (updatingId) return "Сохранение...";
-    if (!editDraft) return "Нет данных для редактирования.";
-    if (!editDraft.title.trim()) return "Добавьте заголовок.";
-    if (!editDraft.content.trim()) return "Добавьте текст новости.";
-    return "Сохранить";
-  }, [editDraft, updatingId]);
-
   const composerToneOptions = useMemo(
     () =>
       isTeacher
@@ -314,7 +299,7 @@ export function NewsFeedPanel({ user }: Props) {
       })}
     >
       <div className="news-feed__header">
-        <span className="news-feed__wall-badge">Стена объявлений</span>
+        <span className="news-feed__wall-badge">Новости</span>
         {isTeacher && (
           <Button
             className={cn("news-feed__add", {
@@ -436,7 +421,7 @@ export function NewsFeedPanel({ user }: Props) {
                         </>
                       ) : (
                         <>
-                          <Tooltip title={updateValidationHint}>
+                          <Tooltip title="Сохранить">
                             <span>
                               <IconButton
                                 className="news-feed__save"
@@ -470,7 +455,6 @@ export function NewsFeedPanel({ user }: Props) {
                 {isEditing && editDraft ? (
                   <div className="news-feed__editor">
                     <TextField
-                      label="Заголовок новости"
                       placeholder="Введите заголовок"
                       value={editDraft.title}
                       onChange={(e) =>
@@ -481,10 +465,12 @@ export function NewsFeedPanel({ user }: Props) {
                       required
                       size="small"
                       fullWidth
+                      inputProps={{
+                        "aria-label": "Заголовок новости",
+                      }}
                     />
                     <TextField
                       className="news-feed__compose-textarea"
-                      label="Текст новости"
                       placeholder="Опишите обновление для студентов"
                       value={editDraft.content}
                       onChange={(e) =>
@@ -497,10 +483,12 @@ export function NewsFeedPanel({ user }: Props) {
                       maxRows={8}
                       required
                       fullWidth
+                      inputProps={{
+                        "aria-label": "Текст новости",
+                      }}
                     />
                     <TextField
                       className="news-feed__compose-link"
-                      label="Ссылка (необязательно)"
                       placeholder="https://..."
                       value={editDraft.externalUrl}
                       onChange={(e) =>
@@ -658,8 +646,7 @@ export function NewsFeedPanel({ user }: Props) {
           />
           <DialogContent className="news-feed__create-content">
             <div className="news-feed__compose-fields">
-              <TextField
-                label="Заголовок новости"
+                <TextField
                 placeholder="Введите заголовок"
                 value={draft.title}
                 onChange={(e) =>
@@ -668,6 +655,9 @@ export function NewsFeedPanel({ user }: Props) {
                 required
                 size="small"
                 fullWidth
+                inputProps={{
+                  "aria-label": "Заголовок новости",
+                }}
                 InputProps={{
                   endAdornment: draft.title ? (
                     <InputAdornment position="end">
@@ -687,7 +677,6 @@ export function NewsFeedPanel({ user }: Props) {
 
               <TextField
                 className="news-feed__compose-textarea"
-                label="Текст новости"
                 placeholder="Опишите обновление для студентов"
                 value={draft.content}
                 onChange={(e) =>
@@ -698,11 +687,13 @@ export function NewsFeedPanel({ user }: Props) {
                 maxRows={8}
                 required
                 fullWidth
+                inputProps={{
+                  "aria-label": "Текст новости",
+                }}
               />
 
               <TextField
                 className="news-feed__compose-link"
-                label="Ссылка (необязательно)"
                 placeholder="https://..."
                 value={draft.externalUrl}
                 onChange={(e) =>
@@ -784,9 +775,6 @@ export function NewsFeedPanel({ user }: Props) {
             )}
           </DialogContent>
           <DialogActions className="news-feed__create-actions">
-            <span className="news-feed__create-hint" aria-live="polite">
-              {createValidationHint}
-            </span>
             <Button
               variant="text"
               onClick={closeCreateModal}

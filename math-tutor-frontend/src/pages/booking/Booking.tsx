@@ -25,6 +25,7 @@ import {
   isFutureSlot,
   normalizeFutureSlots,
 } from "@/features/booking/lib/schedule";
+import { pickTeacherWithAvailability } from "@/features/booking/lib/teacherSelection";
 import type { User } from "@/entities/user/model/types";
 import type { TeacherProfile } from "@/features/teacher-profile/model/types";
 import { useAuth } from "@/features/auth/model/AuthContext";
@@ -102,7 +103,22 @@ export default function Booking() {
     try {
       setPageError(null);
       const teachers = await getPublicTeachers();
-      const currentTeacher = teachers[0] ?? null;
+      const normalizedSlotsByTeacherId: Record<string, AvailabilitySlot[]> = {};
+      for (const candidate of teachers) {
+        const slots = await getTeacherAvailability(candidate.id).catch(() => []);
+        normalizedSlotsByTeacherId[candidate.id] = normalizeFutureSlots(
+          slots.map((slot) => ({
+            id: slot.id,
+            date: slot.date,
+            startTime: slot.startTime ?? "",
+            endTime: slot.endTime ?? "",
+          }))
+        );
+      }
+      const currentTeacher = pickTeacherWithAvailability(
+        teachers,
+        normalizedSlotsByTeacherId
+      );
       setTeacher(currentTeacher);
       if (currentTeacher) {
         setProfile({
@@ -114,14 +130,7 @@ export default function Booking() {
           diplomas: [],
           photo: currentTeacher.photo ?? "",
         });
-        const slots = await getTeacherAvailability(currentTeacher.id);
-        const normalized = slots.map((slot) => ({
-          id: slot.id,
-          date: slot.date,
-          startTime: slot.startTime ?? "",
-          endTime: slot.endTime ?? "",
-        }));
-        setAvailability(normalizeFutureSlots(normalized));
+        setAvailability(normalizedSlotsByTeacherId[currentTeacher.id] ?? []);
       }
     } catch (error) {
       setPageError(

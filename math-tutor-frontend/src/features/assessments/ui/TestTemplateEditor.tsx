@@ -542,7 +542,6 @@ export function TestTemplateEditor({
   const detectedAnswerType = activeQuestion
     ? detectAssessmentAnswerType(String(activeQuestion.answerSpec.expected ?? ""))
     : "text";
-  const pinnedLabelProps = useMemo(() => ({ shrink: true }), []);
 
   return (
     <div className="assessment-editor">
@@ -584,21 +583,21 @@ export function TestTemplateEditor({
         <aside className="assessment-editor__panel assessment-editor__panel--list">
           <div className="assessment-editor__meta">
             <TextField
-              label="Тема теста"
+              placeholder="Введите тему теста"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              InputLabelProps={pinnedLabelProps}
+              inputProps={{ "aria-label": "Тема теста" }}
               fullWidth
               disabled={readOnly}
               size="small"
             />
             <TextField
-              label="Описание"
+              placeholder="Краткое описание теста"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               multiline
               minRows={2}
-              InputLabelProps={pinnedLabelProps}
+              inputProps={{ "aria-label": "Описание теста" }}
               fullWidth
               disabled={readOnly}
               size="small"
@@ -608,7 +607,10 @@ export function TestTemplateEditor({
               <div className="assessment-editor__kind-options">
                 <Button
                   size="small"
-                  variant={assessmentKind === "credit" ? "contained" : "outlined"}
+                  variant="text"
+                  className={`assessment-editor__kind-option ${
+                    assessmentKind === "credit" ? "is-active" : ""
+                  }`}
                   onClick={() => setAssessmentKind("credit")}
                   disabled={readOnly}
                 >
@@ -616,7 +618,10 @@ export function TestTemplateEditor({
                 </Button>
                 <Button
                   size="small"
-                  variant={assessmentKind === "exam" ? "contained" : "outlined"}
+                  variant="text"
+                  className={`assessment-editor__kind-option ${
+                    assessmentKind === "exam" ? "is-active" : ""
+                  }`}
                   onClick={() => setAssessmentKind("exam")}
                   disabled={readOnly}
                 >
@@ -625,13 +630,16 @@ export function TestTemplateEditor({
               </div>
             </div>
             <TextField
-              label="Длительность (мин)"
+              placeholder="Длительность (мин)"
               value={durationMinutes}
               onChange={(event) =>
                 setDurationMinutes(event.target.value.replace(/[^\d]/g, ""))
               }
-              inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
-              InputLabelProps={pinnedLabelProps}
+              inputProps={{
+                inputMode: "numeric",
+                pattern: "[0-9]*",
+                "aria-label": "Длительность в минутах",
+              }}
               fullWidth
               disabled={readOnly}
               size="small"
@@ -640,9 +648,14 @@ export function TestTemplateEditor({
           <div className="assessment-editor__panel-head">
             <Typography variant="h6">Вопросы</Typography>
             {!readOnly && (
-              <Button size="small" startIcon={<AddRoundedIcon />} onClick={addQuestion}>
-                Добавить
-              </Button>
+              <IconButton
+                className="assessment-editor__add-icon"
+                size="small"
+                onClick={addQuestion}
+                aria-label="Добавить вопрос"
+              >
+                <AddRoundedIcon fontSize="small" />
+              </IconButton>
             )}
           </div>
           <Stack spacing={1}>
@@ -733,7 +746,7 @@ export function TestTemplateEditor({
           ) : (
             <Stack spacing={2} sx={{ mt: 1.5 }}>
               <TextField
-                label="Вопрос"
+                placeholder="Введите вопрос"
                 value={activeQuestion.prompt.text}
                 onChange={(event) =>
                   updateQuestion(activeQuestion.id, {
@@ -745,7 +758,7 @@ export function TestTemplateEditor({
                 }
                 multiline
                 minRows={4}
-                InputLabelProps={pinnedLabelProps}
+                inputProps={{ "aria-label": "Вопрос" }}
                 fullWidth
                 disabled={readOnly}
                 className="assessment-editor__field-compact"
@@ -796,10 +809,10 @@ export function TestTemplateEditor({
               <Divider />
 
               <TextField
-                label="Правильный ответ"
+                placeholder="Введите правильный ответ"
                 value={String(activeQuestion.answerSpec.expected ?? "")}
                 onChange={(event) => updateActiveExpected(event.target.value)}
-                InputLabelProps={pinnedLabelProps}
+                inputProps={{ "aria-label": "Правильный ответ" }}
                 fullWidth
                 disabled={readOnly}
                 className="assessment-editor__field-compact"
@@ -807,10 +820,10 @@ export function TestTemplateEditor({
               />
               {detectedAnswerType === "number" && (
                 <TextField
-                  label="Допуск (опционально)"
+                  placeholder="Допуск (опционально)"
                   value={String(activeQuestion.answerSpec.tolerance?.value ?? "")}
                   onChange={(event) => updateActiveTolerance(event.target.value)}
-                  InputLabelProps={pinnedLabelProps}
+                  inputProps={{ "aria-label": "Допуск (опционально)" }}
                   fullWidth
                   disabled={readOnly}
                   className="assessment-editor__field-compact"
@@ -818,7 +831,7 @@ export function TestTemplateEditor({
                 />
               )}
               <TextField
-                label="Пояснение после проверки"
+                placeholder="Пояснение после проверки"
                 value={activeQuestion.feedback.explanation}
                 onChange={(event) =>
                   updateQuestion(activeQuestion.id, {
@@ -830,7 +843,7 @@ export function TestTemplateEditor({
                 }
                 multiline
                 minRows={3}
-                InputLabelProps={pinnedLabelProps}
+                inputProps={{ "aria-label": "Пояснение после проверки" }}
                 fullWidth
                 disabled={readOnly}
                 className="assessment-editor__field-compact"
