@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { LessonItem } from "@/entities/lesson/ui/LessonItem";
 import { useAuth } from "@/features/auth/model/AuthContext";
@@ -241,29 +248,35 @@ const sampleProgressSinePoints = (start: number, end: number, steps = 112) => {
 function ProgressSineCard({ label, subtitle, percent }: ProgressSineCardProps) {
   const safePercent = clampProgressPercent(percent);
   const [animatedRatio, setAnimatedRatio] = useState(0);
+  const reactUid = useId();
   const uid = useMemo(
-    () => `progress-sine-${label.toLowerCase().replace(/\s+/g, "-")}-${Math.random().toString(36).slice(2, 8)}`,
-    [label]
+    () =>
+      `progress-sine-${label
+        .toLowerCase()
+        .replace(/\s+/g, "-")}-${reactUid.replace(/[^a-zA-Z0-9_-]/g, "")}`,
+    [label, reactUid]
   );
   const progressRatio = clampNumber(animatedRatio, 0, 1);
   const animatedPercent = Math.round(progressRatio * 100);
 
   useEffect(() => {
+    const target = safePercent / 100;
     if (typeof window === "undefined") {
-      setAnimatedRatio(safePercent / 100);
       return;
     }
     const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     if (media?.matches) {
-      setAnimatedRatio(safePercent / 100);
-      return;
+      const frame = window.requestAnimationFrame(() => {
+        setAnimatedRatio(target);
+      });
+      return () => {
+        window.cancelAnimationFrame(frame);
+      };
     }
 
     let frame = 0;
     let startedAt = 0;
-    const target = safePercent / 100;
     const duration = 1100 + target * 380;
-    setAnimatedRatio(0);
 
     const tick = (timestamp: number) => {
       if (!startedAt) startedAt = timestamp;
@@ -276,7 +289,10 @@ function ProgressSineCard({ label, subtitle, percent }: ProgressSineCardProps) {
       }
     };
 
-    frame = window.requestAnimationFrame(tick);
+    frame = window.requestAnimationFrame((timestamp) => {
+      setAnimatedRatio(0);
+      tick(timestamp);
+    });
     return () => {
       window.cancelAnimationFrame(frame);
     };
