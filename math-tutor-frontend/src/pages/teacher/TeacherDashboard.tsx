@@ -28,7 +28,6 @@ import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 import CollectionsBookmarkRoundedIcon from "@mui/icons-material/CollectionsBookmarkRounded";
 import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import RemoveRoundedIcon from "@mui/icons-material/RemoveRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
@@ -192,9 +191,6 @@ export default function TeacherDashboard() {
   const [chatThreadIdsByStudentId, setChatThreadIdsByStudentId] = useState<
     Record<string, string>
   >({});
-  const [expandedSlotsDate, setExpandedSlotsDate] = useState<string | null>(
-    null
-  );
   const [confirm, setConfirm] = useState<{
     title: string;
     description?: string;
@@ -417,15 +413,39 @@ export default function TeacherDashboard() {
     [availabilityDateGroups, selectedAvailabilityDate]
   );
 
+  const selectedAvailabilityDateLabel = useMemo(() => {
+    if (!selectedAvailabilityDate) return "";
+    return new Date(`${selectedAvailabilityDate}T00:00:00`).toLocaleDateString(
+      "ru-RU",
+      {
+        day: "numeric",
+        month: "long",
+      }
+    );
+  }, [selectedAvailabilityDate]);
+
+  const slotsTodayCount = useMemo(
+    () => availability.filter((slot) => slot.date === todayIso).length,
+    [availability, todayIso]
+  );
+
+  const slotsWeekCount = useMemo(() => {
+    const weekEnd = new Date(`${todayIso}T00:00:00`);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    const weekEndIso = weekEnd.toISOString().slice(0, 10);
+    return availability.filter(
+      (slot) => slot.date >= todayIso && slot.date <= weekEndIso
+    ).length;
+  }, [availability, todayIso]);
+
+  const selectedDateSlotsCount = currentAvailabilityGroup?.slots.length ?? 0;
+
   const visibleAvailabilitySlots = useMemo(() => {
     if (!currentAvailabilityGroup) return [];
-    const dateSlots = currentAvailabilityGroup.slots;
-    if (dateSlots.length <= 1) return dateSlots;
-    if (expandedSlotsDate === currentAvailabilityGroup.date) {
-      return [...dateSlots].reverse();
-    }
-    return [dateSlots[dateSlots.length - 1]];
-  }, [currentAvailabilityGroup, expandedSlotsDate]);
+    return [...currentAvailabilityGroup.slots].sort(
+      (a, b) => toMinutes(a.startTime) - toMinutes(b.startTime)
+    );
+  }, [currentAvailabilityGroup]);
 
   const pagedScheduledBookings = useMemo(
     () => paginateList(scheduledBookings, safeScheduledPage, bookingsPageSize),
@@ -670,7 +690,6 @@ export default function TeacherDashboard() {
     if (nextDates.includes(slotDate)) {
       setSlotsDateFilter(slotDate);
     }
-    setExpandedSlotsDate(null);
     setSlotDate("");
     setSlotStart("");
     setSlotEnd("");
@@ -678,7 +697,6 @@ export default function TeacherDashboard() {
   };
 
   const removeSlot = async (id: string) => {
-    setExpandedSlotsDate(null);
     await saveAvailability(availability.filter((slot) => slot.id !== id));
   };
 
@@ -1446,47 +1464,70 @@ export default function TeacherDashboard() {
             }`}
           >
             <div className="teacher-dashboard__availability-header teacher-dashboard__availability-header--free">
-              <div>
+              <div className="teacher-dashboard__availability-head-main">
                 <h3>{t("teacherDashboard.freeSlotsTitle")}</h3>
+                <div className="teacher-dashboard__availability-stats">
+                  <span className="teacher-dashboard__availability-stat">
+                    {t("teacherDashboard.slotsTodayStat", {
+                      count: slotsTodayCount,
+                    })}
+                  </span>
+                  <span className="teacher-dashboard__availability-stat">
+                    {t("teacherDashboard.slotsWeekStat", {
+                      count: slotsWeekCount,
+                    })}
+                  </span>
+                  {selectedAvailabilityDateLabel && (
+                    <span className="teacher-dashboard__availability-stat teacher-dashboard__availability-stat--active">
+                      {t("teacherDashboard.slotsDateStat", {
+                        date: selectedAvailabilityDateLabel,
+                        count: selectedDateSlotsCount,
+                      })}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="teacher-dashboard__availability-tools">
-                {currentAvailabilityGroup &&
-                  currentAvailabilityGroup.slots.length > 1 && (
-                    <button
-                      type="button"
-                      className="teacher-dashboard__availability-toggle"
-                      onClick={() =>
-                        setExpandedSlotsDate((prev) =>
-                          prev === currentAvailabilityGroup.date
-                            ? null
-                            : currentAvailabilityGroup.date
-                        )
-                      }
-                    >
-                      {expandedSlotsDate === currentAvailabilityGroup.date
-                        ? "Свернуть дату"
-                        : "Показать все слоты"}
-                    </button>
-                  )}
-                <IconButton
-                  className="teacher-dashboard__icon-btn"
-                  onClick={() =>
-                    setAvailabilityOpen((prev) => {
-                      return !prev;
-                    })
-                  }
+                <button
+                  type="button"
+                  className="teacher-dashboard__slot-add"
+                  onClick={() => setAvailabilityOpen((prev) => !prev)}
                   aria-label={t("teacherDashboard.toggleSlotFormAria")}
                 >
-                  {availabilityOpen ? <RemoveRoundedIcon /> : <AddRoundedIcon />}
-                </IconButton>
-                {availabilityOpen && (
+                  {availabilityOpen ? (
+                    <CloseRoundedIcon fontSize="small" />
+                  ) : (
+                    <AddRoundedIcon fontSize="small" />
+                  )}
+                  <span>
+                    {availabilityOpen
+                      ? t("teacherDashboard.hideSlotFormAction")
+                      : t("teacherDashboard.showSlotFormAction")}
+                  </span>
+                </button>
+                {selectedDateSlotsCount > 0 && selectedAvailabilityDateLabel && (
                   <button
-                    className="teacher-dashboard__slot-save"
-                    onClick={() => void addSlot()}
-                    disabled={!slotDate || !slotStart || !slotEnd}
-                    aria-label={t("teacherDashboard.saveSlotAria")}
+                    type="button"
+                    className="teacher-dashboard__slot-clear"
+                    onClick={() =>
+                      setConfirm({
+                        title: t("teacherDashboard.clearDateSlotsTitle", {
+                          date: selectedAvailabilityDateLabel,
+                        }),
+                        description: t("teacherDashboard.clearDateSlotsDescription"),
+                        danger: true,
+                        onConfirm: () => {
+                          void saveAvailability(
+                            availability.filter(
+                              (slot) => slot.date !== selectedAvailabilityDate
+                            )
+                          );
+                          setConfirm(null);
+                        },
+                      })
+                    }
                   >
-                    <SaveRoundedIcon fontSize="small" />
+                    {t("teacherDashboard.clearDateSlotsAction")}
                   </button>
                 )}
               </div>
@@ -1502,16 +1543,20 @@ export default function TeacherDashboard() {
                     }`}
                     onClick={() => {
                       setSlotsDateFilter(group.date);
-                      setExpandedSlotsDate(null);
                     }}
                   >
-                    {new Date(`${group.date}T00:00:00`).toLocaleDateString(
-                      "ru-RU",
-                      {
-                        day: "2-digit",
-                        month: "short",
-                      }
-                    )}
+                    <span className="teacher-dashboard__availability-filter-label">
+                      {new Date(`${group.date}T00:00:00`).toLocaleDateString(
+                        "ru-RU",
+                        {
+                          day: "2-digit",
+                          month: "short",
+                        }
+                      )}
+                    </span>
+                    <span className="teacher-dashboard__availability-filter-count">
+                      {group.slots.length}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -1533,18 +1578,24 @@ export default function TeacherDashboard() {
               />
             ) : availabilityDateGroups.length === 0 ? (
               <div className="teacher-dashboard__empty teacher-dashboard__empty--compact">
-                {t("teacherDashboard.noFreeSlots")}
+                <span>{t("teacherDashboard.noFreeSlots")}</span>
+                {!availabilityOpen && (
+                  <button
+                    type="button"
+                    className="teacher-dashboard__slot-empty-action"
+                    onClick={() => setAvailabilityOpen(true)}
+                  >
+                    {t("teacherDashboard.addFirstSlotAction")}
+                  </button>
+                )}
               </div>
             ) : (
               <div className="teacher-dashboard__availability-list">
                 {visibleAvailabilitySlots.map((slot) => (
                   <div key={slot.id} className="teacher-dashboard__slot">
-                    <div className="teacher-dashboard__slot-meta">
-                      <strong className="teacher-dashboard__slot-date">{slot.date}</strong>
-                      <span className="teacher-dashboard__slot-time">
-                        {slot.startTime} – {slot.endTime}
-                      </span>
-                    </div>
+                    <span className="teacher-dashboard__slot-time">
+                      {slot.startTime} – {slot.endTime}
+                    </span>
                     <IconButton
                       className="teacher-dashboard__slot-remove"
                       onClick={() => void removeSlot(slot.id)}
@@ -1631,6 +1682,16 @@ export default function TeacherDashboard() {
                       </MenuItem>
                     ))}
                   </TextField>
+                  <button
+                    type="button"
+                    className="teacher-dashboard__slot-submit"
+                    onClick={() => void addSlot()}
+                    disabled={!slotDate || !slotStart || !slotEnd}
+                    aria-label={t("teacherDashboard.saveSlotAria")}
+                  >
+                    <SaveRoundedIcon fontSize="small" />
+                    <span>{t("teacherDashboard.saveSlotAction")}</span>
+                  </button>
                 </div>
               </div>
             )}

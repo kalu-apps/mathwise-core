@@ -75,6 +75,10 @@
 
   &__empty--compact {
     min-height: 120px;
+    display: grid;
+    gap: 10px;
+    align-content: center;
+    justify-items: center;
   }
 
   &__list--courses {
@@ -522,7 +526,9 @@
   &__availability-tools {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   &__slot-body {
@@ -532,32 +538,82 @@
   }
 
   &__slot-body--inline {
-    margin-top: 8px;
-    padding: 10px 0 0;
+    margin-top: 6px;
+    padding: 8px 0 0;
     border-top: 1px dashed color-mix(in srgb, var(--border-subtle) 72%, transparent);
   }
 
-  &__slot-save {
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
-    border: 1px solid color-mix(in srgb, var(--accent-primary) 36%, var(--border-subtle));
+  &__slot-add {
+    border: 1px solid color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle));
     background: color-mix(in srgb, var(--accent-primary) 10%, var(--surface-soft));
-    color: color-mix(in srgb, var(--accent-primary) 84%, var(--text-primary));
+    color: color-mix(in srgb, var(--accent-primary) 88%, var(--text-primary));
+    border-radius: 999px;
+    min-height: 30px;
+    padding: 0 10px;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 560;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
     cursor: pointer;
     transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
   }
 
-  &__slot-save:hover:not(:disabled) {
+  &__slot-add:hover {
     border-color: color-mix(in srgb, var(--accent-primary) 56%, var(--border-subtle));
     background: color-mix(in srgb, var(--accent-primary) 16%, var(--surface-soft));
     transform: translateY(-1px);
   }
 
-  &__slot-save:disabled {
+  &__slot-clear {
+    border: 1px solid color-mix(in srgb, var(--feedback-danger) 32%, var(--border-subtle));
+    background: color-mix(in srgb, var(--feedback-danger) 8%, var(--surface-soft));
+    color: color-mix(in srgb, var(--feedback-danger) 82%, var(--text-primary));
+    border-radius: 999px;
+    min-height: 30px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 560;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: border-color 0.16s ease, background-color 0.16s ease;
+  }
+
+  &__slot-clear:hover {
+    border-color: color-mix(in srgb, var(--feedback-danger) 48%, var(--border-subtle));
+    background: color-mix(in srgb, var(--feedback-danger) 14%, var(--surface-soft));
+  }
+
+  &__slot-submit {
+    border: 1px solid color-mix(in srgb, var(--accent-primary) 44%, var(--border-subtle));
+    background: color-mix(in srgb, var(--accent-primary) 14%, var(--surface-soft));
+    color: color-mix(in srgb, var(--accent-primary) 92%, var(--text-primary));
+    border-radius: 12px;
+    min-height: 40px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 620;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
+  }
+
+  &__slot-submit:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--accent-primary) 56%, var(--border-subtle));
+    background: color-mix(in srgb, var(--accent-primary) 16%, var(--surface-soft));
+    transform: translateY(-1px);
+  }
+
+  &__slot-submit:disabled {
     opacity: 0.52;
     cursor: not-allowed;
   }
@@ -613,10 +669,10 @@
   }
 
   &__availability--free {
-    padding: 14px 18px 16px;
+    padding: 14px 16px 14px;
     border: 1px solid color-mix(in srgb, var(--brand-solid) 22%, var(--border-subtle));
     background: linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-soft) 100%);
-    gap: 6px;
+    gap: 8px;
   }
 
   &__availability--free.is-empty {
@@ -644,33 +700,48 @@
 
   &__availability-header--free {
     align-items: flex-start;
+    gap: 10px;
   }
 
-  &__availability-toggle {
-    border: 0;
-    background: transparent;
-    color: var(--accent-text);
-    border-radius: 0;
-    padding: 0;
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    cursor: pointer;
-    white-space: nowrap;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    transition: color 0.2s ease, opacity 0.2s ease;
+  &__availability-head-main {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+  }
 
-    &:hover {
-      color: var(--accent-soft);
-      opacity: 0.9;
-    }
+  &__availability-stats {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__availability-stat {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    border-radius: 999px;
+    padding: 0 8px;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
+    background: color-mix(in srgb, var(--surface-soft) 82%, transparent);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 510;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  &__availability-stat--active {
+    border-color: color-mix(in srgb, var(--accent-primary) 38%, var(--border-subtle));
+    background: color-mix(in srgb, var(--accent-primary) 12%, var(--surface-soft));
+    color: color-mix(in srgb, var(--accent-primary) 84%, var(--text-primary));
   }
 
   &__availability-form {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
+    grid-template-columns: minmax(150px, 1.1fr) minmax(130px, 1fr) minmax(130px, 1fr) auto;
+    gap: 10px;
+    align-items: end;
   }
 
   &__slot-date-field {
@@ -694,8 +765,8 @@
   &__availability-filters {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    margin-top: -4px;
+    gap: 6px;
+    margin-top: 0;
   }
 
   &__availability-filter {
@@ -703,13 +774,16 @@
     background: var(--surface-soft);
     color: var(--text-primary);
     border-radius: 999px;
-    padding: 1px 8px;
-    min-height: 20px;
-    font-size: 10px;
-    font-weight: 400;
-    line-height: 1.15;
+    padding: 0 8px 0 10px;
+    min-height: 25px;
+    font-size: 11px;
+    font-weight: 520;
+    line-height: 1;
     cursor: pointer;
     text-transform: capitalize;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     transition: all 0.2s ease;
 
     &:hover {
@@ -729,66 +803,96 @@
     }
   }
 
+  &__availability-filter-label {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  &__availability-filter-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    padding: 0 5px;
+    font-size: 10px;
+    font-weight: 640;
+    color: color-mix(in srgb, var(--text-primary) 92%, var(--accent-primary));
+    background: color-mix(in srgb, var(--surface-elevated) 74%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 86%, transparent);
+  }
+
+  &__availability-filter.is-active &__availability-filter-count {
+    color: color-mix(in srgb, var(--accent-primary) 86%, var(--text-primary));
+    border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--border-subtle));
+    background: color-mix(in srgb, var(--accent-primary) 16%, var(--surface-elevated));
+  }
+
   &__availability-list {
     display: grid;
-    gap: 7px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    margin-top: -2px;
+    gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(124px, 1fr));
+    margin-top: 0;
   }
 
   &__slot {
-    position: relative;
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    min-height: 56px;
-    padding: 10px 34px 10px 12px;
-    border-radius: 14px;
+    justify-content: space-between;
+    min-height: 40px;
+    padding: 7px 6px 7px 10px;
+    border-radius: 12px;
     background: color-mix(in srgb, var(--surface-soft) 88%, var(--brand-solid));
     border: 1px solid color-mix(in srgb, var(--brand-solid) 28%, var(--border-subtle));
     box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 32%, transparent);
-  }
-
-  &__slot-meta {
-    display: grid;
-    gap: 2px;
+    gap: 6px;
     min-width: 0;
   }
 
-  &__slot-date {
-    font-size: 10.5px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-weight: 560;
-    color: var(--text-muted);
-    white-space: nowrap;
-  }
-
   &__slot-time {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 620;
     color: color-mix(in srgb, var(--text-primary) 92%, var(--accent-primary));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.2;
   }
 
   &__slot-remove {
-    position: absolute !important;
-    top: 4px;
-    right: 4px;
-    width: 24px !important;
-    height: 24px !important;
-    min-width: 24px !important;
-    min-height: 24px !important;
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
     padding: 0 !important;
     color: var(--text-muted) !important;
     border: 0 !important;
     background: transparent !important;
 
     .MuiSvgIcon-root {
-      font-size: 16px;
+      font-size: 15px;
     }
+  }
+
+  &__slot-empty-action {
+    border: 1px solid color-mix(in srgb, var(--accent-primary) 36%, var(--border-subtle));
+    background: color-mix(in srgb, var(--accent-primary) 14%, var(--surface-soft));
+    color: color-mix(in srgb, var(--accent-primary) 90%, var(--text-primary));
+    border-radius: 10px;
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 560;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
+  }
+
+  &__slot-empty-action:hover {
+    border-color: color-mix(in srgb, var(--accent-primary) 52%, var(--border-subtle));
+    background: color-mix(in srgb, var(--accent-primary) 18%, var(--surface-soft));
+    transform: translateY(-1px);
   }
 
   &__booking-list {
@@ -822,7 +926,8 @@
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:
       "avatar info meta"
-      "avatar tags actions";
+      "avatar tags tags"
+      "avatar actions actions";
     gap: 7px 10px;
     align-items: start;
   }
@@ -840,40 +945,50 @@
     flex: 1;
     display: grid;
     gap: 2px;
+    min-width: 0;
 
     h4 {
       margin: 0;
       font-size: 14px;
       font-weight: 530;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     span {
+      display: block;
       font-size: 11.5px;
       color: var(--text-secondary);
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 
   &__booking-meta {
     grid-area: meta;
+    display: grid;
+    justify-items: end;
+    gap: 2px;
     text-align: right;
     color: var(--text-secondary);
-    display: inline-flex;
-    align-items: baseline;
-    justify-content: flex-end;
-    gap: 8px;
-    min-width: 196px;
-    flex-wrap: wrap;
+    min-width: 0;
   }
 
   &__booking-tags {
     grid-area: tags;
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: flex-start;
-    gap: 12px;
-    overflow-x: auto;
-    white-space: nowrap;
+    align-content: flex-start;
+    gap: 6px 12px;
+    overflow: visible;
+    white-space: normal;
+    min-width: 0;
     padding: 0;
     border-radius: 0;
     background: transparent;
@@ -899,7 +1014,7 @@
   &__booking-kind {
     display: inline-flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: flex-start !important;
     position: relative;
     min-height: 0 !important;
     padding: 0 !important;
@@ -913,6 +1028,8 @@
     color: color-mix(in srgb, var(--accent-violet) 78%, var(--text-primary)) !important;
     background: transparent !important;
     white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
     gap: 6px !important;
   }
 
@@ -929,7 +1046,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    justify-content: flex-start;
+    justify-content: flex-start !important;
     min-height: 0 !important;
     padding: 0 !important;
     border: 0 !important;
@@ -941,6 +1058,8 @@
     letter-spacing: 0.01em !important;
     line-height: 1.15 !important;
     white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
     background: transparent !important;
 
     &--scheduled {
@@ -975,7 +1094,8 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-left: auto;
+    margin-left: 0;
+    justify-self: end;
   }
 
   &__payment-status {
@@ -992,6 +1112,8 @@
     letter-spacing: 0.01em !important;
     line-height: 1.15 !important;
     white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     background: transparent !important;
@@ -1487,6 +1609,26 @@
     align-items: flex-start;
   }
 
+  .teacher-dashboard__availability-header--free {
+    gap: 8px;
+  }
+
+  .teacher-dashboard__availability-stats {
+    gap: 5px;
+  }
+
+  .teacher-dashboard__availability-tools {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .teacher-dashboard__slot-add,
+  .teacher-dashboard__slot-clear {
+    min-height: 28px;
+    padding-inline: 9px;
+    font-size: 11.5px;
+  }
+
   .teacher-dashboard__bookings-grid {
     grid-template-columns: 1fr;
   }
@@ -1498,6 +1640,17 @@
 
   .teacher-dashboard__availability-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .teacher-dashboard__availability-form {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .teacher-dashboard__slot-submit {
+    width: 100%;
+    min-height: 36px;
+    justify-content: center;
   }
 
   .teacher-dashboard__list--students {
@@ -1517,7 +1670,7 @@
   }
 
   .teacher-dashboard__booking-meta {
-    justify-content: flex-start;
+    justify-items: start;
     text-align: left;
     min-width: 0;
   }
@@ -1525,11 +1678,14 @@
   .teacher-dashboard__booking-tags {
     justify-content: flex-start;
     width: 100%;
-    overflow-x: auto;
+    overflow: visible;
+    white-space: normal;
+    flex-wrap: wrap;
   }
 
   .teacher-dashboard__booking-actions {
     margin-left: 0;
+    justify-self: start;
   }
 }
 
@@ -1540,6 +1696,11 @@
 
   .teacher-dashboard__availability-list {
     grid-template-columns: 1fr;
+  }
+
+  .teacher-dashboard__availability-filter {
+    min-height: 24px;
+    font-size: 10.5px;
   }
 }
 
