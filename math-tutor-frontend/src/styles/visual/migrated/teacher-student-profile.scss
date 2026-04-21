@@ -383,26 +383,6 @@
   gap: 6px;
 }
 
-.teacher-student-profile__booking-meta .ui-status-chip,
-.teacher-student-profile__booking-meta .ui-status-chip--scheduled,
-.teacher-student-profile__booking-meta .ui-status-chip--completed,
-.teacher-student-profile__booking-meta .ui-status-chip--trial,
-.teacher-student-profile__booking-meta .ui-status-chip--paid,
-.teacher-student-profile__booking-meta .ui-status-chip--unpaid {
-  border: 0 !important;
-  border-radius: 0 !important;
-  padding: 0 !important;
-  min-height: 0 !important;
-  min-width: 0 !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  text-transform: none !important;
-  letter-spacing: 0.01em !important;
-  font-size: 11px !important;
-  font-weight: 560 !important;
-  line-height: 1.2 !important;
-}
-
 .teacher-student-profile__status,
 .teacher-student-profile__kind,
 .teacher-student-profile__payment {
@@ -524,10 +504,17 @@
 .teacher-student-profile__icon-btn {
   width: 28px !important;
   height: 28px !important;
-  border-radius: 8px !important;
-  border: 1px solid color-mix(in srgb, var(--border-subtle) 82%, transparent);
-  background: color-mix(in srgb, var(--surface-soft) 72%, transparent) !important;
+  border-radius: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
   color: var(--text-secondary) !important;
+  transition: color 0.2s ease !important;
+}
+
+.teacher-student-profile__icon-btn:hover {
+  background: transparent !important;
+  color: var(--text-primary) !important;
 }
 
 .teacher-student-profile__icon-btn .MuiSvgIcon-root {

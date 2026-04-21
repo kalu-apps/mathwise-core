@@ -732,10 +732,6 @@ export default function TeacherStudentProfile() {
                               isCompleted
                                 ? "teacher-student-profile__status--completed"
                                 : "teacher-student-profile__status--scheduled"
-                            } ui-status-chip ${
-                              isCompleted
-                                ? "ui-status-chip--completed"
-                                : "ui-status-chip--scheduled"
                             }`}
                           >
                             {isCompleted
@@ -743,7 +739,7 @@ export default function TeacherStudentProfile() {
                               : t("teacherStudentProfile.statusScheduled")}
                           </span>
                           {booking.lessonKind === "trial" && (
-                            <span className="teacher-student-profile__kind ui-status-chip ui-status-chip--trial">
+                            <span className="teacher-student-profile__kind">
                               {t("teacherStudentProfile.trialLesson")}
                             </span>
                           )}
@@ -752,10 +748,6 @@ export default function TeacherStudentProfile() {
                               booking.paymentStatus === "paid"
                                 ? "teacher-student-profile__payment--paid"
                                 : "teacher-student-profile__payment--unpaid"
-                            } ui-status-chip ${
-                              booking.paymentStatus === "paid"
-                                ? "ui-status-chip--paid"
-                                : "ui-status-chip--unpaid"
                             }`}
                           >
                             {booking.paymentStatus === "paid"

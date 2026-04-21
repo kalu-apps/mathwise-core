@@ -1173,14 +1173,20 @@
 .student-profile__lesson-delete {
   width: 28px !important;
   height: 28px !important;
-  border-radius: 8px !important;
-  border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
-  background: color-mix(in srgb, var(--background-soft) 72%, transparent) !important;
+  border-radius: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
   color: var(--text-secondary) !important;
 }
 
 .student-profile__lesson-delete {
   color: color-mix(in srgb, var(--feedback-danger) 84%, var(--text-secondary)) !important;
+}
+
+.student-profile__lesson-edit:hover,
+.student-profile__lesson-delete:hover {
+  background: transparent !important;
 }
 
 .student-profile__lesson-links,

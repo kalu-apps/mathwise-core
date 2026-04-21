@@ -630,6 +630,7 @@
   &__availability--free {
     border: 1px solid color-mix(in srgb, var(--brand-solid) 22%, var(--border-subtle));
     background: linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-soft) 100%);
+    gap: 9px;
   }
 
   &__availability--free.is-empty {
@@ -707,7 +708,8 @@
   &__availability-filters {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 5px;
+    margin-top: -2px;
   }
 
   &__availability-filter {
@@ -715,10 +717,11 @@
     background: var(--surface-soft);
     color: var(--text-primary);
     border-radius: 999px;
-    padding: 4px 10px;
-    min-height: 26px;
-    font-size: 11px;
-    font-weight: 500;
+    padding: 2px 9px;
+    min-height: 22px;
+    font-size: 10.5px;
+    font-weight: 420;
+    line-height: 1.15;
     cursor: pointer;
     text-transform: capitalize;
     transition: all 0.2s ease;
@@ -742,9 +745,9 @@
 
   &__availability-list {
     display: grid;
-    gap: 10px;
+    gap: 8px;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    margin-top: 2px;
+    margin-top: 0;
   }
 
   &__slot {
@@ -1318,16 +1321,16 @@
   }
 
   &__icon-btn {
-    background: color-mix(in srgb, var(--surface-soft) 72%, transparent) !important;
-    border: 1px solid color-mix(in srgb, var(--card-border) 76%, transparent);
-    border-radius: 10px;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0;
+    box-shadow: none !important;
     color: var(--accent-text) !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: color 0.2s ease;
 
     &:hover {
-      transform: translateY(-1px);
-      border-color: color-mix(in srgb, var(--brand-solid) 44%, var(--card-border));
-      box-shadow: 0 8px 14px color-mix(in srgb, #0f172a 12%, transparent);
+      background: transparent !important;
+      color: var(--text-primary) !important;
     }
   }
 }
