@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Button,
@@ -103,6 +103,8 @@ const NEWS_ATTACHMENT_MAX_BYTES = 80 * 1024 * 1024;
 const NEWS_ATTACHMENTS_MAX_COUNT = 8;
 const NEWS_ATTACHMENTS_MAX_VIDEO_COUNT = 1;
 const NEWS_ATTACHMENTS_VISIBLE_LIMIT = 6;
+const NEWS_VIDEO_AUTOPLAY_VISIBLE_RATIO = 0.58;
+const NEWS_VIDEO_PLAY_RETRY_DELAY_MS = 3500;
 
 const buildAttachmentId = () =>
   `news_attachment_${Date.now().toString(36)}_${Math.random()
@@ -178,6 +180,11 @@ export function NewsFeedPanel({ user }: Props) {
   const isTeacher = user.role === "teacher";
   const createAttachmentInputRef = useRef<HTMLInputElement>(null);
   const editAttachmentInputRef = useRef<HTMLInputElement>(null);
+  const feedVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const activeFeedVideoIdRef = useRef<string | null>(null);
+  const feedVideoRatiosRef = useRef<Map<string, number>>(new Map());
+  const feedVideoRetryAfterRef = useRef<Map<string, number>>(new Map());
+  const evaluateFeedVideosRef = useRef<(() => void) | null>(null);
 
   const [items, setItems] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -588,6 +595,167 @@ export function NewsFeedPanel({ user }: Props) {
   const previewCurrentAttachment = previewAttachment
     ? previewAttachment.items[previewAttachment.index]
     : null;
+
+  const pauseAllFeedVideos = useCallback(() => {
+    feedVideoRefs.current.forEach((video) => {
+      if (!video.paused) {
+        video.pause();
+      }
+    });
+    activeFeedVideoIdRef.current = null;
+  }, []);
+
+  const tryPlayFeedVideo = useCallback(
+    async (videoId: string, video: HTMLVideoElement) => {
+      const now = Date.now();
+      const retryAt = feedVideoRetryAfterRef.current.get(videoId);
+      if (retryAt && retryAt > now) return;
+      if (document.hidden) return;
+      try {
+        video.muted = true;
+        video.playsInline = true;
+        video.loop = true;
+        await video.play();
+      } catch {
+        feedVideoRetryAfterRef.current.set(
+          videoId,
+          now + NEWS_VIDEO_PLAY_RETRY_DELAY_MS
+        );
+      }
+    },
+    []
+  );
+
+  const registerFeedVideoRef = useCallback(
+    (videoId: string, node: HTMLVideoElement | null) => {
+      if (!node) {
+        feedVideoRefs.current.delete(videoId);
+        feedVideoRatiosRef.current.delete(videoId);
+        feedVideoRetryAfterRef.current.delete(videoId);
+        if (activeFeedVideoIdRef.current === videoId) {
+          activeFeedVideoIdRef.current = null;
+        }
+        return;
+      }
+      node.muted = true;
+      node.playsInline = true;
+      node.loop = true;
+      feedVideoRefs.current.set(videoId, node);
+    },
+    []
+  );
+
+  useEffect(() => {
+    const videoMap = feedVideoRefs.current;
+    const ratioMap = feedVideoRatiosRef.current;
+    if (typeof IntersectionObserver === "undefined") {
+      evaluateFeedVideosRef.current = null;
+      return;
+    }
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      evaluateFeedVideosRef.current = null;
+      pauseAllFeedVideos();
+      return;
+    }
+
+    const evaluate = () => {
+      if (document.hidden) {
+        pauseAllFeedVideos();
+        return;
+      }
+      let bestId: string | null = null;
+      let bestRatio = 0;
+      ratioMap.forEach((ratio, id) => {
+        if (ratio >= NEWS_VIDEO_AUTOPLAY_VISIBLE_RATIO && ratio > bestRatio) {
+          bestRatio = ratio;
+          bestId = id;
+        }
+      });
+
+      const currentActive = activeFeedVideoIdRef.current;
+      if (!bestId) {
+        if (currentActive) {
+          const currentVideo = videoMap.get(currentActive);
+          if (currentVideo && !currentVideo.paused) {
+            currentVideo.pause();
+          }
+          activeFeedVideoIdRef.current = null;
+        }
+        return;
+      }
+
+      if (currentActive && currentActive !== bestId) {
+        const currentVideo = videoMap.get(currentActive);
+        if (currentVideo && !currentVideo.paused) {
+          currentVideo.pause();
+        }
+      }
+
+      activeFeedVideoIdRef.current = bestId;
+      const bestVideo = videoMap.get(bestId);
+      if (bestVideo) {
+        void tryPlayFeedVideo(bestId, bestVideo);
+      }
+
+      videoMap.forEach((video, id) => {
+        if (id !== bestId && !video.paused) {
+          video.pause();
+        }
+      });
+    };
+
+    evaluateFeedVideosRef.current = evaluate;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const target = entry.target as HTMLVideoElement;
+          const videoId = target.dataset.newsVideoId;
+          if (!videoId) return;
+          if (entry.isIntersecting) {
+            ratioMap.set(videoId, entry.intersectionRatio);
+          } else {
+            ratioMap.set(videoId, 0);
+          }
+        });
+        evaluate();
+      },
+      {
+        threshold: [0, 0.2, 0.35, 0.5, NEWS_VIDEO_AUTOPLAY_VISIBLE_RATIO, 0.75, 1],
+      }
+    );
+
+    videoMap.forEach((video, id) => {
+      video.dataset.newsVideoId = id;
+      ratioMap.set(id, 0);
+      observer.observe(video);
+    });
+
+    evaluate();
+    return () => {
+      observer.disconnect();
+      evaluateFeedVideosRef.current = null;
+      ratioMap.clear();
+      pauseAllFeedVideos();
+    };
+  }, [pagedItems, pauseAllFeedVideos, tryPlayFeedVideo]);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        pauseAllFeedVideos();
+        return;
+      }
+      evaluateFeedVideosRef.current?.();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [pauseAllFeedVideos]);
 
   return (
     <section
@@ -1029,9 +1197,16 @@ export function NewsFeedPanel({ user }: Props) {
                                   >
                                     {attachment.kind === "video" ? (
                                       <video
+                                        ref={(node) =>
+                                          registerFeedVideoRef(
+                                            `${item.id}:${attachment.id}`,
+                                            node
+                                          )
+                                        }
                                         src={previewUrl}
                                         muted
                                         playsInline
+                                        loop
                                         preload="metadata"
                                       />
                                     ) : (
