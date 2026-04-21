@@ -959,6 +959,89 @@ test("bookings v2: repeated confirm is idempotent for consumed hold", async () =
   });
 });
 
+test("bookings v2: confirm handles wrapped pg integrity errors without 500", async () => {
+  await withBookingV2Env({}, async () => {
+    const date = futureDate();
+    const existingBooking: BookingRecord = {
+      id: "booking_1",
+      slotId: "slot_1",
+      teacherId: "teacher_1",
+      teacherName: "Teacher One",
+      studentId: "student_1",
+      studentName: "Student One",
+      studentEmail: "student@example.com",
+      date,
+      startTime: "10:00",
+      endTime: "11:00",
+      lessonKind: "trial",
+      status: "scheduled",
+      paymentStatus: "unpaid",
+      meetingUrl: "",
+      materials: [],
+      identityKind: "user_bound",
+      identityEmailCanonical: "student@example.com",
+      createdAt: new Date().toISOString(),
+    };
+
+    const bookingsRepository = {
+      ensureSchema: async () => undefined,
+      findIdempotentResponse: async () => null,
+      findSlotHoldById: async () => ({
+        id: "hold_1",
+        slotId: "slot_1",
+        teacherId: "teacher_1",
+        teacherName: "Teacher One",
+        date,
+        startTime: "10:00",
+        endTime: "11:00",
+        status: "active" as const,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      }),
+      hasBookingsForStudent: async () => false,
+      confirmSlotHoldBookingAtomic: async () => {
+        throw Object.assign(new Error("wrapped unique"), { cause: { code: "23505" } });
+      },
+      findBookingBySlotId: async () => existingBooking,
+      saveIdempotentResponse: async () => undefined,
+    };
+    const authRepository = {
+      findById: async () => ({
+        id: "teacher_1",
+        email: "teacher@example.com",
+        firstName: "Teacher",
+        lastName: "One",
+        role: "teacher",
+      }),
+      findByEmail: async () => null,
+    };
+    const redisService = {
+      setIfAbsent: async () => true,
+      releaseLock: async () => undefined,
+    };
+
+    const service = new BookingsService(
+      bookingsRepository as never,
+      authRepository as never,
+      redisService as never
+    );
+
+    const confirmed = await service.confirmSlotHoldBooking({
+      holdId: "hold_1",
+      payload: {},
+      actorUser: {
+        id: "student_1",
+        email: "student@example.com",
+        firstName: "Student",
+        lastName: "One",
+        role: "student",
+      },
+    });
+
+    assert.equal(confirmed.id, "booking_1");
+  });
+});
+
 test("bookings: legacy guest path stays available when booking-v2 is disabled", async () => {
   await withBookingV2Env(
     {

@@ -9,7 +9,7 @@ import {
   ensureId,
   hasValidTimeRange,
   isFutureDateTime,
-  isPgUniqueViolation,
+  isPgIntegrityViolation,
   normalizeEmail,
   normalizePhone,
   nowIso,
@@ -387,7 +387,7 @@ export class BookingSlotHoldOrchestrator {
         }
         throw new HttpException({ error: "Slot hold не найден.", code: "not_found" }, 404);
       } catch (error) {
-        if (isPgUniqueViolation(error)) {
+        if (isPgIntegrityViolation(error)) {
           const existing = await this.deps.bookingsRepository.findBookingBySlotId(hold.slotId);
           if (existing?.studentId === actorUser.id) {
             return existing;

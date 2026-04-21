@@ -65,11 +65,22 @@ export const normalizeMaterials = (value: unknown): BookingMaterialDto[] => {
 
 export const asErrorCode = (error: unknown) => {
   if (!error || typeof error !== "object") return null;
-  const code = (error as { code?: unknown }).code;
-  return typeof code === "string" ? code : null;
+  const direct = (error as { code?: unknown }).code;
+  if (typeof direct === "string") return direct;
+  const cause = (error as { cause?: unknown }).cause;
+  if (cause && typeof cause === "object") {
+    const nested = (cause as { code?: unknown }).code;
+    if (typeof nested === "string") return nested;
+  }
+  return null;
 };
 
 export const isPgUniqueViolation = (error: unknown) => asErrorCode(error) === "23505";
+
+export const isPgIntegrityViolation = (error: unknown) => {
+  const code = asErrorCode(error);
+  return code === "23505" || code === "23503" || code === "23514" || code === "23502";
+};
 
 export const lockToken = () =>
   typeof crypto.randomUUID === "function"
