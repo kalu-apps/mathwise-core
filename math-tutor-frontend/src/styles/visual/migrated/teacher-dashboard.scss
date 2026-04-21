@@ -940,22 +940,28 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 0;
-    border-radius: 0;
-    font-size: 11px;
-    font-weight: 560;
-    text-transform: none;
-    letter-spacing: 0.01em;
-    line-height: 1.15;
-    white-space: nowrap;
-    background: transparent;
+    justify-content: flex-start;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-size: 11px !important;
+    font-weight: 560 !important;
+    text-transform: none !important;
+    letter-spacing: 0.01em !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+    background: transparent !important;
 
     &--scheduled {
-      color: color-mix(in srgb, var(--accent-text) 86%, var(--text-primary));
+      color: color-mix(in srgb, var(--accent-text) 86%, var(--text-primary)) !important;
+      background: transparent !important;
     }
 
     &--completed {
-      color: color-mix(in srgb, var(--feedback-success) 84%, var(--text-primary));
+      color: color-mix(in srgb, var(--feedback-success) 84%, var(--text-primary)) !important;
+      background: transparent !important;
     }
   }
 

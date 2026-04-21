@@ -1088,6 +1088,15 @@
   white-space: nowrap;
 }
 
+.student-profile__lesson-status {
+  min-height: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+}
+
 .student-profile__lesson-status::before,
 .student-profile__lesson-kind::before,
 .student-profile__lesson-payment::before {
@@ -1099,7 +1108,8 @@
 }
 
 .student-profile__lesson-status--scheduled {
-  color: color-mix(in srgb, var(--accent-primary) 78%, var(--text-primary));
+  color: color-mix(in srgb, var(--accent-primary) 78%, var(--text-primary)) !important;
+  background: transparent !important;
 }
 
 .student-profile__lesson-status--scheduled::before {
@@ -1107,7 +1117,8 @@
 }
 
 .student-profile__lesson-status--completed {
-  color: color-mix(in srgb, var(--feedback-success) 84%, var(--text-primary));
+  color: color-mix(in srgb, var(--feedback-success) 84%, var(--text-primary)) !important;
+  background: transparent !important;
 }
 
 .student-profile__lesson-status--completed::before {
