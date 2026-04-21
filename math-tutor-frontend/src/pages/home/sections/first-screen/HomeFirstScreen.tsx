@@ -21,10 +21,6 @@ const LazyHomeHeroEnvironment = lazy(() =>
   }))
 );
 
-if (typeof window !== "undefined") {
-  void preloadHomeHeroEnvironment();
-}
-
 export function HomeFirstScreen() {
   const navigate = useNavigate();
   const [renderEnvironment, setRenderEnvironment] = useState(() => typeof window === "undefined");
@@ -32,26 +28,27 @@ export function HomeFirstScreen() {
   useEffect(() => {
     if (renderEnvironment || typeof window === "undefined") return;
 
-    const onIdle = () => setRenderEnvironment(true);
+    let cancelled = false;
+    const onIdle = () => {
+      void preloadHomeHeroEnvironment().finally(() => {
+        if (!cancelled) {
+          setRenderEnvironment(true);
+        }
+      });
+    };
     const win = window as Window & {
       requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
       cancelIdleCallback?: (id: number) => void;
     };
 
-    // Warm up the hero 3D chunk right after first paint so the environment
-    // can mount without a visible fetch gap.
-    const warmupHandle = window.requestAnimationFrame(() => {
-      void preloadHomeHeroEnvironment();
-    });
-
     const idleHandle =
       typeof win.requestIdleCallback === "function"
-        ? win.requestIdleCallback(onIdle, { timeout: 260 })
+        ? win.requestIdleCallback(onIdle, { timeout: 1200 })
         : null;
-    const timeoutHandle = idleHandle === null ? window.setTimeout(onIdle, 110) : null;
+    const timeoutHandle = idleHandle === null ? window.setTimeout(onIdle, 650) : null;
 
     return () => {
-      window.cancelAnimationFrame(warmupHandle);
+      cancelled = true;
 
       if (idleHandle !== null && typeof win.cancelIdleCallback === "function") {
         win.cancelIdleCallback(idleHandle);

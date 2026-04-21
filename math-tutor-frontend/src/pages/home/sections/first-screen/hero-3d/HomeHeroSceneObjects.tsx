@@ -141,7 +141,7 @@ function buildCoordinateLineGeometry(
 }
 
 function buildMainLoopGeometry(palette: ScenePalette): TorusGeometry {
-  const geometry = new TorusGeometry(0.96, 0.24, 72, 256, Math.PI * 2);
+  const geometry = new TorusGeometry(0.96, 0.24, 48, 164, Math.PI * 2);
 
   applyTriGradient(
     geometry,
@@ -155,7 +155,7 @@ function buildMainLoopGeometry(palette: ScenePalette): TorusGeometry {
 }
 
 function buildKnotGeometry(palette: ScenePalette): TorusKnotGeometry {
-  const geometry = new TorusKnotGeometry(0.5, 0.115, 240, 52, 2, 5);
+  const geometry = new TorusKnotGeometry(0.5, 0.115, 168, 34, 2, 5);
 
   applyTriGradient(
     geometry,
@@ -169,7 +169,7 @@ function buildKnotGeometry(palette: ScenePalette): TorusKnotGeometry {
 }
 
 function buildRoundedSolidGeometry(palette: ScenePalette): TorusKnotGeometry {
-  const geometry = new TorusKnotGeometry(0.44, 0.17, 190, 38, 2, 3);
+  const geometry = new TorusKnotGeometry(0.44, 0.17, 132, 28, 2, 3);
   const position = geometry.attributes.position as BufferAttribute;
 
   for (let i = 0; i < position.count; i += 1) {
@@ -197,8 +197,8 @@ function buildRoundedSolidGeometry(palette: ScenePalette): TorusKnotGeometry {
 function buildSupportPointTorusGeometry(palette: ScenePalette): BufferGeometry {
   const majorRadius = 0.8;
   const minorRadius = 0.24;
-  const uSegments = 132;
-  const vSegments = 74;
+  const uSegments = 96;
+  const vSegments = 52;
   const pointCount = uSegments * vSegments;
   const positions = new Float32Array(pointCount * 3);
   const colors = new Float32Array(pointCount * 3);

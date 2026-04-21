@@ -41,8 +41,6 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
-import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import AppsRoundedIcon from "@mui/icons-material/AppsRounded";
 import {
   createBooking,
@@ -148,8 +146,6 @@ export default function StudentProfile() {
     setScheduledPage,
     completedPage,
     setCompletedPage,
-    createSlotsExpanded,
-    setCreateSlotsExpanded,
     createAcceptTerms,
     setCreateAcceptTerms,
     createAcceptPrivacy,
@@ -170,6 +166,10 @@ export default function StudentProfile() {
   const [scheduleLoading, setScheduleLoading] = useState(true);
   const [teacher, setTeacher] = useState<User | null>(null);
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [bookingDialogMode, setBookingDialogMode] = useState<
+    "create" | "reschedule"
+  >("create");
   const [bookingToReschedule, setBookingToReschedule] = useState<Booking | null>(
     null
   );
@@ -308,10 +308,6 @@ export default function StudentProfile() {
     () => availability.find((slot) => slot.id === createSlotId) ?? null,
     [availability, createSlotId]
   );
-  const createDateSlots = useMemo(
-    () => slotsByDate[createDate] ?? [],
-    [slotsByDate, createDate]
-  );
   const rescheduleSelectedSlot = useMemo(
     () => availability.find((slot) => slot.id === rescheduleSlotId) ?? null,
     [availability, rescheduleSlotId]
@@ -344,11 +340,13 @@ export default function StudentProfile() {
 
   useEffect(() => {
     if (tab !== 2) {
-      setCreateSlotsExpanded(false);
       setCreateAcceptTerms(false);
       setCreateAcceptPrivacy(false);
+      setBookingDialogOpen(false);
+      setBookingDialogMode("create");
+      setBookingToReschedule(null);
     }
-  }, [setCreateAcceptPrivacy, setCreateAcceptTerms, setCreateSlotsExpanded, tab]);
+  }, [setCreateAcceptPrivacy, setCreateAcceptTerms, tab]);
 
   const coursesPageSize = isMobile ? 2 : 4;
   const bookingsPageSize = isMobile ? 2 : 4;
@@ -385,6 +383,14 @@ export default function StudentProfile() {
     [completedBookings, safeCompletedPage, bookingsPageSize]
   );
 
+  const bookingModalDate =
+    bookingDialogMode === "reschedule" ? rescheduleDate : createDate;
+  const bookingModalSlotId =
+    bookingDialogMode === "reschedule" ? rescheduleSlotId : createSlotId;
+  const bookingModalSlots = slotsByDate[bookingModalDate] ?? [];
+  const bookingModalSelectedSlot =
+    bookingDialogMode === "reschedule" ? rescheduleSelectedSlot : createSelectedSlot;
+
   useEffect(() => {
     logCollectionPressure({
       screen: "StudentProfile",
@@ -416,7 +422,29 @@ export default function StudentProfile() {
       : firstAvailableDate;
     setRescheduleDate(targetDate);
     setRescheduleSlotId(null);
+    setBookingDialogMode("reschedule");
+    setBookingDialogOpen(true);
     setBookingSuccess(null);
+  };
+
+  const openCreateBookingDialog = () => {
+    const targetDate = calendarDays.some((day) => day.value === createDate)
+      ? createDate
+      : firstAvailableDate;
+    setCreateDate(targetDate);
+    setCreateSlotId(null);
+    setBookingToReschedule(null);
+    setBookingDialogMode("create");
+    setBookingDialogOpen(true);
+    setBookingSuccess(null);
+  };
+
+  const closeBookingDialog = () => {
+    setBookingDialogOpen(false);
+    if (bookingDialogMode === "reschedule") {
+      setBookingToReschedule(null);
+      setRescheduleSlotId(null);
+    }
   };
 
   const handleCreateBooking = async () => {
@@ -459,6 +487,7 @@ export default function StudentProfile() {
       setCreateSlotId(null);
       setCreateAcceptTerms(false);
       setCreateAcceptPrivacy(false);
+      setBookingDialogOpen(false);
       setBookingSuccess("Запись успешно создана.");
       await Promise.all([loadStudentBookings(), loadSchedulingContext()]);
     } catch (error) {
@@ -494,6 +523,7 @@ export default function StudentProfile() {
       await rescheduleBooking(bookingToReschedule.id, rescheduleSelectedSlot.id);
       setBookingToReschedule(null);
       setRescheduleSlotId(null);
+      setBookingDialogOpen(false);
       setBookingSuccess("Занятие перенесено.");
       await Promise.all([loadStudentBookings(), loadSchedulingContext()]);
     } catch (error) {
@@ -591,14 +621,15 @@ export default function StudentProfile() {
             </div>
             {!isCompleted && (
               <div className="student-profile__lesson-head-actions">
-                <IconButton
-                  className="student-profile__lesson-edit"
-                  size="small"
+                <button
+                  type="button"
+                  className="student-profile__lesson-reschedule"
                   onClick={() => openRescheduleDialog(booking)}
                   aria-label="Перенести занятие"
                 >
                   <EditCalendarRoundedIcon fontSize="small" />
-                </IconButton>
+                  <span>Перенос занятия</span>
+                </button>
                 <IconButton
                   className="student-profile__lesson-delete"
                   size="small"
@@ -1274,156 +1305,17 @@ export default function StudentProfile() {
               {bookingSuccess}
             </Alert>
           )}
-          <section className="student-profile__calendar-panel">
-            <div className="student-profile__calendar-head">
-              <h3 className="student-profile__lessons-title">
-                Запись на индивидуальное занятие
-              </h3>
-              <span>Выберите дату и время.</span>
-            </div>
-            {scheduleLoading ? (
-              <SectionLoader className="student-profile__skeletons" rows={2} showRing />
-            ) : availability.length === 0 ? (
-              <div className="student-profile__empty student-profile__empty--inner student-profile__empty--feature">
-                <EventAvailableRoundedIcon fontSize="small" />
-                <strong>Свободных слотов пока нет</strong>
-                <span>Новые даты появятся в этом блоке.</span>
-              </div>
-            ) : (
-              <>
-                <div className="student-profile__calendar-days">
-                  {calendarDays.map((day) => {
-                    const isAvailable = availableDateSet.has(day.value);
-                    return (
-                      <button
-                        key={day.value}
-                        type="button"
-                        className={`student-profile__calendar-day ${
-                          createDate === day.value ? "is-active" : ""
-                        } ${isAvailable ? "is-available" : "is-muted"} ${
-                          day.isWeekend ? "is-weekend" : ""
-                        }`}
-                        onClick={() => {
-                          setCreateDate(day.value);
-                          setCreateSlotId(null);
-                          setCreateSlotsExpanded(true);
-                        }}
-                      >
-                        <span className="student-profile__calendar-weekday">
-                          {day.weekday}
-                        </span>
-                        <span className="student-profile__calendar-daynum">
-                          {day.label}
-                        </span>
-                        {day.isToday && (
-                          <span className="student-profile__calendar-today">
-                            Сегодня
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div
-                  className={`student-profile__calendar-collapsible ${
-                    createSlotsExpanded ? "is-open" : "is-collapsed"
-                  }`}
-                >
-                  <div className="student-profile__calendar-title">
-                    {createDate ? formatLongDate(createDate) : ""}
-                  </div>
-                  {createDateSlots.length === 0 ? (
-                    <div className="student-profile__empty student-profile__empty--inner">
-                      На выбранную дату свободных слотов нет
-                    </div>
-                  ) : (
-                    <div className="student-profile__calendar-times">
-                      {createDateSlots.map((slot) => (
-                        <button
-                          key={slot.id}
-                          type="button"
-                          className={`student-profile__calendar-time ${
-                            createSlotId === slot.id ? "is-active" : ""
-                          }`}
-                          onClick={() => setCreateSlotId(slot.id)}
-                        >
-                          <span>
-                            {slot.startTime} – {slot.endTime}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {createSelectedSlot && (
-                    <div className="student-profile__calendar-summary">
-                      <span>Вы выбрали слот:</span>
-                      <strong>
-                        {createSelectedSlot.startTime} – {createSelectedSlot.endTime}
-                      </strong>
-                    </div>
-                  )}
-                  <div className="student-profile__calendar-actions">
-                    <div className="student-profile__consent-group">
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={createAcceptTerms}
-                            onChange={(e) =>
-                              setCreateAcceptTerms(e.target.checked)
-                            }
-                          />
-                        }
-                        label="Согласен с условиями записи на занятие"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={createAcceptPrivacy}
-                            onChange={(e) =>
-                              setCreateAcceptPrivacy(e.target.checked)
-                            }
-                          />
-                        }
-                        label="Согласен на обработку персональных данных"
-                      />
-                    </div>
-                    <Button
-                      variant="contained"
-                      onClick={() => void handleCreateBooking()}
-                      disabled={!createSelectedSlot || bookingActionLoading}
-                    >
-                      {bookingActionLoading ? (
-                        <CircularProgress size={18} color="inherit" />
-                      ) : (
-                        "Записаться на занятие"
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="student-profile__calendar-toggle"
-                  onClick={() => setCreateSlotsExpanded((prev) => !prev)}
-                  aria-label={
-                    createSlotsExpanded
-                      ? "Свернуть блок со слотами"
-                      : "Развернуть блок со слотами"
-                  }
-                >
-                  <span>
-                    {createSlotsExpanded
-                      ? "Свернуть слоты времени"
-                      : "Показать слоты времени"}
-                  </span>
-                  {createSlotsExpanded ? (
-                    <ExpandLessRoundedIcon fontSize="small" />
-                  ) : (
-                    <ExpandMoreRoundedIcon fontSize="small" />
-                  )}
-                </button>
-              </>
-            )}
-          </section>
+          <div className="student-profile__lessons-booking-action">
+            <Button
+              variant="outlined"
+              className="student-profile__booking-trigger"
+              startIcon={<EventAvailableRoundedIcon fontSize="small" />}
+              onClick={openCreateBookingDialog}
+              disabled={scheduleLoading}
+            >
+              Записаться на занятие
+            </Button>
+          </div>
           {bookingsLoading && bookings.length === 0 ? (
             <ListSkeleton
               className="student-profile__skeletons"
@@ -1488,97 +1380,142 @@ export default function StudentProfile() {
       )}
 
       <Dialog
-        open={Boolean(bookingToReschedule)}
-        onClose={() => setBookingToReschedule(null)}
+        open={bookingDialogOpen}
+        onClose={closeBookingDialog}
         fullWidth
         maxWidth="md"
-        className="ui-dialog ui-dialog--wide student-profile-dialog"
+        className="ui-dialog booking-dialog student-profile-dialog"
+        disableRestoreFocus
       >
         <DialogTitleWithClose
-          title="Перенос занятия"
-          onClose={() => setBookingToReschedule(null)}
-          closeAriaLabel="Закрыть окно переноса занятия"
+          title={
+            bookingDialogMode === "reschedule"
+              ? "Перенос занятия"
+              : "Выберите дату и время"
+          }
+          onClose={closeBookingDialog}
+          closeAriaLabel="Закрыть окно выбора времени"
         />
-        <DialogContent className="student-profile__dialog-content">
-          <div className="student-profile__calendar-head">
-            <h3 className="student-profile__lessons-title">
-              Выберите новый слот
-            </h3>
-            <span>Свободные интервалы доступны только на 21 день вперед</span>
+        <DialogContent className="booking-calendar student-profile__booking-dialog-content">
+          <div className="booking-calendar__legend">
+            <span>
+              <i className="booking-calendar__legend-dot booking-calendar__legend-dot--active" />
+              Доступные даты
+            </span>
+            <span>
+              <i className="booking-calendar__legend-dot" />
+              Без свободных слотов
+            </span>
           </div>
-          {availability.length === 0 ? (
-            <div className="student-profile__empty student-profile__empty--inner">
+          {availability.length === 0 && (
+            <div className="booking-calendar__empty">
               Свободных слотов пока нет.
             </div>
-          ) : (
-            <>
-              <div className="student-profile__calendar-days">
-                {calendarDays.map((day) => {
-                  const isAvailable = availableDateSet.has(day.value);
-                  return (
-                    <button
-                      key={day.value}
-                      type="button"
-                      className={`student-profile__calendar-day ${
-                        rescheduleDate === day.value ? "is-active" : ""
-                      } ${isAvailable ? "is-available" : "is-muted"} ${
-                        day.isWeekend ? "is-weekend" : ""
-                      }`}
-                      onClick={() => {
+          )}
+          <div className="booking-calendar__group">
+            <div className="booking-calendar__section-title">
+              <h4>Дата</h4>
+              <span>Даты со свободными слотами подсвечены.</span>
+            </div>
+            <div className="booking-calendar__grid">
+              {calendarDays.map((day) => {
+                const isAvailable = availableDateSet.has(day.value);
+                return (
+                  <button
+                    key={day.value}
+                    type="button"
+                    className={`booking-calendar__day ${
+                      bookingModalDate === day.value ? "is-active" : ""
+                    } ${isAvailable ? "is-available" : "is-muted"} ${
+                      day.isWeekend ? "is-weekend" : ""
+                    }`}
+                    onClick={() => {
+                      if (bookingDialogMode === "reschedule") {
                         setRescheduleDate(day.value);
                         setRescheduleSlotId(null);
-                      }}
-                    >
-                      <span className="student-profile__calendar-weekday">
-                        {day.weekday}
-                      </span>
-                      <span className="student-profile__calendar-daynum">
-                        {day.label}
-                      </span>
-                    </button>
-                  );
-                })}
+                      } else {
+                        setCreateDate(day.value);
+                        setCreateSlotId(null);
+                      }
+                    }}
+                  >
+                    <span className="booking-calendar__weekday">
+                      {day.weekday}
+                    </span>
+                    <span className="booking-calendar__daynum">{day.label}</span>
+                    {day.isToday && (
+                      <span className="booking-calendar__today">Сегодня</span>
+                    )}
+                    {isAvailable && <span className="booking-calendar__dot" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="booking-calendar__group">
+            <div className="booking-calendar__section-title">
+              <h4>Время</h4>
+              <span>
+                {bookingModalDate ? formatLongDate(bookingModalDate) : ""}
+              </span>
+            </div>
+            {bookingModalSlots.length === 0 ? (
+              <div className="booking-calendar__empty">
+                На выбранную дату свободных слотов нет.
               </div>
-              <div className="student-profile__calendar-title">
-                {rescheduleDate ? formatLongDate(rescheduleDate) : ""}
+            ) : (
+              <div className="booking-calendar__times">
+                {bookingModalSlots.map((slot) => (
+                  <button
+                    key={slot.id}
+                    type="button"
+                    className={`booking-calendar__time ${
+                      bookingModalSlotId === slot.id ? "is-active" : ""
+                    }`}
+                    onClick={() => {
+                      if (bookingDialogMode === "reschedule") {
+                        setRescheduleSlotId(slot.id);
+                      } else {
+                        setCreateSlotId(slot.id);
+                      }
+                    }}
+                  >
+                    <span className="booking-calendar__time-range">
+                      {slot.startTime} – {slot.endTime}
+                    </span>
+                  </button>
+                ))}
               </div>
-              {(slotsByDate[rescheduleDate] ?? []).length === 0 ? (
-                <div className="student-profile__empty student-profile__empty--inner">
-                  На выбранную дату свободных слотов нет.
-                </div>
-              ) : (
-                <div className="student-profile__calendar-times">
-                  {(slotsByDate[rescheduleDate] ?? []).map((slot) => (
-                    <button
-                      key={slot.id}
-                      type="button"
-                      className={`student-profile__calendar-time ${
-                        rescheduleSlotId === slot.id ? "is-active" : ""
-                      }`}
-                      onClick={() => setRescheduleSlotId(slot.id)}
-                    >
-                      <span>
-                        {slot.startTime} – {slot.endTime}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {rescheduleSelectedSlot && (
-                <div className="student-profile__calendar-summary">
-                  <span>Новый выбранный слот:</span>
-                  <strong>
-                    {rescheduleSelectedSlot.startTime} – {rescheduleSelectedSlot.endTime}
-                  </strong>
-                </div>
-              )}
-            </>
+            )}
+          </div>
+          {bookingDialogMode === "create" && (
+            <div className="booking-calendar__group student-profile__booking-consents">
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={createAcceptTerms}
+                    onChange={(e) => setCreateAcceptTerms(e.target.checked)}
+                  />
+                }
+                label="Согласен с условиями записи на занятие"
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={createAcceptPrivacy}
+                    onChange={(e) => setCreateAcceptPrivacy(e.target.checked)}
+                  />
+                }
+                label="Согласен на обработку персональных данных"
+              />
+            </div>
           )}
         </DialogContent>
         <DialogActions>
           <Button
+            onClick={closeBookingDialog}
             color="inherit"
-            onClick={() => setBookingToReschedule(null)}
             disabled={bookingActionLoading}
             sx={mobileDialogActionSx}
             aria-label={isMobile ? "Отмена" : undefined}
@@ -1587,17 +1524,27 @@ export default function StudentProfile() {
           </Button>
           <Button
             variant="contained"
-            onClick={() => void handleRescheduleBooking()}
-            disabled={!rescheduleSelectedSlot || bookingActionLoading}
+            onClick={() =>
+              void (bookingDialogMode === "reschedule"
+                ? handleRescheduleBooking()
+                : handleCreateBooking())
+            }
+            disabled={!bookingModalSelectedSlot || bookingActionLoading}
             sx={mobileDialogActionSx}
-            aria-label={isMobile ? "Сохранить новое время" : undefined}
+            aria-label={isMobile ? "Подтвердить запись" : undefined}
           >
             {bookingActionLoading ? (
               <CircularProgress size={18} color="inherit" />
             ) : isMobile ? (
-              <SaveRoundedIcon fontSize="small" />
-            ) : (
+              bookingDialogMode === "reschedule" ? (
+                <SaveRoundedIcon fontSize="small" />
+              ) : (
+                <EventAvailableRoundedIcon fontSize="small" />
+              )
+            ) : bookingDialogMode === "reschedule" ? (
               "Сохранить новое время"
+            ) : (
+              "Записаться"
             )}
           </Button>
         </DialogActions>

@@ -788,6 +788,30 @@
   gap: 16px;
 }
 
+.student-profile__lessons-booking-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.student-profile__booking-trigger.MuiButton-root {
+  min-height: 34px;
+  border-radius: 10px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 76%, transparent);
+  background: color-mix(in srgb, var(--background-soft) 76%, transparent);
+  color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary));
+  text-transform: none;
+  font-size: 12.5px;
+  font-weight: 560;
+  letter-spacing: 0.005em;
+}
+
+.student-profile__booking-trigger.MuiButton-root:hover {
+  border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-subtle));
+  background: color-mix(in srgb, var(--accent-primary) 8%, var(--background-soft));
+}
+
 .student-profile__calendar-panel {
   border-radius: 16px;
   border: 1px solid var(--border-subtle);
@@ -1113,7 +1137,32 @@
 
 .student-profile__lesson-head-actions {
   display: inline-flex;
+  align-items: center;
   gap: 6px;
+}
+
+.student-profile__lesson-reschedule {
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--accent-primary) 82%, var(--text-primary));
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 560;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+}
+
+.student-profile__lesson-reschedule:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 2px;
+}
+
+.student-profile__lesson-reschedule .MuiSvgIcon-root {
+  font-size: 15px;
 }
 
 .student-profile__lesson-edit,
@@ -1172,6 +1221,20 @@
   display: grid;
   gap: 10px;
   padding-top: 8px !important;
+}
+
+.student-profile__booking-dialog-content {
+  padding-top: 6px !important;
+}
+
+.student-profile__booking-consents .MuiFormControlLabel-root {
+  margin: 0;
+}
+
+.student-profile__booking-consents .MuiFormControlLabel-label {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-secondary);
 }
 
 .student-profile__profile-feed {
@@ -1421,7 +1484,11 @@
     min-width: 82px;
   }
 
-  .student-profile__calendar-actions .MuiButton-root {
+  .student-profile__lessons-booking-action {
+    justify-content: stretch;
+  }
+
+  .student-profile__booking-trigger.MuiButton-root {
     width: 100%;
   }
 

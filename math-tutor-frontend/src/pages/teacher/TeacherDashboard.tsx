@@ -1527,15 +1527,33 @@ export default function TeacherDashboard() {
               }`}
             >
           <div
-            className={`teacher-dashboard__slot-panel ${
-              availabilityOpen ? "is-open" : "is-collapsed"
+            className={`teacher-dashboard__availability teacher-dashboard__availability--free ${
+              availabilityDateGroups.length === 0 ? "is-empty" : ""
             }`}
           >
-            <div className="teacher-dashboard__slot-header">
+            <div className="teacher-dashboard__availability-header teacher-dashboard__availability-header--free">
               <div>
-                <h3>{t("teacherDashboard.addSlotTitle")}</h3>
+                <h3>{t("teacherDashboard.freeSlotsTitle")}</h3>
               </div>
-              <div className="teacher-dashboard__slot-actions">
+              <div className="teacher-dashboard__availability-tools">
+                {currentAvailabilityGroup &&
+                  currentAvailabilityGroup.slots.length > 1 && (
+                    <button
+                      type="button"
+                      className="teacher-dashboard__availability-toggle"
+                      onClick={() =>
+                        setExpandedSlotsDate((prev) =>
+                          prev === currentAvailabilityGroup.date
+                            ? null
+                            : currentAvailabilityGroup.date
+                        )
+                      }
+                    >
+                      {expandedSlotsDate === currentAvailabilityGroup.date
+                        ? "Свернуть дату"
+                        : "Показать все слоты"}
+                    </button>
+                  )}
                 <IconButton
                   className="teacher-dashboard__icon-btn"
                   onClick={() =>
@@ -1548,22 +1566,19 @@ export default function TeacherDashboard() {
                   {availabilityOpen ? <RemoveRoundedIcon /> : <AddRoundedIcon />}
                 </IconButton>
                 {availabilityOpen && (
-                  <IconButton
-                    className="teacher-dashboard__icon-btn"
+                  <button
+                    className="teacher-dashboard__slot-save"
                     onClick={() => void addSlot()}
-                    disabled={
-                      !slotDate || !slotStart || !slotEnd
-                    }
+                    disabled={!slotDate || !slotStart || !slotEnd}
                     aria-label={t("teacherDashboard.saveSlotAria")}
                   >
-                    <SaveRoundedIcon />
-                  </IconButton>
+                    <SaveRoundedIcon fontSize="small" />
+                  </button>
                 )}
               </div>
             </div>
-
             {availabilityOpen && (
-              <div className="teacher-dashboard__slot-body">
+              <div className="teacher-dashboard__slot-body teacher-dashboard__slot-body--inline">
                 {slotError && (
                   <Alert severity="warning" onClose={() => setSlotError(null)}>
                     {slotError}
@@ -1640,36 +1655,6 @@ export default function TeacherDashboard() {
                 </div>
               </div>
             )}
-          </div>
-
-          <div
-            className={`teacher-dashboard__availability teacher-dashboard__availability--free ${
-              availabilityDateGroups.length === 0 ? "is-empty" : ""
-            }`}
-          >
-            <div className="teacher-dashboard__availability-header">
-              <div>
-                <h3>{t("teacherDashboard.freeSlotsTitle")}</h3>
-              </div>
-              {currentAvailabilityGroup &&
-                currentAvailabilityGroup.slots.length > 1 && (
-                  <button
-                    type="button"
-                    className="teacher-dashboard__availability-toggle"
-                    onClick={() =>
-                      setExpandedSlotsDate((prev) =>
-                        prev === currentAvailabilityGroup.date
-                          ? null
-                          : currentAvailabilityGroup.date
-                      )
-                    }
-                  >
-                    {expandedSlotsDate === currentAvailabilityGroup.date
-                      ? "Свернуть дату"
-                      : "Показать все слоты"}
-                  </button>
-                )}
-            </div>
             {availabilityDateGroups.length > 1 && (
               <div className="teacher-dashboard__availability-filters">
                 {availabilityDateGroups.map((group) => (

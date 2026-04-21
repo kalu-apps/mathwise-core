@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ACESFilmicToneMapping, SRGBColorSpace, setConsoleFunction } from "three";
 import { useThemeMode } from "@/app/theme/themeModeContext";
@@ -19,6 +19,10 @@ function patchThreeConsoleWarnings() {
 
   threeConsolePatched = true;
   setConsoleFunction((level, message, ...args) => {
+    if (typeof message === "string" && message.includes("THREE.WebGLRenderer: Context Lost.")) {
+      return;
+    }
+
     if (level === "warn" && typeof message === "string" && message.includes("Clock: This module has been deprecated")) {
       return;
     }
@@ -40,40 +44,46 @@ function patchThreeConsoleWarnings() {
 function resolveEnvironmentProfile(mode: "light" | "dark") {
   if (typeof window === "undefined") {
     return {
-      dpr: [1, 1.2] as [number, number],
-      antialias: true,
+      dpr: [0.78, 1.0] as [number, number],
+      antialias: false,
       powerPreference: "default" as const,
+      precision: "highp" as const,
     };
   }
 
   const cores = window.navigator.hardwareConcurrency ?? 4;
-  const lowPowerDevice = cores <= 4;
+  const navigatorWithMemory = window.navigator as Navigator & { deviceMemory?: number };
+  const memory = navigatorWithMemory.deviceMemory ?? 8;
+  const lowPowerDevice = cores <= 4 || memory <= 4;
 
   if (lowPowerDevice) {
     return {
-      dpr: [0.78, 1.0] as [number, number],
+      dpr: [0.66, 0.9] as [number, number],
       antialias: false,
       powerPreference: "low-power" as const,
+      precision: "mediump" as const,
     };
   }
 
   return {
-    dpr: mode === "light" ? ([0.92, 1.22] as [number, number]) : ([0.86, 1.12] as [number, number]),
-    antialias: true,
+    dpr: mode === "light" ? ([0.78, 1.0] as [number, number]) : ([0.74, 0.96] as [number, number]),
+    antialias: false,
     powerPreference: "default" as const,
+    precision: "highp" as const,
   };
 }
 
 export function HomeHeroEnvironment() {
   patchThreeConsoleWarnings();
 
+  const [contextLost, setContextLost] = useState(false);
   const webGlReady = useMemo(() => isWebGlAvailable(), []);
   const { mode } = useThemeMode();
   const profile = useMemo(() => resolveEnvironmentProfile(mode), [mode]);
 
   return (
     <div className="home-first-screen__environment" aria-hidden="true">
-      {webGlReady ? (
+      {webGlReady && !contextLost ? (
         <Canvas
           className="home-first-screen__environment-canvas"
           camera={{ position: [0, 0.02, 6.05], fov: 36.5 }}
@@ -85,7 +95,7 @@ export function HomeHeroEnvironment() {
             alpha: true,
             powerPreference: profile.powerPreference,
             failIfMajorPerformanceCaveat: true,
-            precision: "highp",
+            precision: profile.precision,
             stencil: false,
             depth: true,
           }}
@@ -94,6 +104,15 @@ export function HomeHeroEnvironment() {
             gl.toneMapping = ACESFilmicToneMapping;
             gl.toneMappingExposure = mode === "dark" ? 1 : 1.12;
             gl.outputColorSpace = SRGBColorSpace;
+
+            gl.domElement.addEventListener(
+              "webglcontextlost",
+              (event) => {
+                event.preventDefault();
+                setContextLost(true);
+              },
+              { passive: false }
+            );
           }}
         >
           <HomeHeroSceneObjects mode={mode} />
