@@ -258,6 +258,7 @@ export function PasswordSecurityCard({
           label="Текущий пароль"
           value={currentPassword}
           onChange={(event) => setCurrentPassword(event.target.value)}
+          autoComplete="current-password"
           fullWidth
           InputLabelProps={{ shrink: true }}
           InputProps={{
@@ -275,6 +276,7 @@ export function PasswordSecurityCard({
         label={mode === "change" ? "Новый пароль" : "Задайте пароль"}
         value={nextPassword}
         onChange={(event) => setNextPassword(event.target.value)}
+        autoComplete="new-password"
         fullWidth
         InputLabelProps={{ shrink: true }}
         InputProps={{
@@ -291,6 +293,7 @@ export function PasswordSecurityCard({
         label="Повторите пароль"
         value={confirmPassword}
         onChange={(event) => setConfirmPassword(event.target.value)}
+        autoComplete="new-password"
         fullWidth
         InputLabelProps={{ shrink: true }}
         InputProps={{
@@ -378,7 +381,7 @@ export function PasswordSecurityCard({
               onClose={closePanel}
               fullWidth
               maxWidth="sm"
-              className="password-security__dialog"
+              className="ui-dialog ui-dialog--compact password-security__dialog"
             >
               <DialogTitleWithClose
                 title={panelTitle}

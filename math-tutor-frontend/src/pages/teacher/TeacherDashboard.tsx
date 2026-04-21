@@ -935,7 +935,11 @@ export default function TeacherDashboard() {
     {
       index: 3,
       label: t("teacherDashboard.tabBooking"),
-      icon: <EventAvailableRoundedIcon />,
+      icon: (
+        <Badge color="error" variant="dot" invisible={!upcomingReminder}>
+          <EventAvailableRoundedIcon />
+        </Badge>
+      ),
     },
     {
       index: TEACHER_STUDY_TAB_INDEX,
@@ -1775,10 +1779,6 @@ export default function TeacherDashboard() {
           closeAriaLabel="Закрыть окно редактирования профиля"
         />
         <DialogContent className="teacher-dashboard__profile-edit-content">
-          <div className="teacher-dashboard__profile-edit-head">
-            <h3>Профиль преподавателя</h3>
-            <span>Изменения применяются к аккаунту.</span>
-          </div>
           {profileError ? <Alert severity="error">{profileError}</Alert> : null}
           <div className="teacher-dashboard__profile-edit-avatar-row">
             <button

@@ -65,7 +65,6 @@ import type { StudentStudyCabinetCourseItem } from "@/features/study-cabinet/stu
 import { useStudentProfileData } from "@/pages/profile/hooks/useStudentProfileData";
 import {
   buildBnplReminderItems,
-  countScheduledBookings,
   filterStudentCoursesByQuery,
   formatBookingReminderDate,
   paginateItems,
@@ -284,10 +283,6 @@ export default function StudentProfile() {
   const { scheduled: scheduledBookings, completed: completedBookings } = useMemo(
     () => splitBookingsByCompletion(sortedBookings),
     [sortedBookings]
-  );
-  const scheduledCount = useMemo(
-    () => countScheduledBookings(bookings),
-    [bookings]
   );
 
   const calendarDays = useMemo(() => buildCalendarDays(21), []);
@@ -743,7 +738,7 @@ export default function StudentProfile() {
           index: 2,
           label: "Индивидуальные занятия",
           icon: (
-            <Badge color="error" variant="dot" invisible={scheduledCount === 0}>
+            <Badge color="error" variant="dot" invisible={!upcomingBooking}>
               <EventAvailableRoundedIcon />
             </Badge>
           ),
@@ -784,7 +779,7 @@ export default function StudentProfile() {
       WORKBOOK_TAB_INDEX,
       chatAccessAvailable,
       chatUnreadCount,
-      scheduledCount,
+      upcomingBooking,
     ]
   );
 
@@ -1267,10 +1262,21 @@ export default function StudentProfile() {
 
       {tab === 2 && (
         <div className="student-profile__lessons">
-          <div className="student-profile__page-head">
+          <div className="student-profile__page-head student-profile__page-head--lessons">
             <div>
               <h2>Индивидуальные занятия</h2>
               <p>Запись и история встреч.</p>
+            </div>
+            <div className="student-profile__lessons-booking-action">
+              <Button
+                variant="outlined"
+                className="student-profile__booking-trigger"
+                startIcon={<EventAvailableRoundedIcon fontSize="small" />}
+                onClick={openCreateBookingDialog}
+                disabled={scheduleLoading}
+              >
+                Записаться на занятие
+              </Button>
             </div>
           </div>
           {scheduleError ? (
@@ -1297,17 +1303,6 @@ export default function StudentProfile() {
               {bookingSuccess}
             </Alert>
           )}
-          <div className="student-profile__lessons-booking-action">
-            <Button
-              variant="outlined"
-              className="student-profile__booking-trigger"
-              startIcon={<EventAvailableRoundedIcon fontSize="small" />}
-              onClick={openCreateBookingDialog}
-              disabled={scheduleLoading}
-            >
-              Записаться на занятие
-            </Button>
-          </div>
           {bookingsLoading && bookings.length === 0 ? (
             <ListSkeleton
               className="student-profile__skeletons"
@@ -1618,9 +1613,6 @@ export default function StudentProfile() {
           closeAriaLabel="Закрыть окно редактирования профиля"
         />
         <DialogContent className="student-profile__profile-edit-content">
-          <p className="student-profile__profile-edit-subtitle">
-            Изменения применятся к аккаунту.
-          </p>
           {profileError ? <Alert severity="error">{profileError}</Alert> : null}
           <div className="student-profile__profile-edit-avatar-row">
             <button

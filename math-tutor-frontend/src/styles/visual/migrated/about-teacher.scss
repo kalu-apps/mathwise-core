@@ -503,7 +503,7 @@
   &__card {
     border-radius: 15px;
     border: 1px solid color-mix(in srgb, var(--border-subtle) 72%, #b6c4ff);
-    background: color-mix(in srgb, var(--surface-elevated) 86%, #f6f9ff);
+    background: #fff !important;
     box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
     overflow: hidden;
     transition: transform 0.22s ease, box-shadow 0.22s ease;
@@ -858,6 +858,10 @@
     background: color-mix(in srgb, var(--surface-elevated) 86%, #132554);
     color: color-mix(in srgb, var(--text-primary) 90%, #d9e4ff);
     box-shadow: 0 12px 24px rgba(2, 8, 30, 0.32);
+  }
+
+  .about-teacher-reviews__card {
+    background: #fff !important;
   }
 
   .about-teacher-proof__education-card p,
