@@ -29,8 +29,6 @@ import CollectionsBookmarkRoundedIcon from "@mui/icons-material/CollectionsBookm
 import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import RemoveRoundedIcon from "@mui/icons-material/RemoveRounded";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
@@ -1536,7 +1534,6 @@ export default function TeacherDashboard() {
             <div className="teacher-dashboard__slot-header">
               <div>
                 <h3>{t("teacherDashboard.addSlotTitle")}</h3>
-                <p>{t("teacherDashboard.addSlotDescription")}</p>
               </div>
               <div className="teacher-dashboard__slot-actions">
                 <IconButton
@@ -1653,11 +1650,6 @@ export default function TeacherDashboard() {
             <div className="teacher-dashboard__availability-header">
               <div>
                 <h3>{t("teacherDashboard.freeSlotsTitle")}</h3>
-                <p>
-                  {currentAvailabilityGroup
-                    ? `Дата: ${currentAvailabilityGroup.date}`
-                    : t("teacherDashboard.freeSlotsDescription")}
-                </p>
               </div>
               {currentAvailabilityGroup &&
                 currentAvailabilityGroup.slots.length > 1 && (
@@ -1672,16 +1664,9 @@ export default function TeacherDashboard() {
                       )
                     }
                   >
-                    <span>
-                      {expandedSlotsDate === currentAvailabilityGroup.date
-                        ? "Свернуть дату"
-                        : "Показать все слоты"}
-                    </span>
-                    {expandedSlotsDate === currentAvailabilityGroup.date ? (
-                      <ExpandLessRoundedIcon fontSize="small" />
-                    ) : (
-                      <ExpandMoreRoundedIcon fontSize="small" />
-                    )}
+                    {expandedSlotsDate === currentAvailabilityGroup.date
+                      ? "Свернуть дату"
+                      : "Показать все слоты"}
                   </button>
                 )}
             </div>
@@ -1733,14 +1718,18 @@ export default function TeacherDashboard() {
               <div className="teacher-dashboard__availability-list">
                 {visibleAvailabilitySlots.map((slot) => (
                   <div key={slot.id} className="teacher-dashboard__slot">
-                    <div>
-                      <strong>{slot.date}</strong>
-                      <span>
+                    <div className="teacher-dashboard__slot-meta">
+                      <strong className="teacher-dashboard__slot-date">{slot.date}</strong>
+                      <span className="teacher-dashboard__slot-time">
                         {slot.startTime} – {slot.endTime}
                       </span>
                     </div>
-                    <IconButton onClick={() => void removeSlot(slot.id)}>
-                      <DeleteOutlineRoundedIcon fontSize="small" />
+                    <IconButton
+                      className="teacher-dashboard__slot-remove"
+                      onClick={() => void removeSlot(slot.id)}
+                      aria-label="Удалить слот"
+                    >
+                      <CloseRoundedIcon fontSize="inherit" />
                     </IconButton>
                   </div>
                 ))}
@@ -1748,12 +1737,11 @@ export default function TeacherDashboard() {
             )}
           </div>
 
-          <div className="teacher-dashboard__schedule-grid">
+          <div className="teacher-dashboard__bookings-grid">
             <div className="teacher-dashboard__availability">
               <div className="teacher-dashboard__availability-header">
                 <div>
                   <h3>{t("teacherDashboard.scheduledTitle")}</h3>
-                  <p>{t("teacherDashboard.scheduledDescription")}</p>
                 </div>
               </div>
 
@@ -1796,7 +1784,6 @@ export default function TeacherDashboard() {
               <div className="teacher-dashboard__availability-header">
                 <div>
                   <h3>{t("teacherDashboard.completedTitle")}</h3>
-                  <p>{t("teacherDashboard.completedDescription")}</p>
                 </div>
               </div>
 
