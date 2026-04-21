@@ -1152,28 +1152,19 @@ export default function TeacherDashboard() {
           {/* STUDENTS */}
           {tab === 1 && (
             <div className="teacher-dashboard__section">
-          <div className="teacher-dashboard__invite-shell">
-            <div className="teacher-dashboard__invite-copy">
-              <span>Teacher invite</span>
-              <h3>Добавьте ученика по персональной ссылке</h3>
-              <p>
-                Ссылка запускает controlled onboarding: ученик регистрируется или входит в аккаунт
-                и безопасно привязывается к вашему контуру.
-              </p>
-            </div>
-            <div className="teacher-dashboard__section-actions">
+              <div className="teacher-dashboard__students-toolbar">
               <Button
-                variant="contained"
+                className="teacher-dashboard__invite-trigger"
+                variant="outlined"
                 onClick={() => {
                   void handleCreateInviteLink();
                 }}
                 startIcon={<LinkRoundedIcon />}
                 disabled={inviteCreating}
               >
-                {inviteCreating ? "Создаем..." : "Создать invite-ссылку"}
+                {inviteCreating ? "Создаём..." : "Пригласить нового студента"}
               </Button>
-            </div>
-          </div>
+              </div>
           {inviteStatusMessage ? (
             <Alert
               severity={

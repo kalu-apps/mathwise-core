@@ -108,6 +108,53 @@
     }
   }
 
+  &__students-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  &__invite-trigger.MuiButton-root {
+    min-height: 38px;
+    border-radius: 12px;
+    padding: 0 14px;
+    text-transform: none;
+    font-size: 13px;
+    font-weight: 620;
+    letter-spacing: 0.01em;
+    color: color-mix(in srgb, var(--text-primary) 86%, var(--accent-primary)) !important;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, var(--accent-primary)) !important;
+    background: linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--surface-elevated) 96%, transparent),
+      color-mix(in srgb, var(--surface-soft) 92%, transparent)
+    ) !important;
+    box-shadow:
+      0 8px 18px color-mix(in srgb, #0f172a 8%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #ffffff 45%, transparent);
+    transition:
+      border-color 0.18s ease,
+      background-color 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.18s ease;
+  }
+
+  &__invite-trigger.MuiButton-root:hover {
+    border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--border-subtle)) !important;
+    background: color-mix(in srgb, var(--surface-soft) 92%, var(--accent-primary)) !important;
+    box-shadow:
+      0 10px 20px color-mix(in srgb, #0f172a 11%, transparent),
+      inset 0 1px 0 color-mix(in srgb, #ffffff 52%, transparent);
+    transform: translateY(-1px);
+  }
+
+  &__invite-trigger.MuiButton-root.Mui-disabled {
+    color: color-mix(in srgb, var(--text-secondary) 74%, var(--text-muted)) !important;
+    border-color: color-mix(in srgb, var(--border-subtle) 84%, transparent) !important;
+    background: color-mix(in srgb, var(--surface-soft) 80%, transparent) !important;
+    box-shadow: none;
+  }
+
   &__invite-shell {
     border: 1px solid color-mix(in srgb, var(--card-border) 86%, #ffffff 14%);
     border-radius: 18px;
@@ -260,16 +307,29 @@
 
   &__identity-role {
     width: fit-content;
+    margin-top: 2px;
     display: inline-flex;
     align-items: center;
+    gap: 6px;
     border-radius: 999px;
-    padding: 4px 8px;
-    font-size: 10px !important;
-    font-weight: 800 !important;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--accent-text) !important;
-    background: color-mix(in srgb, var(--accent-primary) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-primary) 34%, transparent);
+    padding: 3px 9px;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+    text-transform: none;
+    color: color-mix(in srgb, var(--accent-text) 88%, var(--text-primary)) !important;
+    background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+  }
+
+  &__identity-role::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent-primary) 82%, #6ec8ff);
+    flex: 0 0 5px;
   }
 
   &__identity-edit {
@@ -764,9 +824,15 @@
 
   &__availability-filters {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 6px;
     margin-top: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    padding-bottom: 2px;
   }
 
   &__availability-filter {
@@ -777,13 +843,15 @@
     padding: 0 8px 0 10px;
     min-height: 25px;
     font-size: 11px;
-    font-weight: 520;
+    font-weight: 400;
     line-height: 1;
     cursor: pointer;
     text-transform: capitalize;
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    flex: 0 0 auto;
+    scroll-snap-align: start;
     transition: all 0.2s ease;
 
     &:hover {
@@ -1701,6 +1769,7 @@
   .teacher-dashboard__availability-filter {
     min-height: 24px;
     font-size: 10.5px;
+    font-weight: 400;
   }
 }
 

@@ -519,8 +519,13 @@
     border: 0;
     border-radius: 15px;
     box-shadow: none;
-    background: color-mix(in srgb, var(--surface-elevated) 84%, #f2f5ff);
+    background: #fff !important;
     padding: 6px;
+
+    img,
+    .about-teacher-asset__fallback {
+      background: #fff !important;
+    }
   }
 
   &__empty {
@@ -908,10 +913,15 @@
   }
 
   .about-teacher-reviews__screenshot {
-    background: color-mix(in srgb, var(--surface-elevated) 86%, #142557);
+    background: #fff !important;
 
     img {
-      background: color-mix(in srgb, var(--surface-elevated) 84%, #102048);
+      background: #fff !important;
+    }
+
+    .about-teacher-asset__fallback {
+      background: #fff !important;
+      color: color-mix(in srgb, var(--text-secondary) 82%, #4c65a9);
     }
   }
 
