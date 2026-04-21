@@ -19,6 +19,8 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import NavigateBeforeRoundedIcon from "@mui/icons-material/NavigateBeforeRounded";
+import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
 import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
 import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
@@ -61,9 +63,15 @@ type NewsDraft = {
 };
 
 type NewsAttachmentPreview = {
+  id: string;
   kind: NewsAttachmentKind;
   url: string;
   title: string;
+};
+
+type NewsAttachmentPreviewState = {
+  items: NewsAttachmentPreview[];
+  index: number;
 };
 
 const toneLabels: Record<NewsTone, string> = {
@@ -92,6 +100,9 @@ const emptyDraft: NewsDraft = {
 };
 
 const NEWS_ATTACHMENT_MAX_BYTES = 80 * 1024 * 1024;
+const NEWS_ATTACHMENTS_MAX_COUNT = 8;
+const NEWS_ATTACHMENTS_MAX_VIDEO_COUNT = 1;
+const NEWS_ATTACHMENTS_VISIBLE_LIMIT = 6;
 
 const buildAttachmentId = () =>
   `news_attachment_${Date.now().toString(36)}_${Math.random()
@@ -153,6 +164,13 @@ const normalizeExternalUrl = (value: string) => {
   return `https://${trimmed}`;
 };
 
+const getAttachmentGridVariant = (count: number) => {
+  if (count <= 1) return "single";
+  if (count === 2) return "double";
+  if (count === 3) return "triple";
+  return "quad";
+};
+
 export function NewsFeedPanel({ user }: Props) {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -175,7 +193,7 @@ export function NewsFeedPanel({ user }: Props) {
     null
   );
   const [previewAttachment, setPreviewAttachment] =
-    useState<NewsAttachmentPreview | null>(null);
+    useState<NewsAttachmentPreviewState | null>(null);
   const [page, setPage] = useState(1);
 
   const [draft, setDraft] = useState<NewsDraft>(emptyDraft);
@@ -276,17 +294,48 @@ export function NewsFeedPanel({ user }: Props) {
     );
   };
 
-  const openAttachmentPreview = (attachment: NewsAttachment) => {
-    const url = (attachment.accessUrl || attachment.url || "").trim();
-    if (!url) return;
+  const getScopeAttachments = (scope: "create" | "edit") =>
+    scope === "create" ? draft.attachments : editDraft?.attachments ?? [];
+
+  const openAttachmentPreview = (
+    attachments: NewsAttachment[],
+    attachmentId?: string
+  ) => {
+    const previewItems: NewsAttachmentPreview[] = attachments
+      .map((attachment) => {
+        const url = (attachment.accessUrl || attachment.url || "").trim();
+        if (!url) return null;
+        return {
+          id: attachment.id || buildAttachmentId(),
+          kind: attachment.kind,
+          url,
+          title: attachment.fileName || "Вложение",
+        };
+      })
+      .filter((item): item is NewsAttachmentPreview => Boolean(item));
+    if (previewItems.length === 0) return;
+    const initialIndex = attachmentId
+      ? previewItems.findIndex((item) => item.id === attachmentId)
+      : 0;
     setPreviewAttachment({
-      kind: attachment.kind,
-      url,
-      title: attachment.fileName || "Вложение",
+      items: previewItems,
+      index: initialIndex >= 0 ? initialIndex : 0,
     });
   };
 
-  const uploadAttachmentToScope = async (
+  const shiftAttachmentPreview = (direction: 1 | -1) => {
+    setPreviewAttachment((prev) => {
+      if (!prev || prev.items.length <= 1) return prev;
+      const nextIndex =
+        (prev.index + direction + prev.items.length) % prev.items.length;
+      return {
+        ...prev,
+        index: nextIndex,
+      };
+    });
+  };
+
+  const uploadSingleAttachmentToScope = async (
     file: File,
     scope: "create" | "edit"
   ) => {
@@ -294,42 +343,123 @@ export function NewsFeedPanel({ user }: Props) {
     const isImage = mime.startsWith("image/");
     const isVideo = mime.startsWith("video/");
     if (!isImage && !isVideo) {
-      setError("Можно загрузить только изображение или видео.");
-      return;
+      throw new Error("Можно загрузить только изображение или видео.");
     }
     if (file.size > NEWS_ATTACHMENT_MAX_BYTES) {
-      setError("Файл слишком большой. Используйте вложение до 80 МБ.");
+      throw new Error("Файл слишком большой. Используйте вложение до 80 МБ.");
+    }
+    const objectId = await uploadNewsAttachmentFile(file);
+    const access = await getOwnedMediaDownloadUrl(objectId);
+    const nextAttachment: NewsAttachment = {
+      id: buildAttachmentId(),
+      kind: isVideo ? "video" : "image",
+      mediaObjectId: objectId,
+      downloadable: true,
+      fileName: file.name,
+      contentType: file.type || undefined,
+      accessUrl: access.downloadUrl,
+    };
+    if (scope === "create") {
+      setDraft((prev) => ({
+        ...prev,
+        attachments: [...prev.attachments, nextAttachment],
+      }));
+      return;
+    }
+    setEditDraft((prev) =>
+      prev
+        ? {
+            ...prev,
+            attachments: [...prev.attachments, nextAttachment],
+          }
+        : prev
+    );
+  };
+
+  const uploadAttachmentsToScope = async (
+    files: FileList | null,
+    scope: "create" | "edit"
+  ) => {
+    const selectedFiles = Array.from(files ?? []);
+    if (selectedFiles.length === 0) return;
+
+    const existingAttachments = getScopeAttachments(scope);
+    let capacityLeft = Math.max(
+      0,
+      NEWS_ATTACHMENTS_MAX_COUNT - existingAttachments.length
+    );
+    let videoSlotsLeft = Math.max(
+      0,
+      NEWS_ATTACHMENTS_MAX_VIDEO_COUNT -
+        existingAttachments.filter((attachment) => attachment.kind === "video")
+          .length
+    );
+    const queue: File[] = [];
+    let typeRejected = 0;
+    let sizeRejected = 0;
+    let limitRejected = 0;
+    let videoRejected = 0;
+
+    selectedFiles.forEach((file) => {
+      const mime = file.type.toLowerCase();
+      const isImage = mime.startsWith("image/");
+      const isVideo = mime.startsWith("video/");
+      if (!isImage && !isVideo) {
+        typeRejected += 1;
+        return;
+      }
+      if (file.size > NEWS_ATTACHMENT_MAX_BYTES) {
+        sizeRejected += 1;
+        return;
+      }
+      if (capacityLeft <= 0) {
+        limitRejected += 1;
+        return;
+      }
+      if (isVideo && videoSlotsLeft <= 0) {
+        videoRejected += 1;
+        return;
+      }
+      queue.push(file);
+      capacityLeft -= 1;
+      if (isVideo) {
+        videoSlotsLeft -= 1;
+      }
+    });
+
+    if (queue.length === 0) {
+      const reasons: string[] = [];
+      if (typeRejected > 0) reasons.push("поддерживаются только фото и видео");
+      if (sizeRejected > 0) reasons.push("размер каждого файла до 80 МБ");
+      if (videoRejected > 0)
+        reasons.push("в новости можно добавить только одно видео");
+      if (limitRejected > 0)
+        reasons.push(`максимум ${NEWS_ATTACHMENTS_MAX_COUNT} вложений`);
+      setError(
+        reasons.length > 0
+          ? `Не удалось добавить вложения: ${reasons.join(", ")}.`
+          : "Не удалось добавить вложения."
+      );
       return;
     }
 
     try {
       setUploadingScope(scope);
       setError(null);
-      const objectId = await uploadNewsAttachmentFile(file);
-      const access = await getOwnedMediaDownloadUrl(objectId);
-      const nextAttachment: NewsAttachment = {
-        id: buildAttachmentId(),
-        kind: isVideo ? "video" : "image",
-        mediaObjectId: objectId,
-        downloadable: true,
-        fileName: file.name,
-        contentType: file.type || undefined,
-        accessUrl: access.downloadUrl,
-      };
-      if (scope === "create") {
-        setDraft((prev) => ({
-          ...prev,
-          attachments: [...prev.attachments, nextAttachment],
-        }));
-      } else {
-        setEditDraft((prev) =>
-          prev
-            ? {
-                ...prev,
-                attachments: [...prev.attachments, nextAttachment],
-              }
-            : prev
-        );
+      for (const file of queue) {
+        await uploadSingleAttachmentToScope(file, scope);
+      }
+      const rejectedTotal =
+        typeRejected + sizeRejected + videoRejected + limitRejected;
+      if (rejectedTotal > 0) {
+        const details: string[] = [];
+        if (typeRejected > 0)
+          details.push(`${typeRejected} файл(ов) неподдерживаемого типа`);
+        if (sizeRejected > 0) details.push(`${sizeRejected} файл(ов) больше 80 МБ`);
+        if (videoRejected > 0) details.push(`${videoRejected} лишнее видео`);
+        if (limitRejected > 0)
+          details.push(`${limitRejected} файл(ов) выше лимита вложений`);
+        setError(`Часть файлов пропущена: ${details.join(", ")}.`);
       }
     } catch (uploadError) {
       setError(
@@ -455,6 +585,10 @@ export function NewsFeedPanel({ user }: Props) {
     });
   };
 
+  const previewCurrentAttachment = previewAttachment
+    ? previewAttachment.items[previewAttachment.index]
+    : null;
+
   return (
     <section
       className={cn("news-feed", {
@@ -525,6 +659,10 @@ export function NewsFeedPanel({ user }: Props) {
         ) : (
           pagedItems.map((item) => {
             const isEditing = editingId === item.id;
+            const itemAttachments = normalizeNewsAttachments(
+              item.attachments,
+              item.imageUrl
+            );
             return (
               <article
                 key={item.id}
@@ -693,6 +831,9 @@ export function NewsFeedPanel({ user }: Props) {
                         ))}
                       </div>
                       <div className="news-feed__media-actions">
+                        <span className="news-feed__media-counter">
+                          {editDraft.attachments.length}/{NEWS_ATTACHMENTS_MAX_COUNT}
+                        </span>
                         <Tooltip title="Добавить изображение или видео">
                           <IconButton
                             className="news-feed__media-icon"
@@ -718,10 +859,9 @@ export function NewsFeedPanel({ user }: Props) {
                           ref={editAttachmentInputRef}
                           type="file"
                           accept="image/*,video/*"
+                          multiple
                           onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            await uploadAttachmentToScope(file, "edit");
+                            await uploadAttachmentsToScope(e.target.files, "edit");
                             e.target.value = "";
                           }}
                         />
@@ -750,7 +890,14 @@ export function NewsFeedPanel({ user }: Props) {
                       </div>
                     )}
                     {editDraft.attachments.length > 0 && (
-                      <div className="news-feed__attachments-grid">
+                      <div
+                        className={cn(
+                          "news-feed__attachments-grid",
+                          `news-feed__attachments-grid--${getAttachmentGridVariant(
+                            editDraft.attachments.length
+                          )}`
+                        )}
+                      >
                         {editDraft.attachments.map((attachment) => {
                           const previewUrl = (
                             attachment.accessUrl ||
@@ -768,7 +915,12 @@ export function NewsFeedPanel({ user }: Props) {
                                   "news-feed__attachment-preview",
                                   `news-feed__attachment-preview--${attachment.kind}`
                                 )}
-                                onClick={() => openAttachmentPreview(attachment)}
+                                onClick={() =>
+                                  openAttachmentPreview(
+                                    editDraft.attachments,
+                                    attachment.id
+                                  )
+                                }
                                 disabled={!previewUrl}
                               >
                                 {attachment.kind === "video" ? (
@@ -824,49 +976,82 @@ export function NewsFeedPanel({ user }: Props) {
                         <OpenInNewRoundedIcon fontSize="small" />
                       </a>
                     )}
-                    {normalizeNewsAttachments(item.attachments, item.imageUrl).length >
-                      0 && (
-                      <div className="news-feed__attachments-grid">
-                        {normalizeNewsAttachments(item.attachments, item.imageUrl).map(
-                          (attachment) => {
-                            const previewUrl = (
-                              attachment.accessUrl ||
-                              attachment.url ||
-                              ""
-                            ).trim();
-                            return (
-                              <article
-                                key={attachment.id}
-                                className="news-feed__attachment-card"
-                              >
-                                <button
-                                  type="button"
-                                  className={cn(
-                                    "news-feed__attachment-preview",
-                                    `news-feed__attachment-preview--${attachment.kind}`
-                                  )}
-                                  onClick={() => openAttachmentPreview(attachment)}
-                                  disabled={!previewUrl}
+                    {itemAttachments.length > 0 && (
+                      (() => {
+                        const visibleAttachments = itemAttachments.slice(
+                          0,
+                          NEWS_ATTACHMENTS_VISIBLE_LIMIT
+                        );
+                        const visibleCount = visibleAttachments.length;
+                        return (
+                          <div
+                            className={cn(
+                              "news-feed__attachments-grid",
+                              "news-feed__attachments-grid--feed",
+                              `news-feed__attachments-grid--${getAttachmentGridVariant(
+                                visibleCount
+                              )}`,
+                              `news-feed__attachments-grid--count-${visibleCount}`
+                            )}
+                          >
+                            {visibleAttachments.map((attachment, index) => {
+                              const previewUrl = (
+                                attachment.accessUrl ||
+                                attachment.url ||
+                                ""
+                              ).trim();
+                              const hiddenCount =
+                                itemAttachments.length - visibleCount;
+                              const showOverflow =
+                                hiddenCount > 0 &&
+                                index === visibleAttachments.length - 1;
+                              return (
+                                <article
+                                  key={attachment.id}
+                                  className={cn("news-feed__attachment-card", {
+                                    "news-feed__attachment-card--overflow":
+                                      showOverflow,
+                                  })}
                                 >
-                                  {attachment.kind === "video" ? (
-                                    <video
-                                      src={previewUrl}
-                                      muted
-                                      playsInline
-                                      preload="metadata"
-                                    />
-                                  ) : (
-                                    <img
-                                      src={previewUrl}
-                                      alt={attachment.fileName || item.title}
-                                    />
-                                  )}
-                                </button>
-                              </article>
-                            );
-                          }
-                        )}
-                      </div>
+                                  <button
+                                    type="button"
+                                    className={cn(
+                                      "news-feed__attachment-preview",
+                                      `news-feed__attachment-preview--${attachment.kind}`
+                                    )}
+                                    onClick={() =>
+                                      openAttachmentPreview(
+                                        itemAttachments,
+                                        attachment.id
+                                      )
+                                    }
+                                    disabled={!previewUrl}
+                                  >
+                                    {attachment.kind === "video" ? (
+                                      <video
+                                        src={previewUrl}
+                                        muted
+                                        playsInline
+                                        preload="metadata"
+                                      />
+                                    ) : (
+                                      <img
+                                        src={previewUrl}
+                                        alt={attachment.fileName || item.title}
+                                      />
+                                    )}
+                                    {showOverflow && (
+                                      <span className="news-feed__attachment-overflow">
+                                        +{hiddenCount}
+                                      </span>
+                                    )}
+                                  </button>
+                                </article>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()
                     )}
                   </>
                 )}
@@ -899,7 +1084,7 @@ export function NewsFeedPanel({ user }: Props) {
           />
           <DialogContent className="news-feed__create-content">
             <div className="news-feed__compose-fields">
-                <TextField
+              <TextField
                 placeholder="Введите заголовок"
                 value={draft.title}
                 onChange={(e) =>
@@ -979,6 +1164,9 @@ export function NewsFeedPanel({ user }: Props) {
                 ))}
               </div>
               <div className="news-feed__media-actions">
+                <span className="news-feed__media-counter">
+                  {draft.attachments.length}/{NEWS_ATTACHMENTS_MAX_COUNT}
+                </span>
                 <Tooltip title="Добавить изображение или видео">
                   <IconButton
                     className="news-feed__media-icon"
@@ -1004,10 +1192,9 @@ export function NewsFeedPanel({ user }: Props) {
                   ref={createAttachmentInputRef}
                   type="file"
                   accept="image/*,video/*"
+                  multiple
                   onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    await uploadAttachmentToScope(file, "create");
+                    await uploadAttachmentsToScope(e.target.files, "create");
                     e.target.value = "";
                   }}
                 />
@@ -1034,7 +1221,14 @@ export function NewsFeedPanel({ user }: Props) {
             )}
 
             {draft.attachments.length > 0 && (
-              <div className="news-feed__attachments-grid news-feed__attachments-grid--create">
+              <div
+                className={cn(
+                  "news-feed__attachments-grid news-feed__attachments-grid--create",
+                  `news-feed__attachments-grid--${getAttachmentGridVariant(
+                    draft.attachments.length
+                  )}`
+                )}
+              >
                 {draft.attachments.map((attachment) => {
                   const previewUrl = (
                     attachment.accessUrl ||
@@ -1052,7 +1246,9 @@ export function NewsFeedPanel({ user }: Props) {
                           "news-feed__attachment-preview",
                           `news-feed__attachment-preview--${attachment.kind}`
                         )}
-                        onClick={() => openAttachmentPreview(attachment)}
+                        onClick={() =>
+                          openAttachmentPreview(draft.attachments, attachment.id)
+                        }
                         disabled={!previewUrl}
                       >
                         {attachment.kind === "video" ? (
@@ -1148,21 +1344,46 @@ export function NewsFeedPanel({ user }: Props) {
           onClose={() => setPreviewAttachment(null)}
         />
         <DialogContent className="news-feed__preview-content">
-          {previewAttachment?.kind === "video" ? (
-            <video
-              controls
-              playsInline
-              preload="metadata"
-              src={previewAttachment.url}
-              className="news-feed__preview-media"
-            />
-          ) : previewAttachment ? (
-            <img
-              src={previewAttachment.url}
-              alt={previewAttachment.title}
-              className="news-feed__preview-media"
-            />
+          {previewCurrentAttachment?.kind === "video" ? (
+            <div className="news-feed__preview-stage">
+              <video
+                controls
+                playsInline
+                preload="metadata"
+                src={previewCurrentAttachment.url}
+                className="news-feed__preview-media"
+              />
+            </div>
+          ) : previewCurrentAttachment ? (
+            <div className="news-feed__preview-stage">
+              <img
+                src={previewCurrentAttachment.url}
+                alt={previewCurrentAttachment.title}
+                className="news-feed__preview-media"
+              />
+            </div>
           ) : null}
+          {previewAttachment && previewAttachment.items.length > 1 && (
+            <div className="news-feed__preview-nav">
+              <IconButton
+                className="news-feed__preview-nav-btn"
+                aria-label="Предыдущее вложение"
+                onClick={() => shiftAttachmentPreview(-1)}
+              >
+                <NavigateBeforeRoundedIcon />
+              </IconButton>
+              <span>
+                {previewAttachment.index + 1} / {previewAttachment.items.length}
+              </span>
+              <IconButton
+                className="news-feed__preview-nav-btn"
+                aria-label="Следующее вложение"
+                onClick={() => shiftAttachmentPreview(1)}
+              >
+                <NavigateNextRoundedIcon />
+              </IconButton>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </section>
