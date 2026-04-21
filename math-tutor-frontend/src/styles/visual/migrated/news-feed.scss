@@ -467,8 +467,8 @@
 .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-3 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-areas:
-    "hero side-a"
-    "hero side-b";
+    "hero hero"
+    "side-a side-b";
 }
 
 .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-4 {
@@ -525,7 +525,7 @@
 .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-3
   .news-feed__attachment-card:first-child {
   grid-area: hero;
-  min-height: 236px;
+  min-height: 188px;
 }
 
 .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-3
@@ -578,6 +578,56 @@
   min-height: 128px;
 }
 
+/* Adaptive odd-count layout (3,5,7,...) without empty grid cells. */
+.news-feed__attachments-grid--odd-count {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas: none;
+}
+
+.news-feed__attachments-grid--odd-count .news-feed__attachment-card {
+  grid-area: auto;
+}
+
+.news-feed__attachments-grid--odd-count .news-feed__attachment-card:last-child {
+  grid-column: 1 / -1;
+}
+
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--odd-count
+  .news-feed__attachment-card {
+  min-height: 132px;
+}
+
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--odd-count
+  .news-feed__attachment-card:last-child {
+  min-height: 172px;
+}
+
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--odd-count
+  .news-feed__attachment-preview,
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--odd-count
+  .news-feed__attachment-preview
+  img,
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--odd-count
+  .news-feed__attachment-preview
+  video {
+  min-height: 132px;
+  aspect-ratio: auto;
+}
+
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--odd-count
+  .news-feed__attachment-card:last-child
+  .news-feed__attachment-preview,
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--odd-count
+  .news-feed__attachment-card:last-child
+  .news-feed__attachment-preview
+  img,
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--odd-count
+  .news-feed__attachment-card:last-child
+  .news-feed__attachment-preview
+  video {
+  min-height: 172px;
+}
+
 .news-feed__attachments-grid--triple
   .news-feed__attachment-card:first-child
   .news-feed__attachment-preview,
@@ -628,7 +678,7 @@
   .news-feed__attachment-card:first-child
   .news-feed__attachment-preview
   video {
-  min-height: 236px;
+  min-height: 188px;
   aspect-ratio: auto;
 }
 
@@ -654,7 +704,7 @@
   .news-feed__attachment-card:nth-child(3)
   .news-feed__attachment-preview
   video {
-  min-height: 113px;
+  min-height: 128px;
   aspect-ratio: auto;
 }
 
@@ -960,6 +1010,7 @@
   .news-feed__attachments-grid--double,
   .news-feed__attachments-grid--triple,
   .news-feed__attachments-grid--quad,
+  .news-feed__attachments-grid--odd-count,
   .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-2,
   .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-3,
   .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-4,
@@ -1002,6 +1053,10 @@
     .news-feed__attachment-card {
     min-height: 112px;
     grid-area: auto;
+  }
+
+  .news-feed__attachments-grid--odd-count .news-feed__attachment-card:last-child {
+    grid-column: auto;
   }
 
   .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-1

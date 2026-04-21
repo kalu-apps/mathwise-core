@@ -173,6 +173,8 @@ const getAttachmentGridVariant = (count: number) => {
   return "quad";
 };
 
+const hasOddAttachmentTail = (count: number) => count > 1 && count % 2 === 1;
+
 export function NewsFeedPanel({ user }: Props) {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -1063,7 +1065,9 @@ export function NewsFeedPanel({ user }: Props) {
                           "news-feed__attachments-grid",
                           `news-feed__attachments-grid--${getAttachmentGridVariant(
                             editDraft.attachments.length
-                          )}`
+                          )}`,
+                          hasOddAttachmentTail(editDraft.attachments.length) &&
+                            "news-feed__attachments-grid--odd-count"
                         )}
                       >
                         {editDraft.attachments.map((attachment) => {
@@ -1159,7 +1163,9 @@ export function NewsFeedPanel({ user }: Props) {
                               `news-feed__attachments-grid--${getAttachmentGridVariant(
                                 visibleCount
                               )}`,
-                              `news-feed__attachments-grid--count-${visibleCount}`
+                              `news-feed__attachments-grid--count-${visibleCount}`,
+                              hasOddAttachmentTail(visibleCount) &&
+                                "news-feed__attachments-grid--odd-count"
                             )}
                           >
                             {visibleAttachments.map((attachment, index) => {
@@ -1401,7 +1407,9 @@ export function NewsFeedPanel({ user }: Props) {
                   "news-feed__attachments-grid news-feed__attachments-grid--create",
                   `news-feed__attachments-grid--${getAttachmentGridVariant(
                     draft.attachments.length
-                  )}`
+                  )}`,
+                  hasOddAttachmentTail(draft.attachments.length) &&
+                    "news-feed__attachments-grid--odd-count"
                 )}
               >
                 {draft.attachments.map((attachment) => {
