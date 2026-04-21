@@ -392,6 +392,7 @@ export class MediaRepository {
       draftRefs: string;
       releaseRefs: string;
       purchaseRefs: string;
+      newsRefs: string;
     }>(
       `
         SELECT
@@ -432,7 +433,16 @@ export class MediaRepository {
                    WHERE material->>'mediaObjectId' = $1
                  )
             )
-          ) AS "purchaseRefs"
+          ) AS "purchaseRefs",
+          (
+            SELECT COUNT(*)::text
+            FROM news_posts np
+            WHERE EXISTS (
+              SELECT 1
+              FROM jsonb_array_elements(COALESCE(np.attachments_json, '[]'::jsonb)) AS attachment
+              WHERE attachment->>'mediaObjectId' = $1
+            )
+          ) AS "newsRefs"
       `,
       [objectId]
     );
@@ -440,6 +450,7 @@ export class MediaRepository {
     const draftRefs = Number(row?.draftRefs ?? 0);
     const releaseRefs = Number(row?.releaseRefs ?? 0);
     const purchaseRefs = Number(row?.purchaseRefs ?? 0);
+    const newsRefs = Number(row?.newsRefs ?? 0);
     return {
       draftRefs: Number.isFinite(draftRefs) ? draftRefs : 0,
       releaseRefs: Number.isFinite(releaseRefs) ? releaseRefs : 0,
@@ -447,7 +458,8 @@ export class MediaRepository {
       totalRefs:
         (Number.isFinite(draftRefs) ? draftRefs : 0) +
         (Number.isFinite(releaseRefs) ? releaseRefs : 0) +
-        (Number.isFinite(purchaseRefs) ? purchaseRefs : 0),
+        (Number.isFinite(purchaseRefs) ? purchaseRefs : 0) +
+        (Number.isFinite(newsRefs) ? newsRefs : 0),
     };
   }
 

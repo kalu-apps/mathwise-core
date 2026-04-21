@@ -39,6 +39,16 @@ const createRepository = (seed: NewsPostDto[] = []): InMemoryNewsRepository => {
   };
 };
 
+const createMediaServiceMock = () =>
+  ({
+    getRuntimeDownloadUrlByObjectId: async (objectId: string) => ({
+      objectId,
+      contentType: "image/png",
+      downloadUrl: `https://example.test/media/${objectId}`,
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    }),
+  }) as never;
+
 test("news: student feed hides targeted course updates for other students", async () => {
   const repository = createRepository([
     {
@@ -68,7 +78,7 @@ test("news: student feed hides targeted course updates for other students", asyn
       targetUserIds: ["student_target"],
     },
   ]);
-  const service = new NewsService(repository as never);
+  const service = new NewsService(repository as never, createMediaServiceMock());
 
   const feed = await service.listForActor({
     id: "student_other",
@@ -84,7 +94,7 @@ test("news: student feed hides targeted course updates for other students", asyn
 
 test("news: teacher can create and update own post", async () => {
   const repository = createRepository();
-  const service = new NewsService(repository as never);
+  const service = new NewsService(repository as never, createMediaServiceMock());
   const teacher = {
     id: "teacher_1",
     role: "teacher" as const,
@@ -119,7 +129,7 @@ test("news: teacher can create and update own post", async () => {
 
 test("news: student cannot create post", async () => {
   const repository = createRepository();
-  const service = new NewsService(repository as never);
+  const service = new NewsService(repository as never, createMediaServiceMock());
 
   await assert.rejects(
     () =>

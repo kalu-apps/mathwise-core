@@ -830,6 +830,18 @@ export async function uploadLessonMaterialFile(
   return uploaded.objectId;
 }
 
+export async function uploadNewsAttachmentFile(
+  file: File,
+  options?: { signal?: AbortSignal }
+): Promise<string> {
+  const uploaded = await uploadObjectToStorage({
+    file,
+    category: "news-attachment",
+    signal: options?.signal,
+  });
+  return uploaded.objectId;
+}
+
 export async function getOwnedMediaDownloadUrl(
   objectId: string
 ): Promise<DownloadUrlResponse> {

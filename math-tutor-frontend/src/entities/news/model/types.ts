@@ -5,6 +5,19 @@ export type NewsTone =
   | "important"
   | "course_update";
 export type NewsVisibility = "all" | "course_students";
+export type NewsAttachmentKind = "image" | "video";
+
+export type NewsAttachment = {
+  id: string;
+  kind: NewsAttachmentKind;
+  mediaObjectId?: string;
+  url?: string;
+  downloadable?: boolean;
+  fileName?: string;
+  contentType?: string;
+  accessUrl?: string;
+  accessUrlExpiresAt?: string;
+};
 
 export type NewsPost = {
   id: string;
@@ -15,6 +28,7 @@ export type NewsPost = {
   tone: NewsTone;
   highlighted: boolean;
   imageUrl?: string;
+  attachments?: NewsAttachment[];
   externalUrl?: string;
   visibility?: NewsVisibility;
   targetCourseId?: string;
@@ -30,6 +44,7 @@ export type CreateNewsPostPayload = {
   tone: NewsTone;
   highlighted?: boolean;
   imageUrl?: string;
+  attachments?: NewsAttachment[];
   externalUrl?: string;
   visibility?: NewsVisibility;
   targetCourseId?: string;
@@ -44,6 +59,7 @@ export type UpdateNewsPostPayload = Partial<
     | "tone"
     | "highlighted"
     | "imageUrl"
+    | "attachments"
     | "externalUrl"
     | "visibility"
     | "targetCourseId"

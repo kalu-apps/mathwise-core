@@ -1,6 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { DatabaseService } from "../db/database.service";
-import type { NewsPostDto, NewsTone, NewsVisibility } from "./news.types";
+import type {
+  NewsAttachmentDto,
+  NewsAttachmentKind,
+  NewsPostDto,
+  NewsTone,
+  NewsVisibility,
+} from "./news.types";
 
 type NewsPostRow = {
   id: string;
@@ -11,12 +17,56 @@ type NewsPostRow = {
   tone: NewsTone;
   highlighted: boolean;
   imageUrl: string | null;
+  attachments: unknown;
   externalUrl: string | null;
   visibility: NewsVisibility;
   targetCourseId: string | null;
   targetUserIds: unknown;
   createdAt: string;
   updatedAt: string;
+};
+
+const ALLOWED_ATTACHMENT_KINDS = new Set<NewsAttachmentKind>(["image", "video"]);
+
+const normalizeAttachments = (value: unknown): NewsAttachmentDto[] => {
+  if (!Array.isArray(value)) return [];
+  return value.reduce<NewsAttachmentDto[]>((acc, item) => {
+    if (!item || typeof item !== "object") return acc;
+    const record = item as Record<string, unknown>;
+    const id = typeof record.id === "string" ? record.id.trim() : "";
+    const kindCandidate =
+      typeof record.kind === "string" ? record.kind.trim().toLowerCase() : "";
+    if (!id || !ALLOWED_ATTACHMENT_KINDS.has(kindCandidate as NewsAttachmentKind)) {
+      return acc;
+    }
+    const mediaObjectId =
+      typeof record.mediaObjectId === "string"
+        ? record.mediaObjectId.trim() || undefined
+        : undefined;
+    const url =
+      typeof record.url === "string" ? record.url.trim() || undefined : undefined;
+    if (!mediaObjectId && !url) return acc;
+    const downloadable =
+      typeof record.downloadable === "boolean" ? record.downloadable : undefined;
+    const fileName =
+      typeof record.fileName === "string"
+        ? record.fileName.trim() || undefined
+        : undefined;
+    const contentType =
+      typeof record.contentType === "string"
+        ? record.contentType.trim() || undefined
+        : undefined;
+    acc.push({
+      id,
+      kind: kindCandidate as NewsAttachmentKind,
+      mediaObjectId,
+      url,
+      downloadable,
+      fileName,
+      contentType,
+    });
+    return acc;
+  }, []);
 };
 
 const normalizeTargetUserIds = (value: unknown): string[] => {
@@ -35,6 +85,7 @@ const mapRow = (row: NewsPostRow): NewsPostDto => ({
   tone: row.tone,
   highlighted: row.highlighted,
   imageUrl: row.imageUrl ?? undefined,
+  attachments: normalizeAttachments(row.attachments),
   externalUrl: row.externalUrl ?? undefined,
   visibility: row.visibility,
   targetCourseId: row.targetCourseId ?? undefined,
@@ -58,6 +109,7 @@ export class NewsRepository {
         tone TEXT NOT NULL CHECK (tone IN ('general', 'exam', 'achievement', 'important', 'course_update')),
         highlighted BOOLEAN NOT NULL DEFAULT FALSE,
         image_url TEXT,
+        attachments_json JSONB NOT NULL DEFAULT '[]'::jsonb,
         external_url TEXT,
         visibility TEXT NOT NULL DEFAULT 'all' CHECK (visibility IN ('all', 'course_students')),
         target_course_id TEXT,
@@ -66,6 +118,11 @@ export class NewsRepository {
         updated_at TEXT NOT NULL,
         updated_at_ts TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
+    `);
+
+    await this.databaseService.execute(`
+      ALTER TABLE news_posts
+      ADD COLUMN IF NOT EXISTS attachments_json JSONB NOT NULL DEFAULT '[]'::jsonb
     `);
 
     await this.databaseService.execute(`
@@ -85,6 +142,7 @@ export class NewsRepository {
         tone,
         highlighted,
         image_url AS "imageUrl",
+        attachments_json AS "attachments",
         external_url AS "externalUrl",
         visibility,
         target_course_id AS "targetCourseId",
@@ -109,6 +167,7 @@ export class NewsRepository {
           tone,
           highlighted,
           image_url AS "imageUrl",
+          attachments_json AS "attachments",
           external_url AS "externalUrl",
           visibility,
           target_course_id AS "targetCourseId",
@@ -133,6 +192,7 @@ export class NewsRepository {
     tone: NewsTone;
     highlighted: boolean;
     imageUrl: string | null;
+    attachments: NewsAttachmentDto[];
     externalUrl: string | null;
     visibility: NewsVisibility;
     targetCourseId: string | null;
@@ -151,6 +211,7 @@ export class NewsRepository {
           tone,
           highlighted,
           image_url,
+          attachments_json,
           external_url,
           visibility,
           target_course_id,
@@ -160,7 +221,7 @@ export class NewsRepository {
           updated_at_ts
         )
         VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13, $14, NOW()
+          $1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, $12, $13::jsonb, $14, $15, NOW()
         )
       `,
       [
@@ -172,6 +233,7 @@ export class NewsRepository {
         params.tone,
         params.highlighted,
         params.imageUrl,
+        JSON.stringify(params.attachments),
         params.externalUrl,
         params.visibility,
         params.targetCourseId,
@@ -194,6 +256,7 @@ export class NewsRepository {
     tone: NewsTone;
     highlighted: boolean;
     imageUrl: string | null;
+    attachments: NewsAttachmentDto[];
     externalUrl: string | null;
     visibility: NewsVisibility;
     targetCourseId: string | null;
@@ -209,11 +272,12 @@ export class NewsRepository {
           tone = $4,
           highlighted = $5,
           image_url = $6,
-          external_url = $7,
-          visibility = $8,
-          target_course_id = $9,
-          target_user_ids = $10::jsonb,
-          updated_at = $11,
+          attachments_json = $7::jsonb,
+          external_url = $8,
+          visibility = $9,
+          target_course_id = $10,
+          target_user_ids = $11::jsonb,
+          updated_at = $12,
           updated_at_ts = NOW()
         WHERE id = $1
       `,
@@ -224,6 +288,7 @@ export class NewsRepository {
         params.tone,
         params.highlighted,
         params.imageUrl,
+        JSON.stringify(params.attachments),
         params.externalUrl,
         params.visibility,
         params.targetCourseId,

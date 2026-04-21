@@ -20,6 +20,7 @@ import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
+import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
 import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import type { User } from "@/entities/user/model/types";
@@ -30,13 +31,21 @@ import {
   NEWS_FEED_UPDATED_STORAGE_KEY,
   updateNewsPost,
 } from "@/entities/news/model/storage";
-import type { NewsPost, NewsTone } from "@/entities/news/model/types";
-import { fileToDataUrl } from "@/shared/lib/files";
+import type {
+  NewsAttachment,
+  NewsAttachmentKind,
+  NewsPost,
+  NewsTone,
+} from "@/entities/news/model/types";
 import { cn } from "@/shared/lib/cn";
 import { ListPagination } from "@/shared/ui/ListPagination";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { useNavigate } from "react-router-dom";
+import {
+  getOwnedMediaDownloadUrl,
+  uploadNewsAttachmentFile,
+} from "@/shared/lib/mediaPipeline";
 
 type Props = {
   user: User;
@@ -47,8 +56,14 @@ type NewsDraft = {
   content: string;
   tone: NewsTone;
   highlighted: boolean;
-  imageUrl: string;
+  attachments: NewsAttachment[];
   externalUrl: string;
+};
+
+type NewsAttachmentPreview = {
+  kind: NewsAttachmentKind;
+  url: string;
+  title: string;
 };
 
 const toneLabels: Record<NewsTone, string> = {
@@ -72,8 +87,63 @@ const emptyDraft: NewsDraft = {
   content: "",
   tone: "general",
   highlighted: true,
-  imageUrl: "",
+  attachments: [],
   externalUrl: "",
+};
+
+const NEWS_ATTACHMENT_MAX_BYTES = 80 * 1024 * 1024;
+
+const buildAttachmentId = () =>
+  `news_attachment_${Date.now().toString(36)}_${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+
+const normalizeNewsAttachments = (
+  attachments: NewsAttachment[] | undefined,
+  fallbackImageUrl?: string
+): NewsAttachment[] => {
+  const normalized = Array.isArray(attachments)
+    ? attachments.filter((attachment) => {
+        if (!attachment || typeof attachment !== "object") return false;
+        const hasMediaId = Boolean(attachment.mediaObjectId?.trim());
+        const hasUrl = Boolean(
+          (attachment.accessUrl || attachment.url)?.trim()
+        );
+        return hasMediaId || hasUrl;
+      })
+    : [];
+  if (normalized.length > 0) {
+    return normalized.map((attachment) => ({
+      ...attachment,
+      accessUrl: attachment.accessUrl || attachment.url,
+    }));
+  }
+  const legacyImage = fallbackImageUrl?.trim();
+  if (!legacyImage) return [];
+  return [
+    {
+      id: buildAttachmentId(),
+      kind: "image",
+      url: legacyImage,
+      accessUrl: legacyImage,
+      downloadable: false,
+    },
+  ];
+};
+
+const buildNewsPayloadAttachments = (
+  attachments: NewsAttachment[] | undefined
+): NewsAttachment[] => {
+  if (!Array.isArray(attachments)) return [];
+  return attachments.map((attachment) => ({
+    id: attachment.id || buildAttachmentId(),
+    kind: attachment.kind,
+    mediaObjectId: attachment.mediaObjectId,
+    url: attachment.url,
+    downloadable: attachment.downloadable ?? true,
+    fileName: attachment.fileName,
+    contentType: attachment.contentType,
+  }));
 };
 
 const normalizeExternalUrl = (value: string) => {
@@ -88,8 +158,8 @@ export function NewsFeedPanel({ user }: Props) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTeacher = user.role === "teacher";
-  const createImageInputRef = useRef<HTMLInputElement>(null);
-  const editImageInputRef = useRef<HTMLInputElement>(null);
+  const createAttachmentInputRef = useRef<HTMLInputElement>(null);
+  const editAttachmentInputRef = useRef<HTMLInputElement>(null);
 
   const [items, setItems] = useState<NewsPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,6 +171,11 @@ export function NewsFeedPanel({ user }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [uploadingScope, setUploadingScope] = useState<"create" | "edit" | null>(
+    null
+  );
+  const [previewAttachment, setPreviewAttachment] =
+    useState<NewsAttachmentPreview | null>(null);
   const [page, setPage] = useState(1);
 
   const [draft, setDraft] = useState<NewsDraft>(emptyDraft);
@@ -108,7 +183,7 @@ export function NewsFeedPanel({ user }: Props) {
   const pageSize = isMobile ? 1 : 2;
 
   const closeCreateModal = () => {
-    if (saving) return;
+    if (saving || uploadingScope === "create") return;
     setCreateOpen(false);
   };
 
@@ -142,13 +217,17 @@ export function NewsFeedPanel({ user }: Props) {
   }, []);
 
   const canSubmit =
-    draft.title.trim().length > 0 && draft.content.trim().length > 0 && !saving;
+    draft.title.trim().length > 0 &&
+    draft.content.trim().length > 0 &&
+    !saving &&
+    uploadingScope !== "create";
 
   const canUpdate =
     !!editDraft &&
     editDraft.title.trim().length > 0 &&
     editDraft.content.trim().length > 0 &&
-    !updatingId;
+    !updatingId &&
+    uploadingScope !== "edit";
 
   const composerToneOptions = useMemo(
     () =>
@@ -174,8 +253,93 @@ export function NewsFeedPanel({ user }: Props) {
   };
 
   const resetEditor = () => {
+    if (uploadingScope === "edit") return;
     setEditingId(null);
     setEditDraft(null);
+  };
+
+  const removeDraftAttachment = (attachmentId: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      attachments: prev.attachments.filter((item) => item.id !== attachmentId),
+    }));
+  };
+
+  const removeEditAttachment = (attachmentId: string) => {
+    setEditDraft((prev) =>
+      prev
+        ? {
+            ...prev,
+            attachments: prev.attachments.filter((item) => item.id !== attachmentId),
+          }
+        : prev
+    );
+  };
+
+  const openAttachmentPreview = (attachment: NewsAttachment) => {
+    const url = (attachment.accessUrl || attachment.url || "").trim();
+    if (!url) return;
+    setPreviewAttachment({
+      kind: attachment.kind,
+      url,
+      title: attachment.fileName || "Вложение",
+    });
+  };
+
+  const uploadAttachmentToScope = async (
+    file: File,
+    scope: "create" | "edit"
+  ) => {
+    const mime = file.type.toLowerCase();
+    const isImage = mime.startsWith("image/");
+    const isVideo = mime.startsWith("video/");
+    if (!isImage && !isVideo) {
+      setError("Можно загрузить только изображение или видео.");
+      return;
+    }
+    if (file.size > NEWS_ATTACHMENT_MAX_BYTES) {
+      setError("Файл слишком большой. Используйте вложение до 80 МБ.");
+      return;
+    }
+
+    try {
+      setUploadingScope(scope);
+      setError(null);
+      const objectId = await uploadNewsAttachmentFile(file);
+      const access = await getOwnedMediaDownloadUrl(objectId);
+      const nextAttachment: NewsAttachment = {
+        id: buildAttachmentId(),
+        kind: isVideo ? "video" : "image",
+        mediaObjectId: objectId,
+        downloadable: true,
+        fileName: file.name,
+        contentType: file.type || undefined,
+        accessUrl: access.downloadUrl,
+      };
+      if (scope === "create") {
+        setDraft((prev) => ({
+          ...prev,
+          attachments: [...prev.attachments, nextAttachment],
+        }));
+      } else {
+        setEditDraft((prev) =>
+          prev
+            ? {
+                ...prev,
+                attachments: [...prev.attachments, nextAttachment],
+              }
+            : prev
+        );
+      }
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "Не удалось загрузить вложение."
+      );
+    } finally {
+      setUploadingScope(null);
+    }
   };
 
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
@@ -197,7 +361,7 @@ export function NewsFeedPanel({ user }: Props) {
         content: draft.content.trim(),
         tone: draft.tone,
         highlighted: true,
-        imageUrl: draft.imageUrl || undefined,
+        attachments: buildNewsPayloadAttachments(draft.attachments),
         externalUrl: normalizeExternalUrl(draft.externalUrl) || undefined,
       });
       resetDraft();
@@ -223,7 +387,7 @@ export function NewsFeedPanel({ user }: Props) {
       content: item.content,
       tone: item.tone,
       highlighted: true,
-      imageUrl: item.imageUrl ?? "",
+      attachments: normalizeNewsAttachments(item.attachments, item.imageUrl),
       externalUrl: item.externalUrl ?? "",
     });
   };
@@ -240,7 +404,7 @@ export function NewsFeedPanel({ user }: Props) {
           content: editDraft.content.trim(),
           tone: editDraft.tone,
           highlighted: true,
-          imageUrl: editDraft.imageUrl,
+          attachments: buildNewsPayloadAttachments(editDraft.attachments),
           externalUrl: normalizeExternalUrl(editDraft.externalUrl),
         },
         user.id
@@ -529,46 +693,49 @@ export function NewsFeedPanel({ user }: Props) {
                         ))}
                       </div>
                       <div className="news-feed__media-actions">
-                        <Tooltip
-                          title={
-                            editDraft.imageUrl
-                              ? "Заменить изображение"
-                              : "Добавить изображение"
-                          }
-                        >
+                        <Tooltip title="Добавить изображение или видео">
                           <IconButton
                             className="news-feed__media-icon"
-                            onClick={() => editImageInputRef.current?.click()}
-                            aria-label="Добавить изображение"
+                            onClick={() => editAttachmentInputRef.current?.click()}
+                            aria-label="Добавить вложение"
+                            disabled={uploadingScope === "edit"}
                           >
                             <ImageRoundedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
+                        <Tooltip title="Добавить видео">
+                          <IconButton
+                            className="news-feed__media-icon"
+                            onClick={() => editAttachmentInputRef.current?.click()}
+                            aria-label="Добавить видео"
+                            disabled={uploadingScope === "edit"}
+                          >
+                            <VideocamRoundedIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                         <input
                           hidden
-                          ref={editImageInputRef}
+                          ref={editAttachmentInputRef}
                           type="file"
-                          accept="image/*"
+                          accept="image/*,video/*"
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
-                            const imageUrl = await fileToDataUrl(file);
-                            setEditDraft((prev) =>
-                              prev ? { ...prev, imageUrl } : prev
-                            );
+                            await uploadAttachmentToScope(file, "edit");
                             e.target.value = "";
                           }}
                         />
-                        {editDraft.imageUrl && (
+                        {editDraft.attachments.length > 0 && (
                           <Tooltip title="Убрать изображение">
                             <IconButton
                               className="news-feed__media-icon news-feed__media-icon--clear"
                               onClick={() =>
                                 setEditDraft((prev) =>
-                                  prev ? { ...prev, imageUrl: "" } : prev
+                                  prev ? { ...prev, attachments: [] } : prev
                                 )
                               }
-                              aria-label="Убрать изображение"
+                              aria-label="Убрать вложения"
+                              disabled={uploadingScope === "edit"}
                             >
                               <CloseRoundedIcon fontSize="small" />
                             </IconButton>
@@ -576,9 +743,56 @@ export function NewsFeedPanel({ user }: Props) {
                         )}
                       </div>
                     </div>
-                    {editDraft.imageUrl && (
-                      <div className="news-feed__image-wrap">
-                        <img src={editDraft.imageUrl} alt="Превью" />
+                    {uploadingScope === "edit" && (
+                      <div className="news-feed__uploading">
+                        <CircularProgress size={16} />
+                        <span>Загружаем вложение…</span>
+                      </div>
+                    )}
+                    {editDraft.attachments.length > 0 && (
+                      <div className="news-feed__attachments-grid">
+                        {editDraft.attachments.map((attachment) => {
+                          const previewUrl = (
+                            attachment.accessUrl ||
+                            attachment.url ||
+                            ""
+                          ).trim();
+                          return (
+                            <article
+                              key={attachment.id}
+                              className="news-feed__attachment-card news-feed__attachment-card--editable"
+                            >
+                              <button
+                                type="button"
+                                className={cn(
+                                  "news-feed__attachment-preview",
+                                  `news-feed__attachment-preview--${attachment.kind}`
+                                )}
+                                onClick={() => openAttachmentPreview(attachment)}
+                                disabled={!previewUrl}
+                              >
+                                {attachment.kind === "video" ? (
+                                  <video src={previewUrl} muted playsInline preload="metadata" />
+                                ) : (
+                                  <img
+                                    src={previewUrl}
+                                    alt={attachment.fileName || "Изображение новости"}
+                                  />
+                                )}
+                              </button>
+                              <IconButton
+                                className="news-feed__attachment-remove"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  removeEditAttachment(attachment.id);
+                                }}
+                                aria-label="Удалить вложение"
+                              >
+                                <CloseRoundedIcon fontSize="small" />
+                              </IconButton>
+                            </article>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -610,9 +824,48 @@ export function NewsFeedPanel({ user }: Props) {
                         <OpenInNewRoundedIcon fontSize="small" />
                       </a>
                     )}
-                    {item.imageUrl && (
-                      <div className="news-feed__image-wrap">
-                        <img src={item.imageUrl} alt={item.title} />
+                    {normalizeNewsAttachments(item.attachments, item.imageUrl).length >
+                      0 && (
+                      <div className="news-feed__attachments-grid">
+                        {normalizeNewsAttachments(item.attachments, item.imageUrl).map(
+                          (attachment) => {
+                            const previewUrl = (
+                              attachment.accessUrl ||
+                              attachment.url ||
+                              ""
+                            ).trim();
+                            return (
+                              <article
+                                key={attachment.id}
+                                className="news-feed__attachment-card"
+                              >
+                                <button
+                                  type="button"
+                                  className={cn(
+                                    "news-feed__attachment-preview",
+                                    `news-feed__attachment-preview--${attachment.kind}`
+                                  )}
+                                  onClick={() => openAttachmentPreview(attachment)}
+                                  disabled={!previewUrl}
+                                >
+                                  {attachment.kind === "video" ? (
+                                    <video
+                                      src={previewUrl}
+                                      muted
+                                      playsInline
+                                      preload="metadata"
+                                    />
+                                  ) : (
+                                    <img
+                                      src={previewUrl}
+                                      alt={attachment.fileName || item.title}
+                                    />
+                                  )}
+                                </button>
+                              </article>
+                            );
+                          }
+                        )}
                       </div>
                     )}
                   </>
@@ -726,40 +979,45 @@ export function NewsFeedPanel({ user }: Props) {
                 ))}
               </div>
               <div className="news-feed__media-actions">
-                <Tooltip
-                  title={
-                    draft.imageUrl ? "Заменить изображение" : "Добавить изображение"
-                  }
-                >
+                <Tooltip title="Добавить изображение или видео">
                   <IconButton
                     className="news-feed__media-icon"
-                    onClick={() => createImageInputRef.current?.click()}
-                    aria-label="Добавить изображение"
+                    onClick={() => createAttachmentInputRef.current?.click()}
+                    aria-label="Добавить вложение"
+                    disabled={uploadingScope === "create"}
                   >
                     <ImageRoundedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
+                <Tooltip title="Добавить видео">
+                  <IconButton
+                    className="news-feed__media-icon"
+                    onClick={() => createAttachmentInputRef.current?.click()}
+                    aria-label="Добавить видео"
+                    disabled={uploadingScope === "create"}
+                  >
+                    <VideocamRoundedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
                 <input
                   hidden
-                  ref={createImageInputRef}
+                  ref={createAttachmentInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    const imageUrl = await fileToDataUrl(file);
-                    setDraft((prev) => ({ ...prev, imageUrl }));
+                    await uploadAttachmentToScope(file, "create");
                     e.target.value = "";
                   }}
                 />
-                {draft.imageUrl && (
-                  <Tooltip title="Убрать изображение">
+                {draft.attachments.length > 0 && (
+                  <Tooltip title="Убрать вложения">
                     <IconButton
                       className="news-feed__media-icon news-feed__media-icon--clear"
-                      onClick={() =>
-                        setDraft((prev) => ({ ...prev, imageUrl: "" }))
-                      }
-                      aria-label="Убрать изображение"
+                      onClick={() => setDraft((prev) => ({ ...prev, attachments: [] }))}
+                      aria-label="Убрать вложения"
+                      disabled={uploadingScope === "create"}
                     >
                       <CloseRoundedIcon fontSize="small" />
                     </IconButton>
@@ -768,9 +1026,54 @@ export function NewsFeedPanel({ user }: Props) {
               </div>
             </div>
 
-            {draft.imageUrl && (
-              <div className="news-feed__image-wrap news-feed__image-wrap--create">
-                <img src={draft.imageUrl} alt="Превью новости" />
+            {uploadingScope === "create" && (
+              <div className="news-feed__uploading">
+                <CircularProgress size={16} />
+                <span>Загружаем вложение…</span>
+              </div>
+            )}
+
+            {draft.attachments.length > 0 && (
+              <div className="news-feed__attachments-grid news-feed__attachments-grid--create">
+                {draft.attachments.map((attachment) => {
+                  const previewUrl = (
+                    attachment.accessUrl ||
+                    attachment.url ||
+                    ""
+                  ).trim();
+                  return (
+                    <article
+                      key={attachment.id}
+                      className="news-feed__attachment-card news-feed__attachment-card--editable"
+                    >
+                      <button
+                        type="button"
+                        className={cn(
+                          "news-feed__attachment-preview",
+                          `news-feed__attachment-preview--${attachment.kind}`
+                        )}
+                        onClick={() => openAttachmentPreview(attachment)}
+                        disabled={!previewUrl}
+                      >
+                        {attachment.kind === "video" ? (
+                          <video src={previewUrl} muted playsInline preload="metadata" />
+                        ) : (
+                          <img src={previewUrl} alt={attachment.fileName || "Превью новости"} />
+                        )}
+                      </button>
+                      <IconButton
+                        className="news-feed__attachment-remove"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          removeDraftAttachment(attachment.id);
+                        }}
+                        aria-label="Удалить вложение"
+                      >
+                        <CloseRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </article>
+                  );
+                })}
               </div>
             )}
           </DialogContent>
@@ -831,6 +1134,36 @@ export function NewsFeedPanel({ user }: Props) {
             {deletingId ? "Удаляем..." : "Удалить"}
           </Button>
         </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(previewAttachment)}
+        onClose={() => setPreviewAttachment(null)}
+        fullWidth
+        maxWidth="md"
+        className="news-feed__preview-dialog"
+      >
+        <DialogTitleWithClose
+          title=""
+          onClose={() => setPreviewAttachment(null)}
+        />
+        <DialogContent className="news-feed__preview-content">
+          {previewAttachment?.kind === "video" ? (
+            <video
+              controls
+              playsInline
+              preload="metadata"
+              src={previewAttachment.url}
+              className="news-feed__preview-media"
+            />
+          ) : previewAttachment ? (
+            <img
+              src={previewAttachment.url}
+              alt={previewAttachment.title}
+              className="news-feed__preview-media"
+            />
+          ) : null}
+        </DialogContent>
       </Dialog>
     </section>
   );

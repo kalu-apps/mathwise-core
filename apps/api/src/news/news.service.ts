@@ -1,8 +1,11 @@
 import { HttpException, Injectable, OnModuleInit } from "@nestjs/common";
 import type { AuthUserDto } from "../auth/auth.types";
+import { MediaService } from "../media/media.service";
 import { ensureId } from "../purchases/purchases.helpers";
 import { NewsRepository } from "./news.repository";
 import type {
+  NewsAttachmentDto,
+  NewsAttachmentKind,
   CreateNewsPostPayloadDto,
   NewsPostDto,
   NewsTone,
@@ -21,6 +24,8 @@ const ALLOWED_TONES = new Set<NewsTone>([
 ]);
 
 const ALLOWED_VISIBILITY = new Set<NewsVisibility>(["all", "course_students"]);
+const ALLOWED_ATTACHMENT_KINDS = new Set<NewsAttachmentKind>(["image", "video"]);
+const MAX_ATTACHMENTS_PER_NEWS = 8;
 
 const trimOrNull = (value: string | undefined) => {
   if (typeof value !== "string") return null;
@@ -39,6 +44,53 @@ const normalizeTargetUserIds = (value: string[] | undefined) => {
   );
 };
 
+const normalizeAttachments = (
+  value: NewsAttachmentDto[] | undefined
+): NewsAttachmentDto[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, MAX_ATTACHMENTS_PER_NEWS)
+    .reduce<NewsAttachmentDto[]>((acc, item, index) => {
+      if (!item || typeof item !== "object") return acc;
+      const id =
+        typeof item.id === "string" && item.id.trim().length > 0
+          ? item.id.trim()
+          : `attachment_${Date.now().toString(36)}_${index + 1}`;
+      const kindCandidate =
+        typeof item.kind === "string" ? item.kind.trim().toLowerCase() : "";
+      if (!ALLOWED_ATTACHMENT_KINDS.has(kindCandidate as NewsAttachmentKind)) {
+        return acc;
+      }
+      const mediaObjectId =
+        typeof item.mediaObjectId === "string"
+          ? item.mediaObjectId.trim() || undefined
+          : undefined;
+      const url =
+        typeof item.url === "string" ? item.url.trim() || undefined : undefined;
+      if (!mediaObjectId && !url) return acc;
+      const downloadable =
+        typeof item.downloadable === "boolean" ? item.downloadable : true;
+      const fileName =
+        typeof item.fileName === "string"
+          ? item.fileName.trim() || undefined
+          : undefined;
+      const contentType =
+        typeof item.contentType === "string"
+          ? item.contentType.trim() || undefined
+          : undefined;
+      acc.push({
+        id,
+        kind: kindCandidate as NewsAttachmentKind,
+        mediaObjectId,
+        url,
+        downloadable,
+        fileName,
+        contentType,
+      });
+      return acc;
+    }, []);
+};
+
 const canStudentViewNews = (item: NewsPostDto, studentId: string) => {
   if (item.visibility !== "course_students") return true;
   const targetUserIds = Array.isArray(item.targetUserIds) ? item.targetUserIds : [];
@@ -48,7 +100,10 @@ const canStudentViewNews = (item: NewsPostDto, studentId: string) => {
 
 @Injectable()
 export class NewsService implements OnModuleInit {
-  constructor(private readonly newsRepository: NewsRepository) {}
+  constructor(
+    private readonly newsRepository: NewsRepository,
+    private readonly mediaService: MediaService
+  ) {}
 
   async onModuleInit() {
     await this.newsRepository.ensureSchema();
@@ -57,9 +112,94 @@ export class NewsService implements OnModuleInit {
   async listForActor(actorUser: AuthUserDto): Promise<NewsPostDto[]> {
     const all = await this.newsRepository.listAll();
     if (actorUser.role === "teacher") {
-      return all;
+      return this.hydrateNewsFeed(all);
     }
-    return all.filter((item) => canStudentViewNews(item, actorUser.id));
+    return this.hydrateNewsFeed(
+      all.filter((item) => canStudentViewNews(item, actorUser.id))
+    );
+  }
+
+  private async hydrateNewsFeed(items: NewsPostDto[]): Promise<NewsPostDto[]> {
+    const mediaCache = new Map<string, { url: string; expiresAt?: string }>();
+    return Promise.all(items.map((item) => this.hydrateNewsPost(item, mediaCache)));
+  }
+
+  private async hydrateNewsPost(
+    item: NewsPostDto,
+    mediaCache: Map<string, { url: string; expiresAt?: string }>
+  ): Promise<NewsPostDto> {
+    const sourceAttachments = Array.isArray(item.attachments) ? item.attachments : [];
+    const legacyImageAttachment: NewsAttachmentDto[] =
+      sourceAttachments.length === 0 && item.imageUrl
+        ? [
+            {
+              id: `legacy_image_${item.id}`,
+              kind: "image" as const,
+              url: item.imageUrl,
+              downloadable: false,
+            },
+          ]
+        : [];
+    const merged = [...sourceAttachments, ...legacyImageAttachment];
+    if (merged.length === 0) {
+      return {
+        ...item,
+        attachments: [],
+      };
+    }
+
+    const hydrated = await Promise.all(
+      merged.map(async (attachment) => {
+        const mediaObjectId = attachment.mediaObjectId?.trim();
+        if (!mediaObjectId) {
+          return {
+            ...attachment,
+            accessUrl: attachment.url,
+            accessUrlExpiresAt: undefined,
+            downloadable: attachment.downloadable ?? true,
+          };
+        }
+
+        const cached = mediaCache.get(mediaObjectId);
+        if (cached) {
+          return {
+            ...attachment,
+            accessUrl: cached.url,
+            accessUrlExpiresAt: cached.expiresAt,
+            downloadable: attachment.downloadable ?? true,
+          };
+        }
+
+        try {
+          const access = await this.mediaService.getRuntimeDownloadUrlByObjectId(
+            mediaObjectId
+          );
+          const resolved = {
+            url: access.downloadUrl,
+            expiresAt: access.expiresAt,
+          };
+          mediaCache.set(mediaObjectId, resolved);
+          return {
+            ...attachment,
+            accessUrl: resolved.url,
+            accessUrlExpiresAt: resolved.expiresAt,
+            downloadable: attachment.downloadable ?? true,
+          };
+        } catch {
+          return {
+            ...attachment,
+            accessUrl: attachment.url,
+            accessUrlExpiresAt: undefined,
+            downloadable: attachment.downloadable ?? true,
+          };
+        }
+      })
+    );
+
+    return {
+      ...item,
+      attachments: hydrated,
+    };
   }
 
   async create(params: {
@@ -99,7 +239,7 @@ export class NewsService implements OnModuleInit {
     }
 
     const timestamp = nowIso();
-    return this.newsRepository.insert({
+    const created = await this.newsRepository.insert({
       id: ensureId("news"),
       authorId: params.actorUser.id,
       authorName: `${params.actorUser.firstName} ${params.actorUser.lastName}`.trim(),
@@ -108,6 +248,7 @@ export class NewsService implements OnModuleInit {
       tone,
       highlighted: params.payload.highlighted === true,
       imageUrl: trimOrNull(params.payload.imageUrl),
+      attachments: normalizeAttachments(params.payload.attachments),
       externalUrl: trimOrNull(params.payload.externalUrl),
       visibility,
       targetCourseId: trimOrNull(params.payload.targetCourseId),
@@ -115,6 +256,7 @@ export class NewsService implements OnModuleInit {
       createdAt: timestamp,
       updatedAt: timestamp,
     });
+    return this.hydrateNewsPost(created, new Map());
   }
 
   async update(params: {
@@ -165,6 +307,10 @@ export class NewsService implements OnModuleInit {
         params.payload.imageUrl !== undefined
           ? trimOrNull(params.payload.imageUrl)
           : trimOrNull(post.imageUrl),
+      attachments:
+        params.payload.attachments !== undefined
+          ? normalizeAttachments(params.payload.attachments)
+          : normalizeAttachments(post.attachments),
       externalUrl:
         params.payload.externalUrl !== undefined
           ? trimOrNull(params.payload.externalUrl)
@@ -183,7 +329,7 @@ export class NewsService implements OnModuleInit {
     if (!updated) {
       throw new HttpException({ error: "Объявление не найдено." }, 404);
     }
-    return updated;
+    return this.hydrateNewsPost(updated, new Map());
   }
 
   async delete(params: {
