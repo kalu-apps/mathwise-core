@@ -307,127 +307,172 @@
 }
 
 .teacher-student-profile__booking-card {
-  border-radius: 16px;
-  border: 1px solid var(--card-border);
-  background: var(--surface-soft);
-  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--card-border) 86%, transparent);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--surface-elevated) 96%, transparent),
+      color-mix(in srgb, var(--surface-soft) 90%, var(--brand-solid))
+    );
+  padding: 15px 16px;
   display: grid;
   gap: 12px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.teacher-student-profile__booking-card:hover {
+  border-color: color-mix(in srgb, var(--brand-solid) 38%, var(--card-border));
+  box-shadow: 0 12px 24px color-mix(in srgb, #0f172a 14%, transparent);
+  transform: translateY(-1px);
 }
 
 .teacher-student-profile__booking-head {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  justify-content: space-between;
   align-items: start;
-  gap: 14px;
+  gap: 12px;
 }
 
 .teacher-student-profile__booking-when {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  gap: 3px;
 }
 
 .teacher-student-profile__booking-date {
-  font-size: 11px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 620;
 }
 
 .teacher-student-profile__booking-time {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 560;
   color: var(--text-primary);
   white-space: nowrap;
-  line-height: 1.2;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
 }
 
 .teacher-student-profile__booking-side {
-  display: grid;
-  gap: 8px;
-  justify-items: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
 }
 
 .teacher-student-profile__booking-meta {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--brand-soft) 12%, transparent);
-  border: 1px solid var(--card-border);
+  justify-content: flex-end;
+  gap: 10px;
+  row-gap: 4px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
 }
 
 .teacher-student-profile__booking-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 6px;
 }
 
-.teacher-student-profile__status {
-  padding: 6px 11px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  line-height: 1.15;
-  white-space: nowrap;
-
-  &--scheduled {
-    color: var(--accent-text);
-    background: rgba(99, 102, 241, 0.16);
-  }
-
-  &--completed {
-    color: var(--feedback-success);
-    background: rgba(13, 148, 136, 0.16);
-  }
+.teacher-student-profile__booking-meta .ui-status-chip,
+.teacher-student-profile__booking-meta .ui-status-chip--scheduled,
+.teacher-student-profile__booking-meta .ui-status-chip--completed,
+.teacher-student-profile__booking-meta .ui-status-chip--trial,
+.teacher-student-profile__booking-meta .ui-status-chip--paid,
+.teacher-student-profile__booking-meta .ui-status-chip--unpaid {
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
+  font-size: 11px !important;
+  font-weight: 560 !important;
+  line-height: 1.2 !important;
 }
 
-.teacher-student-profile__kind {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 11px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  line-height: 1.15;
-  white-space: nowrap;
-  color: var(--accent-violet);
-  background: rgba(139, 92, 246, 0.16);
-}
-
+.teacher-student-profile__status,
+.teacher-student-profile__kind,
 .teacher-student-profile__payment {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 6px 11px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  line-height: 1.15;
+  gap: 6px;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  font-size: 11px;
+  font-weight: 560;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
   white-space: nowrap;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.teacher-student-profile__status::before,
+.teacher-student-profile__kind::before,
+.teacher-student-profile__payment::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  flex: 0 0 5px;
+}
+
+.teacher-student-profile__status--scheduled {
+  color: color-mix(in srgb, var(--accent-primary) 82%, var(--text-primary));
+}
+
+.teacher-student-profile__status--scheduled::before {
+  background: color-mix(in srgb, var(--accent-primary) 84%, #6ec8ff);
+}
+
+.teacher-student-profile__status--completed {
+  color: color-mix(in srgb, var(--feedback-success) 84%, var(--text-primary));
+}
+
+.teacher-student-profile__status--completed::before {
+  background: color-mix(in srgb, var(--feedback-success) 84%, #34d399);
+}
+
+.teacher-student-profile__kind {
+  color: color-mix(in srgb, var(--accent-violet) 78%, var(--text-primary));
+}
+
+.teacher-student-profile__kind::before {
+  background: color-mix(in srgb, var(--accent-violet) 78%, #a78bfa);
+}
+
+.teacher-student-profile__payment {
+  cursor: default;
 }
 
 .teacher-student-profile__payment--paid {
-  color: var(--feedback-success);
-  background: rgba(16, 185, 129, 0.2);
+  color: color-mix(in srgb, var(--feedback-success) 84%, var(--text-primary));
+}
+
+.teacher-student-profile__payment--paid::before {
+  background: color-mix(in srgb, var(--feedback-success) 84%, #22c55e);
 }
 
 .teacher-student-profile__payment--unpaid {
-  color: var(--feedback-danger);
-  background: rgba(239, 68, 68, 0.24);
-  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.24) inset;
+  color: color-mix(in srgb, var(--feedback-danger) 80%, var(--text-primary));
+}
+
+.teacher-student-profile__payment--unpaid::before {
+  background: color-mix(in srgb, var(--feedback-danger) 80%, #f87171);
 }
 
 .teacher-student-profile__booking-link {
@@ -436,10 +481,15 @@
   gap: 8px;
   font-size: 13px;
   color: var(--text-secondary);
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--card-border) 74%, transparent);
 
   a {
-    color: var(--accent-strong);
-    font-weight: 600;
+    color: color-mix(in srgb, var(--accent-strong) 84%, var(--text-primary));
+    font-weight: 560;
+    text-decoration: underline;
+    text-decoration-thickness: 0.06em;
+    text-underline-offset: 2px;
   }
 }
 
@@ -459,23 +509,29 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
-  background: var(--surface-elevated);
-  border-radius: 14px;
-  border: 1px solid var(--card-border);
+  padding: 5px 9px;
+  background: color-mix(in srgb, var(--surface-elevated) 86%, transparent);
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--card-border) 74%, transparent);
 
   a {
-    color: var(--accent-strong);
+    color: color-mix(in srgb, var(--accent-strong) 82%, var(--text-primary));
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 560;
   }
 }
 
 .teacher-student-profile__icon-btn {
-  background: color-mix(in srgb, var(--brand-solid) 10%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--brand-solid) 28%, var(--border-subtle));
-  border-radius: 14px;
-  color: var(--accent-text) !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 8px !important;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 82%, transparent);
+  background: color-mix(in srgb, var(--surface-soft) 72%, transparent) !important;
+  color: var(--text-secondary) !important;
+}
+
+.teacher-student-profile__icon-btn .MuiSvgIcon-root {
+  font-size: 16px;
 }
 
 @media (max-width: 900px) {
@@ -533,17 +589,17 @@
   }
 
   .teacher-student-profile__booking-head {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     align-items: start;
     gap: 10px;
   }
 
   .teacher-student-profile__booking-when {
-    grid-column: auto;
+    width: 100%;
   }
 
   .teacher-student-profile__booking-side {
-    justify-items: start;
+    align-items: flex-start;
     width: 100%;
   }
 
@@ -551,7 +607,6 @@
     justify-content: flex-start;
     flex-wrap: wrap;
     width: 100%;
-    grid-column: auto;
   }
 
   .teacher-student-profile__booking-actions {
