@@ -587,60 +587,52 @@ export default function StudentProfile() {
               {booking.startTime} – {booking.endTime}
             </strong>
           </div>
-          <div className="student-profile__lesson-meta">
-            <div className="student-profile__lesson-tags">
-              <span
-                className={`student-profile__lesson-status ${
-                  isCompleted
-                    ? "student-profile__lesson-status--completed"
-                    : "student-profile__lesson-status--scheduled"
-                } ui-status-chip ${
-                  isCompleted
-                    ? "ui-status-chip--completed"
-                    : "ui-status-chip--scheduled"
-                }`}
+          {!isCompleted && (
+            <div className="student-profile__lesson-head-actions">
+              <button
+                type="button"
+                className="student-profile__lesson-reschedule"
+                onClick={() => openRescheduleDialog(booking)}
+                aria-label="Перенести занятие"
               >
-                {isCompleted ? "Завершено" : "Запланировано"}
-              </span>
-              {isTrial && (
-                <span className="student-profile__lesson-kind ui-status-chip ui-status-chip--trial">
-                  Пробное занятие
-                </span>
-              )}
-              <span
-                className={`student-profile__lesson-payment ${
-                  isPaid
-                    ? "student-profile__lesson-payment--paid"
-                    : "student-profile__lesson-payment--unpaid"
-                } ui-status-chip ${
-                  isPaid ? "ui-status-chip--paid" : "ui-status-chip--unpaid"
-                }`}
+                <EditCalendarRoundedIcon fontSize="small" />
+                <span>Перенос занятия</span>
+              </button>
+              <IconButton
+                className="student-profile__lesson-delete"
+                size="small"
+                onClick={() => setBookingToCancel(booking)}
+                aria-label="Отменить занятие"
               >
-                {isPaid ? "Оплачено" : "Не оплачено"}
-              </span>
+                <DeleteOutlineRoundedIcon fontSize="small" />
+              </IconButton>
             </div>
-            {!isCompleted && (
-              <div className="student-profile__lesson-head-actions">
-                <button
-                  type="button"
-                  className="student-profile__lesson-reschedule"
-                  onClick={() => openRescheduleDialog(booking)}
-                  aria-label="Перенести занятие"
-                >
-                  <EditCalendarRoundedIcon fontSize="small" />
-                  <span>Перенос занятия</span>
-                </button>
-                <IconButton
-                  className="student-profile__lesson-delete"
-                  size="small"
-                  onClick={() => setBookingToCancel(booking)}
-                  aria-label="Отменить занятие"
-                >
-                  <DeleteOutlineRoundedIcon fontSize="small" />
-                </IconButton>
-              </div>
-            )}
-          </div>
+          )}
+        </div>
+        <div className="student-profile__lesson-status-line">
+          <span
+            className={`student-profile__lesson-status ${
+              isCompleted
+                ? "student-profile__lesson-status--completed"
+                : "student-profile__lesson-status--scheduled"
+            }`}
+          >
+            {isCompleted ? "Завершено" : "Запланировано"}
+          </span>
+          {isTrial && (
+            <span className="student-profile__lesson-kind">
+              Пробное занятие
+            </span>
+          )}
+          <span
+            className={`student-profile__lesson-payment ${
+              isPaid
+                ? "student-profile__lesson-payment--paid"
+                : "student-profile__lesson-payment--unpaid"
+            }`}
+          >
+            {isPaid ? "Оплачено" : "Не оплачено"}
+          </span>
         </div>
         <div className="student-profile__lesson-links">
           {booking.meetingUrl ? (

@@ -32,7 +32,6 @@ import RemoveRoundedIcon from "@mui/icons-material/RemoveRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
-import AttachFileRoundedIcon from "@mui/icons-material/AttachFileRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 import AppsRoundedIcon from "@mui/icons-material/AppsRounded";
@@ -778,50 +777,6 @@ export default function TeacherDashboard() {
     }
   };
 
-  const addBookingMaterials = async (
-    bookingId: string,
-    files: FileList | null
-  ) => {
-    if (!files || files.length === 0) return;
-    const accepted = Array.from(files).filter((file) => {
-      const ext = file.name.split(".").pop()?.toLowerCase();
-      return (
-        file.type.startsWith("video/") ||
-        ext === "pdf" ||
-        ext === "doc" ||
-        ext === "docx"
-      );
-    });
-    if (accepted.length === 0) return;
-    const items = await Promise.all(
-      accepted.map(async (file) => {
-        const ext = file.name.split(".").pop()?.toLowerCase();
-        const type: "pdf" | "doc" | "video" = file.type.startsWith("video/")
-          ? "video"
-          : ext === "pdf"
-            ? "pdf"
-            : "doc";
-        return {
-          id: generateId(),
-          name: file.name,
-          type,
-          url: await fileToDataUrl(file),
-        };
-      })
-    );
-    updateBookingDraft(bookingId, {
-      materials: [...(bookings.find((b) => b.id === bookingId)?.materials ?? []), ...items],
-    });
-  };
-
-  const removeBookingMaterial = (bookingId: string, materialId: string) => {
-    const booking = bookings.find((b) => b.id === bookingId);
-    if (!booking) return;
-    updateBookingDraft(bookingId, {
-      materials: booking.materials.filter((m) => m.id !== materialId),
-    });
-  };
-
   const renderBookingCard = (
     booking: Booking,
     status: "scheduled" | "completed"
@@ -861,16 +816,12 @@ export default function TeacherDashboard() {
           </div>
           <div className="teacher-dashboard__booking-tags">
             <span
-              className={`teacher-dashboard__status teacher-dashboard__status--${status} ui-status-chip ${
-                status === "scheduled"
-                  ? "ui-status-chip--scheduled"
-                  : "ui-status-chip--completed"
-              }`}
+              className={`teacher-dashboard__status teacher-dashboard__status--${status}`}
             >
               {statusLabel}
             </span>
             {isTrial && (
-              <span className="teacher-dashboard__booking-kind ui-status-chip ui-status-chip--trial">
+              <span className="teacher-dashboard__booking-kind">
                 {t("teacherDashboard.trialLesson")}
               </span>
             )}
@@ -880,8 +831,6 @@ export default function TeacherDashboard() {
                 isPaid
                   ? "teacher-dashboard__payment-status--paid"
                   : "teacher-dashboard__payment-status--unpaid"
-              } ui-status-chip ${
-                isPaid ? "ui-status-chip--paid" : "ui-status-chip--unpaid"
               }`}
               onClick={() =>
                 void setBookingPaymentStatus(booking.id, isPaid ? "unpaid" : "paid")
@@ -961,45 +910,6 @@ export default function TeacherDashboard() {
             )}
           </div>
         )}
-
-        <div className="teacher-dashboard__booking-materials">
-          <div className="teacher-dashboard__materials-list">
-            {(booking.materials ?? []).map((m) => (
-              <div key={m.id} className="teacher-dashboard__material-chip">
-                <a href={m.url} download={m.name}>
-                  {m.name}
-                </a>
-                {isEditing && (
-                  <IconButton
-                    className="teacher-dashboard__icon-btn"
-                    onClick={() => removeBookingMaterial(booking.id, m.id)}
-                    aria-label={t("teacherDashboard.deleteMaterialAria")}
-                  >
-                    <DeleteOutlineRoundedIcon fontSize="small" />
-                  </IconButton>
-                )}
-              </div>
-            ))}
-          </div>
-          {isEditing && (
-            <IconButton
-              component="label"
-              className="teacher-dashboard__icon-btn"
-              aria-label={t("teacherDashboard.addMaterialsAria")}
-            >
-              <AttachFileRoundedIcon fontSize="small" />
-              <input
-                type="file"
-                hidden
-                multiple
-                accept=".pdf,.doc,.docx,video/*"
-                onChange={(e) =>
-                  void addBookingMaterials(booking.id, e.target.files)
-                }
-              />
-            </IconButton>
-          )}
-        </div>
       </div>
     );
   };
@@ -1577,6 +1487,71 @@ export default function TeacherDashboard() {
                 )}
               </div>
             </div>
+            {availabilityDateGroups.length > 1 && (
+              <div className="teacher-dashboard__availability-filters">
+                {availabilityDateGroups.map((group) => (
+                  <button
+                    key={group.date}
+                    type="button"
+                    className={`teacher-dashboard__availability-filter ${
+                      selectedAvailabilityDate === group.date ? "is-active" : ""
+                    }`}
+                    onClick={() => {
+                      setSlotsDateFilter(group.date);
+                      setExpandedSlotsDate(null);
+                    }}
+                  >
+                    {new Date(`${group.date}T00:00:00`).toLocaleDateString(
+                      "ru-RU",
+                      {
+                        day: "2-digit",
+                        month: "short",
+                      }
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+            {availabilityError ? (
+              <RecoverableErrorAlert
+                error={availabilityError}
+                onRetry={retryDashboardData}
+                retryLabel={t("common.retryLoadData")}
+                forceRetry
+                onClose={() => setAvailabilityError(null)}
+              />
+            ) : null}
+            {availabilityLoading && availabilityDateGroups.length === 0 ? (
+              <ListSkeleton
+                className="teacher-dashboard__skeletons"
+                count={2}
+                itemHeight={96}
+              />
+            ) : availabilityDateGroups.length === 0 ? (
+              <div className="teacher-dashboard__empty teacher-dashboard__empty--compact">
+                {t("teacherDashboard.noFreeSlots")}
+              </div>
+            ) : (
+              <div className="teacher-dashboard__availability-list">
+                {visibleAvailabilitySlots.map((slot) => (
+                  <div key={slot.id} className="teacher-dashboard__slot">
+                    <div className="teacher-dashboard__slot-meta">
+                      <strong className="teacher-dashboard__slot-date">{slot.date}</strong>
+                      <span className="teacher-dashboard__slot-time">
+                        {slot.startTime} – {slot.endTime}
+                      </span>
+                    </div>
+                    <IconButton
+                      className="teacher-dashboard__slot-remove"
+                      onClick={() => void removeSlot(slot.id)}
+                      aria-label="Удалить слот"
+                    >
+                      <CloseRoundedIcon fontSize="inherit" />
+                    </IconButton>
+                  </div>
+                ))}
+              </div>
+            )}
             {availabilityOpen && (
               <div className="teacher-dashboard__slot-body teacher-dashboard__slot-body--inline">
                 {slotError && (
@@ -1653,71 +1628,6 @@ export default function TeacherDashboard() {
                     ))}
                   </TextField>
                 </div>
-              </div>
-            )}
-            {availabilityDateGroups.length > 1 && (
-              <div className="teacher-dashboard__availability-filters">
-                {availabilityDateGroups.map((group) => (
-                  <button
-                    key={group.date}
-                    type="button"
-                    className={`teacher-dashboard__availability-filter ${
-                      selectedAvailabilityDate === group.date ? "is-active" : ""
-                    }`}
-                    onClick={() => {
-                      setSlotsDateFilter(group.date);
-                      setExpandedSlotsDate(null);
-                    }}
-                  >
-                    {new Date(`${group.date}T00:00:00`).toLocaleDateString(
-                      "ru-RU",
-                      {
-                        day: "2-digit",
-                        month: "short",
-                      }
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-            {availabilityError ? (
-              <RecoverableErrorAlert
-                error={availabilityError}
-                onRetry={retryDashboardData}
-                retryLabel={t("common.retryLoadData")}
-                forceRetry
-                onClose={() => setAvailabilityError(null)}
-              />
-            ) : null}
-            {availabilityLoading && availabilityDateGroups.length === 0 ? (
-              <ListSkeleton
-                className="teacher-dashboard__skeletons"
-                count={2}
-                itemHeight={96}
-              />
-            ) : availabilityDateGroups.length === 0 ? (
-              <div className="teacher-dashboard__empty teacher-dashboard__empty--compact">
-                {t("teacherDashboard.noFreeSlots")}
-              </div>
-            ) : (
-              <div className="teacher-dashboard__availability-list">
-                {visibleAvailabilitySlots.map((slot) => (
-                  <div key={slot.id} className="teacher-dashboard__slot">
-                    <div className="teacher-dashboard__slot-meta">
-                      <strong className="teacher-dashboard__slot-date">{slot.date}</strong>
-                      <span className="teacher-dashboard__slot-time">
-                        {slot.startTime} – {slot.endTime}
-                      </span>
-                    </div>
-                    <IconButton
-                      className="teacher-dashboard__slot-remove"
-                      onClick={() => void removeSlot(slot.id)}
-                      aria-label="Удалить слот"
-                    >
-                      <CloseRoundedIcon fontSize="inherit" />
-                    </IconButton>
-                  </div>
-                ))}
               </div>
             )}
           </div>

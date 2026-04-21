@@ -541,9 +541,9 @@
   }
 
   &__slot-body {
-    margin-top: 18px;
+    margin-top: 10px;
     display: grid;
-    gap: 16px;
+    gap: 12px;
   }
 
   &__slot-body--inline {
@@ -707,7 +707,7 @@
   &__availability-filters {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
   }
 
   &__availability-filter {
@@ -715,9 +715,10 @@
     background: var(--surface-soft);
     color: var(--text-primary);
     border-radius: 999px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 700;
+    padding: 4px 10px;
+    min-height: 26px;
+    font-size: 11px;
+    font-weight: 500;
     cursor: pointer;
     text-transform: capitalize;
     transition: all 0.2s ease;
@@ -741,40 +742,43 @@
 
   &__availability-list {
     display: grid;
-    gap: 12px;
+    gap: 10px;
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 2px;
   }
 
   &__slot {
     position: relative;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: flex-start;
-    min-height: 44px;
-    padding: 10px 26px 10px 10px;
-    border-radius: 12px;
-    background: var(--surface-soft);
-    border: 1px solid rgba(148, 163, 184, 0.2);
+    min-height: 56px;
+    padding: 10px 34px 10px 12px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--surface-soft) 88%, var(--brand-solid));
+    border: 1px solid color-mix(in srgb, var(--brand-solid) 28%, var(--border-subtle));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 32%, transparent);
   }
 
   &__slot-meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    display: grid;
+    gap: 2px;
     min-width: 0;
   }
 
   &__slot-date {
-    font-size: 11px;
-    font-weight: 510;
-    color: var(--text-primary);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 560;
+    color: var(--text-muted);
     white-space: nowrap;
   }
 
   &__slot-time {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 620;
+    color: color-mix(in srgb, var(--text-primary) 92%, var(--accent-primary));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -782,19 +786,19 @@
 
   &__slot-remove {
     position: absolute !important;
-    top: 3px;
-    right: 3px;
-    width: 16px !important;
-    height: 16px !important;
-    min-width: 16px !important;
-    min-height: 16px !important;
+    top: 4px;
+    right: 4px;
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
     padding: 0 !important;
     color: var(--text-muted) !important;
     border: 0 !important;
     background: transparent !important;
 
     .MuiSvgIcon-root {
-      font-size: 11px;
+      font-size: 16px;
     }
   }
 
@@ -864,20 +868,23 @@
     grid-area: meta;
     text-align: right;
     color: var(--text-secondary);
-    display: grid;
-    gap: 4px;
-    justify-items: end;
-    min-width: 124px;
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 196px;
+    flex-wrap: wrap;
   }
 
   &__booking-tags {
     grid-area: tags;
-    display: inline-flex;
-    flex-wrap: wrap;
+    display: flex;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-start;
-    gap: 10px;
-    row-gap: 4px;
+    gap: 12px;
+    overflow-x: auto;
+    white-space: nowrap;
     padding: 0;
     border-radius: 0;
     background: transparent;
@@ -885,16 +892,16 @@
   }
 
   &__booking-date {
-    font-size: 11px;
+    font-size: 10.5px;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 620;
+    letter-spacing: 0.07em;
+    font-weight: 560;
     color: var(--text-muted);
   }
 
   &__booking-time {
-    font-size: 13px;
-    font-weight: 540;
+    font-size: 16px;
+    font-weight: 620;
     color: var(--text-primary);
     white-space: nowrap;
     line-height: 1.2;
@@ -1044,34 +1051,6 @@
       text-decoration: underline;
       text-underline-offset: 2px;
     }
-  }
-
-  &__booking-materials {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  &__materials-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-
-    a {
-      color: var(--accent-strong);
-      font-size: 12px;
-      font-weight: 600;
-    }
-  }
-
-  &__material-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 9px;
-    background: color-mix(in srgb, var(--surface-elevated) 86%, transparent);
-    border-radius: 10px;
-    border: 1px solid color-mix(in srgb, var(--card-border) 72%, transparent);
   }
 
   &__search {
@@ -1533,7 +1512,7 @@
   }
 
   .teacher-dashboard__booking-meta {
-    justify-items: start;
+    justify-content: flex-start;
     text-align: left;
     min-width: 0;
   }
@@ -1541,6 +1520,7 @@
   .teacher-dashboard__booking-tags {
     justify-content: flex-start;
     width: 100%;
+    overflow-x: auto;
   }
 
   .teacher-dashboard__booking-actions {
@@ -1607,23 +1587,9 @@
     -webkit-text-fill-color: currentColor !important;
   }
 
-  &__material-chip,
   &__reminder {
     background: var(--glass-tier-2-bg) !important;
     border-color: color-mix(in srgb, var(--glass-tier-2-border) 70%, var(--accent-primary)) !important;
     color: var(--text-primary) !important;
   }
-}
-
-/* Booking columns in teacher individual lessons should stay clean, without heavy section backplates. */
-.teacher-dashboard__bookings-grid .teacher-dashboard__availability {
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  padding: 0 !important;
-}
-
-.teacher-dashboard__bookings-grid .teacher-dashboard__availability-header {
-  margin-bottom: 2px;
 }

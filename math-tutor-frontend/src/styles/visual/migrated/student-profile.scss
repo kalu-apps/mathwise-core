@@ -791,7 +791,7 @@
 .student-profile__lessons-booking-action {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-end;
 }
 
 .student-profile__booking-trigger.MuiButton-root {
@@ -996,6 +996,11 @@
 .student-profile__lessons-panel {
   display: grid;
   gap: 10px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 82%, transparent);
+  background: color-mix(in srgb, var(--background-elevated) 94%, transparent);
+  padding: 12px;
+  backdrop-filter: blur(10px);
 }
 
 .student-profile__lessons-title {
@@ -1030,43 +1035,40 @@
 
 .student-profile__lesson-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
 
 .student-profile__lesson-time {
-  display: grid;
-  gap: 2px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .student-profile__lesson-date {
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--text-muted);
 }
 
 .student-profile__lesson-range {
-  font-size: 17px;
-  line-height: 1.1;
+  font-size: 15.5px;
+  line-height: 1.2;
   color: var(--text-primary);
   letter-spacing: 0.01em;
 }
 
-.student-profile__lesson-meta {
+.student-profile__lesson-status-line {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.student-profile__lesson-tags {
-  display: inline-flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10px;
-  row-gap: 4px;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: thin;
 }
 
 .student-profile__lesson-status,
@@ -1083,6 +1085,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 
 .student-profile__lesson-status::before,
@@ -1139,6 +1142,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex: 0 0 auto;
 }
 
 .student-profile__lesson-reschedule {
@@ -1497,12 +1501,12 @@
     align-items: stretch;
   }
 
-  .student-profile__lesson-meta {
-    justify-items: start;
+  .student-profile__lesson-time {
+    gap: 6px;
   }
 
-  .student-profile__lesson-tags {
-    justify-content: flex-start;
+  .student-profile__lesson-status-line {
+    overflow-x: auto;
   }
 
   .student-profile__profile-edit-avatar-row {
