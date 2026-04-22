@@ -181,6 +181,9 @@
     z-index: 2;
     padding-top: 94px;
     margin-top: 0;
+    background: transparent;
+    box-shadow: none;
+    border: 0;
     overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;

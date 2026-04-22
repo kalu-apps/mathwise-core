@@ -153,6 +153,7 @@
   &__account-main.MuiButton-text {
     border: 0 !important;
     outline: 0 !important;
+    background: transparent !important;
     box-shadow: none !important;
   }
 
@@ -253,7 +254,7 @@
     min-width: 0;
     border: 0 !important;
     outline: 0 !important;
-    background: color-mix(in srgb, var(--accent-primary) 7%, transparent) !important;
+    background: transparent !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     padding: 0 7px 0 2px !important;
@@ -267,7 +268,7 @@
     gap: 8px;
 
     &:hover {
-      background: color-mix(in srgb, var(--accent-primary) 11%, transparent) !important;
+      background: transparent !important;
       color: color-mix(in srgb, var(--text-primary) 96%, var(--accent-primary)) !important;
     }
 

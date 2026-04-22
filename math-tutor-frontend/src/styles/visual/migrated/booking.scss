@@ -4,6 +4,10 @@
   padding: 40px 20px 80px;
   font-family: var(--font-ui);
   color: var(--text-primary);
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
 
   .MuiAlert-root {
     margin-bottom: 18px;
@@ -528,5 +532,33 @@
     border: 1px solid var(--glass-tier-1-border) !important;
     box-shadow: inset 0 1px 0 var(--glass-tier-1-edge) !important;
     backdrop-filter: blur(var(--glass-tier-1-blur)) !important;
+  }
+}
+
+:root[data-theme="light"] .booking-page {
+  .booking-page__header p {
+    color: color-mix(in srgb, var(--text-primary) 80%, var(--text-secondary)) !important;
+  }
+
+  .booking-page__benefit-card {
+    color: color-mix(in srgb, var(--text-primary) 90%, var(--text-secondary));
+    border-color: color-mix(in srgb, var(--border-subtle) 78%, #9fb5e8);
+    background: color-mix(in srgb, var(--surface-elevated) 82%, #eef4ff);
+  }
+
+  .booking-page__benefit-card h3 {
+    color: color-mix(in srgb, var(--text-primary) 94%, #2a3f6a);
+  }
+
+  .booking-page__benefit-card p {
+    color: color-mix(in srgb, var(--text-primary) 78%, var(--text-secondary));
+  }
+
+  .booking-page__actions .MuiButton-outlined,
+  .booking-page__question,
+  .booking-page__teacher-link {
+    color: color-mix(in srgb, var(--text-primary) 90%, #2f4675) !important;
+    border-color: color-mix(in srgb, var(--text-primary) 28%, var(--border-subtle)) !important;
+    background: color-mix(in srgb, var(--surface-elevated) 84%, #edf4ff) !important;
   }
 }

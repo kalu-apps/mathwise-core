@@ -765,9 +765,8 @@ export function NewsFeedPanel({ user }: Props) {
         "news-feed--student": !isTeacher,
       })}
     >
-      <div className="news-feed__header">
-        <span className="news-feed__wall-badge">Новости</span>
-        {isTeacher && (
+      {isTeacher ? (
+        <div className="news-feed__header">
           <Button
             className={cn("news-feed__add", {
               "news-feed__add--compact": isMobile,
@@ -782,8 +781,8 @@ export function NewsFeedPanel({ user }: Props) {
           >
             {isMobile ? "Создать" : "Создать объявление"}
           </Button>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)}>

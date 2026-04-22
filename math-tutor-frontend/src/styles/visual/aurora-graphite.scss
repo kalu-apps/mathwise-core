@@ -580,7 +580,7 @@ select:focus-visible,
 .ui-chip,
 .ui-tag,
 .MuiChip-root,
-[class*="badge"],
+[class*="badge"]:not(.MuiBadge-badge),
 [class*="pill"],
 [class*="kicker"] {
   border-radius: 999px !important;
@@ -589,6 +589,14 @@ select:focus-visible,
   color: var(--text-primary) !important;
   text-transform: none !important;
   box-shadow: none !important;
+}
+
+/* Keep MUI notification dots/counters independent from generic badge restyling. */
+.MuiBadge-badge.MuiBadge-colorError {
+  background: var(--feedback-danger) !important;
+  color: color-mix(in srgb, #ffffff 94%, transparent) !important;
+  border: 0 !important;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--background-elevated) 92%, transparent) !important;
 }
 
 /* Chat specific hierarchy */

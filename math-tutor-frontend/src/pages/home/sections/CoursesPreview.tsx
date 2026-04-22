@@ -3,36 +3,8 @@ import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCourseReleaseContent, getCourses } from "@/entities/course/model/storage";
+import { getCourses } from "@/entities/course/model/storage";
 import type { Course } from "@/entities/course/model/types";
-import { getLessonsByCourse } from "@/entities/lesson/model/storage";
-
-function toPluralLabel(
-  count: number,
-  one: string,
-  few: string,
-  many: string
-) {
-  const abs = Math.abs(count);
-  const mod100 = abs % 100;
-  if (mod100 >= 11 && mod100 <= 19) {
-    return many;
-  }
-  const mod10 = abs % 10;
-  if (mod10 === 1) return one;
-  if (mod10 >= 2 && mod10 <= 4) return few;
-  return many;
-}
-
-function toLessonChipLabel(lessonsCount: number) {
-  if (lessonsCount <= 0) return "Уроки";
-  return `${lessonsCount} ${toPluralLabel(lessonsCount, "урок", "урока", "уроков")}`;
-}
-
-function toTestChipLabel(testsCount: number) {
-  if (testsCount <= 0) return null;
-  return `${testsCount} ${toPluralLabel(testsCount, "тест", "теста", "тестов")}`;
-}
 
 function getSecondarySticker(index: number) {
   if (index % 2 === 0) {
@@ -51,9 +23,6 @@ function getSecondarySticker(index: number) {
 export function CoursesPreview() {
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [courseStatsById, setCourseStatsById] = useState<
-    Record<string, { lessonsCount: number; testsCount: number }>
-  >({});
   const railRef = useRef<HTMLDivElement | null>(null);
   const sectionRef = useRef<HTMLElement | null>(null);
   const autoDirectionRef = useRef<"next" | "prev">("next");
@@ -122,69 +91,7 @@ export function CoursesPreview() {
   const publishedCourses = courses.filter(
     (course) => course.status === "published"
   );
-  const previewCourses = publishedCourses.slice(0, 9);
-
-  useEffect(() => {
-    let active = true;
-
-    const loadCourseStats = async () => {
-      if (!previewCourses.length) {
-        if (active) {
-          setCourseStatsById({});
-        }
-        return;
-      }
-
-      const statsEntries = await Promise.all(
-        previewCourses.map(async (course) => {
-          const fallback = { lessonsCount: 0, testsCount: 0 };
-          try {
-            const [lessons, releaseContent] = await Promise.all([
-              getLessonsByCourse(course.id, { forceFresh: true }).catch(() => []),
-              getCourseReleaseContent(course.id, { forceFresh: true }).catch(() => ({
-                items: [],
-                blocks: [],
-              })),
-            ]);
-
-            const releaseLessonIds = new Set(
-              releaseContent.items
-                .filter((item) => item.type === "lesson" && item.lessonId)
-                .map((item) => item.lessonId as string)
-            );
-            const lessonsCount = Math.max(lessons.length, releaseLessonIds.size);
-            const testsCount = releaseContent.items.filter(
-              (item) => item.type === "test"
-            ).length;
-
-            return [course.id, { lessonsCount, testsCount }] as const;
-          } catch {
-            return [course.id, fallback] as const;
-          }
-        })
-      );
-
-      if (!active) return;
-      setCourseStatsById(Object.fromEntries(statsEntries));
-    };
-
-    void loadCourseStats();
-    return () => {
-      active = false;
-    };
-  }, [previewCourses]);
-
-  const previewCards = useMemo(
-    () =>
-      previewCourses.map((course) => ({
-        ...course,
-        lessonsChip: toLessonChipLabel(
-          courseStatsById[course.id]?.lessonsCount ?? 0
-        ),
-        testsChip: toTestChipLabel(courseStatsById[course.id]?.testsCount ?? 0),
-      })),
-    [previewCourses, courseStatsById]
-  );
+  const previewCards = publishedCourses.slice(0, 9);
   const previewPages = useMemo(() => {
     const pages: Array<{
       featured: (typeof previewCards)[number];
@@ -319,18 +226,6 @@ export function CoursesPreview() {
                     <h3 className="courses-preview__title courses-preview__title--featured">{page.featured.title}</h3>
                   </div>
 
-                  <div className="courses-preview__featured-zone courses-preview__featured-zone--meta">
-                    <div className="courses-preview__metrics">
-                      <span className="courses-preview__metric">{page.featured.level}</span>
-                      <span className="courses-preview__metric">{page.featured.lessonsChip}</span>
-                      {page.featured.testsChip ? (
-                        <span className="courses-preview__metric courses-preview__metric--tests">
-                          {page.featured.testsChip}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-
                   <div className="courses-preview__featured-zone courses-preview__featured-zone--cta">
                     <div className="courses-preview__cta-row courses-preview__cta-row--featured">
                       <Button
@@ -369,16 +264,6 @@ export function CoursesPreview() {
                           </div>
 
                           <div className="courses-preview__secondary-footer">
-                            <div className="courses-preview__metrics courses-preview__metrics--compact">
-                              <span className="courses-preview__metric">{course.level}</span>
-                              <span className="courses-preview__metric">{course.lessonsChip}</span>
-                              {course.testsChip ? (
-                                <span className="courses-preview__metric courses-preview__metric--tests">
-                                  {course.testsChip}
-                                </span>
-                              ) : null}
-                            </div>
-
                             <div className="courses-preview__cta-row courses-preview__cta-row--secondary">
                               <Button
                                 className="courses-preview__button courses-preview__button--secondary"

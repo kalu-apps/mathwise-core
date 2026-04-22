@@ -8,12 +8,10 @@
   width: min(100%, var(--layout-content-max));
   margin: 0 auto;
   border-radius: 32px;
-  overflow: hidden;
+  overflow: visible;
   isolation: isolate;
-  background: color-mix(in srgb, var(--surface-elevated) 92%, #0f1b38);
-  box-shadow:
-    0 26px 58px color-mix(in srgb, #050a18 30%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 9%, transparent);
+  background: transparent;
+  box-shadow: none;
 }
 
 .home-first-screen__layout {
@@ -346,10 +344,8 @@
 }
 
 :root[data-theme="light"] .home-first-screen__scene {
-  background: color-mix(in srgb, var(--surface-elevated) 96%, #f1f6ff);
-  box-shadow:
-    0 24px 44px color-mix(in srgb, #a8bce5 16%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #ffffff 86%, transparent);
+  background: transparent;
+  box-shadow: none;
 }
 
 :root[data-theme="light"] .home-first-screen__hero-command {

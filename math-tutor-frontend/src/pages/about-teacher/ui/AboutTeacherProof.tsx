@@ -21,7 +21,7 @@ export function AboutTeacherProof({ diplomas, onOpenDiploma }: AboutTeacherProof
   ] as const;
 
   return (
-    <section className="about-teacher-proof" aria-labelledby="about-teacher-proof-title">
+    <>
       <div className="about-teacher-proof__intro">
         <span className="about-teacher-proof__eyebrow">Опыт и квалификация</span>
         <h2 id="about-teacher-proof-title">Образование и подтверждённые дипломы</h2>
@@ -100,6 +100,6 @@ export function AboutTeacherProof({ diplomas, onOpenDiploma }: AboutTeacherProof
           )}
         </div>
       </div>
-    </section>
+    </>
   );
 }
