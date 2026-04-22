@@ -136,9 +136,8 @@ export function CourseWithLessonsEditor({
   usePerfScreenTag("CourseWithLessonsEditor");
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const hasFinePointer = useMediaQuery("(any-pointer: fine)");
-  const canUseNativeQueueDrag = hasFinePointer;
-  const showQueueMoveControls = isMobile || !canUseNativeQueueDrag;
+  const canUseNativeQueueDrag = !isMobile;
+  const showQueueMoveControls = !canUseNativeQueueDrag;
   const isEditMode = Boolean(courseId);
   const [loading, setLoading] = useState(isEditMode);
 
@@ -742,6 +741,13 @@ export function CourseWithLessonsEditor({
     if (dragOverTargetRef.current === targetId) return;
     reorderQueueItems(sourceId, targetId);
     dragOverTargetRef.current = targetId;
+  };
+
+  const handleQueueDragEnter = (
+    event: DragEvent<HTMLElement>,
+    targetId: string
+  ) => {
+    handleQueueDragOver(event, targetId);
   };
 
   const handleQueueDragEnd = () => {
@@ -1559,6 +1565,7 @@ export function CourseWithLessonsEditor({
                               tabIndex={0}
                               onDragStart={(event) => handleQueueDragStart(event, item.id)}
                               onDragEnd={handleQueueDragEnd}
+                              onDragEnter={(event) => handleQueueDragEnter(event, item.id)}
                               onDragOver={(event) => handleQueueDragOver(event, item.id)}
                               onDrop={(event) => handleQueueDrop(event, item.id)}
                               onTouchStart={(event) => handleQueueTouchStart(event, item.id)}
@@ -1721,6 +1728,7 @@ export function CourseWithLessonsEditor({
                             tabIndex={0}
                             onDragStart={(event) => handleQueueDragStart(event, item.id)}
                             onDragEnd={handleQueueDragEnd}
+                            onDragEnter={(event) => handleQueueDragEnter(event, item.id)}
                             onDragOver={(event) => handleQueueDragOver(event, item.id)}
                             onDrop={(event) => handleQueueDrop(event, item.id)}
                             onTouchStart={(event) => handleQueueTouchStart(event, item.id)}
