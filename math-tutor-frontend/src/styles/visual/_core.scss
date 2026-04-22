@@ -813,6 +813,15 @@ select,
   place-items: center;
 }
 
+.immersive-media-overlay__frame {
+  position: relative;
+  width: fit-content;
+  max-width: min(96vw, 1400px);
+  max-height: calc(100dvh - 44px);
+  display: grid;
+  place-items: center;
+}
+
 .immersive-media-overlay__content {
   display: grid;
   place-items: center;
@@ -855,10 +864,12 @@ video.immersive-media-overlay__media {
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: color-mix(in srgb, #ffffff 92%, #cfd8ff);
+  color: #ffffff;
   cursor: pointer;
   z-index: 2;
-  transition: opacity 160ms ease, transform 160ms ease;
+  transition: opacity 160ms ease, transform 160ms ease, color 160ms ease;
+  mix-blend-mode: difference;
+  filter: drop-shadow(0 1px 2px rgba(8, 14, 34, 0.48));
 }
 
 .immersive-media-overlay__action .MuiSvgIcon-root {
@@ -866,7 +877,8 @@ video.immersive-media-overlay__media {
 }
 
 .immersive-media-overlay__action:hover {
-  opacity: 0.9;
+  opacity: 0.94;
+  color: #f7fbff;
 }
 
 .immersive-media-overlay__action:active {

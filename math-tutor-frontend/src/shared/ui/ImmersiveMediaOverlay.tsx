@@ -82,38 +82,40 @@ export function ImmersiveMediaOverlay({
       onClick={handleBackdropClick}
     >
       <div className="immersive-media-overlay__viewport">
-        <div className="immersive-media-overlay__content">{children}</div>
+        <div className="immersive-media-overlay__frame">
+          <div className="immersive-media-overlay__content">{children}</div>
 
-        {canNavigate ? (
+          {canNavigate ? (
+            <button
+              type="button"
+              className="immersive-media-overlay__action immersive-media-overlay__action--prev"
+              aria-label={prevLabel}
+              onClick={() => onPrev?.()}
+            >
+              <ChevronLeftRoundedIcon />
+            </button>
+          ) : null}
+
+          {canNavigate ? (
+            <button
+              type="button"
+              className="immersive-media-overlay__action immersive-media-overlay__action--next"
+              aria-label={nextLabel}
+              onClick={() => onNext?.()}
+            >
+              <ChevronRightRoundedIcon />
+            </button>
+          ) : null}
+
           <button
             type="button"
-            className="immersive-media-overlay__action immersive-media-overlay__action--prev"
-            aria-label={prevLabel}
-            onClick={() => onPrev?.()}
+            className="immersive-media-overlay__action immersive-media-overlay__action--close"
+            aria-label={closeLabel}
+            onClick={onClose}
           >
-            <ChevronLeftRoundedIcon />
+            <CloseRoundedIcon />
           </button>
-        ) : null}
-
-        {canNavigate ? (
-          <button
-            type="button"
-            className="immersive-media-overlay__action immersive-media-overlay__action--next"
-            aria-label={nextLabel}
-            onClick={() => onNext?.()}
-          >
-            <ChevronRightRoundedIcon />
-          </button>
-        ) : null}
-
-        <button
-          type="button"
-          className="immersive-media-overlay__action immersive-media-overlay__action--close"
-          aria-label={closeLabel}
-          onClick={onClose}
-        >
-          <CloseRoundedIcon />
-        </button>
+        </div>
       </div>
     </div>,
     document.body
