@@ -114,86 +114,30 @@
     white-space: nowrap;
     position: relative;
     -webkit-tap-highlight-color: transparent;
-    transform: translateY(0);
-    transition: color 0.2s ease, transform 0.2s ease;
+    transition: color 0.2s ease;
 
     .MuiButton-startIcon {
       margin-left: 0;
       margin-right: 6px;
       opacity: 0.9;
-      transition: opacity 0.18s ease, transform 0.2s ease;
+      transition: opacity 0.18s ease;
 
       .MuiSvgIcon-root {
         font-size: 17px;
       }
     }
 
-    &::before {
-      content: "";
-      position: absolute;
-      inset: 4px 5px 6px;
-      border-radius: 7px;
-      opacity: 0;
-      pointer-events: none;
-      background: linear-gradient(
-        115deg,
-        color-mix(in srgb, var(--accent-primary) 11%, transparent) 0%,
-        color-mix(in srgb, var(--accent-strong) 9%, transparent) 100%
-      );
-      transition: opacity 0.2s ease;
-    }
-
-    &::after {
-      content: "";
-      position: absolute;
-      left: 10px;
-      right: 10px;
-      bottom: 4px;
-      height: 1.25px;
-      border-radius: 999px;
-      opacity: 0;
-      transform: scaleX(0.5);
-      transform-origin: center;
-      background: linear-gradient(
-        90deg,
-        color-mix(in srgb, var(--accent-primary) 30%, var(--accent-strong)) 0%,
-        color-mix(in srgb, var(--accent-primary) 76%, var(--accent-strong)) 50%,
-        color-mix(in srgb, var(--accent-primary) 30%, var(--accent-strong)) 100%
-      );
-      transition: opacity 0.16s ease, transform 0.16s ease;
-    }
-
     &:hover {
       color: var(--text-primary) !important;
-      transform: translateY(-0.5px);
-    }
-
-    &:hover::before {
-      opacity: 0.62;
     }
 
     &:hover .MuiButton-startIcon {
       opacity: 1;
-      transform: translateY(-0.5px);
     }
 
     &.is-active {
       color: var(--text-primary) !important;
       font-weight: 640 !important;
-      transform: translateY(-0.5px);
-    }
-
-    &.is-active::before {
-      opacity: 0.72;
-    }
-
-    &.is-active::after {
-      opacity: 1;
-      transform: scaleX(1);
-    }
-
-    &:active {
-      transform: translateY(0) scale(0.985);
     }
 
     &:focus-visible {
@@ -310,7 +254,7 @@
     border: 0 !important;
     outline: 0 !important;
     background: color-mix(in srgb, var(--accent-primary) 7%, transparent) !important;
-    border-radius: 2px !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
     padding: 0 7px 0 2px !important;
     text-transform: none !important;
