@@ -604,12 +604,14 @@
   }
 
   &__slot-add {
-    border: 1px solid color-mix(in srgb, var(--accent-primary) 34%, var(--border-subtle));
-    background: color-mix(in srgb, var(--accent-primary) 10%, var(--surface-soft));
+    appearance: none;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
     color: color-mix(in srgb, var(--accent-primary) 88%, var(--text-primary));
-    border-radius: 999px;
+    border-radius: 6px;
     min-height: 30px;
-    padding: 0 10px;
+    padding: 0 6px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -618,22 +620,27 @@
     letter-spacing: 0.01em;
     white-space: nowrap;
     cursor: pointer;
-    transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
+    transition: color 0.16s ease, transform 0.16s ease;
   }
 
   &__slot-add:hover {
-    border-color: color-mix(in srgb, var(--accent-primary) 56%, var(--border-subtle));
-    background: color-mix(in srgb, var(--accent-primary) 16%, var(--surface-soft));
-    transform: translateY(-1px);
+    color: color-mix(in srgb, var(--accent-primary) 96%, var(--text-primary));
+  }
+
+  &__slot-add:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 26%, transparent);
   }
 
   &__slot-clear {
-    border: 1px solid color-mix(in srgb, var(--feedback-danger) 32%, var(--border-subtle));
-    background: color-mix(in srgb, var(--feedback-danger) 8%, var(--surface-soft));
+    appearance: none;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
     color: color-mix(in srgb, var(--feedback-danger) 82%, var(--text-primary));
-    border-radius: 999px;
+    border-radius: 6px;
     min-height: 30px;
-    padding: 0 10px;
+    padding: 0 6px;
     display: inline-flex;
     align-items: center;
     font-size: 12px;
@@ -641,22 +648,28 @@
     letter-spacing: 0.01em;
     white-space: nowrap;
     cursor: pointer;
-    transition: border-color 0.16s ease, background-color 0.16s ease;
+    transition: color 0.16s ease;
   }
 
   &__slot-clear:hover {
-    border-color: color-mix(in srgb, var(--feedback-danger) 48%, var(--border-subtle));
-    background: color-mix(in srgb, var(--feedback-danger) 14%, var(--surface-soft));
+    color: color-mix(in srgb, var(--feedback-danger) 94%, var(--text-primary));
+  }
+
+  &__slot-clear:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--feedback-danger) 24%, transparent);
   }
 
   &__slot-submit {
-    border: 1px solid color-mix(in srgb, var(--accent-primary) 44%, var(--border-subtle));
-    background: color-mix(in srgb, var(--accent-primary) 14%, var(--surface-soft));
+    appearance: none;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
     color: color-mix(in srgb, var(--accent-primary) 92%, var(--text-primary));
-    border-radius: 12px;
+    border-radius: 6px;
     min-height: 56px;
     height: 56px;
-    padding: 0 12px;
+    padding: 0 8px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -665,13 +678,16 @@
     font-weight: 620;
     letter-spacing: 0.01em;
     cursor: pointer;
-    transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
+    transition: color 0.16s ease;
   }
 
   &__slot-submit:hover:not(:disabled) {
-    border-color: color-mix(in srgb, var(--accent-primary) 56%, var(--border-subtle));
-    background: color-mix(in srgb, var(--accent-primary) 16%, var(--surface-soft));
-    transform: translateY(-1px);
+    color: color-mix(in srgb, var(--accent-primary) 100%, var(--text-primary));
+  }
+
+  &__slot-submit:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary) 24%, transparent);
   }
 
   &__slot-submit:disabled {
@@ -845,9 +861,9 @@
     border: 1px solid rgba(148, 163, 184, 0.3);
     background: var(--surface-soft);
     color: var(--text-primary);
-    border-radius: 999px;
+    border-radius: 6px;
     padding: 0 8px 0 10px;
-    min-height: 25px;
+    min-height: 26px;
     font-size: 11px;
     font-weight: 400;
     line-height: 1;
@@ -868,12 +884,8 @@
     &.is-active {
       border-color: rgba(99, 102, 241, 0.68);
       color: var(--accent-soft);
-      background: linear-gradient(
-        135deg,
-        rgba(99, 102, 241, 0.18),
-        rgba(14, 165, 233, 0.12)
-      );
-      box-shadow: 0 8px 16px rgba(79, 70, 229, 0.14);
+      background: color-mix(in srgb, var(--accent-primary) 12%, var(--surface-soft));
+      box-shadow: none;
     }
   }
 
@@ -888,7 +900,7 @@
     justify-content: center;
     min-width: 18px;
     height: 18px;
-    border-radius: 999px;
+    border-radius: 4px;
     padding: 0 5px;
     font-size: 10px;
     font-weight: 640;
