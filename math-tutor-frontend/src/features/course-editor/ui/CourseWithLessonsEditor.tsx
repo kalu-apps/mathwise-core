@@ -716,24 +716,56 @@ export function CourseWithLessonsEditor({
     return target?.dataset.courseQueueItemId ?? null;
   };
 
+  const resolveQueueTargetIdFromContainer = (
+    container: HTMLElement | null,
+    pointerY: number,
+    sourceId: string
+  ) => {
+    if (!container) return null;
+    const candidates = Array.from(
+      container.querySelectorAll<HTMLElement>("[data-course-queue-item-id]")
+    ).filter(
+      (node) =>
+        Boolean(node.dataset.courseQueueItemId) &&
+        node.dataset.courseQueueItemId !== sourceId
+    );
+    if (candidates.length === 0) return null;
+    for (const candidate of candidates) {
+      const rect = candidate.getBoundingClientRect();
+      if (pointerY < rect.top + rect.height / 2) {
+        return candidate.dataset.courseQueueItemId ?? null;
+      }
+    }
+    return candidates[candidates.length - 1]?.dataset.courseQueueItemId ?? null;
+  };
+
   const handleQueueDrop = (
     event: DragEvent<HTMLElement>,
     targetId?: string
   ) => {
     if (!canUseNativeQueueDrag) return;
     event.preventDefault();
+    const sourceId =
+      dragSourceItemRef.current ||
+      dragQueueItemId ||
+      event.dataTransfer.getData("text/plain");
     const resolvedTargetId =
-      targetId ?? resolveQueueTargetIdFromPoint(event) ?? dragOverTargetRef.current;
+      targetId ??
+      resolveQueueTargetIdFromPoint(event) ??
+      (sourceId
+        ? resolveQueueTargetIdFromContainer(
+            event.currentTarget as HTMLElement | null,
+            event.clientY,
+            sourceId
+          )
+        : null) ??
+      dragOverTargetRef.current;
     if (!resolvedTargetId) {
       dragSourceItemRef.current = null;
       setDragQueueItemId(null);
       dragOverTargetRef.current = null;
       return;
     }
-    const sourceId =
-      dragSourceItemRef.current ||
-      dragQueueItemId ||
-      event.dataTransfer.getData("text/plain");
     if (
       sourceId &&
       sourceId !== resolvedTargetId &&
@@ -761,18 +793,19 @@ export function CourseWithLessonsEditor({
     if (!dragQueueItemId) {
       setDragQueueItemId(sourceId);
     }
-    const resolvedTargetId = targetId ?? resolveQueueTargetIdFromPoint(event);
+    const pointTargetId = targetId ?? resolveQueueTargetIdFromPoint(event);
+    const resolvedTargetId =
+      pointTargetId && pointTargetId !== sourceId
+        ? pointTargetId
+        : resolveQueueTargetIdFromContainer(
+            event.currentTarget as HTMLElement | null,
+            event.clientY,
+            sourceId
+          );
     if (!resolvedTargetId || resolvedTargetId === sourceId) return;
     if (dragOverTargetRef.current === resolvedTargetId) return;
     reorderQueueItems(sourceId, resolvedTargetId);
     dragOverTargetRef.current = resolvedTargetId;
-  };
-
-  const handleQueueDragEnter = (
-    event: DragEvent<HTMLElement>,
-    targetId: string
-  ) => {
-    handleQueueDragOver(event, targetId);
   };
 
   const handleQueueDragEnd = () => {
@@ -807,12 +840,21 @@ export function CourseWithLessonsEditor({
       touch.clientX,
       touch.clientY
     ) as HTMLElement | null;
-    const target = element?.closest<HTMLElement>("[data-course-queue-item-id]");
-    const targetId = target?.dataset.courseQueueItemId;
-    if (!targetId || targetId === dragQueueItemId) return;
-    if (touchDragTargetRef.current === targetId) return;
-    reorderQueueItems(dragQueueItemId, targetId);
-    touchDragTargetRef.current = targetId;
+    const pointTarget = element?.closest<HTMLElement>("[data-course-queue-item-id]");
+    const pointTargetId = pointTarget?.dataset.courseQueueItemId ?? null;
+    const sourceElement = document.querySelector<HTMLElement>(
+      `[data-course-queue-item-id="${dragQueueItemId}"]`
+    );
+    const sourceContainer =
+      sourceElement?.closest<HTMLElement>("[data-course-queue-group]") ?? null;
+    const resolvedTargetId =
+      pointTargetId && pointTargetId !== dragQueueItemId
+        ? pointTargetId
+        : resolveQueueTargetIdFromContainer(sourceContainer, touch.clientY, dragQueueItemId);
+    if (!resolvedTargetId || resolvedTargetId === dragQueueItemId) return;
+    if (touchDragTargetRef.current === resolvedTargetId) return;
+    reorderQueueItems(dragQueueItemId, resolvedTargetId);
+    touchDragTargetRef.current = resolvedTargetId;
     event.preventDefault();
   };
 
@@ -1574,6 +1616,7 @@ export function CourseWithLessonsEditor({
                   ) : (
                     <Stack
                       spacing={1}
+                      data-course-queue-group="true"
                       onDragEnter={handleQueueDragOver}
                       onDragOver={handleQueueDragOver}
                       onDrop={handleQueueDrop}
@@ -1593,9 +1636,6 @@ export function CourseWithLessonsEditor({
                               tabIndex={0}
                               onDragStart={(event) => handleQueueDragStart(event, item.id)}
                               onDragEnd={handleQueueDragEnd}
-                              onDragEnter={(event) => handleQueueDragEnter(event, item.id)}
-                              onDragOver={(event) => handleQueueDragOver(event, item.id)}
-                              onDrop={(event) => handleQueueDrop(event, item.id)}
                               onTouchStart={(event) => handleQueueTouchStart(event, item.id)}
                               onTouchMove={handleQueueTouchMove}
                               onTouchEnd={handleQueueTouchEnd}
@@ -1756,9 +1796,6 @@ export function CourseWithLessonsEditor({
                             tabIndex={0}
                             onDragStart={(event) => handleQueueDragStart(event, item.id)}
                             onDragEnd={handleQueueDragEnd}
-                            onDragEnter={(event) => handleQueueDragEnter(event, item.id)}
-                            onDragOver={(event) => handleQueueDragOver(event, item.id)}
-                            onDrop={(event) => handleQueueDrop(event, item.id)}
                             onTouchStart={(event) => handleQueueTouchStart(event, item.id)}
                             onTouchMove={handleQueueTouchMove}
                             onTouchEnd={handleQueueTouchEnd}
