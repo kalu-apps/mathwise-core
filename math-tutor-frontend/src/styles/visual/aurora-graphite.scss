@@ -364,34 +364,35 @@ button,
 .ui-btn--primary,
 .booking-page__actions .MuiButton-root:first-child,
 .chat-page__send-button {
-  background: var(--accent-gradient-soft) !important;
-  color: var(--text-on-accent) !important;
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 52%, var(--ag-border-strong)) !important;
-  box-shadow: 0 10px 22px color-mix(in srgb, var(--accent-primary) 24%, transparent) !important;
+  background: var(--btn-primary-bg) !important;
+  color: var(--btn-primary-text) !important;
+  border: 1px solid color-mix(in srgb, var(--brand-solid) 34%, var(--ag-border-strong)) !important;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--brand-solid) 18%, transparent) !important;
 }
 
 .MuiButton-contained:hover,
 .MuiButton-containedPrimary:hover,
 .ui-btn--primary:hover,
 .chat-page__send-button:hover {
-  background: var(--accent-gradient-strong) !important;
-  transform: translateY(-1px);
+  background: var(--btn-primary-bg-hover) !important;
+  box-shadow: 0 9px 18px color-mix(in srgb, var(--brand-solid) 22%, transparent) !important;
+  transform: none;
 }
 
 .MuiButton-outlined,
 .MuiButton-text,
 .ui-btn--secondary {
-  background: var(--ag-tier2-bg) !important;
-  color: var(--text-primary) !important;
-  border: 1px solid var(--ag-tier2-border) !important;
+  background: var(--btn-secondary-bg) !important;
+  color: var(--btn-secondary-text) !important;
+  border: 1px solid color-mix(in srgb, var(--ag-tier2-border) 88%, var(--border-subtle)) !important;
   box-shadow: inset 0 1px 0 var(--ag-tier2-edge) !important;
 }
 
 .MuiButton-outlined:hover,
 .MuiButton-text:hover,
 .ui-btn--secondary:hover {
-  background: color-mix(in srgb, var(--background-elevated) 78%, var(--accent-primary)) !important;
-  border-color: var(--ag-border-strong) !important;
+  background: var(--btn-secondary-bg-hover) !important;
+  border-color: color-mix(in srgb, var(--brand-solid) 30%, var(--ag-border-strong)) !important;
 }
 
 /* Course details purchase buttons keep local metallic treatment */

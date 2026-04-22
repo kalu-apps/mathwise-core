@@ -82,12 +82,12 @@
   }
 
   &__list--courses {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     justify-content: flex-start;
   }
 
   &__list--students {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: stretch;
   }
 
@@ -810,6 +810,11 @@
     .MuiInputBase-input {
       cursor: pointer;
     }
+  }
+
+  &__slot-select-placeholder {
+    color: var(--text-muted);
+    font-weight: 500;
   }
 
   &__slot-date-native {

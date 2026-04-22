@@ -6,6 +6,7 @@ import {
   useState,
   type KeyboardEvent,
   type DragEvent,
+  type TouchEvent,
 } from "react";
 import {
   Dialog,
@@ -135,6 +136,9 @@ export function CourseWithLessonsEditor({
   usePerfScreenTag("CourseWithLessonsEditor");
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTouchPointer = useMediaQuery("(hover: none), (pointer: coarse)");
+  const canUseNativeQueueDrag = !isTouchPointer;
+  const showQueueMoveControls = isMobile || isTouchPointer;
   const isEditMode = Boolean(courseId);
   const [loading, setLoading] = useState(isEditMode);
 
@@ -159,6 +163,7 @@ export function CourseWithLessonsEditor({
   const [saveError, setSaveError] = useState<unknown | null>(null);
   const [closing, setClosing] = useState(false);
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
+  const touchDragTargetRef = useRef<string | null>(null);
   const autoDraftCourseIdRef = useRef<string | null>(courseId ?? null);
   const committedRef = useRef(false);
   const skipAutoSaveOnUnmountRef = useRef(false);
@@ -693,14 +698,14 @@ export function CourseWithLessonsEditor({
     event: DragEvent<HTMLElement>,
     itemId: string
   ) => {
-    if (isMobile) return;
+    if (!canUseNativeQueueDrag) return;
     setDragQueueItemId(itemId);
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", itemId);
   };
 
   const handleQueueDrop = (event: DragEvent<HTMLElement>, targetId: string) => {
-    if (isMobile) return;
+    if (!canUseNativeQueueDrag) return;
     event.preventDefault();
     const sourceId = dragQueueItemId || event.dataTransfer.getData("text/plain");
     if (!sourceId) return;
@@ -709,8 +714,48 @@ export function CourseWithLessonsEditor({
   };
 
   const handleQueueDragOver = (event: DragEvent<HTMLElement>) => {
-    if (isMobile) return;
+    if (!canUseNativeQueueDrag) return;
     event.preventDefault();
+  };
+
+  const handleQueueTouchStart = (
+    event: TouchEvent<HTMLElement>,
+    itemId: string
+  ) => {
+    if (canUseNativeQueueDrag) return;
+    const origin = event.target as HTMLElement | null;
+    if (
+      origin?.closest(
+        "button, a, input, textarea, select, [role='button'], [role='link']"
+      )
+    ) {
+      return;
+    }
+    setDragQueueItemId(itemId);
+    touchDragTargetRef.current = itemId;
+  };
+
+  const handleQueueTouchMove = (event: TouchEvent<HTMLElement>) => {
+    if (canUseNativeQueueDrag || !dragQueueItemId) return;
+    const touch = event.touches[0];
+    if (!touch) return;
+    const element = document.elementFromPoint(
+      touch.clientX,
+      touch.clientY
+    ) as HTMLElement | null;
+    const target = element?.closest<HTMLElement>("[data-course-queue-item-id]");
+    const targetId = target?.dataset.courseQueueItemId;
+    if (!targetId || targetId === dragQueueItemId) return;
+    if (touchDragTargetRef.current === targetId) return;
+    reorderQueueItems(dragQueueItemId, targetId);
+    touchDragTargetRef.current = targetId;
+    event.preventDefault();
+  };
+
+  const handleQueueTouchEnd = () => {
+    if (canUseNativeQueueDrag) return;
+    setDragQueueItemId(null);
+    touchDragTargetRef.current = null;
   };
 
   const handleQueueDragHandleKeyDown = (
@@ -1474,12 +1519,16 @@ export function CourseWithLessonsEditor({
                             <div
                               key={item.id}
                               data-course-queue-item-id={item.id}
-                              draggable={!isMobile}
+                              draggable={canUseNativeQueueDrag}
                               tabIndex={0}
                               onDragStart={(event) => handleQueueDragStart(event, item.id)}
                               onDragEnd={() => setDragQueueItemId(null)}
                               onDragOver={handleQueueDragOver}
                               onDrop={(event) => handleQueueDrop(event, item.id)}
+                              onTouchStart={(event) => handleQueueTouchStart(event, item.id)}
+                              onTouchMove={handleQueueTouchMove}
+                              onTouchEnd={handleQueueTouchEnd}
+                              onTouchCancel={handleQueueTouchEnd}
                               onKeyDown={(event) =>
                                 handleQueueDragHandleKeyDown(event, item.id)
                               }
@@ -1543,7 +1592,7 @@ export function CourseWithLessonsEditor({
                                   </TextField>
                                 ) : null}
                                 <div className="course-editor-dialog__queue-item-icons">
-                                  {isMobile ? (
+                                  {showQueueMoveControls ? (
                                     <>
                                       <Tooltip title="Поднять в списке">
                                         <span>
@@ -1632,12 +1681,16 @@ export function CourseWithLessonsEditor({
                           <div
                             key={item.id}
                             data-course-queue-item-id={item.id}
-                            draggable={!isMobile}
+                            draggable={canUseNativeQueueDrag}
                             tabIndex={0}
                             onDragStart={(event) => handleQueueDragStart(event, item.id)}
                             onDragEnd={() => setDragQueueItemId(null)}
                             onDragOver={handleQueueDragOver}
                             onDrop={(event) => handleQueueDrop(event, item.id)}
+                            onTouchStart={(event) => handleQueueTouchStart(event, item.id)}
+                            onTouchMove={handleQueueTouchMove}
+                            onTouchEnd={handleQueueTouchEnd}
+                            onTouchCancel={handleQueueTouchEnd}
                             onKeyDown={(event) =>
                               handleQueueDragHandleKeyDown(event, item.id)
                             }
@@ -1724,7 +1777,7 @@ export function CourseWithLessonsEditor({
                                 </TextField>
                               ) : null}
                               <div className="course-editor-dialog__queue-item-icons">
-                                {isMobile ? (
+                                {showQueueMoveControls ? (
                                   <>
                                     <Tooltip title="Поднять в списке">
                                       <span>

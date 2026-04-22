@@ -124,12 +124,24 @@
   --tag-border: rgba(184, 201, 255, 0.52);
   --tag-text: #ebf2ff;
 
-  --btn-primary-bg: var(--gradient-brand);
-  --btn-primary-bg-hover: var(--gradient-brand-hover);
+  --btn-primary-bg: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--brand-solid) 64%, var(--background-elevated)),
+    color-mix(in srgb, var(--brand-violet) 32%, var(--background-elevated))
+  );
+  --btn-primary-bg-hover: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--brand-solid) 70%, var(--background-elevated)),
+    color-mix(in srgb, var(--brand-violet) 38%, var(--background-elevated))
+  );
   --btn-primary-text: var(--text-on-brand);
 
-  --btn-secondary-bg: rgba(64, 84, 138, 0.48);
-  --btn-secondary-bg-hover: rgba(74, 98, 161, 0.6);
+  --btn-secondary-bg: color-mix(in srgb, var(--background-elevated) 92%, var(--accent-primary));
+  --btn-secondary-bg-hover: color-mix(
+    in srgb,
+    var(--background-elevated) 88%,
+    var(--accent-primary)
+  );
   --btn-secondary-text: var(--text-primary);
 
   --price-title-color: #dfe9ff;
@@ -276,12 +288,20 @@
   --tag-border: rgba(93, 111, 193, 0.46);
   --tag-text: #1f2f56;
 
-  --btn-primary-bg: var(--gradient-brand);
-  --btn-primary-bg-hover: var(--gradient-brand-hover);
+  --btn-primary-bg: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--brand-solid) 74%, #f1f5ff),
+    color-mix(in srgb, var(--brand-violet) 34%, #edf4ff)
+  );
+  --btn-primary-bg-hover: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--brand-solid) 80%, #edf3ff),
+    color-mix(in srgb, var(--brand-violet) 40%, #e7f1ff)
+  );
   --btn-primary-text: var(--text-on-brand);
 
-  --btn-secondary-bg: rgba(221, 232, 255, 0.72);
-  --btn-secondary-bg-hover: rgba(206, 220, 255, 0.9);
+  --btn-secondary-bg: color-mix(in srgb, var(--background-elevated) 93%, var(--brand-solid));
+  --btn-secondary-bg-hover: color-mix(in srgb, var(--background-elevated) 89%, var(--brand-solid));
   --btn-secondary-text: var(--text-primary);
 
   --price-title-color: #334a78;
@@ -599,23 +619,23 @@ textarea::placeholder {
 }
 
 .ui-btn:hover {
-  transform: translateY(-1px);
+  transform: none;
 }
 
 .ui-btn:active {
-  transform: translateY(0);
+  transform: none;
 }
 
 .ui-btn--primary {
   color: var(--btn-primary-text);
   background: var(--btn-primary-bg);
-  border-color: color-mix(in srgb, var(--brand-soft) 28%, transparent);
-  box-shadow: var(--shadow-sm);
+  border-color: color-mix(in srgb, var(--brand-soft) 24%, var(--border-subtle));
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--brand-solid) 18%, transparent);
 }
 
 .ui-btn--primary:hover {
   background: var(--btn-primary-bg-hover);
-  box-shadow: var(--shadow-glow);
+  box-shadow: 0 9px 18px color-mix(in srgb, var(--brand-solid) 22%, transparent);
 }
 
 .ui-btn--secondary {
@@ -942,20 +962,31 @@ textarea::placeholder {
   font-weight: 650 !important;
   letter-spacing: 0.01em !important;
   text-transform: none !important;
+  line-height: 1.2 !important;
+}
+
+.MuiButton-root .MuiButton-startIcon,
+.MuiButton-root .MuiButton-endIcon,
+.MuiButton-root .MuiSvgIcon-root {
+  color: currentColor !important;
+}
+
+.MuiButton-root:focus-visible {
+  box-shadow: var(--focus-ring) !important;
 }
 
 .MuiButton-contained,
 .MuiButton-containedPrimary {
   background: var(--btn-primary-bg) !important;
   color: var(--btn-primary-text) !important;
-  border: 1px solid color-mix(in srgb, var(--brand-soft) 28%, transparent) !important;
-  box-shadow: var(--shadow-sm) !important;
+  border: 1px solid color-mix(in srgb, var(--brand-soft) 24%, var(--border-subtle)) !important;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--brand-solid) 18%, transparent) !important;
 }
 
 .MuiButton-contained:hover,
 .MuiButton-containedPrimary:hover {
   background: var(--btn-primary-bg-hover) !important;
-  box-shadow: var(--shadow-glow) !important;
+  box-shadow: 0 9px 18px color-mix(in srgb, var(--brand-solid) 22%, transparent) !important;
 }
 
 .MuiButton-outlined,

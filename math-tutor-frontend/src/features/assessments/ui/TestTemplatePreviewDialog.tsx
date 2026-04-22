@@ -19,6 +19,26 @@ export function TestTemplatePreviewDialog({ open, template, onClose }: Props) {
   const stringifyExpected = (value: string | string[]) =>
     Array.isArray(value) ? value.join(", ") : value;
 
+  const titleNode = template ? (
+    <span className="assessment-template-preview__title-row">
+      <span className="assessment-template-preview__title-text">{template.title}</span>
+      <span className="assessment-template-preview__status-row">
+        <Chip
+          size="small"
+          label={template.status === "published" ? "Опубликован" : "Черновик"}
+          color={template.status === "published" ? "success" : "warning"}
+        />
+        <Chip
+          size="small"
+          label={template.assessmentKind === "exam" ? "Экзамен" : "Зачет"}
+          color={template.assessmentKind === "exam" ? "error" : "info"}
+        />
+      </span>
+    </span>
+  ) : (
+    "Предпросмотр теста"
+  );
+
   return (
     <Dialog
       open={open}
@@ -28,7 +48,7 @@ export function TestTemplatePreviewDialog({ open, template, onClose }: Props) {
       className="ui-dialog ui-dialog--wide"
     >
       <DialogTitleWithClose
-        title={template?.title ?? "Предпросмотр теста"}
+        title={titleNode}
         onClose={onClose}
         closeAriaLabel="Закрыть предпросмотр"
       />
@@ -40,18 +60,6 @@ export function TestTemplatePreviewDialog({ open, template, onClose }: Props) {
             {template.description ? (
               <Typography color="text.secondary">{template.description}</Typography>
             ) : null}
-            <Chip
-              size="small"
-              label={template.status === "published" ? "Опубликован" : "Черновик"}
-              color={template.status === "published" ? "success" : "warning"}
-              sx={{ alignSelf: "flex-start" }}
-            />
-            <Chip
-              size="small"
-              label={template.assessmentKind === "exam" ? "Экзамен" : "Зачет"}
-              color={template.assessmentKind === "exam" ? "error" : "info"}
-              sx={{ alignSelf: "flex-start" }}
-            />
             <Typography variant="body2" color="text.secondary">
               Время прохождения: {template.durationMinutes} мин.
             </Typography>

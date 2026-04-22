@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Alert,
   Button,
+  Chip,
   IconButton,
   InputAdornment,
   TextField,
@@ -240,16 +241,13 @@ export default function TeacherTestTemplatesPage() {
                 <div className="assessment-templates-page__card-main">
                   <div className="assessment-templates-page__card-top">
                     <Typography variant="h6">{template.title}</Typography>
-                    <span
-                      className={`assessment-templates-page__status ui-status-chip ${
-                        template.status === "published"
-                          ? "ui-status-chip--paid"
-                          : "ui-status-chip--scheduled"
-                      }`}
-                    >
-                      {template.status === "published" ? "Опубликован" : "Черновик"}
-                    </span>
                   </div>
+                  <Chip
+                    size="small"
+                    className="assessment-templates-page__status"
+                    label={template.status === "published" ? "Опубликован" : "Черновик"}
+                    color={template.status === "published" ? "success" : "warning"}
+                  />
                   {template.description?.trim() ? (
                     <Typography variant="body2" className="assessment-templates-page__card-description">
                       {template.description}

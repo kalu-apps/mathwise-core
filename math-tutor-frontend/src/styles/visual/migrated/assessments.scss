@@ -153,7 +153,7 @@
 
 .assessment-templates-page__list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -189,8 +189,9 @@
 .assessment-templates-page__card-top {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 6px;
+  min-width: 0;
 }
 
 .assessment-templates-page__card-main .MuiTypography-h6 {
@@ -198,6 +199,7 @@
   font-size: 1rem;
   line-height: 1.3;
   font-weight: 620;
+  min-width: 0;
 }
 
 .assessment-templates-page__card-description {
@@ -215,15 +217,11 @@
   opacity: 0.74;
 }
 
-.assessment-templates-page__status {
+.assessment-templates-page__status.MuiChip-root {
+  align-self: flex-start;
   width: fit-content;
-  flex-shrink: 0;
-  white-space: nowrap;
-  font-size: 0.66rem !important;
-  letter-spacing: 0.02em !important;
-  font-weight: 650 !important;
-  border-radius: 999px !important;
-  padding: 3px 8px !important;
+  margin-top: -2px;
+  margin-bottom: 2px;
 }
 
 .assessment-templates-page__card-main .MuiTypography-body2 {
@@ -285,6 +283,31 @@
 
 .assessment-templates-page__card-actions .MuiSvgIcon-root {
   font-size: 1.02rem;
+}
+
+.assessment-template-preview__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.assessment-template-preview__title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assessment-template-preview__status-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .assessment-template-preview__question {

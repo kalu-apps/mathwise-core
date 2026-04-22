@@ -459,8 +459,8 @@ select,
 .news-feed .MuiButton-contained {
   background: var(--btn-primary-bg) !important;
   color: var(--btn-primary-text) !important;
-  border: 1px solid color-mix(in srgb, var(--brand-soft) 28%, transparent) !important;
-  box-shadow: var(--shadow-sm) !important;
+  border: 1px solid color-mix(in srgb, var(--brand-soft) 24%, var(--border-subtle)) !important;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--brand-solid) 18%, transparent) !important;
   border-radius: var(--radius-sm) !important;
 }
 
@@ -477,7 +477,7 @@ select,
 .tp2 .MuiButton-contained:hover,
 .news-feed .MuiButton-contained:hover {
   background: var(--btn-primary-bg-hover) !important;
-  box-shadow: var(--shadow-glow) !important;
+  box-shadow: 0 9px 18px color-mix(in srgb, var(--brand-solid) 22%, transparent) !important;
 }
 
 .booking-page .MuiButton-outlined,

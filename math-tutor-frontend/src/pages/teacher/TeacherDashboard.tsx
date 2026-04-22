@@ -118,6 +118,7 @@ import { createNewsPost } from "@/entities/news/model/storage";
 import type { Course } from "@/entities/course/model/types";
 
 const PROFILE_AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+const INVITE_SUCCESS_ALERT_TIMEOUT_MS = 5000;
 
 export default function TeacherDashboard() {
   const { user, updateUser } = useAuth();
@@ -187,6 +188,9 @@ export default function TeacherDashboard() {
   >([]);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteStatusMessage, setInviteStatusMessage] = useState<string | null>(null);
+  const [inviteStatusSeverity, setInviteStatusSeverity] = useState<
+    "success" | "error" | null
+  >(null);
   const [inviteCreating, setInviteCreating] = useState(false);
   const [chatThreadIdsByStudentId, setChatThreadIdsByStudentId] = useState<
     Record<string, string>
@@ -477,6 +481,19 @@ export default function TeacherDashboard() {
     });
   }, [availability.length, bookings.length, courses.length, studentCards.length]);
 
+  useEffect(() => {
+    if (!inviteStatusMessage || inviteStatusSeverity !== "success") return;
+    const timeoutId = window.setTimeout(() => {
+      setInviteStatusMessage(null);
+      setInviteStatusSeverity(null);
+      setInviteLink(null);
+    }, INVITE_SUCCESS_ALERT_TIMEOUT_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [inviteStatusMessage, inviteStatusSeverity]);
+
   const handleCreateInviteLink = useCallback(async () => {
     if (!isTeacher) return;
     const targetEmailInput = window.prompt(
@@ -488,7 +505,9 @@ export default function TeacherDashboard() {
     if (noteInput === null) return;
 
     setInviteCreating(true);
+    setInviteLink(null);
     setInviteStatusMessage(null);
+    setInviteStatusSeverity(null);
     try {
       const response = await createTeacherInvite({
         targetEmail: targetEmailInput.trim() || undefined,
@@ -509,10 +528,13 @@ export default function TeacherDashboard() {
           ? "Ссылка-приглашение создана и скопирована в буфер."
           : "Ссылка-приглашение создана. Скопируйте ее вручную."
       );
+      setInviteStatusSeverity("success");
     } catch (error) {
+      setInviteLink(null);
       setInviteStatusMessage(
         error instanceof Error ? error.message : "Не удалось создать ссылку-приглашение."
       );
+      setInviteStatusSeverity("error");
     } finally {
       setInviteCreating(false);
     }
@@ -1167,9 +1189,7 @@ export default function TeacherDashboard() {
               </div>
           {inviteStatusMessage ? (
             <Alert
-              severity={
-                inviteStatusMessage.includes("Не удалось") ? "error" : "success"
-              }
+              severity={inviteStatusSeverity ?? "success"}
               sx={{ mb: 2 }}
             >
               {inviteStatusMessage}
@@ -1608,7 +1628,6 @@ export default function TeacherDashboard() {
                 <div className="teacher-dashboard__availability-form">
                   <div className="teacher-dashboard__slot-date-field">
                     <TextField
-                      label={t("teacherDashboard.slotDateLabel")}
                       type="text"
                       value={slotDateDisplayValue}
                       onClick={openSlotDatePicker}
@@ -1620,7 +1639,7 @@ export default function TeacherDashboard() {
                       }}
                       fullWidth
                       placeholder={t("teacherDashboard.slotDatePlaceholder")}
-                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ "aria-label": t("teacherDashboard.slotDateLabel") }}
                       InputProps={{ readOnly: true }}
                     />
                     <input
@@ -1636,14 +1655,23 @@ export default function TeacherDashboard() {
                     />
                   </div>
                   <TextField
-                    label={t("teacherDashboard.slotStartLabel")}
                     select
                     value={slotStart}
                     onChange={(e) => setSlotStart(e.target.value)}
                     fullWidth
-                    SelectProps={{ displayEmpty: true }}
+                    SelectProps={{
+                      displayEmpty: true,
+                      renderValue: (selected) =>
+                        selected ? (
+                          selected as string
+                        ) : (
+                          <span className="teacher-dashboard__slot-select-placeholder">
+                            Выберите время
+                          </span>
+                        ),
+                    }}
                     autoComplete="off"
-                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ "aria-label": t("teacherDashboard.slotStartLabel") }}
                   >
                     <MenuItem value="">
                       <em>Выберите время</em>
@@ -1655,14 +1683,23 @@ export default function TeacherDashboard() {
                     ))}
                   </TextField>
                   <TextField
-                    label={t("teacherDashboard.slotEndLabel")}
                     select
                     value={slotEnd}
                     onChange={(e) => setSlotEnd(e.target.value)}
                     fullWidth
-                    SelectProps={{ displayEmpty: true }}
+                    SelectProps={{
+                      displayEmpty: true,
+                      renderValue: (selected) =>
+                        selected ? (
+                          selected as string
+                        ) : (
+                          <span className="teacher-dashboard__slot-select-placeholder">
+                            Выберите время
+                          </span>
+                        ),
+                    }}
                     autoComplete="off"
-                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ "aria-label": t("teacherDashboard.slotEndLabel") }}
                   >
                     <MenuItem value="">
                       <em>Выберите время</em>
