@@ -843,53 +843,13 @@
   background: color-mix(in srgb, #0d1630 84%, transparent) !important;
 }
 
-.news-feed__preview-dialog .MuiDialog-paper {
-  width: min(92vw, 860px);
-  max-width: 860px;
-  border-radius: 16px;
-  border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--background-elevated) 98%, transparent);
-}
-
-.news-feed__preview-content {
-  padding-top: 6px !important;
-  padding-bottom: 18px !important;
-  display: grid;
-  gap: 10px;
-}
-
-.news-feed__preview-stage {
-  border-radius: 12px;
-  overflow: hidden;
-  background: color-mix(in srgb, var(--background-soft) 92%, transparent);
-}
-
 .news-feed__preview-media {
   display: block;
-  width: 100%;
-  max-height: min(72vh, 700px);
+  width: auto;
+  max-width: min(96vw, 1400px);
+  max-height: calc(100dvh - 44px);
   object-fit: contain;
   background: transparent;
-}
-
-.news-feed__preview-nav {
-  display: inline-flex;
-  align-items: center;
-  justify-self: center;
-  gap: 6px;
-  padding: 2px 4px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
-  background: color-mix(in srgb, var(--background-soft) 88%, transparent);
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 620;
-}
-
-.news-feed__preview-nav-btn {
-  width: 28px !important;
-  height: 28px !important;
-  color: var(--text-primary) !important;
 }
 
 .news-feed__image-wrap {

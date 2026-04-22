@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Dialog, IconButton } from "@mui/material";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import { IconButton } from "@mui/material";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import type { AboutTeacherAsset } from "../model/types";
 import { AssetImage } from "./AssetImage";
+import { ImmersiveMediaOverlay } from "@/shared/ui/ImmersiveMediaOverlay";
 
 type AboutTeacherReviewsProps = {
   reviews: AboutTeacherAsset[];
@@ -188,60 +188,34 @@ export function AboutTeacherReviews({ reviews }: AboutTeacherReviewsProps) {
         )}
       </section>
 
-      <Dialog
+      <ImmersiveMediaOverlay
         open={isPreviewOpen}
         onClose={() => setOpenReviewIndex(null)}
-        maxWidth="xl"
-        fullWidth
-        className="about-teacher-reviews-lightbox"
+        onPrev={items.length > 1 ? () => movePreview("prev") : undefined}
+        onNext={items.length > 1 ? () => movePreview("next") : undefined}
+        ariaLabel="Просмотр отзыва ученика"
+        closeLabel="Закрыть просмотр отзыва"
+        prevLabel="Предыдущий отзыв"
+        nextLabel="Следующий отзыв"
       >
-        <div className="about-teacher-reviews-lightbox__stage">
-          <IconButton
-            className="about-teacher-reviews-lightbox__close"
-            aria-label="Закрыть предпросмотр отзыва"
-            onClick={() => setOpenReviewIndex(null)}
-          >
-            <CloseRoundedIcon />
-          </IconButton>
-          {items.length > 1 ? (
-            <IconButton
-              className="about-teacher-reviews-lightbox__nav"
-              aria-label="Предыдущий отзыв"
-              onClick={() => movePreview("prev")}
-            >
-              <ChevronLeftRoundedIcon />
-            </IconButton>
-          ) : null}
-          <div className="about-teacher-reviews-lightbox__canvas">
-            {currentReview?.url && !isCurrentReviewErrored ? (
-              <img
-                src={currentReview.url}
-                alt="Предпросмотр отзыва ученика"
-                onLoad={() => {
-                  if (currentReview.url === previewErroredUrl) {
-                    setPreviewErroredUrl(null);
-                  }
-                }}
-                onError={() => setPreviewErroredUrl(currentReview.url)}
-              />
-            ) : (
-              <div className="about-teacher-reviews-lightbox__fallback">
-                Не удалось загрузить изображение отзыва.
-              </div>
-            )}
+        {currentReview?.url && !isCurrentReviewErrored ? (
+          <img
+            src={currentReview.url}
+            alt="Предпросмотр отзыва ученика"
+            className="immersive-media-overlay__media"
+            onLoad={() => {
+              if (currentReview.url === previewErroredUrl) {
+                setPreviewErroredUrl(null);
+              }
+            }}
+            onError={() => setPreviewErroredUrl(currentReview.url)}
+          />
+        ) : (
+          <div className="immersive-media-overlay__fallback">
+            Не удалось загрузить изображение отзыва.
           </div>
-
-          {items.length > 1 ? (
-            <IconButton
-              className="about-teacher-reviews-lightbox__nav"
-              aria-label="Следующий отзыв"
-              onClick={() => movePreview("next")}
-            >
-              <ChevronRightRoundedIcon />
-            </IconButton>
-          ) : null}
-        </div>
-      </Dialog>
+        )}
+      </ImmersiveMediaOverlay>
     </>
   );
 }

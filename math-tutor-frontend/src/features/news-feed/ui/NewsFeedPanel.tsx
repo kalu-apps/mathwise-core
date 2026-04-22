@@ -19,8 +19,6 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import NavigateBeforeRoundedIcon from "@mui/icons-material/NavigateBeforeRounded";
-import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
 import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
 import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
@@ -43,6 +41,7 @@ import { cn } from "@/shared/lib/cn";
 import { ListPagination } from "@/shared/ui/ListPagination";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
+import { ImmersiveMediaOverlay } from "@/shared/ui/ImmersiveMediaOverlay";
 import { useNavigate } from "react-router-dom";
 import {
   getOwnedMediaDownloadUrl,
@@ -1515,60 +1514,44 @@ export function NewsFeedPanel({ user }: Props) {
         </DialogActions>
       </Dialog>
 
-      <Dialog
+      <ImmersiveMediaOverlay
         open={Boolean(previewAttachment)}
         onClose={() => setPreviewAttachment(null)}
-        fullWidth
-        maxWidth="md"
-        className="news-feed__preview-dialog"
+        onPrev={
+          previewAttachment && previewAttachment.items.length > 1
+            ? () => shiftAttachmentPreview(-1)
+            : undefined
+        }
+        onNext={
+          previewAttachment && previewAttachment.items.length > 1
+            ? () => shiftAttachmentPreview(1)
+            : undefined
+        }
+        ariaLabel="Просмотр вложения новости"
+        closeLabel="Закрыть просмотр вложения"
+        prevLabel="Предыдущее вложение"
+        nextLabel="Следующее вложение"
       >
-        <DialogTitleWithClose
-          title=""
-          onClose={() => setPreviewAttachment(null)}
-        />
-        <DialogContent className="news-feed__preview-content">
-          {previewCurrentAttachment?.kind === "video" ? (
-            <div className="news-feed__preview-stage">
-              <video
-                controls
-                playsInline
-                preload="metadata"
-                src={previewCurrentAttachment.url}
-                className="news-feed__preview-media"
-              />
-            </div>
-          ) : previewCurrentAttachment ? (
-            <div className="news-feed__preview-stage">
-              <img
-                src={previewCurrentAttachment.url}
-                alt={previewCurrentAttachment.title}
-                className="news-feed__preview-media"
-              />
-            </div>
-          ) : null}
-          {previewAttachment && previewAttachment.items.length > 1 && (
-            <div className="news-feed__preview-nav">
-              <IconButton
-                className="news-feed__preview-nav-btn"
-                aria-label="Предыдущее вложение"
-                onClick={() => shiftAttachmentPreview(-1)}
-              >
-                <NavigateBeforeRoundedIcon />
-              </IconButton>
-              <span>
-                {previewAttachment.index + 1} / {previewAttachment.items.length}
-              </span>
-              <IconButton
-                className="news-feed__preview-nav-btn"
-                aria-label="Следующее вложение"
-                onClick={() => shiftAttachmentPreview(1)}
-              >
-                <NavigateNextRoundedIcon />
-              </IconButton>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+        {previewCurrentAttachment?.kind === "video" ? (
+          <video
+            controls
+            playsInline
+            preload="metadata"
+            src={previewCurrentAttachment.url}
+            className="immersive-media-overlay__media news-feed__preview-media"
+          />
+        ) : previewCurrentAttachment ? (
+          <img
+            src={previewCurrentAttachment.url}
+            alt={previewCurrentAttachment.title}
+            className="immersive-media-overlay__media news-feed__preview-media"
+          />
+        ) : (
+          <div className="immersive-media-overlay__fallback">
+            Не удалось загрузить вложение.
+          </div>
+        )}
+      </ImmersiveMediaOverlay>
     </section>
   );
 }

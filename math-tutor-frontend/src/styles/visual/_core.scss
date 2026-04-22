@@ -793,6 +793,131 @@ select,
 
 }
 
+/* Immersive fullscreen media viewer (without modal-paper container). */
+.immersive-media-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  background: color-mix(in srgb, #060d21 62%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.immersive-media-overlay__viewport {
+  position: relative;
+  width: min(96vw, 1440px);
+  max-height: calc(100dvh - 28px);
+  display: grid;
+  place-items: center;
+}
+
+.immersive-media-overlay__content {
+  display: grid;
+  place-items: center;
+}
+
+.immersive-media-overlay__media {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: min(96vw, 1400px);
+  max-height: calc(100dvh - 44px);
+  object-fit: contain;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+video.immersive-media-overlay__media {
+  width: min(96vw, 1400px);
+}
+
+.immersive-media-overlay__fallback {
+  max-width: min(92vw, 780px);
+  padding: 12px;
+  text-align: center;
+  color: color-mix(in srgb, #f6f8ff 90%, #c3cffd);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.immersive-media-overlay__action {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: clamp(34px, 4vw, 46px);
+  height: clamp(34px, 4vw, 46px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: color-mix(in srgb, #ffffff 92%, #cfd8ff);
+  cursor: pointer;
+  z-index: 2;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.immersive-media-overlay__action .MuiSvgIcon-root {
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+}
+
+.immersive-media-overlay__action:hover {
+  opacity: 0.9;
+}
+
+.immersive-media-overlay__action:active {
+  transform: scale(0.96);
+}
+
+.immersive-media-overlay__action--close {
+  top: 4px;
+  right: 4px;
+}
+
+.immersive-media-overlay__action--prev {
+  top: 50%;
+  left: 4px;
+  transform: translateY(-50%);
+}
+
+.immersive-media-overlay__action--next {
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+}
+
+@media (max-width: 900px) {
+  .immersive-media-overlay {
+    padding: 10px;
+  }
+
+  .immersive-media-overlay__media {
+    max-width: calc(100vw - 20px);
+    max-height: calc(100dvh - 24px);
+  }
+
+  video.immersive-media-overlay__media {
+    width: calc(100vw - 20px);
+  }
+
+  .immersive-media-overlay__action--close {
+    top: 0;
+    right: 0;
+  }
+
+  .immersive-media-overlay__action--prev {
+    left: 0;
+  }
+
+  .immersive-media-overlay__action--next {
+    right: 0;
+  }
+}
+
 /* ========================================================================== */
 /* PHASE 2-3: Migrated page-level styles into unified visual layer */
 /* ========================================================================== */

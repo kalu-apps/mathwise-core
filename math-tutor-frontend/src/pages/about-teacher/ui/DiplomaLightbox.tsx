@@ -1,9 +1,6 @@
 import { useMemo, useState } from "react";
-import { Dialog, IconButton } from "@mui/material";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
-import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import type { AboutTeacherAsset } from "../model/types";
+import { ImmersiveMediaOverlay } from "@/shared/ui/ImmersiveMediaOverlay";
 
 type DiplomaLightboxProps = {
   diplomas: AboutTeacherAsset[];
@@ -34,58 +31,33 @@ export function DiplomaLightbox({
   };
 
   return (
-    <Dialog
+    <ImmersiveMediaOverlay
       open={open}
       onClose={onClose}
-      maxWidth="lg"
-      fullWidth
-      className="about-teacher-lightbox"
+      onPrev={diplomas.length > 1 ? () => move("prev") : undefined}
+      onNext={diplomas.length > 1 ? () => move("next") : undefined}
+      ariaLabel="Просмотр диплома"
+      closeLabel="Закрыть просмотр диплома"
+      prevLabel="Предыдущий диплом"
+      nextLabel="Следующий диплом"
     >
-      <div className="about-teacher-lightbox__stage">
-        <IconButton
-          className="about-teacher-lightbox__close"
-          aria-label="Закрыть превью диплома"
-          onClick={onClose}
-        >
-          <CloseRoundedIcon />
-        </IconButton>
-        {diplomas.length > 1 ? (
-          <IconButton
-            className="about-teacher-lightbox__nav"
-            aria-label="Предыдущий диплом"
-            onClick={() => move("prev")}
-          >
-            <ChevronLeftRoundedIcon />
-          </IconButton>
-        ) : null}
-        <div className="about-teacher-lightbox__canvas">
-          {current?.url && !isCurrentErrored ? (
-            <img
-              src={current.url}
-              alt="Просмотр диплома"
-              onLoad={() => {
-                if (current.url === erroredUrl) {
-                  setErroredUrl(null);
-                }
-              }}
-              onError={() => setErroredUrl(current.url)}
-            />
-          ) : (
-            <div className="about-teacher-lightbox__fallback">
-              Не удалось загрузить изображение диплома.
-            </div>
-          )}
+      {current?.url && !isCurrentErrored ? (
+        <img
+          src={current.url}
+          alt="Просмотр диплома"
+          className="immersive-media-overlay__media"
+          onLoad={() => {
+            if (current.url === erroredUrl) {
+              setErroredUrl(null);
+            }
+          }}
+          onError={() => setErroredUrl(current.url)}
+        />
+      ) : (
+        <div className="immersive-media-overlay__fallback">
+          Не удалось загрузить изображение диплома.
         </div>
-        {diplomas.length > 1 ? (
-          <IconButton
-            className="about-teacher-lightbox__nav"
-            aria-label="Следующий диплом"
-            onClick={() => move("next")}
-          >
-            <ChevronRightRoundedIcon />
-          </IconButton>
-        ) : null}
-      </div>
-    </Dialog>
+      )}
+    </ImmersiveMediaOverlay>
   );
 }

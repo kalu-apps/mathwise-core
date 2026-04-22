@@ -46,6 +46,10 @@ export const shouldTrackInpInteraction = (entry: {
 };
 
 const IS_DEV = typeof import.meta !== "undefined" && Boolean(import.meta.env?.DEV);
+const PERF_CONSOLE_ENABLED =
+  typeof import.meta !== "undefined" &&
+  (Boolean(import.meta.env?.DEV) ||
+    String(import.meta.env?.VITE_PERF_CONSOLE_LOGS ?? "").toLowerCase() === "true");
 const LOG_THROTTLE_WINDOW_MS = 30_000;
 const metricLogAtByKey = new Map<string, number>();
 
@@ -116,13 +120,15 @@ const emitMetric = (detail: PerformanceMetricEventDetail) => {
   }
   metricLogAtByKey.set(logKey, nowMs);
 
+  if (!PERF_CONSOLE_ENABLED) return;
+
   if (detail.rating === "poor") {
-    console.error("[perf] metric:error", detail.name, loggerMeta);
+    console.warn("[perf] metric:poor", detail.name, loggerMeta);
     return;
   }
 
   if (detail.rating === "needs-improvement") {
-    console.warn("[perf] metric:warn", detail.name, loggerMeta);
+    console.info("[perf] metric:needs-improvement", detail.name, loggerMeta);
     return;
   }
 
