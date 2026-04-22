@@ -241,19 +241,6 @@
     }
   }
 
-  &__card .course-visual-bg {
-    border-radius: inherit;
-    --course-visual-pattern-opacity: 0.92;
-    --course-visual-pattern-saturation: 1.16;
-    --course-visual-pattern-contrast: 1.14;
-    --course-visual-glow-opacity: 0.76;
-    --course-visual-shimmer-opacity: 0.28;
-    --course-visual-veil-opacity: 0.2;
-    --course-visual-readability-opacity: 1;
-    --course-visual-pattern-position: 84% 52%;
-    --course-visual-pattern-size: 116% auto;
-  }
-
   &__card--featured.MuiCard-root {
     min-height: 336px;
     overflow: visible !important;
@@ -269,38 +256,8 @@
       inset 0 1px 0 color-mix(in srgb, #ffffff 20%, transparent) !important;
   }
 
-  &__card--featured .course-visual-bg {
-    --course-visual-pattern-opacity: 1;
-    --course-visual-pattern-saturation: 1.22;
-    --course-visual-pattern-contrast: 1.18;
-    --course-visual-glow-opacity: 0.84;
-    --course-visual-shimmer-opacity: 0.36;
-    --course-visual-veil-opacity: 0.16;
-    --course-visual-pattern-position: 86% 52%;
-    --course-visual-pattern-size: 122% auto;
-    --course-visual-readability: linear-gradient(
-        104deg,
-        rgba(18, 12, 24, 0.56) 0%,
-        rgba(18, 12, 24, 0.42) 38%,
-        rgba(18, 12, 24, 0.14) 66%,
-        rgba(18, 12, 24, 0.26) 100%
-      ),
-      radial-gradient(114% 86% at 44% 80%, rgba(18, 12, 24, 0.32) 0%, transparent 62%);
-  }
-
   &__card--secondary.MuiCard-root {
     min-height: 162px;
-  }
-
-  &__card--secondary .course-visual-bg {
-    --course-visual-pattern-opacity: 0.9;
-    --course-visual-pattern-saturation: 1.14;
-    --course-visual-pattern-contrast: 1.12;
-    --course-visual-glow-opacity: 0.68;
-    --course-visual-shimmer-opacity: 0.22;
-    --course-visual-veil-opacity: 0.22;
-    --course-visual-pattern-size: 112% auto;
-    --course-visual-pattern-position: 84% 54%;
   }
 
   &__content.MuiCardContent-root {
@@ -344,12 +301,6 @@
     gap: 4px;
     margin-top: 28px;
     padding-left: 4px;
-  }
-
-  &__featured-zone--description {
-    display: grid;
-    gap: 6px;
-    margin-top: 2px;
   }
 
   &__featured-zone--meta {
@@ -502,22 +453,6 @@
     max-width: 13ch;
   }
 
-  &__descriptor {
-    margin: 0;
-    font-family: var(--font-ui);
-    font-weight: 470;
-    font-size: 13px;
-    line-height: 1.4;
-    color: color-mix(in srgb, var(--text-secondary) 93%, #dde6ff);
-  }
-
-  &__descriptor--featured {
-    min-height: 74px;
-    max-width: 58ch;
-    font-size: 14.8px;
-    line-height: 1.46;
-  }
-
   &__metrics {
     display: flex;
     flex-wrap: wrap;
@@ -606,8 +541,7 @@
     color: color-mix(in srgb, #1f3259 94%, #2f4a78);
   }
 
-  .courses-preview__subtitle,
-  .courses-preview__descriptor {
+  .courses-preview__subtitle {
     color: color-mix(in srgb, #425a86 92%, #5c77aa);
   }
 
@@ -638,23 +572,6 @@
       inset 0 1px 0 color-mix(in srgb, #ffffff 96%, transparent) !important;
   }
 
-  .courses-preview__card .course-visual-bg {
-    --course-visual-pattern-opacity: 0.96;
-    --course-visual-pattern-saturation: 1.22;
-    --course-visual-pattern-contrast: 1.2;
-    --course-visual-glow-opacity: 0.74;
-    --course-visual-shimmer-opacity: 0.3;
-    --course-visual-veil-opacity: 0.12;
-    --course-visual-readability: linear-gradient(
-        104deg,
-        rgba(252, 244, 235, 0.58) 0%,
-        rgba(252, 244, 235, 0.42) 38%,
-        rgba(252, 244, 235, 0.14) 66%,
-        rgba(252, 244, 235, 0.24) 100%
-      ),
-      radial-gradient(114% 86% at 44% 80%, rgba(252, 244, 235, 0.46) 0%, transparent 62%);
-  }
-
   .courses-preview__card--featured.MuiCard-root {
     background: linear-gradient(
       150deg,
@@ -666,24 +583,6 @@
       0 18px 28px color-mix(in srgb, #9ab4e1 24%, transparent),
       0 0 0 1px color-mix(in srgb, #94b3ff 34%, transparent) inset,
       inset 0 1px 0 color-mix(in srgb, #ffffff 100%, transparent) !important;
-  }
-
-  .courses-preview__card--featured .course-visual-bg {
-    --course-visual-pattern-opacity: 1;
-    --course-visual-pattern-saturation: 1.25;
-    --course-visual-pattern-contrast: 1.22;
-    --course-visual-glow-opacity: 0.8;
-    --course-visual-shimmer-opacity: 0.34;
-    --course-visual-veil-opacity: 0.1;
-  }
-
-  .courses-preview__card--secondary .course-visual-bg {
-    --course-visual-pattern-opacity: 0.93;
-    --course-visual-pattern-saturation: 1.19;
-    --course-visual-pattern-contrast: 1.16;
-    --course-visual-glow-opacity: 0.68;
-    --course-visual-shimmer-opacity: 0.24;
-    --course-visual-veil-opacity: 0.14;
   }
 
   .courses-preview__title {

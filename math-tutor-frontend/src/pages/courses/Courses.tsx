@@ -37,7 +37,6 @@ import {
 } from "@/features/assessments/model/storage";
 import { buildPublishedCourseContentProjection } from "@/features/assessments/model/releaseContent";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
-import { resolveCourseVisualArchetype } from "@/entities/course/model/courseVisuals";
 
 const toApproxMonthly = (fromAmount: number | null, periodLabel: string) => {
   if (!fromAmount || fromAmount <= 0) return null;
@@ -131,7 +130,7 @@ export default function Courses() {
   const courseSectionMap = useMemo(
     () =>
       visibleCourses.reduce<Record<string, string>>((acc, course) => {
-        acc[course.id] = resolveCourseVisualArchetype(course).shortTag;
+        acc[course.id] = course.level;
         return acc;
       }, {}),
     [visibleCourses]

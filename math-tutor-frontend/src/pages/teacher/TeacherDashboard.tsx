@@ -1059,9 +1059,6 @@ export default function TeacherDashboard() {
                 </Avatar>
                 <div className="teacher-dashboard__identity-copy">
                   <h3>{identityName}</h3>
-                  <span className="teacher-dashboard__identity-role">
-                    {user.role === "teacher" ? "Преподаватель" : "Студент"}
-                  </span>
                 </div>
               </div>
             </section>
@@ -1158,9 +1155,6 @@ export default function TeacherDashboard() {
                 </Avatar>
                 <div className="teacher-dashboard__identity-copy">
                   <h3>{identityName}</h3>
-                  <span className="teacher-dashboard__identity-role">
-                    {user.role === "teacher" ? "Преподаватель" : "Студент"}
-                  </span>
                 </div>
               </div>
             </section>

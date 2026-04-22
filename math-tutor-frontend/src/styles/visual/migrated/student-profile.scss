@@ -184,8 +184,8 @@
 .student-profile__identity-main {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
+  gap: 8px;
+  align-items: end;
 }
 
 .student-profile__identity-avatar {
@@ -200,45 +200,22 @@
 
 .student-profile__identity-copy {
   min-width: 0;
-  display: grid;
-  gap: 3px;
+  display: flex;
+  align-items: flex-end;
+  min-height: 100%;
+  padding-bottom: 2px;
 }
 
 .student-profile__identity-copy h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 15px;
+  font-weight: 600;
   line-height: 1.16;
   letter-spacing: -0.014em;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.student-profile__identity-role {
-  width: fit-content;
-  margin-top: 2px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--accent-primary) 34%, transparent);
-  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
-  color: color-mix(in srgb, var(--accent-text) 88%, var(--text-primary));
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  line-height: 1.2;
-}
-
-.student-profile__identity-role::before {
-  content: "";
-  width: 5px;
-  height: 5px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent-primary) 82%, #6ec8ff);
-  flex: 0 0 5px;
 }
 
 .student-profile__identity-edit-icon {
@@ -1520,7 +1497,7 @@
   }
 
   .student-profile__identity-copy h3 {
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .student-profile__tabs-drawer-grid {

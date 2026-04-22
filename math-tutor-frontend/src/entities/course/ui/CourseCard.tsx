@@ -17,7 +17,6 @@ import LockIcon from "@mui/icons-material/Lock";
 import DiamondRoundedIcon from "@mui/icons-material/DiamondRounded";
 
 import type { Course } from "@/entities/course/model/types";
-import { CourseVisualBackground } from "@/entities/course/ui/CourseVisualBackground";
 
 type PurchasedProgressDetails = {
   lessonsViewed: number;
@@ -189,10 +188,6 @@ export function CourseCard({
         cursor: clickable ? "pointer" : "default",
       }}
     >
-      <CourseVisualBackground
-        course={course}
-        mode={isTeacherView ? "featured" : "card"}
-      />
       {!isTeacherView && locked && showPurchaseBadge && (
         <Box
           className="course-card__purchase-status"

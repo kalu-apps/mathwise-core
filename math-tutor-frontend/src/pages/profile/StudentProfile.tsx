@@ -790,7 +790,6 @@ export default function StudentProfile() {
   );
 
   if (!user) return null;
-  const roleLabel = user.role === "teacher" ? "Преподаватель" : "Студент";
   const identityName = formatUserBadgeName(user);
   const identityInitial = getUserAvatarInitial(user) || "С";
 
@@ -957,7 +956,6 @@ export default function StudentProfile() {
                 </Avatar>
                 <div className="student-profile__identity-copy">
                   <h3>{identityName || "Профиль студента"}</h3>
-                  <span className="student-profile__identity-role">{roleLabel}</span>
                 </div>
               </div>
             </section>
@@ -1020,7 +1018,6 @@ export default function StudentProfile() {
                 </Avatar>
                 <div className="student-profile__identity-copy">
                   <h3>{identityName || "Профиль студента"}</h3>
-                  <span className="student-profile__identity-role">{roleLabel}</span>
                 </div>
               </div>
             </section>

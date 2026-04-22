@@ -127,6 +127,9 @@ const getLessonMediaChipConfig = (lesson: LessonDraft) => {
   return null;
 };
 
+const reindexQueueInCurrentOrder = (items: CourseContentItem[]) =>
+  items.map((item, index) => ({ ...item, order: index + 1 }));
+
 export function CourseWithLessonsEditor({
   teacherId,
   courseId,
@@ -674,7 +677,7 @@ export function CourseWithLessonsEditor({
         ...item,
         blockId: targetBlockId,
       });
-      return normalizeQueue(next);
+      return reindexQueueInCurrentOrder(next);
     });
   }, []);
 
@@ -689,7 +692,7 @@ export function CourseWithLessonsEditor({
         const next = [...sorted];
         const [entry] = next.splice(sourceIndex, 1);
         next.splice(targetIndex, 0, entry);
-        return normalizeQueue(next);
+        return reindexQueueInCurrentOrder(next);
       });
     },
     []
@@ -1637,6 +1640,9 @@ export function CourseWithLessonsEditor({
                               tabIndex={0}
                               onDragStart={(event) => handleQueueDragStart(event, item.id)}
                               onDragEnd={handleQueueDragEnd}
+                              onDragEnter={(event) => handleQueueDragOver(event, item.id)}
+                              onDragOver={(event) => handleQueueDragOver(event, item.id)}
+                              onDrop={(event) => handleQueueDrop(event, item.id)}
                               onTouchStart={(event) => handleQueueTouchStart(event, item.id)}
                               onTouchMove={handleQueueTouchMove}
                               onTouchEnd={handleQueueTouchEnd}
@@ -1797,6 +1803,9 @@ export function CourseWithLessonsEditor({
                             tabIndex={0}
                             onDragStart={(event) => handleQueueDragStart(event, item.id)}
                             onDragEnd={handleQueueDragEnd}
+                            onDragEnter={(event) => handleQueueDragOver(event, item.id)}
+                            onDragOver={(event) => handleQueueDragOver(event, item.id)}
+                            onDrop={(event) => handleQueueDrop(event, item.id)}
                             onTouchStart={(event) => handleQueueTouchStart(event, item.id)}
                             onTouchMove={handleQueueTouchMove}
                             onTouchEnd={handleQueueTouchEnd}

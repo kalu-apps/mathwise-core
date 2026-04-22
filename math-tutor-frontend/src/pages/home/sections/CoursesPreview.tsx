@@ -5,23 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCourseReleaseContent, getCourses } from "@/entities/course/model/storage";
 import type { Course } from "@/entities/course/model/types";
-import { CourseVisualBackground } from "@/entities/course/ui/CourseVisualBackground";
 import { getLessonsByCourse } from "@/entities/lesson/model/storage";
-
-function toCompactDescriptor(description: string) {
-  const normalized = description.replace(/\s+/g, " ").trim();
-  if (!normalized) return "Маршрут с практикой, материалами и понятной структурой.";
-  const parts = normalized
-    .split(/[.!?]/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  const richLine = parts.slice(0, 2).join(". ");
-  const candidate = richLine.length > 0 ? `${richLine}.` : normalized;
-
-  if (candidate.length <= 172) return candidate;
-  return `${candidate.slice(0, 169).trimEnd()}…`;
-}
 
 function toPluralLabel(
   count: number,
@@ -194,7 +178,6 @@ export function CoursesPreview() {
     () =>
       previewCourses.map((course) => ({
         ...course,
-        descriptor: toCompactDescriptor(course.description),
         lessonsChip: toLessonChipLabel(
           courseStatsById[course.id]?.lessonsCount ?? 0
         ),
@@ -325,7 +308,6 @@ export function CoursesPreview() {
                 className="courses-preview__card courses-preview__card--featured"
                 elevation={0}
               >
-                <CourseVisualBackground course={page.featured} mode="featured" />
                 <CardContent className="courses-preview__content courses-preview__content--featured">
                   <div className="courses-preview__featured-zone courses-preview__featured-zone--sticker">
                     <span className="courses-preview__sticker" aria-hidden="true">
@@ -335,12 +317,6 @@ export function CoursesPreview() {
 
                   <div className="courses-preview__featured-zone courses-preview__featured-zone--title">
                     <h3 className="courses-preview__title courses-preview__title--featured">{page.featured.title}</h3>
-                  </div>
-
-                  <div className="courses-preview__featured-zone courses-preview__featured-zone--description">
-                    <p className="courses-preview__descriptor courses-preview__descriptor--featured">
-                      {page.featured.descriptor}
-                    </p>
                   </div>
 
                   <div className="courses-preview__featured-zone courses-preview__featured-zone--meta">
@@ -379,7 +355,6 @@ export function CoursesPreview() {
                         className="courses-preview__card courses-preview__card--secondary"
                         elevation={0}
                       >
-                        <CourseVisualBackground course={course} mode="card" />
                         <CardContent className="courses-preview__content courses-preview__content--secondary">
                           <div
                             className={`courses-preview__secondary-sticker courses-preview__secondary-sticker--${secondarySticker.variant}`}

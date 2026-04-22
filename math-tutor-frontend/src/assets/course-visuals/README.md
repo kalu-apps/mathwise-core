@@ -46,9 +46,8 @@ Reference catalog used for canonical grounding:
 
 Runtime usage is wired in:
 - `/src/entities/course/model/courseVisuals.ts`
-- `/src/entities/course/ui/CourseVisualBackground.tsx`
 
 Notes:
-- backgrounds are deterministic per course metadata (`visualStyle`, `visualSeed`, `visualVariant`)
+- backgrounds can be resolved deterministically per course metadata (`visualStyle`, `visualSeed`, `visualVariant`)
 - legacy `lattice` style is normalized to `projection-wireframe`
-- list rendering stays lightweight because cards consume static image assets
+- list rendering can stay lightweight by using static image assets instead of runtime scene generation
