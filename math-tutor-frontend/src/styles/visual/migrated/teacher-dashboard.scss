@@ -847,25 +847,27 @@
   &__availability-filters {
     display: flex;
     flex-wrap: nowrap;
-    gap: 6px;
+    gap: 0;
     margin-top: 0;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: thin;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x proximity;
-    padding-bottom: 2px;
+    padding: 0 0 2px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
   }
 
   &__availability-filter {
-    border: 1px solid rgba(148, 163, 184, 0.3);
-    background: var(--surface-soft);
+    appearance: none;
+    border: 0;
+    background: transparent;
     color: var(--text-primary);
-    border-radius: 6px;
-    padding: 0 8px 0 10px;
-    min-height: 26px;
-    font-size: 11px;
-    font-weight: 400;
+    border-radius: 0;
+    padding: 0 12px;
+    min-height: 30px;
+    font-size: 12px;
+    font-weight: 500;
     line-height: 1;
     cursor: pointer;
     text-transform: capitalize;
@@ -874,18 +876,42 @@
     gap: 6px;
     flex: 0 0 auto;
     scroll-snap-align: start;
-    transition: all 0.2s ease;
+    position: relative;
+    white-space: nowrap;
+    transition: color 0.16s ease;
 
     &:hover {
-      border-color: rgba(99, 102, 241, 0.45);
       color: var(--accent-text);
     }
 
+    &:focus-visible {
+      outline: none;
+      background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+    }
+
+    & + .teacher-dashboard__availability-filter::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 7px;
+      bottom: 7px;
+      width: 1px;
+      background: color-mix(in srgb, var(--border-subtle) 86%, transparent);
+    }
+
     &.is-active {
-      border-color: rgba(99, 102, 241, 0.68);
       color: var(--accent-soft);
-      background: color-mix(in srgb, var(--accent-primary) 12%, var(--surface-soft));
-      box-shadow: none;
+      font-weight: 600;
+    }
+
+    &.is-active::after {
+      content: "";
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: -2px;
+      height: 2px;
+      background: color-mix(in srgb, var(--accent-primary) 78%, var(--accent-soft));
     }
   }
 
@@ -898,27 +924,25 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 18px;
-    height: 18px;
-    border-radius: 4px;
-    padding: 0 5px;
-    font-size: 10px;
-    font-weight: 640;
-    color: color-mix(in srgb, var(--text-primary) 92%, var(--accent-primary));
-    background: color-mix(in srgb, var(--surface-elevated) 74%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 86%, transparent);
+    min-width: auto;
+    height: auto;
+    border-radius: 0;
+    padding: 0;
+    font-size: 11px;
+    font-weight: 560;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 0;
   }
 
   &__availability-filter.is-active &__availability-filter-count {
-    color: color-mix(in srgb, var(--accent-primary) 86%, var(--text-primary));
-    border-color: color-mix(in srgb, var(--accent-primary) 40%, var(--border-subtle));
-    background: color-mix(in srgb, var(--accent-primary) 16%, var(--surface-elevated));
+    color: color-mix(in srgb, var(--accent-primary) 88%, var(--text-primary));
   }
 
   &__availability-list {
     display: grid;
     gap: 8px;
-    grid-template-columns: repeat(auto-fit, minmax(124px, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     margin-top: 0;
   }
 
@@ -1785,9 +1809,9 @@
   }
 
   .teacher-dashboard__availability-filter {
-    min-height: 24px;
+    min-height: 28px;
     font-size: 10.5px;
-    font-weight: 400;
+    padding-inline: 9px;
   }
 }
 

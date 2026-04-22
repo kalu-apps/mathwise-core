@@ -164,6 +164,7 @@ export function CourseWithLessonsEditor({
   const [closing, setClosing] = useState(false);
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
   const touchDragTargetRef = useRef<string | null>(null);
+  const dragSourceItemRef = useRef<string | null>(null);
   const dragOverTargetRef = useRef<string | null>(null);
   const autoDraftCourseIdRef = useRef<string | null>(courseId ?? null);
   const committedRef = useRef(false);
@@ -700,6 +701,7 @@ export function CourseWithLessonsEditor({
     itemId: string
   ) => {
     if (!canUseNativeQueueDrag) return;
+    dragSourceItemRef.current = itemId;
     setDragQueueItemId(itemId);
     dragOverTargetRef.current = itemId;
     event.dataTransfer.effectAllowed = "move";
@@ -709,10 +711,14 @@ export function CourseWithLessonsEditor({
   const handleQueueDrop = (event: DragEvent<HTMLElement>, targetId: string) => {
     if (!canUseNativeQueueDrag) return;
     event.preventDefault();
-    const sourceId = dragQueueItemId || event.dataTransfer.getData("text/plain");
+    const sourceId =
+      dragSourceItemRef.current ||
+      dragQueueItemId ||
+      event.dataTransfer.getData("text/plain");
     if (sourceId && sourceId !== targetId && dragOverTargetRef.current !== targetId) {
       reorderQueueItems(sourceId, targetId);
     }
+    dragSourceItemRef.current = null;
     setDragQueueItemId(null);
     dragOverTargetRef.current = null;
   };
@@ -722,17 +728,25 @@ export function CourseWithLessonsEditor({
     targetId: string
   ) => {
     if (!canUseNativeQueueDrag) return;
-    if (!dragQueueItemId) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
-    if (targetId === dragQueueItemId) return;
+    const sourceId =
+      dragSourceItemRef.current ||
+      dragQueueItemId ||
+      event.dataTransfer.getData("text/plain");
+    if (!sourceId) return;
+    if (!dragQueueItemId) {
+      setDragQueueItemId(sourceId);
+    }
+    if (targetId === sourceId) return;
     if (dragOverTargetRef.current === targetId) return;
-    reorderQueueItems(dragQueueItemId, targetId);
+    reorderQueueItems(sourceId, targetId);
     dragOverTargetRef.current = targetId;
   };
 
   const handleQueueDragEnd = () => {
     if (!canUseNativeQueueDrag) return;
+    dragSourceItemRef.current = null;
     setDragQueueItemId(null);
     dragOverTargetRef.current = null;
   };
@@ -750,6 +764,7 @@ export function CourseWithLessonsEditor({
     ) {
       return;
     }
+    dragSourceItemRef.current = itemId;
     setDragQueueItemId(itemId);
     touchDragTargetRef.current = itemId;
   };
@@ -773,6 +788,7 @@ export function CourseWithLessonsEditor({
 
   const handleQueueTouchEnd = () => {
     if (canUseNativeQueueDrag) return;
+    dragSourceItemRef.current = null;
     setDragQueueItemId(null);
     touchDragTargetRef.current = null;
     dragOverTargetRef.current = null;
