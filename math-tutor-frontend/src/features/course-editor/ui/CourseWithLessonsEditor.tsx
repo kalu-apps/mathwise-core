@@ -749,17 +749,18 @@ export function CourseWithLessonsEditor({
       dragSourceItemRef.current ||
       dragQueueItemId ||
       event.dataTransfer.getData("text/plain");
+    const pointTargetId = targetId ?? resolveQueueTargetIdFromPoint(event);
+    const containerTargetId = sourceId
+      ? resolveQueueTargetIdFromContainer(
+          event.currentTarget as HTMLElement | null,
+          event.clientY,
+          sourceId
+        )
+      : null;
     const resolvedTargetId =
-      targetId ??
-      resolveQueueTargetIdFromPoint(event) ??
-      (sourceId
-        ? resolveQueueTargetIdFromContainer(
-            event.currentTarget as HTMLElement | null,
-            event.clientY,
-            sourceId
-          )
-        : null) ??
-      dragOverTargetRef.current;
+      (pointTargetId && sourceId && pointTargetId !== sourceId
+        ? pointTargetId
+        : containerTargetId) ?? dragOverTargetRef.current;
     if (!resolvedTargetId) {
       dragSourceItemRef.current = null;
       setDragQueueItemId(null);
