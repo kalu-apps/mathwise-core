@@ -707,15 +707,39 @@ export function CourseWithLessonsEditor({
     event.dataTransfer.setData("text/plain", itemId);
   };
 
-  const handleQueueDrop = (event: DragEvent<HTMLElement>, targetId: string) => {
+  const resolveQueueTargetIdFromPoint = (event: DragEvent<HTMLElement>) => {
+    const element = document.elementFromPoint(
+      event.clientX,
+      event.clientY
+    ) as HTMLElement | null;
+    const target = element?.closest<HTMLElement>("[data-course-queue-item-id]");
+    return target?.dataset.courseQueueItemId ?? null;
+  };
+
+  const handleQueueDrop = (
+    event: DragEvent<HTMLElement>,
+    targetId?: string
+  ) => {
     if (!canUseNativeQueueDrag) return;
     event.preventDefault();
+    const resolvedTargetId =
+      targetId ?? resolveQueueTargetIdFromPoint(event) ?? dragOverTargetRef.current;
+    if (!resolvedTargetId) {
+      dragSourceItemRef.current = null;
+      setDragQueueItemId(null);
+      dragOverTargetRef.current = null;
+      return;
+    }
     const sourceId =
       dragSourceItemRef.current ||
       dragQueueItemId ||
       event.dataTransfer.getData("text/plain");
-    if (sourceId && sourceId !== targetId && dragOverTargetRef.current !== targetId) {
-      reorderQueueItems(sourceId, targetId);
+    if (
+      sourceId &&
+      sourceId !== resolvedTargetId &&
+      dragOverTargetRef.current !== resolvedTargetId
+    ) {
+      reorderQueueItems(sourceId, resolvedTargetId);
     }
     dragSourceItemRef.current = null;
     setDragQueueItemId(null);
@@ -724,7 +748,7 @@ export function CourseWithLessonsEditor({
 
   const handleQueueDragOver = (
     event: DragEvent<HTMLElement>,
-    targetId: string
+    targetId?: string
   ) => {
     if (!canUseNativeQueueDrag) return;
     event.preventDefault();
@@ -737,10 +761,11 @@ export function CourseWithLessonsEditor({
     if (!dragQueueItemId) {
       setDragQueueItemId(sourceId);
     }
-    if (targetId === sourceId) return;
-    if (dragOverTargetRef.current === targetId) return;
-    reorderQueueItems(sourceId, targetId);
-    dragOverTargetRef.current = targetId;
+    const resolvedTargetId = targetId ?? resolveQueueTargetIdFromPoint(event);
+    if (!resolvedTargetId || resolvedTargetId === sourceId) return;
+    if (dragOverTargetRef.current === resolvedTargetId) return;
+    reorderQueueItems(sourceId, resolvedTargetId);
+    dragOverTargetRef.current = resolvedTargetId;
   };
 
   const handleQueueDragEnter = (
@@ -761,7 +786,6 @@ export function CourseWithLessonsEditor({
     event: TouchEvent<HTMLElement>,
     itemId: string
   ) => {
-    if (canUseNativeQueueDrag) return;
     const origin = event.target as HTMLElement | null;
     if (
       origin?.closest(
@@ -776,7 +800,7 @@ export function CourseWithLessonsEditor({
   };
 
   const handleQueueTouchMove = (event: TouchEvent<HTMLElement>) => {
-    if (canUseNativeQueueDrag || !dragQueueItemId) return;
+    if (!dragQueueItemId) return;
     const touch = event.touches[0];
     if (!touch) return;
     const element = document.elementFromPoint(
@@ -793,7 +817,6 @@ export function CourseWithLessonsEditor({
   };
 
   const handleQueueTouchEnd = () => {
-    if (canUseNativeQueueDrag) return;
     dragSourceItemRef.current = null;
     setDragQueueItemId(null);
     touchDragTargetRef.current = null;
@@ -1549,7 +1572,12 @@ export function CourseWithLessonsEditor({
                       В этом блоке пока нет материалов.
                     </Typography>
                   ) : (
-                    <Stack spacing={1}>
+                    <Stack
+                      spacing={1}
+                      onDragEnter={handleQueueDragOver}
+                      onDragOver={handleQueueDragOver}
+                      onDrop={handleQueueDrop}
+                    >
                       {group.items.map((item) => {
                         const queueIndex = queueItemIndexMap.get(item.id) ?? -1;
                         if (item.type === "test") {
