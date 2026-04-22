@@ -389,16 +389,20 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 0 !important;
   padding: 0 !important;
   border-radius: 0 !important;
   font-size: 11px;
   font-weight: 560;
-  text-transform: none;
+  text-transform: none !important;
   letter-spacing: 0.01em;
   line-height: 1.2;
   white-space: nowrap;
   background: transparent !important;
   border: 0 !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
 }
 
 .teacher-student-profile__status::before,
@@ -413,6 +417,9 @@
 
 .teacher-student-profile__status--scheduled {
   color: color-mix(in srgb, var(--accent-primary) 82%, var(--text-primary));
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 .teacher-student-profile__status--scheduled::before {
@@ -421,6 +428,9 @@
 
 .teacher-student-profile__status--completed {
   color: color-mix(in srgb, var(--feedback-success) 84%, var(--text-primary));
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 .teacher-student-profile__status--completed::before {

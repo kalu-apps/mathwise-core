@@ -308,6 +308,14 @@
   gap: 8px;
   margin-left: auto;
   white-space: nowrap;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
 }
 
 .assessment-template-preview__question {

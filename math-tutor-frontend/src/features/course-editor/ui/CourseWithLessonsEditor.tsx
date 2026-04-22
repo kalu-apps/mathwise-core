@@ -136,9 +136,9 @@ export function CourseWithLessonsEditor({
   usePerfScreenTag("CourseWithLessonsEditor");
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isTouchPointer = useMediaQuery("(hover: none), (pointer: coarse)");
-  const canUseNativeQueueDrag = !isTouchPointer;
-  const showQueueMoveControls = isMobile || isTouchPointer;
+  const hasFinePointer = useMediaQuery("(any-pointer: fine)");
+  const canUseNativeQueueDrag = hasFinePointer;
+  const showQueueMoveControls = isMobile || !canUseNativeQueueDrag;
   const isEditMode = Boolean(courseId);
   const [loading, setLoading] = useState(isEditMode);
 
@@ -164,6 +164,7 @@ export function CourseWithLessonsEditor({
   const [closing, setClosing] = useState(false);
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
   const touchDragTargetRef = useRef<string | null>(null);
+  const dragOverTargetRef = useRef<string | null>(null);
   const autoDraftCourseIdRef = useRef<string | null>(courseId ?? null);
   const committedRef = useRef(false);
   const skipAutoSaveOnUnmountRef = useRef(false);
@@ -700,6 +701,7 @@ export function CourseWithLessonsEditor({
   ) => {
     if (!canUseNativeQueueDrag) return;
     setDragQueueItemId(itemId);
+    dragOverTargetRef.current = itemId;
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", itemId);
   };
@@ -708,14 +710,31 @@ export function CourseWithLessonsEditor({
     if (!canUseNativeQueueDrag) return;
     event.preventDefault();
     const sourceId = dragQueueItemId || event.dataTransfer.getData("text/plain");
-    if (!sourceId) return;
-    reorderQueueItems(sourceId, targetId);
+    if (sourceId && sourceId !== targetId && dragOverTargetRef.current !== targetId) {
+      reorderQueueItems(sourceId, targetId);
+    }
     setDragQueueItemId(null);
+    dragOverTargetRef.current = null;
   };
 
-  const handleQueueDragOver = (event: DragEvent<HTMLElement>) => {
+  const handleQueueDragOver = (
+    event: DragEvent<HTMLElement>,
+    targetId: string
+  ) => {
     if (!canUseNativeQueueDrag) return;
+    if (!dragQueueItemId) return;
     event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    if (targetId === dragQueueItemId) return;
+    if (dragOverTargetRef.current === targetId) return;
+    reorderQueueItems(dragQueueItemId, targetId);
+    dragOverTargetRef.current = targetId;
+  };
+
+  const handleQueueDragEnd = () => {
+    if (!canUseNativeQueueDrag) return;
+    setDragQueueItemId(null);
+    dragOverTargetRef.current = null;
   };
 
   const handleQueueTouchStart = (
@@ -756,6 +775,7 @@ export function CourseWithLessonsEditor({
     if (canUseNativeQueueDrag) return;
     setDragQueueItemId(null);
     touchDragTargetRef.current = null;
+    dragOverTargetRef.current = null;
   };
 
   const handleQueueDragHandleKeyDown = (
@@ -1522,8 +1542,8 @@ export function CourseWithLessonsEditor({
                               draggable={canUseNativeQueueDrag}
                               tabIndex={0}
                               onDragStart={(event) => handleQueueDragStart(event, item.id)}
-                              onDragEnd={() => setDragQueueItemId(null)}
-                              onDragOver={handleQueueDragOver}
+                              onDragEnd={handleQueueDragEnd}
+                              onDragOver={(event) => handleQueueDragOver(event, item.id)}
                               onDrop={(event) => handleQueueDrop(event, item.id)}
                               onTouchStart={(event) => handleQueueTouchStart(event, item.id)}
                               onTouchMove={handleQueueTouchMove}
@@ -1684,8 +1704,8 @@ export function CourseWithLessonsEditor({
                             draggable={canUseNativeQueueDrag}
                             tabIndex={0}
                             onDragStart={(event) => handleQueueDragStart(event, item.id)}
-                            onDragEnd={() => setDragQueueItemId(null)}
-                            onDragOver={handleQueueDragOver}
+                            onDragEnd={handleQueueDragEnd}
+                            onDragOver={(event) => handleQueueDragOver(event, item.id)}
                             onDrop={(event) => handleQueueDrop(event, item.id)}
                             onTouchStart={(event) => handleQueueTouchStart(event, item.id)}
                             onTouchMove={handleQueueTouchMove}

@@ -654,7 +654,8 @@
     background: color-mix(in srgb, var(--accent-primary) 14%, var(--surface-soft));
     color: color-mix(in srgb, var(--accent-primary) 92%, var(--text-primary));
     border-radius: 12px;
-    min-height: 40px;
+    min-height: 56px;
+    height: 56px;
     padding: 0 12px;
     display: inline-flex;
     align-items: center;
