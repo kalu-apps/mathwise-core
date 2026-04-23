@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
@@ -10,13 +10,71 @@ const AUDIO_PLAYBACK_RATES = [1, 1.25, 1.5, 2];
 const AUDIO_WAVE_BARS = [
   24, 44, 31, 56, 42, 68, 37, 58, 46, 64, 36, 52, 40, 61, 34, 49, 30, 43,
 ];
+const AUDIO_LISTENED_THRESHOLD_RATIO = 0.45;
+const AUDIO_LISTENED_THRESHOLD_MIN_SECONDS = 0.8;
+const AUDIO_LISTENED_THRESHOLD_MAX_SECONDS = 5;
 
-export function AudioMessagePlayer({ src }: { src: string }) {
+export function AudioMessagePlayer({
+  src,
+  durationSeconds,
+  waveform,
+  listenedByPeer,
+  onListened,
+}: {
+  src: string;
+  durationSeconds?: number;
+  waveform?: number[];
+  listenedByPeer?: boolean;
+  onListened?: () => void;
+}) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const listenedReportedRef = useRef(Boolean(listenedByPeer));
   const [isPlaying, setIsPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
+  const [duration, setDuration] = useState(
+    typeof durationSeconds === "number" && Number.isFinite(durationSeconds)
+      ? Math.max(0, durationSeconds)
+      : 0
+  );
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+
+  const tryReportListened = useCallback(
+    (nextCurrentTime: number, fallbackDuration?: number) => {
+      if (!onListened || listenedReportedRef.current) return;
+      const totalDuration =
+        duration > 0
+          ? duration
+          : typeof fallbackDuration === "number" && Number.isFinite(fallbackDuration)
+            ? fallbackDuration
+            : typeof durationSeconds === "number" && Number.isFinite(durationSeconds)
+              ? durationSeconds
+              : 0;
+      if (totalDuration <= 0) return;
+      const listenedThreshold = Math.min(
+        AUDIO_LISTENED_THRESHOLD_MAX_SECONDS,
+        Math.max(
+          AUDIO_LISTENED_THRESHOLD_MIN_SECONDS,
+          totalDuration * AUDIO_LISTENED_THRESHOLD_RATIO
+        )
+      );
+      if (nextCurrentTime >= listenedThreshold) {
+        listenedReportedRef.current = true;
+        onListened();
+      }
+    },
+    [duration, durationSeconds, onListened]
+  );
+
+  const waveBars = useMemo(() => {
+    if (!Array.isArray(waveform) || waveform.length === 0) {
+      return AUDIO_WAVE_BARS;
+    }
+    const normalized = waveform
+      .filter((item): item is number => typeof item === "number" && Number.isFinite(item))
+      .map((item) => Math.max(8, Math.min(100, Math.round(item))))
+      .slice(0, 96);
+    return normalized.length > 0 ? normalized : AUDIO_WAVE_BARS;
+  }, [waveform]);
 
   const togglePlayback = useCallback(async () => {
     const audio = audioRef.current;
@@ -50,15 +108,41 @@ export function AudioMessagePlayer({ src }: { src: string }) {
   }, [playbackRate]);
 
   useEffect(() => {
+    listenedReportedRef.current = Boolean(listenedByPeer);
+  }, [listenedByPeer, src]);
+
+  useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
     const onLoadedMetadata = () => {
-      setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
+      const metadataDuration =
+        Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
+      if (metadataDuration > 0) {
+        setDuration(metadataDuration);
+        return;
+      }
+      if (
+        typeof durationSeconds === "number" &&
+        Number.isFinite(durationSeconds) &&
+        durationSeconds > 0
+      ) {
+        setDuration(durationSeconds);
+      } else {
+        setDuration(0);
+      }
     };
-    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const onTimeUpdate = () => {
+      const nextCurrentTime = audio.currentTime;
+      setCurrentTime(nextCurrentTime);
+      tryReportListened(nextCurrentTime, audio.duration);
+    };
     const onPause = () => setIsPlaying(false);
     const onPlay = () => setIsPlaying(true);
     const onEnded = () => {
+      tryReportListened(
+        Number.isFinite(audio.duration) ? audio.duration : audio.currentTime,
+        audio.duration
+      );
       setIsPlaying(false);
       setCurrentTime(0);
     };
@@ -75,7 +159,7 @@ export function AudioMessagePlayer({ src }: { src: string }) {
       audio.removeEventListener("ended", onEnded);
       audio.pause();
     };
-  }, [src]);
+  }, [durationSeconds, src, tryReportListened]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -83,14 +167,28 @@ export function AudioMessagePlayer({ src }: { src: string }) {
     audio.playbackRate = playbackRate;
   }, [playbackRate]);
 
+  useEffect(() => {
+    if (
+      typeof durationSeconds === "number" &&
+      Number.isFinite(durationSeconds) &&
+      durationSeconds > 0
+    ) {
+      setDuration((current) => (current > 0 ? current : durationSeconds));
+    }
+  }, [durationSeconds]);
+
   const progressRatio =
     duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0;
   const activeBars = isPlaying
-    ? Math.max(1, Math.round(progressRatio * AUDIO_WAVE_BARS.length))
-    : Math.max(0, Math.round(progressRatio * AUDIO_WAVE_BARS.length));
+    ? Math.max(1, Math.round(progressRatio * waveBars.length))
+    : Math.max(0, Math.round(progressRatio * waveBars.length));
 
   return (
-    <div className={`chat-page__audio-player ${isPlaying ? "is-playing" : ""}`}>
+    <div
+      className={`chat-page__audio-player ${isPlaying ? "is-playing" : ""} ${
+        listenedByPeer ? "is-listened" : ""
+      }`}
+    >
       <audio ref={audioRef} preload="metadata" src={src} />
       <button
         type="button"
@@ -112,7 +210,7 @@ export function AudioMessagePlayer({ src }: { src: string }) {
               style={{ width: `${progressRatio * 100}%` }}
             />
             <div className="chat-page__audio-wave">
-              {AUDIO_WAVE_BARS.map((height, index) => (
+              {waveBars.map((height, index) => (
                 <span
                   key={index}
                   style={{

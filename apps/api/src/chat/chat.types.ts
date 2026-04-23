@@ -41,6 +41,17 @@ export type TeacherChatAttachmentDto = {
   mediaObjectId?: string;
 };
 
+export type TeacherChatVoiceMessageDto = {
+  id: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  mediaObjectId?: string;
+  durationSeconds?: number;
+  waveform?: number[];
+  listenedByPeer?: boolean;
+};
+
 export type TeacherChatMessageDto = {
   id: string;
   threadId: string;
@@ -52,6 +63,7 @@ export type TeacherChatMessageDto = {
   createdAt: string;
   editedAt?: string;
   attachments?: TeacherChatAttachmentDto[];
+  voice?: TeacherChatVoiceMessageDto;
   deletedForAll?: boolean;
   readByPeer?: boolean;
 };
@@ -60,15 +72,21 @@ export type SendTeacherChatMessagePayloadDto = {
   threadId?: string;
   text: string;
   attachments?: TeacherChatAttachmentDto[];
+  voice?: TeacherChatVoiceMessageDto;
 };
 
 export type UpdateTeacherChatMessagePayloadDto = {
   threadId: string;
   text: string;
   attachments?: TeacherChatAttachmentDto[];
+  voice?: TeacherChatVoiceMessageDto;
 };
 
 export type DeleteTeacherChatMessagePayloadDto = {
   threadId: string;
   scope: "self" | "all";
+};
+
+export type MarkTeacherChatVoiceListenedPayloadDto = {
+  threadId: string;
 };

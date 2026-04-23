@@ -4,6 +4,7 @@ import type {
   TeacherChatAttachmentDto,
   TeacherChatMessageDto,
   TeacherChatThreadDto,
+  TeacherChatVoiceMessageDto,
 } from "./chat.types";
 
 type ThreadRow = {
@@ -32,6 +33,8 @@ type MessageRow = {
   createdAt: string;
   editedAt: string | null;
   attachments: unknown;
+  voiceMessage: unknown;
+  voiceListenedByPeer: boolean;
   deletedForAll: boolean;
 };
 
@@ -85,6 +88,96 @@ const normalizeAttachments = (value: unknown): TeacherChatAttachmentDto[] => {
   }, []);
 };
 
+const isAudioMimeType = (mimeType: string) =>
+  mimeType.toLowerCase().startsWith("audio/");
+
+const normalizeVoiceWaveform = (value: unknown): number[] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+  const normalized = value
+    .filter((item): item is number => typeof item === "number" && Number.isFinite(item))
+    .map((item) => Math.max(0, Math.min(100, Math.round(item))))
+    .slice(0, 96);
+  return normalized.length > 0 ? normalized : undefined;
+};
+
+const normalizeVoiceMessage = (
+  value: unknown
+): Omit<TeacherChatVoiceMessageDto, "listenedByPeer"> | undefined => {
+  if (!value || typeof value !== "object") return undefined;
+  const candidate = value as {
+    id?: unknown;
+    mimeType?: unknown;
+    size?: unknown;
+    url?: unknown;
+    mediaObjectId?: unknown;
+    durationSeconds?: unknown;
+    waveform?: unknown;
+    listenedByPeer?: unknown;
+  };
+  const id = typeof candidate.id === "string" ? candidate.id.trim() : "";
+  const mimeType =
+    typeof candidate.mimeType === "string" ? candidate.mimeType.trim() : "";
+  const url = typeof candidate.url === "string" ? candidate.url.trim() : "";
+  const mediaObjectId =
+    typeof candidate.mediaObjectId === "string"
+      ? candidate.mediaObjectId.trim()
+      : "";
+  if (!id || !mimeType || (!url && !mediaObjectId)) return undefined;
+  const size =
+    typeof candidate.size === "number" && Number.isFinite(candidate.size)
+      ? Math.max(0, Math.floor(candidate.size))
+      : 0;
+  const durationSeconds =
+    typeof candidate.durationSeconds === "number" &&
+    Number.isFinite(candidate.durationSeconds) &&
+    candidate.durationSeconds > 0
+      ? Math.max(0, Number(candidate.durationSeconds))
+      : undefined;
+  return {
+    id,
+    mimeType,
+    size,
+    url,
+    mediaObjectId: mediaObjectId || undefined,
+    durationSeconds,
+    waveform: normalizeVoiceWaveform(candidate.waveform),
+  };
+};
+
+const extractLegacyVoice = (
+  attachments: TeacherChatAttachmentDto[]
+): {
+  attachments: TeacherChatAttachmentDto[];
+  voice?: Omit<TeacherChatVoiceMessageDto, "listenedByPeer">;
+} => {
+  const index = attachments.findIndex((attachment) =>
+    isAudioMimeType(attachment.mimeType)
+  );
+  if (index < 0) {
+    return {
+      attachments,
+      voice: undefined as TeacherChatVoiceMessageDto | undefined,
+    };
+  }
+  const legacy = attachments[index];
+  if (!legacy) {
+    return {
+      attachments,
+      voice: undefined as TeacherChatVoiceMessageDto | undefined,
+    };
+  }
+  return {
+    attachments: attachments.filter((_, attachmentIndex) => attachmentIndex !== index),
+    voice: {
+      id: legacy.id,
+      mimeType: legacy.mimeType,
+      size: legacy.size,
+      url: legacy.url,
+      mediaObjectId: legacy.mediaObjectId,
+    },
+  };
+};
+
 const mapThreadRow = (row: ThreadRow): TeacherChatThreadDto => ({
   id: row.id,
   studentId: row.studentId,
@@ -101,20 +194,34 @@ const mapThreadRow = (row: ThreadRow): TeacherChatThreadDto => ({
   unreadCount: 0,
 });
 
-const mapMessageRow = (row: MessageRow): TeacherChatMessageDto => ({
-  id: row.id,
-  threadId: row.threadId,
-  senderId: row.senderId,
-  senderRole: row.senderRole,
-  senderName: row.senderName,
-  senderPhoto: row.senderPhoto ?? undefined,
-  text: row.text,
-  createdAt: row.createdAt,
-  editedAt: row.editedAt ?? undefined,
-  attachments: normalizeAttachments(row.attachments),
-  deletedForAll: row.deletedForAll,
-  readByPeer: false,
-});
+const mapMessageRow = (row: MessageRow): TeacherChatMessageDto => {
+  const normalizedAttachments = normalizeAttachments(row.attachments);
+  const explicitVoice = normalizeVoiceMessage(row.voiceMessage);
+  const legacy = explicitVoice
+    ? { attachments: normalizedAttachments, voice: explicitVoice }
+    : extractLegacyVoice(normalizedAttachments);
+  const voice = legacy.voice
+    ? {
+        ...legacy.voice,
+        listenedByPeer: row.voiceListenedByPeer,
+      }
+    : undefined;
+  return {
+    id: row.id,
+    threadId: row.threadId,
+    senderId: row.senderId,
+    senderRole: row.senderRole,
+    senderName: row.senderName,
+    senderPhoto: row.senderPhoto ?? undefined,
+    text: row.text,
+    createdAt: row.createdAt,
+    editedAt: row.editedAt ?? undefined,
+    attachments: legacy.attachments,
+    voice,
+    deletedForAll: row.deletedForAll,
+    readByPeer: Boolean(voice?.listenedByPeer),
+  };
+};
 
 @Injectable()
 export class ChatRepository {
@@ -153,6 +260,8 @@ export class ChatRepository {
         sender_photo TEXT,
         text TEXT NOT NULL DEFAULT '',
         attachments_json JSONB NOT NULL DEFAULT '[]'::jsonb,
+        voice_message_json JSONB,
+        voice_listened_by_peer BOOLEAN NOT NULL DEFAULT FALSE,
         deleted_for_all BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TEXT NOT NULL,
         edited_at TEXT,
@@ -175,6 +284,14 @@ export class ChatRepository {
     await this.databaseService.execute(`
       ALTER TABLE chat_messages
       ADD COLUMN IF NOT EXISTS edited_at TEXT
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE chat_messages
+      ADD COLUMN IF NOT EXISTS voice_message_json JSONB
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE chat_messages
+      ADD COLUMN IF NOT EXISTS voice_listened_by_peer BOOLEAN NOT NULL DEFAULT FALSE
     `);
 
     await this.databaseService.execute(`
@@ -268,7 +385,20 @@ export class ChatRepository {
           ON tu.id = t.teacher_id
         LEFT JOIN LATERAL (
           SELECT
-            text,
+            CASE
+              WHEN NULLIF(BTRIM(text), '') IS NOT NULL THEN text
+              WHEN voice_message_json IS NOT NULL
+                OR EXISTS (
+                  SELECT 1
+                  FROM jsonb_array_elements(COALESCE(attachments_json, '[]'::jsonb)) AS attachment
+                  WHERE LOWER(COALESCE(attachment->>'mimeType', '')) LIKE 'audio/%'
+                )
+                THEN 'Голосовое сообщение'
+              WHEN jsonb_typeof(COALESCE(attachments_json, '[]'::jsonb)) = 'array'
+                AND jsonb_array_length(COALESCE(attachments_json, '[]'::jsonb)) > 0
+                THEN 'Вложение'
+              ELSE ''
+            END AS text,
             created_at
           FROM chat_messages m
           WHERE m.thread_id = t.id
@@ -307,7 +437,20 @@ export class ChatRepository {
           ON tu.id = t.teacher_id
         LEFT JOIN LATERAL (
           SELECT
-            text,
+            CASE
+              WHEN NULLIF(BTRIM(text), '') IS NOT NULL THEN text
+              WHEN voice_message_json IS NOT NULL
+                OR EXISTS (
+                  SELECT 1
+                  FROM jsonb_array_elements(COALESCE(attachments_json, '[]'::jsonb)) AS attachment
+                  WHERE LOWER(COALESCE(attachment->>'mimeType', '')) LIKE 'audio/%'
+                )
+                THEN 'Голосовое сообщение'
+              WHEN jsonb_typeof(COALESCE(attachments_json, '[]'::jsonb)) = 'array'
+                AND jsonb_array_length(COALESCE(attachments_json, '[]'::jsonb)) > 0
+                THEN 'Вложение'
+              ELSE ''
+            END AS text,
             created_at
           FROM chat_messages m
           WHERE m.thread_id = t.id
@@ -337,6 +480,8 @@ export class ChatRepository {
           created_at AS "createdAt",
           edited_at AS "editedAt",
           attachments_json AS attachments,
+          voice_message_json AS "voiceMessage",
+          voice_listened_by_peer AS "voiceListenedByPeer",
           deleted_for_all AS "deletedForAll"
         FROM chat_messages
         WHERE thread_id = $1
@@ -361,6 +506,8 @@ export class ChatRepository {
           created_at AS "createdAt",
           edited_at AS "editedAt",
           attachments_json AS attachments,
+          voice_message_json AS "voiceMessage",
+          voice_listened_by_peer AS "voiceListenedByPeer",
           deleted_for_all AS "deletedForAll"
         FROM chat_messages
         WHERE id = $1
@@ -381,6 +528,8 @@ export class ChatRepository {
     senderPhoto?: string;
     text: string;
     attachments: TeacherChatAttachmentDto[];
+    voice?: TeacherChatVoiceMessageDto;
+    voiceListenedByPeer?: boolean;
     createdAt: string;
   }): Promise<TeacherChatMessageDto> {
     await this.databaseService.execute(
@@ -394,14 +543,16 @@ export class ChatRepository {
           sender_photo,
           text,
           attachments_json,
+          voice_message_json,
+          voice_listened_by_peer,
           deleted_for_all,
           created_at,
           edited_at,
           updated_at_ts
         )
         VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8::jsonb,
-          FALSE, $9, NULL, NOW()
+          $1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10,
+          FALSE, $11, NULL, NOW()
         )
       `,
       [
@@ -413,6 +564,8 @@ export class ChatRepository {
         params.senderPhoto ?? null,
         params.text,
         JSON.stringify(params.attachments ?? []),
+        JSON.stringify(params.voice ?? null),
+        params.voiceListenedByPeer ?? false,
         params.createdAt,
       ]
     );
@@ -428,6 +581,8 @@ export class ChatRepository {
     id: string;
     text: string;
     attachments: TeacherChatAttachmentDto[];
+    voice?: TeacherChatVoiceMessageDto;
+    voiceListenedByPeer?: boolean;
     editedAt: string;
   }): Promise<TeacherChatMessageDto | null> {
     await this.databaseService.execute(
@@ -436,11 +591,20 @@ export class ChatRepository {
         SET
           text = $2,
           attachments_json = $3::jsonb,
-          edited_at = $4,
+          voice_message_json = $4::jsonb,
+          voice_listened_by_peer = $5,
+          edited_at = $6,
           updated_at_ts = NOW()
         WHERE id = $1
       `,
-      [params.id, params.text, JSON.stringify(params.attachments ?? []), params.editedAt]
+      [
+        params.id,
+        params.text,
+        JSON.stringify(params.attachments ?? []),
+        JSON.stringify(params.voice ?? null),
+        params.voiceListenedByPeer ?? false,
+        params.editedAt,
+      ]
     );
     const message = await this.findMessageById(params.id);
     if (!message) return null;
@@ -458,6 +622,8 @@ export class ChatRepository {
         SET
           text = '',
           attachments_json = '[]'::jsonb,
+          voice_message_json = NULL,
+          voice_listened_by_peer = FALSE,
           deleted_for_all = TRUE,
           edited_at = $2,
           updated_at_ts = NOW()
@@ -468,6 +634,32 @@ export class ChatRepository {
     const message = await this.findMessageById(params.id);
     if (!message) return null;
     await this.touchThread(message.threadId, params.editedAt);
+    return message;
+  }
+
+  async markVoiceListenedByPeer(params: {
+    id: string;
+  }): Promise<TeacherChatMessageDto | null> {
+    await this.databaseService.execute(
+      `
+        UPDATE chat_messages
+        SET
+          voice_listened_by_peer = TRUE,
+          updated_at_ts = NOW()
+        WHERE id = $1
+          AND deleted_for_all = FALSE
+          AND (
+            voice_message_json IS NOT NULL
+            OR EXISTS (
+              SELECT 1
+              FROM jsonb_array_elements(COALESCE(attachments_json, '[]'::jsonb)) AS attachment
+              WHERE LOWER(COALESCE(attachment->>'mimeType', '')) LIKE 'audio/%'
+            )
+          )
+      `,
+      [params.id]
+    );
+    const message = await this.findMessageById(params.id);
     return message;
   }
 

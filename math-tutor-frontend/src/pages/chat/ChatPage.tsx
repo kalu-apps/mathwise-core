@@ -27,6 +27,7 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import AttachFileRoundedIcon from "@mui/icons-material/AttachFileRounded";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
+import MicRoundedIcon from "@mui/icons-material/MicRounded";
 import DoneRoundedIcon from "@mui/icons-material/DoneRounded";
 import DoneAllRoundedIcon from "@mui/icons-material/DoneAllRounded";
 import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
@@ -43,6 +44,7 @@ import {
   getTeacherChatEligibility,
   getTeacherChatMessages,
   getTeacherChatThreads,
+  markTeacherChatVoiceListened,
   markTeacherChatThreadRead,
   sendTeacherChatMessage,
   updateTeacherChatMessage,
@@ -52,12 +54,14 @@ import type {
   TeacherChatEligibility,
   TeacherChatMessage,
   TeacherChatThread,
+  TeacherChatVoiceMessage,
 } from "@/features/chat/model/types";
 import { generateId } from "@/shared/lib/id";
 import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
 import { ImmersiveMediaOverlay } from "@/shared/ui/ImmersiveMediaOverlay";
 import {
   createAttachmentFromFile,
+  createVoiceMessageFromFile,
   formatAttachmentSize,
   formatDayLabel,
   formatDuration,
@@ -69,6 +73,7 @@ import {
   MAX_ATTACHMENTS_PER_MESSAGE,
   MAX_ATTACHMENT_SIZE_BYTES,
   normalizeChatMessage,
+  isValidChatVoiceMessage,
   normalizeChatThread,
   renderChatMessageText,
   toDayKey,
@@ -144,6 +149,8 @@ export default function ChatPage() {
   const [composerAttachments, setComposerAttachments] = useState<
     TeacherChatAttachment[]
   >([]);
+  const [composerVoice, setComposerVoice] =
+    useState<TeacherChatVoiceMessage | null>(null);
   const [sending, setSending] = useState(false);
   const [threadQuery, setThreadQuery] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -180,6 +187,8 @@ export default function ChatPage() {
   const recorderStreamRef = useRef<MediaStream | null>(null);
   const recorderChunksRef = useRef<Blob[]>([]);
   const recorderTimerRef = useRef<number | null>(null);
+  const recorderSecondsRef = useRef(0);
+  const listenedVoicePendingRef = useRef(new Set<string>());
   const messageMenuCloseTimerRef = useRef<number | null>(null);
 
   const goBack = useCallback(() => {
@@ -377,6 +386,7 @@ export default function ChatPage() {
       shouldStickToBottomRef.current = true;
       lastMessageIdRef.current = null;
       setVisibleCount(60);
+      listenedVoicePendingRef.current.clear();
     }
   }, [selectedThreadId]);
 
@@ -509,11 +519,18 @@ export default function ChatPage() {
 
   useEffect(() => {
     adjustComposerHeight();
-  }, [adjustComposerHeight, inputValue, composerAttachments.length, editingMessageId]);
+  }, [
+    adjustComposerHeight,
+    inputValue,
+    composerAttachments.length,
+    Boolean(composerVoice),
+    editingMessageId,
+  ]);
 
   const resetComposer = useCallback(() => {
     setInputValue("");
     setComposerAttachments([]);
+    setComposerVoice(null);
     setEditingMessageId(null);
   }, []);
 
@@ -607,6 +624,7 @@ export default function ChatPage() {
       recorderRef.current = recorder;
       recorderStreamRef.current = stream;
       recorderChunksRef.current = [];
+      recorderSecondsRef.current = 0;
       setMessagesError(null);
       setRecordingSeconds(0);
       setIsRecordingAudio(true);
@@ -622,6 +640,8 @@ export default function ChatPage() {
           window.clearInterval(recorderTimerRef.current);
           recorderTimerRef.current = null;
         }
+        const recordedSeconds = recorderSecondsRef.current;
+        recorderSecondsRef.current = 0;
         const chunks = recorderChunksRef.current;
         recorderChunksRef.current = [];
         setIsRecordingAudio(false);
@@ -642,18 +662,17 @@ export default function ChatPage() {
           type: blob.type || "audio/webm",
         });
         try {
-          const attachment = await createAttachmentFromFile(file);
-          if (!attachment.url?.trim()) {
+          const voice = await createVoiceMessageFromFile(file, {
+            durationSeconds: recordedSeconds > 0 ? recordedSeconds : undefined,
+            listenedByPeer: false,
+          });
+          if (!voice.url?.trim()) {
             setMessagesError(
               "Не удалось подготовить голосовое сообщение. Попробуйте еще раз."
             );
             return;
           }
-          setComposerAttachments((current) => {
-            const merged = [...current, attachment];
-            if (merged.length <= MAX_ATTACHMENTS_PER_MESSAGE) return merged;
-            return merged.slice(0, MAX_ATTACHMENTS_PER_MESSAGE);
-          });
+          setComposerVoice(voice);
         } catch (error) {
           setMessagesError(
             error instanceof Error
@@ -665,13 +684,15 @@ export default function ChatPage() {
 
       recorder.start(300);
       recorderTimerRef.current = window.setInterval(() => {
-        setRecordingSeconds((current) => current + 1);
+        recorderSecondsRef.current += 1;
+        setRecordingSeconds(recorderSecondsRef.current);
       }, 1000);
     } catch (error) {
       setMessagesError(
         error instanceof Error ? error.message : "Не удалось начать запись аудио."
       );
       setIsRecordingAudio(false);
+      recorderSecondsRef.current = 0;
       if (recorderTimerRef.current !== null) {
         window.clearInterval(recorderTimerRef.current);
         recorderTimerRef.current = null;
@@ -688,6 +709,7 @@ export default function ChatPage() {
       if (recorderTimerRef.current !== null) {
         window.clearInterval(recorderTimerRef.current);
       }
+      recorderSecondsRef.current = 0;
       if (recorderRef.current && recorderRef.current.state !== "inactive") {
         recorderRef.current.stop();
       }
@@ -712,7 +734,10 @@ export default function ChatPage() {
             Boolean(attachment.url?.trim())
         )
         .slice(0, MAX_ATTACHMENTS_PER_MESSAGE);
-      if (!text && safeAttachments.length === 0) return;
+      const safeVoice = isValidChatVoiceMessage(composerVoice)
+        ? composerVoice
+        : null;
+      if (!text && safeAttachments.length === 0 && !safeVoice) return;
       const activeThreadId = selectedThreadId;
       if (user.role === "teacher" && !activeThreadId) {
         setMessagesError("Сначала выберите диалог студента.");
@@ -726,6 +751,7 @@ export default function ChatPage() {
       let optimisticMessageIds: string[] = [];
       const restoreDraftText = text;
       const restoreDraftAttachments = safeAttachments;
+      const restoreDraftVoice = safeVoice;
       try {
         if (editingMessageId && activeThreadId) {
           await updateTeacherChatMessage({
@@ -733,27 +759,36 @@ export default function ChatPage() {
             threadId: activeThreadId,
             text,
             attachments: safeAttachments,
+            voice: safeVoice ?? undefined,
           });
         } else {
           const baseThreadId =
             user.role === "teacher" ? activeThreadId ?? undefined : undefined;
-          const payloads: Array<{ text: string; attachments?: TeacherChatAttachment[] }> =
-            [];
+          const payloads: Array<{
+            text: string;
+            attachments?: TeacherChatAttachment[];
+            voice?: TeacherChatVoiceMessage;
+          }> = [];
 
-          if (safeAttachments.length > 1) {
-            safeAttachments.forEach((attachment, index) => {
-              payloads.push({
-                text: index === 0 ? text : "",
-                attachments: [attachment],
-              });
-            });
-          } else if (safeAttachments.length === 1) {
+          safeAttachments.forEach((attachment) => {
             payloads.push({
-              text,
-              attachments: safeAttachments,
+              text: "",
+              attachments: [attachment],
             });
-          } else {
+          });
+          if (safeVoice) {
+            payloads.push({
+              text: "",
+              voice: safeVoice,
+            });
+          }
+          if (payloads.length === 0) {
             payloads.push({ text });
+          } else {
+            const [firstPayload, ...restPayloads] = payloads;
+            if (firstPayload) {
+              payloads.splice(0, payloads.length, { ...firstPayload, text }, ...restPayloads);
+            }
           }
 
           if (activeThreadId) {
@@ -778,6 +813,7 @@ export default function ChatPage() {
                 text: payload.text,
                 createdAt: new Date(baseTimestamp + index).toISOString(),
                 attachments: payload.attachments ?? [],
+                voice: payload.voice,
                 readByPeer: false,
               })
             );
@@ -793,6 +829,7 @@ export default function ChatPage() {
               threadId: baseThreadId,
               text: payload.text,
               attachments: payload.attachments,
+              voice: payload.voice,
             });
             if (created?.threadId) {
               createdThreadId = created.threadId;
@@ -817,6 +854,7 @@ export default function ChatPage() {
           );
           setInputValue(restoreDraftText);
           setComposerAttachments(restoreDraftAttachments);
+          setComposerVoice(restoreDraftVoice);
         }
         setMessagesError(
           error instanceof Error ? error.message : "Не удалось отправить сообщение."
@@ -827,6 +865,7 @@ export default function ChatPage() {
     },
     [
       composerAttachments,
+      composerVoice,
       editingMessageId,
       inputValue,
       isRecordingAudio,
@@ -846,6 +885,7 @@ export default function ChatPage() {
       setEditingMessageId(message.id);
       setInputValue(message.text);
       setComposerAttachments(message.attachments ?? []);
+      setComposerVoice(message.voice ?? null);
       requestAnimationFrame(() => {
         composerInputRef.current?.focus();
         adjustComposerHeight();
@@ -923,7 +963,9 @@ export default function ChatPage() {
   const chatUnavailable =
     user?.role === "student" && chatEligibility && !chatEligibility.available;
   const hasDraftContent =
-    inputValue.trim().length > 0 || composerAttachments.length > 0;
+    inputValue.trim().length > 0 ||
+    composerAttachments.length > 0 ||
+    Boolean(composerVoice);
   const previewCurrentMedia = mediaPreview
     ? mediaPreview.items[mediaPreview.index]
     : null;
@@ -987,6 +1029,52 @@ export default function ChatPage() {
     stopAudioRecording,
     submitComposer,
   ]);
+
+  const handleVoiceListened = useCallback(
+    async (message: TeacherChatMessage) => {
+      if (!selectedThreadId || !user?.id) return;
+      if (!message.voice || message.voice.listenedByPeer) return;
+      if (message.senderId === user.id) return;
+      if (listenedVoicePendingRef.current.has(message.id)) return;
+      listenedVoicePendingRef.current.add(message.id);
+      setMessages((current) =>
+        current.map((item) =>
+          item.id === message.id && item.voice
+            ? {
+                ...item,
+                voice: {
+                  ...item.voice,
+                  listenedByPeer: true,
+                },
+              }
+            : item
+        )
+      );
+      try {
+        await markTeacherChatVoiceListened({
+          messageId: message.id,
+          threadId: selectedThreadId,
+        });
+      } catch {
+        setMessages((current) =>
+          current.map((item) =>
+            item.id === message.id && item.voice
+              ? {
+                  ...item,
+                  voice: {
+                    ...item.voice,
+                    listenedByPeer: false,
+                  },
+                }
+              : item
+          )
+        );
+      } finally {
+        listenedVoicePendingRef.current.delete(message.id);
+      }
+    },
+    [selectedThreadId, user?.id]
+  );
 
   useEffect(() => {
     setMediaPreview(null);
@@ -1206,6 +1294,26 @@ export default function ChatPage() {
 
                         {message.text ? <p>{renderChatMessageText(message.text)}</p> : null}
 
+                        {message.voice ? (
+                          <div className="chat-page__message-attachments">
+                            <div className="chat-page__attachment chat-page__attachment--audio">
+                              <AudioMessagePlayer
+                                src={message.voice.url}
+                                durationSeconds={message.voice.durationSeconds}
+                                waveform={message.voice.waveform}
+                                listenedByPeer={message.voice.listenedByPeer}
+                                onListened={
+                                  ownMessage
+                                    ? undefined
+                                    : () => {
+                                        void handleVoiceListened(message);
+                                      }
+                                }
+                              />
+                            </div>
+                          </div>
+                        ) : null}
+
                         {message.attachments && message.attachments.length > 0 ? (
                           <div className="chat-page__message-attachments">
                             {message.attachments.map((attachment) => {
@@ -1324,6 +1432,25 @@ export default function ChatPage() {
 
               {messagesError ? <Alert severity="error">{messagesError}</Alert> : null}
 
+              {composerVoice ? (
+                <div className="chat-page__composer-voice">
+                  <AudioMessagePlayer
+                    src={composerVoice.url}
+                    durationSeconds={composerVoice.durationSeconds}
+                    waveform={composerVoice.waveform}
+                  />
+                  <IconButton
+                    size="small"
+                    className="chat-page__composer-voice-remove"
+                    disableRipple
+                    onClick={() => setComposerVoice(null)}
+                    aria-label="Удалить голосовое сообщение"
+                  >
+                    <CloseRoundedIcon fontSize="small" />
+                  </IconButton>
+                </div>
+              ) : null}
+
               {composerAttachments.length > 0 ? (
                 <div className="chat-page__composer-attachments">
                   {composerAttachments.map((attachment) => {
@@ -1436,8 +1563,10 @@ export default function ChatPage() {
                         <CircularProgress size={18} color="inherit" />
                       ) : isRecordingAudio ? (
                         <StopRoundedIcon />
-                      ) : (
+                      ) : hasDraftContent ? (
                         <SendRoundedIcon />
+                      ) : (
+                        <MicRoundedIcon />
                       )}
                     </IconButton>
                   </div>

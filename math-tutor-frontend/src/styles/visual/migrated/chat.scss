@@ -163,6 +163,8 @@
 
 .chat-page__thread-list {
   display: grid;
+  grid-auto-rows: max-content;
+  align-content: start;
   gap: 6px;
   flex: 1 1 auto;
   min-height: 0;
@@ -379,14 +381,8 @@
   min-height: 0;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
-  gap: 6px;
-}
-
-.chat-page__messages {
-  min-height: 0;
-  height: 100%;
-  overflow-y: auto;
-  border-radius: 20px;
+  gap: 0;
+  border-radius: 0;
   border: 1px solid color-mix(in srgb, #ffffff 12%, transparent);
   background:
     linear-gradient(
@@ -399,6 +395,16 @@
       color-mix(in srgb, #7b6dff 22%, transparent),
       transparent 68%
     );
+  overflow: hidden;
+}
+
+.chat-page__messages {
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
   padding: 10px;
   display: grid;
   gap: 10px;
@@ -1021,6 +1027,37 @@
   gap: 8px;
 }
 
+.chat-page__composer-voice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #ffffff 14%, transparent);
+  background: color-mix(in srgb, #09080f 24%, transparent);
+  padding: 6px 8px;
+}
+
+.chat-page__composer-voice .chat-page__audio-player {
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 6px;
+}
+
+.chat-page__composer-voice-remove.MuiIconButton-root {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0;
+  border-radius: 6px;
+  color: var(--chat-text-muted);
+  background: transparent;
+}
+
+.chat-page__composer-voice-remove.MuiIconButton-root:hover {
+  background: color-mix(in srgb, #ffffff 10%, transparent);
+}
+
 .chat-page__composer-attachment {
   position: relative;
   display: block;
@@ -1110,6 +1147,7 @@
 
 .chat-page__composer-row {
   display: block;
+  border-top: 1px solid color-mix(in srgb, #ffffff 12%, transparent);
 }
 
 .chat-page__composer-field {
@@ -1163,9 +1201,9 @@
   width: 100%;
   min-height: 40px;
   max-height: 188px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, #ffffff 14%, transparent);
-  background: color-mix(in srgb, #0e0d17 42%, transparent);
+  border-radius: 0;
+  border: 0;
+  background: transparent;
   color: var(--chat-text);
   font: inherit;
   font-size: 14px;
@@ -1182,8 +1220,8 @@
 }
 
 .chat-page__composer-input:focus {
-  border-color: color-mix(in srgb, var(--chat-accent) 82%, #ffffff 10%);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--chat-accent) 18%, transparent);
+  border: 0;
+  box-shadow: none;
 }
 
 .chat-page__composer-input::selection {
@@ -1447,7 +1485,7 @@
   }
 
   .chat-page__messages {
-    border-radius: 16px;
+    border-radius: 0;
     padding: 10px;
   }
 

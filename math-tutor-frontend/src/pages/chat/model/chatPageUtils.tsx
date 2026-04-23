@@ -7,6 +7,7 @@ import type {
   TeacherChatAttachment,
   TeacherChatMessage,
   TeacherChatThread,
+  TeacherChatVoiceMessage,
 } from "@/features/chat/model/types";
 
 export const formatThreadDate = (value?: string) => {
@@ -202,15 +203,51 @@ export const isValidChatAttachment = (
       value.url.trim()
   );
 
+export const normalizeVoiceWaveform = (value: unknown): number[] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+  const normalized = value
+    .filter((item): item is number => typeof item === "number" && Number.isFinite(item))
+    .map((item) => Math.max(0, Math.min(100, Math.round(item))))
+    .slice(0, 96);
+  return normalized.length > 0 ? normalized : undefined;
+};
+
+export const isValidChatVoiceMessage = (
+  value: TeacherChatVoiceMessage | null | undefined
+): value is TeacherChatVoiceMessage =>
+  Boolean(
+    value &&
+      typeof value.id === "string" &&
+      value.id.trim() &&
+      typeof value.mimeType === "string" &&
+      value.mimeType.trim() &&
+      typeof value.url === "string" &&
+      value.url.trim()
+  );
+
 export const normalizeChatMessage = (
   message: TeacherChatMessage
-): TeacherChatMessage => ({
-  ...message,
-  text: typeof message.text === "string" ? message.text : "",
-  attachments: Array.isArray(message.attachments)
+): TeacherChatMessage => {
+  const normalizedVoice = isValidChatVoiceMessage(message.voice)
+    ? {
+        ...message.voice,
+        waveform: normalizeVoiceWaveform(message.voice.waveform),
+      }
+    : undefined;
+  const normalizedAttachments = Array.isArray(message.attachments)
     ? message.attachments.filter((attachment) => isValidChatAttachment(attachment))
-    : [],
-});
+    : [];
+  return {
+    ...message,
+    text: typeof message.text === "string" ? message.text : "",
+    attachments: normalizedVoice
+      ? normalizedAttachments.filter(
+          (attachment) => !attachment.mimeType.toLowerCase().startsWith("audio/")
+        )
+      : normalizedAttachments,
+    voice: normalizedVoice,
+  };
+};
 
 export const normalizeChatThread = (
   thread: TeacherChatThread
@@ -237,5 +274,102 @@ export const createAttachmentFromFile = async (
     size: file.size,
     url: access.downloadUrl,
     mediaObjectId,
+  };
+};
+
+const VOICE_WAVEFORM_BARS = 48;
+
+const extractVoiceWaveform = (pcmData: Float32Array): number[] | undefined => {
+  if (pcmData.length === 0) return undefined;
+  const step = Math.max(1, Math.floor(pcmData.length / VOICE_WAVEFORM_BARS));
+  const amplitudes: number[] = [];
+  for (let index = 0; index < VOICE_WAVEFORM_BARS; index += 1) {
+    const start = index * step;
+    if (start >= pcmData.length) break;
+    const end = Math.min(start + step, pcmData.length);
+    let peak = 0;
+    for (let cursor = start; cursor < end; cursor += 1) {
+      const sample = Math.abs(pcmData[cursor] ?? 0);
+      if (sample > peak) peak = sample;
+    }
+    amplitudes.push(peak);
+  }
+  const maxAmplitude = Math.max(...amplitudes, 0);
+  if (!Number.isFinite(maxAmplitude) || maxAmplitude <= 0) return undefined;
+  const normalized = amplitudes.map((value) =>
+    Math.max(8, Math.min(100, Math.round((value / maxAmplitude) * 100)))
+  );
+  return normalizeVoiceWaveform(normalized);
+};
+
+const analyzeVoiceFile = async (
+  file: File
+): Promise<{ durationSeconds?: number; waveform?: number[] }> => {
+  if (typeof window === "undefined") {
+    return {};
+  }
+  const AudioContextCtor =
+    window.AudioContext ??
+    (
+      window as typeof window & {
+        webkitAudioContext?: typeof AudioContext;
+      }
+    ).webkitAudioContext;
+  if (!AudioContextCtor) {
+    return {};
+  }
+  const audioContext = new AudioContextCtor();
+  try {
+    const buffer = await file.arrayBuffer();
+    const decoded = await audioContext.decodeAudioData(buffer.slice(0));
+    const durationSeconds =
+      Number.isFinite(decoded.duration) && decoded.duration > 0
+        ? decoded.duration
+        : undefined;
+    const waveform = extractVoiceWaveform(decoded.getChannelData(0));
+    return {
+      durationSeconds,
+      waveform,
+    };
+  } catch {
+    return {};
+  } finally {
+    await audioContext.close().catch(() => undefined);
+  }
+};
+
+export const createVoiceMessageFromFile = async (
+  file: File,
+  options?: {
+    durationSeconds?: number;
+    waveform?: number[];
+    listenedByPeer?: boolean;
+  }
+): Promise<TeacherChatVoiceMessage> => {
+  const analyzed = await analyzeVoiceFile(file);
+  const mediaObjectId = await uploadChatAttachmentFile(file);
+  const access = await getOwnedMediaDownloadUrl(mediaObjectId);
+  const durationSeconds =
+    typeof options?.durationSeconds === "number" &&
+    Number.isFinite(options.durationSeconds) &&
+    options.durationSeconds > 0
+      ? Math.max(0, options.durationSeconds)
+      : typeof analyzed.durationSeconds === "number" &&
+          Number.isFinite(analyzed.durationSeconds) &&
+          analyzed.durationSeconds > 0
+        ? Math.max(0, analyzed.durationSeconds)
+        : undefined;
+  return {
+    id: mediaObjectId,
+    mimeType: file.type || "audio/webm",
+    size: file.size,
+    url: access.downloadUrl,
+    mediaObjectId,
+    durationSeconds,
+    waveform: normalizeVoiceWaveform(options?.waveform ?? analyzed.waveform),
+    listenedByPeer:
+      typeof options?.listenedByPeer === "boolean"
+        ? options.listenedByPeer
+        : false,
   };
 };

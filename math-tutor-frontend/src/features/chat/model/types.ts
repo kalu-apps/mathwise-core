@@ -41,6 +41,17 @@ export type TeacherChatAttachment = {
   mediaObjectId?: string;
 };
 
+export type TeacherChatVoiceMessage = {
+  id: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  mediaObjectId?: string;
+  durationSeconds?: number;
+  waveform?: number[];
+  listenedByPeer?: boolean;
+};
+
 export type TeacherChatMessage = {
   id: string;
   threadId: string;
@@ -52,6 +63,7 @@ export type TeacherChatMessage = {
   createdAt: string;
   editedAt?: string;
   attachments?: TeacherChatAttachment[];
+  voice?: TeacherChatVoiceMessage;
   deletedForAll?: boolean;
   readByPeer?: boolean;
 };
@@ -60,6 +72,7 @@ export type SendTeacherChatMessagePayload = {
   threadId?: string;
   text: string;
   attachments?: TeacherChatAttachment[];
+  voice?: TeacherChatVoiceMessage;
 };
 
 export type UpdateTeacherChatMessagePayload = {
@@ -67,10 +80,16 @@ export type UpdateTeacherChatMessagePayload = {
   threadId: string;
   text: string;
   attachments?: TeacherChatAttachment[];
+  voice?: TeacherChatVoiceMessage;
 };
 
 export type DeleteTeacherChatMessagePayload = {
   messageId: string;
   threadId: string;
   scope: "self" | "all";
+};
+
+export type MarkTeacherChatVoiceListenedPayload = {
+  messageId: string;
+  threadId: string;
 };

@@ -19,6 +19,7 @@ import type { AuthUserDto } from "../auth/auth.types";
 import { ChatService } from "./chat.service";
 import type {
   DeleteTeacherChatMessagePayloadDto,
+  MarkTeacherChatVoiceListenedPayloadDto,
   SendTeacherChatMessagePayloadDto,
   TeacherChatEligibilityDto,
   TeacherChatMessageDto,
@@ -137,6 +138,23 @@ export class ChatController {
       actorUser,
       messageId: messageId.trim(),
       payload: body,
+    });
+  }
+
+  @Post("messages/:messageId/voice/listened")
+  async markVoiceListened(
+    @Param("messageId") messageId: string,
+    @Body() body: MarkTeacherChatVoiceListenedPayloadDto,
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<{ ok: boolean }> {
+    const actorUser = await this.requireUser(req, res);
+    return this.chatService.markVoiceListened({
+      actorUser,
+      messageId: messageId.trim(),
+      payload: {
+        threadId: body?.threadId?.trim() || "",
+      },
     });
   }
 

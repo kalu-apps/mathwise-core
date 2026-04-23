@@ -1,6 +1,7 @@
 import { api } from "@/shared/api/client";
 import type {
   DeleteTeacherChatMessagePayload,
+  MarkTeacherChatVoiceListenedPayload,
   SendTeacherChatMessagePayload,
   TeacherChatEligibility,
   TeacherChatMessage,
@@ -58,6 +59,7 @@ export async function updateTeacherChatMessage(
     threadId: payload.threadId,
     text: payload.text,
     attachments: payload.attachments ?? [],
+    voice: payload.voice,
   });
 }
 
@@ -68,4 +70,18 @@ export async function deleteTeacherChatMessage(
     threadId: payload.threadId,
     scope: payload.scope,
   });
+}
+
+export async function markTeacherChatVoiceListened(
+  payload: MarkTeacherChatVoiceListenedPayload
+): Promise<{ ok: boolean }> {
+  return api.post<{ ok: boolean }>(
+    `/chat/messages/${payload.messageId}/voice/listened`,
+    {
+      threadId: payload.threadId,
+    },
+    {
+      notifyDataUpdate: false,
+    }
+  );
 }
