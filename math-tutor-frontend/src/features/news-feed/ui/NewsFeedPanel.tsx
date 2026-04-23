@@ -1058,66 +1058,59 @@ export function NewsFeedPanel({ user }: Props) {
                       </div>
                     )}
                     {editDraft.attachments.length > 0 && (
-                      <div className="news-feed__attachments-scroll">
-                        <div
-                          className={cn(
-                            "news-feed__attachments-grid",
-                            "news-feed__attachments-grid--editable",
-                            `news-feed__attachments-grid--${getAttachmentGridVariant(
-                              editDraft.attachments.length
-                            )}`,
-                            hasOddAttachmentTail(editDraft.attachments.length) &&
-                              "news-feed__attachments-grid--odd-count"
-                          )}
-                        >
-                          {editDraft.attachments.map((attachment) => {
-                            const previewUrl = (
-                              attachment.accessUrl ||
-                              attachment.url ||
-                              ""
-                            ).trim();
-                            return (
-                              <article
-                                key={attachment.id}
-                                className="news-feed__attachment-card news-feed__attachment-card--editable"
+                      <div
+                        className={cn(
+                          "news-feed__attachments-grid",
+                          "news-feed__attachments-grid--editable"
+                        )}
+                      >
+                        {editDraft.attachments.map((attachment) => {
+                          const previewUrl = (
+                            attachment.accessUrl ||
+                            attachment.url ||
+                            ""
+                          ).trim();
+                          return (
+                            <article
+                              key={attachment.id}
+                              className="news-feed__attachment-card news-feed__attachment-card--editable"
+                            >
+                              <button
+                                type="button"
+                                className={cn(
+                                  "news-feed__attachment-preview",
+                                  `news-feed__attachment-preview--${attachment.kind}`
+                                )}
+                                onClick={() =>
+                                  openAttachmentPreview(
+                                    editDraft.attachments,
+                                    attachment.id
+                                  )
+                                }
+                                disabled={!previewUrl}
                               >
-                                <button
-                                  type="button"
-                                  className={cn(
-                                    "news-feed__attachment-preview",
-                                    `news-feed__attachment-preview--${attachment.kind}`
-                                  )}
-                                  onClick={() =>
-                                    openAttachmentPreview(
-                                      editDraft.attachments,
-                                      attachment.id
-                                    )
-                                  }
-                                  disabled={!previewUrl}
-                                >
-                                  {attachment.kind === "video" ? (
-                                    <video src={previewUrl} muted playsInline preload="metadata" />
-                                  ) : (
-                                    <img
-                                      src={previewUrl}
-                                      alt={attachment.fileName || "Изображение новости"}
-                                    />
-                                  )}
-                                </button>
-                                <IconButton
-                                  className="news-feed__attachment-remove"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    removeEditAttachment(attachment.id);
-                                  }}
-                                  aria-label="Удалить вложение"
-                                >
-                                  <CloseRoundedIcon fontSize="small" />
-                                </IconButton>
-                              </article>
-                            );
-                          })}
-                        </div>
+                                {attachment.kind === "video" ? (
+                                  <video src={previewUrl} muted playsInline preload="metadata" />
+                                ) : (
+                                  <img
+                                    src={previewUrl}
+                                    alt={attachment.fileName || "Изображение новости"}
+                                  />
+                                )}
+                              </button>
+                              <IconButton
+                                className="news-feed__attachment-remove"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  removeEditAttachment(attachment.id);
+                                }}
+                                aria-label="Удалить вложение"
+                              >
+                                <CloseRoundedIcon fontSize="small" />
+                              </IconButton>
+                            </article>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1403,60 +1396,54 @@ export function NewsFeedPanel({ user }: Props) {
             )}
 
             {draft.attachments.length > 0 && (
-              <div className="news-feed__attachments-scroll">
-                <div
-                  className={cn(
-                    "news-feed__attachments-grid news-feed__attachments-grid--create",
-                    "news-feed__attachments-grid--editable",
-                    `news-feed__attachments-grid--${getAttachmentGridVariant(
-                      draft.attachments.length
-                    )}`,
-                    hasOddAttachmentTail(draft.attachments.length) &&
-                      "news-feed__attachments-grid--odd-count"
-                  )}
-                >
-                  {draft.attachments.map((attachment) => {
-                    const previewUrl = (
-                      attachment.accessUrl ||
-                      attachment.url ||
-                      ""
-                    ).trim();
-                    return (
-                      <article
-                        key={attachment.id}
-                        className="news-feed__attachment-card news-feed__attachment-card--editable"
+              <div
+                className={cn(
+                  "news-feed__attachments-grid",
+                  "news-feed__attachments-grid--create",
+                  "news-feed__attachments-grid--editable"
+                )}
+              >
+                {draft.attachments.map((attachment) => {
+                  const previewUrl = (
+                    attachment.accessUrl ||
+                    attachment.url ||
+                    ""
+                  ).trim();
+                  return (
+                    <article
+                      key={attachment.id}
+                      className="news-feed__attachment-card news-feed__attachment-card--editable"
+                    >
+                      <button
+                        type="button"
+                        className={cn(
+                          "news-feed__attachment-preview",
+                          `news-feed__attachment-preview--${attachment.kind}`
+                        )}
+                        onClick={() =>
+                          openAttachmentPreview(draft.attachments, attachment.id)
+                        }
+                        disabled={!previewUrl}
                       >
-                        <button
-                          type="button"
-                          className={cn(
-                            "news-feed__attachment-preview",
-                            `news-feed__attachment-preview--${attachment.kind}`
-                          )}
-                          onClick={() =>
-                            openAttachmentPreview(draft.attachments, attachment.id)
-                          }
-                          disabled={!previewUrl}
-                        >
-                          {attachment.kind === "video" ? (
-                            <video src={previewUrl} muted playsInline preload="metadata" />
-                          ) : (
-                            <img src={previewUrl} alt={attachment.fileName || "Превью новости"} />
-                          )}
-                        </button>
-                        <IconButton
-                          className="news-feed__attachment-remove"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            removeDraftAttachment(attachment.id);
-                          }}
-                          aria-label="Удалить вложение"
-                        >
-                          <CloseRoundedIcon fontSize="small" />
-                        </IconButton>
-                      </article>
-                    );
-                  })}
-                </div>
+                        {attachment.kind === "video" ? (
+                          <video src={previewUrl} muted playsInline preload="metadata" />
+                        ) : (
+                          <img src={previewUrl} alt={attachment.fileName || "Превью новости"} />
+                        )}
+                      </button>
+                      <IconButton
+                        className="news-feed__attachment-remove"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          removeDraftAttachment(attachment.id);
+                        }}
+                        aria-label="Удалить вложение"
+                      >
+                        <CloseRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </article>
+                  );
+                })}
               </div>
             )}
           </DialogContent>
