@@ -417,6 +417,26 @@
   margin-top: -2px;
 }
 
+.news-feed__attachments-scroll {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.news-feed__attachments-grid--editable {
+  display: grid !important;
+  grid-auto-flow: row !important;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.news-feed__attachments-grid--editable .news-feed__attachment-card {
+  min-width: 0;
+}
+
 .news-feed__attachments-grid--single {
   grid-template-columns: minmax(0, 1fr);
 }

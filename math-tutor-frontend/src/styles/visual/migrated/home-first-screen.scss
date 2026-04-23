@@ -238,25 +238,6 @@
     inset 0 1px 0 color-mix(in srgb, #ffffff 20%, transparent);
 }
 
-.home-first-screen__path-item--primary::after {
-  content: "";
-  position: absolute;
-  top: -14px;
-  right: -20px;
-  width: 114px;
-  height: 42px;
-  border-radius: 999px;
-  pointer-events: none;
-  background: radial-gradient(
-    88% 150% at 44% 50%,
-    color-mix(in srgb, #7f90ff 48%, transparent),
-    color-mix(in srgb, #bd72ff 24%, transparent),
-    transparent 72%
-  );
-  opacity: 0.58;
-  filter: blur(2px);
-}
-
 .home-first-screen__path-topline {
   display: flex;
   align-items: center;
