@@ -104,6 +104,7 @@ type ChatMediaPreviewItem = {
   kind: "image" | "video";
   url: string;
   title: string;
+  downloadName: string;
 };
 
 type ChatMediaPreviewState = {
@@ -978,11 +979,14 @@ export default function ChatPage() {
           if (!url) return null;
           const kind = getAttachmentKind(attachment.mimeType);
           if (kind !== "image" && kind !== "video") return null;
+          const fallbackExtension = kind === "video" ? "mp4" : "jpg";
+          const normalizedName = attachment.name?.trim() || "";
           return {
             id: attachment.id || `${kind}-${index}`,
             kind,
             url,
-            title: attachment.name?.trim() || "Вложение",
+            title: normalizedName || "Вложение",
+            downloadName: normalizedName || `chat-media-${index + 1}.${fallbackExtension}`,
           };
         })
         .filter((item): item is ChatMediaPreviewItem => Boolean(item));
@@ -1010,25 +1014,19 @@ export default function ChatPage() {
     });
   }, []);
 
-  const handleComposerPrimaryAction = useCallback(() => {
+  const handleComposerAudioAction = useCallback(() => {
     if (sending) return;
     if (isRecordingAudio) {
       stopAudioRecording();
       return;
     }
-    if (!hasDraftContent) {
-      void startAudioRecording();
-      return;
-    }
+    void startAudioRecording();
+  }, [isRecordingAudio, sending, startAudioRecording, stopAudioRecording]);
+
+  const handleComposerSendAction = useCallback(() => {
+    if (sending || isRecordingAudio || !hasDraftContent) return;
     void submitComposer();
-  }, [
-    hasDraftContent,
-    isRecordingAudio,
-    sending,
-    startAudioRecording,
-    stopAudioRecording,
-    submitComposer,
-  ]);
+  }, [hasDraftContent, isRecordingAudio, sending, submitComposer]);
 
   const handleVoiceListened = useCallback(
     async (message: TeacherChatMessage) => {
@@ -1250,6 +1248,16 @@ export default function ChatPage() {
                     const senderClass =
                       message.senderRole === "teacher" ? "is-teacher" : "is-student";
                     const isDeleted = Boolean(message.deletedForAll);
+                    const isMediaOnlyMessage =
+                      !isDeleted &&
+                      !message.text &&
+                      !message.voice &&
+                      Array.isArray(message.attachments) &&
+                      message.attachments.length > 0 &&
+                      message.attachments.every((attachment) => {
+                        const kind = getAttachmentKind(attachment.mimeType);
+                        return kind === "image" || kind === "video";
+                      });
                     return (
                       <article
                         key={message.id}
@@ -1263,7 +1271,9 @@ export default function ChatPage() {
                         }}
                         className={`chat-page__message ${senderClass} ${
                           ownMessage ? "is-own" : ""
-                        } ${isDeleted ? "is-deleted" : ""}`}
+                        } ${isDeleted ? "is-deleted" : ""} ${
+                          isMediaOnlyMessage ? "is-media-only" : ""
+                        }`}
                         onMouseEnter={() => {
                           if (messageMenu.message?.id === message.id) {
                             cancelMessageMenuClose();
@@ -1350,18 +1360,6 @@ export default function ChatPage() {
                                         <img src={attachment.url} alt={attachment.name} />
                                       )}
                                     </button>
-                                    <a
-                                      className="chat-page__attachment-download"
-                                      href={attachment.url}
-                                      download={attachment.name}
-                                      title={
-                                        kind === "video"
-                                          ? "Скачать видео"
-                                          : "Скачать изображение"
-                                      }
-                                    >
-                                      <DownloadRoundedIcon fontSize="inherit" />
-                                    </a>
                                   </div>
                                 );
                               }
@@ -1523,20 +1521,7 @@ export default function ChatPage() {
                   }}
                 />
                 <div className="chat-page__composer-field">
-                  <textarea
-                    ref={composerInputRef}
-                    className="chat-page__composer-input"
-                    value={inputValue}
-                    onChange={(event) => setInputValue(event.target.value)}
-                    placeholder="Введите сообщение..."
-                    rows={1}
-                  />
-                  <div className="chat-page__composer-actions">
-                    {isRecordingAudio ? (
-                      <span className="chat-page__record-timer">
-                        {formatDuration(recordingSeconds)}
-                      </span>
-                    ) : null}
+                  <div className="chat-page__composer-actions chat-page__composer-actions--left">
                     <IconButton
                       type="button"
                       disabled={sending || isRecordingAudio}
@@ -1549,24 +1534,42 @@ export default function ChatPage() {
                     <IconButton
                       type="button"
                       disabled={sending}
-                      className="chat-page__send-button"
-                      onClick={handleComposerPrimaryAction}
+                      className="chat-page__audio-button"
+                      onClick={handleComposerAudioAction}
                       aria-label={
                         isRecordingAudio
                           ? "Остановить запись аудио"
-                          : hasDraftContent
-                            ? "Отправить сообщение"
-                            : "Начать запись аудио"
+                          : "Начать запись аудио"
                       }
+                    >
+                      {isRecordingAudio ? <StopRoundedIcon /> : <MicRoundedIcon />}
+                    </IconButton>
+                    {isRecordingAudio ? (
+                      <span className="chat-page__record-timer">
+                        {formatDuration(recordingSeconds)}
+                      </span>
+                    ) : null}
+                  </div>
+                  <textarea
+                    ref={composerInputRef}
+                    className="chat-page__composer-input"
+                    value={inputValue}
+                    onChange={(event) => setInputValue(event.target.value)}
+                    placeholder="Введите сообщение..."
+                    rows={1}
+                  />
+                  <div className="chat-page__composer-actions chat-page__composer-actions--right">
+                    <IconButton
+                      type="button"
+                      disabled={sending || isRecordingAudio || !hasDraftContent}
+                      className="chat-page__send-button"
+                      onClick={handleComposerSendAction}
+                      aria-label="Отправить сообщение"
                     >
                       {sending ? (
                         <CircularProgress size={18} color="inherit" />
-                      ) : isRecordingAudio ? (
-                        <StopRoundedIcon />
-                      ) : hasDraftContent ? (
-                        <SendRoundedIcon />
                       ) : (
-                        <MicRoundedIcon />
+                        <SendRoundedIcon />
                       )}
                     </IconButton>
                   </div>
@@ -1729,20 +1732,41 @@ export default function ChatPage() {
         prevLabel="Предыдущее вложение"
         nextLabel="Следующее вложение"
       >
-        {previewCurrentMedia?.kind === "video" ? (
-          <video
-            controls
-            playsInline
-            preload="metadata"
-            src={previewCurrentMedia.url}
-            className="immersive-media-overlay__media chat-page__preview-media"
-          />
-        ) : previewCurrentMedia ? (
-          <img
-            src={previewCurrentMedia.url}
-            alt={previewCurrentMedia.title}
-            className="immersive-media-overlay__media chat-page__preview-media"
-          />
+        {previewCurrentMedia ? (
+          <div className="chat-page__preview-shell">
+            {previewCurrentMedia.kind === "video" ? (
+              <video
+                controls
+                playsInline
+                preload="metadata"
+                src={previewCurrentMedia.url}
+                className="immersive-media-overlay__media chat-page__preview-media"
+              />
+            ) : (
+              <img
+                src={previewCurrentMedia.url}
+                alt={previewCurrentMedia.title}
+                className="immersive-media-overlay__media chat-page__preview-media"
+              />
+            )}
+            <a
+              className="chat-page__preview-download"
+              href={previewCurrentMedia.url}
+              download={previewCurrentMedia.downloadName}
+              title={
+                previewCurrentMedia.kind === "video"
+                  ? "Скачать видео"
+                  : "Скачать изображение"
+              }
+              aria-label={
+                previewCurrentMedia.kind === "video"
+                  ? "Скачать видео"
+                  : "Скачать изображение"
+              }
+            >
+              <DownloadRoundedIcon fontSize="inherit" />
+            </a>
+          </div>
         ) : (
           <div className="immersive-media-overlay__fallback">
             Не удалось загрузить вложение.

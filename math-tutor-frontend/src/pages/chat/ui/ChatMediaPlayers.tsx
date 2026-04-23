@@ -8,11 +8,32 @@ import { formatPlaybackTime } from "@/pages/chat/model/chatPageUtils";
 
 const AUDIO_PLAYBACK_RATES = [1, 1.25, 1.5, 2];
 const AUDIO_WAVE_BARS = [
-  24, 44, 31, 56, 42, 68, 37, 58, 46, 64, 36, 52, 40, 61, 34, 49, 30, 43,
+  38, 44, 35, 52, 40, 60, 42, 64, 48, 58, 34, 56, 44, 62, 37, 49, 33, 46,
+  30, 42, 36, 55, 41, 63, 47, 59, 35, 54, 43, 61, 39, 50, 34, 45, 31, 40,
+  37, 53, 46, 57,
 ];
 const AUDIO_LISTENED_THRESHOLD_RATIO = 0.45;
 const AUDIO_LISTENED_THRESHOLD_MIN_SECONDS = 0.8;
 const AUDIO_LISTENED_THRESHOLD_MAX_SECONDS = 5;
+const AUDIO_WAVE_DISPLAY_BARS = 40;
+
+const resizeWaveform = (input: number[], targetBars: number): number[] => {
+  if (input.length === 0) return [];
+  if (input.length === targetBars) return input;
+  return Array.from({ length: targetBars }, (_, index) => {
+    const start = Math.floor((index * input.length) / targetBars);
+    const end = Math.max(
+      start + 1,
+      Math.floor(((index + 1) * input.length) / targetBars)
+    );
+    let peak = 0;
+    for (let cursor = start; cursor < end; cursor += 1) {
+      const next = input[cursor] ?? 0;
+      if (next > peak) peak = next;
+    }
+    return peak;
+  });
+};
 
 export function AudioMessagePlayer({
   src,
@@ -73,7 +94,8 @@ export function AudioMessagePlayer({
       .filter((item): item is number => typeof item === "number" && Number.isFinite(item))
       .map((item) => Math.max(8, Math.min(100, Math.round(item))))
       .slice(0, 96);
-    return normalized.length > 0 ? normalized : AUDIO_WAVE_BARS;
+    if (normalized.length === 0) return AUDIO_WAVE_BARS;
+    return resizeWaveform(normalized, AUDIO_WAVE_DISPLAY_BARS);
   }, [waveform]);
 
   const togglePlayback = useCallback(async () => {
@@ -172,6 +194,7 @@ export function AudioMessagePlayer({
   const activeBars = isPlaying
     ? Math.max(1, Math.round(progressRatio * waveBars.length))
     : Math.max(0, Math.round(progressRatio * waveBars.length));
+  const hasElapsed = currentTime > 0;
 
   return (
     <div
@@ -193,37 +216,36 @@ export function AudioMessagePlayer({
         )}
       </button>
       <div className="chat-page__audio-content">
-        <div className="chat-page__audio-head">
-          <div className="chat-page__audio-wave-wrap" aria-hidden="true">
-            <div
-              className="chat-page__audio-wave-progress"
-              style={{ width: `${progressRatio * 100}%` }}
-            />
-            <div className="chat-page__audio-wave">
-              {waveBars.map((height, index) => (
-                <span
-                  key={index}
-                  style={{
-                    height: `${height}%`,
-                    animationDelay: `${(index % 6) * 0.08}s`,
-                  }}
-                  className={index < activeBars ? "is-active" : ""}
-                />
-              ))}
-            </div>
+        <div className="chat-page__audio-wave-wrap" aria-hidden="true">
+          <div className="chat-page__audio-wave">
+            {waveBars.map((height, index) => (
+              <span
+                key={index}
+                style={{
+                  height: `${height}%`,
+                  animationDelay: `${(index % 8) * 0.06}s`,
+                }}
+                className={index < activeBars ? "is-active" : ""}
+              />
+            ))}
           </div>
-          <button
-            type="button"
-            className="chat-page__audio-speed"
-            onClick={handleCyclePlaybackRate}
-            aria-label="Скорость воспроизведения"
-          >
-            {playbackRate}x
-          </button>
         </div>
-        <div className="chat-page__audio-time">
-          <span>{formatPlaybackTime(currentTime)}</span>
-          <span>{formatPlaybackTime(duration)}</span>
+        <div className="chat-page__audio-meta">
+          <div className="chat-page__audio-time">
+            {hasElapsed ? <span>{formatPlaybackTime(currentTime)}</span> : null}
+            {hasElapsed ? <span className="chat-page__audio-time-dot">•</span> : null}
+            <span>{formatPlaybackTime(duration)}</span>
+          </div>
+          {isPlaying ? (
+            <button
+              type="button"
+              className="chat-page__audio-speed"
+              onClick={handleCyclePlaybackRate}
+              aria-label="Скорость воспроизведения"
+            >
+              {playbackRate}x
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
