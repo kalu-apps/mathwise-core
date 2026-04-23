@@ -20,9 +20,7 @@ import {
   MenuItem,
   TextField,
 } from "@mui/material";
-import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
-import DiamondRoundedIcon from "@mui/icons-material/DiamondRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import SchoolRoundedIcon from "@mui/icons-material/SchoolRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -59,6 +57,7 @@ import type {
 } from "@/features/chat/model/types";
 import { generateId } from "@/shared/lib/id";
 import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
+import { ImmersiveMediaOverlay } from "@/shared/ui/ImmersiveMediaOverlay";
 import {
   createAttachmentFromFile,
   formatAttachmentSize,
@@ -79,7 +78,6 @@ import {
 } from "@/pages/chat/model/chatPageUtils";
 import {
   AudioMessagePlayer,
-  VideoMessagePlayer,
 } from "@/pages/chat/ui/ChatMediaPlayers";
 
 type LocationState = {
@@ -96,6 +94,18 @@ type MessageContextMenuState = {
   message: TeacherChatMessage | null;
   x: number;
   y: number;
+};
+
+type ChatMediaPreviewItem = {
+  id: string;
+  kind: "image" | "video";
+  url: string;
+  title: string;
+};
+
+type ChatMediaPreviewState = {
+  items: ChatMediaPreviewItem[];
+  index: number;
 };
 
 type TimelineItem =
@@ -155,10 +165,12 @@ export default function ChatPage() {
   const [visibleCount, setVisibleCount] = useState(60);
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [mediaPreview, setMediaPreview] = useState<ChatMediaPreviewState | null>(null);
 
   const isTeacher = user?.role === "teacher";
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
+  const composerFormRef = useRef<HTMLFormElement | null>(null);
   const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageElementRefs = useRef(new Map<string, HTMLElement>());
@@ -914,6 +926,74 @@ export default function ChatPage() {
 
   const chatUnavailable =
     user?.role === "student" && chatEligibility && !chatEligibility.available;
+  const hasDraftContent =
+    inputValue.trim().length > 0 || composerAttachments.length > 0;
+  const previewCurrentMedia = mediaPreview
+    ? mediaPreview.items[mediaPreview.index]
+    : null;
+
+  const openMediaPreview = useCallback(
+    (attachments: TeacherChatAttachment[], attachmentId?: string) => {
+      const previewItems: ChatMediaPreviewItem[] = attachments
+        .map((attachment, index) => {
+          const url = (attachment.url ?? "").trim();
+          if (!url) return null;
+          const kind = getAttachmentKind(attachment.mimeType);
+          if (kind !== "image" && kind !== "video") return null;
+          return {
+            id: attachment.id || `${kind}-${index}`,
+            kind,
+            url,
+            title: attachment.name?.trim() || "Вложение",
+          };
+        })
+        .filter((item): item is ChatMediaPreviewItem => Boolean(item));
+      if (previewItems.length === 0) return;
+      const initialIndex = attachmentId
+        ? previewItems.findIndex((item) => item.id === attachmentId)
+        : 0;
+      setMediaPreview({
+        items: previewItems,
+        index: initialIndex >= 0 ? initialIndex : 0,
+      });
+    },
+    []
+  );
+
+  const shiftMediaPreview = useCallback((direction: 1 | -1) => {
+    setMediaPreview((current) => {
+      if (!current || current.items.length <= 1) return current;
+      const nextIndex =
+        (current.index + direction + current.items.length) % current.items.length;
+      return {
+        ...current,
+        index: nextIndex,
+      };
+    });
+  }, []);
+
+  const handleComposerPrimaryAction = useCallback(() => {
+    if (sending) return;
+    if (isRecordingAudio) {
+      stopAudioRecording();
+      return;
+    }
+    if (!hasDraftContent) {
+      void startAudioRecording();
+      return;
+    }
+    composerFormRef.current?.requestSubmit();
+  }, [
+    hasDraftContent,
+    isRecordingAudio,
+    sending,
+    startAudioRecording,
+    stopAudioRecording,
+  ]);
+
+  useEffect(() => {
+    setMediaPreview(null);
+  }, [selectedThreadId]);
 
   return (
     <div className="chat-page">
@@ -929,17 +1009,6 @@ export default function ChatPage() {
 
       <section className="chat-page__shell">
         <aside className="chat-page__sidebar">
-          <div className="chat-page__sidebar-head">
-            <h1>
-              <ForumRoundedIcon fontSize="small" />
-              {isTeacher ? "Диалоги со студентами" : "Диалог с преподавателем"}
-            </h1>
-            <span>
-              {isTeacher
-                ? "Единый канал обратной связи"
-                : "Премиум-чат для вопросов по обучению"}
-            </span>
-          </div>
           {isTeacher ? (
             <TextField
               value={threadQuery}
@@ -1016,23 +1085,17 @@ export default function ChatPage() {
                 </p>
               </div>
             </div>
-            <div className="chat-page__head-actions">
-              {isTeacher && selectedThread ? (
-                <Button
-                  variant="outlined"
-                  size="small"
+            {isTeacher && selectedThread ? (
+              <div className="chat-page__head-actions">
+                <IconButton
                   className="chat-page__clear-button"
                   onClick={() => setClearDialogOpen(true)}
-                  startIcon={<DeleteSweepRoundedIcon fontSize="small" />}
+                  aria-label="Очистить чат"
                 >
-                  Очистить чат
-                </Button>
-              ) : null}
-              <div className="chat-page__premium-pill">
-                <DiamondRoundedIcon fontSize="small" />
-                <span>Премиум-канал</span>
+                  <DeleteSweepRoundedIcon fontSize="small" />
+                </IconButton>
               </div>
-            </div>
+            ) : null}
           </header>
 
           {threadsError ? <Alert severity="error">{threadsError}</Alert> : null}
@@ -1149,49 +1212,50 @@ export default function ChatPage() {
                           <div className="chat-page__message-attachments">
                             {message.attachments.map((attachment) => {
                               const kind = getAttachmentKind(attachment.mimeType);
-                              if (kind === "image") {
+                              if (kind === "image" || kind === "video") {
                                 return (
                                   <div
                                     key={attachment.id}
-                                    className="chat-page__attachment chat-page__attachment--image"
+                                    className={`chat-page__attachment chat-page__attachment--${kind}`}
                                   >
-                                    <a
-                                      href={attachment.url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="chat-page__attachment-image-open"
+                                    <button
+                                      type="button"
+                                      className={`chat-page__attachment-preview chat-page__attachment-preview--${kind}`}
+                                      onClick={() =>
+                                        openMediaPreview(
+                                          message.attachments ?? [],
+                                          attachment.id
+                                        )
+                                      }
+                                      aria-label={
+                                        kind === "video"
+                                          ? "Открыть превью видео"
+                                          : "Открыть превью изображения"
+                                      }
                                     >
-                                      <img src={attachment.url} alt={attachment.name} />
-                                      <span className="chat-page__attachment-media-meta">
-                                        <strong>{truncateFileName(attachment.name, 30)}</strong>
-                                        <em>{formatAttachmentSize(attachment.size)}</em>
-                                      </span>
-                                    </a>
+                                      {kind === "video" ? (
+                                        <video
+                                          src={attachment.url}
+                                          muted
+                                          playsInline
+                                          preload="metadata"
+                                        />
+                                      ) : (
+                                        <img src={attachment.url} alt={attachment.name} />
+                                      )}
+                                    </button>
                                     <a
                                       className="chat-page__attachment-download"
                                       href={attachment.url}
                                       download={attachment.name}
-                                      title="Скачать изображение"
+                                      title={
+                                        kind === "video"
+                                          ? "Скачать видео"
+                                          : "Скачать изображение"
+                                      }
                                     >
                                       <DownloadRoundedIcon fontSize="inherit" />
                                     </a>
-                                  </div>
-                                );
-                              }
-                              if (kind === "video") {
-                                return (
-                                  <div
-                                    key={attachment.id}
-                                    className="chat-page__attachment chat-page__attachment--video"
-                                  >
-                                    <VideoMessagePlayer
-                                      src={attachment.url}
-                                      fileName={attachment.name}
-                                    />
-                                    <div className="chat-page__attachment-meta">
-                                      <strong>{truncateFileName(attachment.name, 28)}</strong>
-                                      <span>{formatAttachmentSize(attachment.size)}</span>
-                                    </div>
                                   </div>
                                 );
                               }
@@ -1201,14 +1265,7 @@ export default function ChatPage() {
                                     key={attachment.id}
                                     className="chat-page__attachment chat-page__attachment--audio"
                                   >
-                                    <AudioMessagePlayer
-                                      src={attachment.url}
-                                      fileName={attachment.name}
-                                    />
-                                    <div className="chat-page__attachment-meta">
-                                      <strong>Голосовое сообщение</strong>
-                                      <span>{formatAttachmentSize(attachment.size)}</span>
-                                    </div>
+                                    <AudioMessagePlayer src={attachment.url} />
                                   </div>
                                 );
                               }
@@ -1269,7 +1326,11 @@ export default function ChatPage() {
 
               {messagesError ? <Alert severity="error">{messagesError}</Alert> : null}
 
-              <form className="chat-page__composer" onSubmit={handleSubmit}>
+              <form
+                ref={composerFormRef}
+                className="chat-page__composer"
+                onSubmit={handleSubmit}
+              >
                 {composerAttachments.length > 0 ? (
                   <div className="chat-page__composer-attachments">
                     {composerAttachments.map((attachment) => {
@@ -1331,72 +1392,65 @@ export default function ChatPage() {
                 ) : null}
 
                 <div className="chat-page__composer-row">
-                  <div className="chat-page__composer-controls">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      hidden
-                      multiple
-                      onChange={async (event) => {
-                        await handlePickFiles(event.target.files);
-                        event.target.value = "";
-                      }}
-                    />
-                    <Button
-                      variant="outlined"
-                      className="chat-page__attach-button"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <AttachFileRoundedIcon fontSize="small" />
-                    </Button>
-                    <Button
-                      variant={isRecordingAudio ? "contained" : "outlined"}
-                      color={isRecordingAudio ? "error" : "inherit"}
-                      className="chat-page__record-button"
-                      onClick={() => {
-                        if (isRecordingAudio) {
-                          stopAudioRecording();
-                        } else {
-                          void startAudioRecording();
-                        }
-                      }}
-                    >
-                      {isRecordingAudio ? (
-                        <StopRoundedIcon fontSize="small" />
-                      ) : (
-                        <MicRoundedIcon fontSize="small" />
-                      )}
-                    </Button>
-                    {isRecordingAudio ? (
-                      <span className="chat-page__record-timer">
-                        {formatDuration(recordingSeconds)}
-                      </span>
-                    ) : null}
-                  </div>
-                  <textarea
-                    ref={composerInputRef}
-                    className="chat-page__composer-input"
-                    value={inputValue}
-                    onChange={(event) => setInputValue(event.target.value)}
-                    placeholder="Введите сообщение..."
-                    rows={1}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    hidden
+                    multiple
+                    onChange={async (event) => {
+                      await handlePickFiles(event.target.files);
+                      event.target.value = "";
+                    }}
                   />
-                  <IconButton
-                    type="submit"
-                    disabled={
-                      sending ||
-                      isRecordingAudio ||
-                      (!inputValue.trim() && composerAttachments.length === 0)
-                    }
-                    className="chat-page__send-button"
-                    aria-label="Отправить сообщение"
-                  >
-                    {sending ? (
-                      <CircularProgress size={18} color="inherit" />
-                    ) : (
-                      <SendRoundedIcon />
-                    )}
-                  </IconButton>
+                  <div className="chat-page__composer-field">
+                    <textarea
+                      ref={composerInputRef}
+                      className="chat-page__composer-input"
+                      value={inputValue}
+                      onChange={(event) => setInputValue(event.target.value)}
+                      placeholder="Введите сообщение..."
+                      rows={1}
+                    />
+                    <div className="chat-page__composer-actions">
+                      {isRecordingAudio ? (
+                        <span className="chat-page__record-timer">
+                          {formatDuration(recordingSeconds)}
+                        </span>
+                      ) : null}
+                      <IconButton
+                        type="button"
+                        disabled={sending || isRecordingAudio}
+                        className="chat-page__attach-button"
+                        onClick={() => fileInputRef.current?.click()}
+                        aria-label="Прикрепить файл"
+                      >
+                        <AttachFileRoundedIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        type="button"
+                        disabled={sending}
+                        className="chat-page__send-button"
+                        onClick={handleComposerPrimaryAction}
+                        aria-label={
+                          isRecordingAudio
+                            ? "Остановить запись аудио"
+                            : hasDraftContent
+                              ? "Отправить сообщение"
+                              : "Записать голосовое сообщение"
+                        }
+                      >
+                        {sending ? (
+                          <CircularProgress size={18} color="inherit" />
+                        ) : isRecordingAudio ? (
+                          <StopRoundedIcon />
+                        ) : hasDraftContent ? (
+                          <SendRoundedIcon />
+                        ) : (
+                          <MicRoundedIcon />
+                        )}
+                      </IconButton>
+                    </div>
+                  </div>
                 </div>
                 {editingMessageId ? (
                   <div className="chat-page__editing-row">
@@ -1536,6 +1590,45 @@ export default function ChatPage() {
           <span>Удалить</span>
         </MenuItem>
       </Menu>
+
+      <ImmersiveMediaOverlay
+        open={Boolean(mediaPreview)}
+        onClose={() => setMediaPreview(null)}
+        onPrev={
+          mediaPreview && mediaPreview.items.length > 1
+            ? () => shiftMediaPreview(-1)
+            : undefined
+        }
+        onNext={
+          mediaPreview && mediaPreview.items.length > 1
+            ? () => shiftMediaPreview(1)
+            : undefined
+        }
+        ariaLabel="Просмотр вложения чата"
+        closeLabel="Закрыть просмотр вложения"
+        prevLabel="Предыдущее вложение"
+        nextLabel="Следующее вложение"
+      >
+        {previewCurrentMedia?.kind === "video" ? (
+          <video
+            controls
+            playsInline
+            preload="metadata"
+            src={previewCurrentMedia.url}
+            className="immersive-media-overlay__media chat-page__preview-media"
+          />
+        ) : previewCurrentMedia ? (
+          <img
+            src={previewCurrentMedia.url}
+            alt={previewCurrentMedia.title}
+            className="immersive-media-overlay__media chat-page__preview-media"
+          />
+        ) : (
+          <div className="immersive-media-overlay__fallback">
+            Не удалось загрузить вложение.
+          </div>
+        )}
+      </ImmersiveMediaOverlay>
     </div>
   );
 }

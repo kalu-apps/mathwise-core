@@ -11,13 +11,7 @@ const AUDIO_WAVE_BARS = [
   24, 44, 31, 56, 42, 68, 37, 58, 46, 64, 36, 52, 40, 61, 34, 49, 30, 43,
 ];
 
-export function AudioMessagePlayer({
-  src,
-  fileName,
-}: {
-  src: string;
-  fileName?: string;
-}) {
+export function AudioMessagePlayer({ src }: { src: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -38,13 +32,6 @@ export function AudioMessagePlayer({
     }
     audio.pause();
     setIsPlaying(false);
-  }, []);
-
-  const handleSeek = useCallback((value: number) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.currentTime = value;
-    setCurrentTime(value);
   }, []);
 
   const handleCyclePlaybackRate = useCallback(() => {
@@ -98,10 +85,12 @@ export function AudioMessagePlayer({
 
   const progressRatio =
     duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0;
-  const activeBars = Math.max(1, Math.round(progressRatio * AUDIO_WAVE_BARS.length));
+  const activeBars = isPlaying
+    ? Math.max(1, Math.round(progressRatio * AUDIO_WAVE_BARS.length))
+    : Math.max(0, Math.round(progressRatio * AUDIO_WAVE_BARS.length));
 
   return (
-    <div className="chat-page__audio-player">
+    <div className={`chat-page__audio-player ${isPlaying ? "is-playing" : ""}`}>
       <audio ref={audioRef} preload="metadata" src={src} />
       <button
         type="button"
@@ -117,14 +106,23 @@ export function AudioMessagePlayer({
       </button>
       <div className="chat-page__audio-content">
         <div className="chat-page__audio-head">
-          <div className="chat-page__audio-wave" aria-hidden="true">
-            {AUDIO_WAVE_BARS.map((height, index) => (
-              <span
-                key={index}
-                style={{ height: `${height}%` }}
-                className={index < activeBars ? "is-active" : ""}
-              />
-            ))}
+          <div className="chat-page__audio-wave-wrap" aria-hidden="true">
+            <div
+              className="chat-page__audio-wave-progress"
+              style={{ width: `${progressRatio * 100}%` }}
+            />
+            <div className="chat-page__audio-wave">
+              {AUDIO_WAVE_BARS.map((height, index) => (
+                <span
+                  key={index}
+                  style={{
+                    height: `${height}%`,
+                    animationDelay: `${(index % 6) * 0.08}s`,
+                  }}
+                  className={index < activeBars ? "is-active" : ""}
+                />
+              ))}
+            </div>
           </div>
           <button
             type="button"
@@ -135,29 +133,11 @@ export function AudioMessagePlayer({
             {playbackRate}x
           </button>
         </div>
-        <input
-          className="chat-page__audio-range"
-          type="range"
-          min={0}
-          max={Math.max(duration, 1)}
-          step={0.1}
-          value={Math.min(currentTime, duration || 0)}
-          onChange={(event) => handleSeek(Number(event.target.value))}
-          aria-label="Позиция аудио"
-        />
         <div className="chat-page__audio-time">
           <span>{formatPlaybackTime(currentTime)}</span>
           <span>{formatPlaybackTime(duration)}</span>
         </div>
       </div>
-      <a
-        className="chat-page__audio-download"
-        href={src}
-        download={fileName}
-        title="Скачать аудио"
-      >
-        <DownloadRoundedIcon fontSize="inherit" />
-      </a>
     </div>
   );
 }
