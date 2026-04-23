@@ -38,6 +38,7 @@ export type TeacherChatAttachment = {
   mimeType: string;
   size: number;
   url: string;
+  mediaObjectId?: string;
 };
 
 export type TeacherChatMessage = {

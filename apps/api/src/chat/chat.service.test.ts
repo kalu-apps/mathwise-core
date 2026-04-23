@@ -32,7 +32,8 @@ test("chat: non-premium student is denied message access", async () => {
         primaryTeacherId: null,
         resolvedAt: new Date().toISOString(),
       }),
-    } as never
+    } as never,
+    {} as never
   );
 
   await assert.rejects(
@@ -70,6 +71,7 @@ test("chat: teacher cannot access foreign thread", async () => {
       }),
       listMessagesByThread: async () => [],
     } as never,
+    {} as never,
     {} as never,
     {} as never
   );
@@ -139,7 +141,8 @@ test("chat: booking-capable student can access messages", async () => {
         primaryTeacherId: "teacher_2",
         resolvedAt: new Date().toISOString(),
       }),
-    } as never
+    } as never,
+    {} as never
   );
 
   const messages = await service.getMessages({

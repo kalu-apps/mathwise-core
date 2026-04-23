@@ -8,6 +8,7 @@
     "start:stage": "node dist/main.js",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "audit:chat-media": "ts-node scripts/audit-chat-media.ts",
     "seed:courses": "ts-node scripts/seed-courses.ts",
     "bootstrap:stage": "npm run build && npm run seed:courses",
     "test": "node --test -r ts-node/register $(find src -name '*.test.ts' -print)"

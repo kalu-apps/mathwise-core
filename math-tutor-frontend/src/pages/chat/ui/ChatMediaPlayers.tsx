@@ -6,11 +6,23 @@ import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import { formatPlaybackTime } from "@/pages/chat/model/chatPageUtils";
 
-export function AudioMessagePlayer({ src }: { src: string }) {
+const AUDIO_PLAYBACK_RATES = [1, 1.25, 1.5, 2];
+const AUDIO_WAVE_BARS = [
+  24, 44, 31, 56, 42, 68, 37, 58, 46, 64, 36, 52, 40, 61, 34, 49, 30, 43,
+];
+
+export function AudioMessagePlayer({
+  src,
+  fileName,
+}: {
+  src: string;
+  fileName?: string;
+}) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
 
   const togglePlayback = useCallback(async () => {
     const audio = audioRef.current;
@@ -34,6 +46,21 @@ export function AudioMessagePlayer({ src }: { src: string }) {
     audio.currentTime = value;
     setCurrentTime(value);
   }, []);
+
+  const handleCyclePlaybackRate = useCallback(() => {
+    const currentIndex = AUDIO_PLAYBACK_RATES.findIndex((rate) => rate === playbackRate);
+    const nextRate =
+      AUDIO_PLAYBACK_RATES[
+        currentIndex >= 0
+          ? (currentIndex + 1) % AUDIO_PLAYBACK_RATES.length
+          : 0
+      ] ?? 1;
+    setPlaybackRate(nextRate);
+    const audio = audioRef.current;
+    if (audio) {
+      audio.playbackRate = nextRate;
+    }
+  }, [playbackRate]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -63,12 +90,22 @@ export function AudioMessagePlayer({ src }: { src: string }) {
     };
   }, [src]);
 
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.playbackRate = playbackRate;
+  }, [playbackRate]);
+
+  const progressRatio =
+    duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0;
+  const activeBars = Math.max(1, Math.round(progressRatio * AUDIO_WAVE_BARS.length));
+
   return (
     <div className="chat-page__audio-player">
       <audio ref={audioRef} preload="metadata" src={src} />
       <button
         type="button"
-        className="chat-page__audio-toggle"
+        className={`chat-page__audio-toggle ${isPlaying ? "is-active" : ""}`}
         onClick={() => void togglePlayback()}
         aria-label={isPlaying ? "Пауза" : "Воспроизвести"}
       >
@@ -78,8 +115,28 @@ export function AudioMessagePlayer({ src }: { src: string }) {
           <PlayArrowRoundedIcon fontSize="inherit" />
         )}
       </button>
-      <div className="chat-page__audio-track">
+      <div className="chat-page__audio-content">
+        <div className="chat-page__audio-head">
+          <div className="chat-page__audio-wave" aria-hidden="true">
+            {AUDIO_WAVE_BARS.map((height, index) => (
+              <span
+                key={index}
+                style={{ height: `${height}%` }}
+                className={index < activeBars ? "is-active" : ""}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            className="chat-page__audio-speed"
+            onClick={handleCyclePlaybackRate}
+            aria-label="Скорость воспроизведения"
+          >
+            {playbackRate}x
+          </button>
+        </div>
         <input
+          className="chat-page__audio-range"
           type="range"
           min={0}
           max={Math.max(duration, 1)}
@@ -93,6 +150,14 @@ export function AudioMessagePlayer({ src }: { src: string }) {
           <span>{formatPlaybackTime(duration)}</span>
         </div>
       </div>
+      <a
+        className="chat-page__audio-download"
+        href={src}
+        download={fileName}
+        title="Скачать аудио"
+      >
+        <DownloadRoundedIcon fontSize="inherit" />
+      </a>
     </div>
   );
 }
@@ -186,6 +251,9 @@ export function VideoMessagePlayer({
           <PlayArrowRoundedIcon fontSize="inherit" />
         )}
       </button>
+      <div className="chat-page__video-topline">
+        <span className="chat-page__video-file">{fileName}</span>
+      </div>
       <div className="chat-page__video-controls">
         <button
           type="button"
@@ -200,6 +268,7 @@ export function VideoMessagePlayer({
           )}
         </button>
         <input
+          className="chat-page__video-range"
           type="range"
           min={0}
           max={Math.max(duration, 1)}

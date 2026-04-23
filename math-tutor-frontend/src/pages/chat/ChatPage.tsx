@@ -61,11 +61,13 @@ import { generateId } from "@/shared/lib/id";
 import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
 import {
   createAttachmentFromFile,
+  formatAttachmentSize,
   formatDayLabel,
   formatDuration,
   formatThreadDate,
   formatTime,
   getAttachmentKind,
+  getAttachmentExtension,
   getComposerAttachmentTitle,
   MAX_ATTACHMENTS_PER_MESSAGE,
   MAX_ATTACHMENT_SIZE_BYTES,
@@ -1135,6 +1137,12 @@ export default function ChatPage() {
                           });
                         }}
                       >
+                        {!ownMessage ? (
+                          <span className="chat-page__message-author">
+                            {message.senderName || "Собеседник"}
+                          </span>
+                        ) : null}
+
                         {message.text ? <p>{renderChatMessageText(message.text)}</p> : null}
 
                         {message.attachments && message.attachments.length > 0 ? (
@@ -1154,6 +1162,10 @@ export default function ChatPage() {
                                       className="chat-page__attachment-image-open"
                                     >
                                       <img src={attachment.url} alt={attachment.name} />
+                                      <span className="chat-page__attachment-media-meta">
+                                        <strong>{truncateFileName(attachment.name, 30)}</strong>
+                                        <em>{formatAttachmentSize(attachment.size)}</em>
+                                      </span>
                                     </a>
                                     <a
                                       className="chat-page__attachment-download"
@@ -1176,6 +1188,10 @@ export default function ChatPage() {
                                       src={attachment.url}
                                       fileName={attachment.name}
                                     />
+                                    <div className="chat-page__attachment-meta">
+                                      <strong>{truncateFileName(attachment.name, 28)}</strong>
+                                      <span>{formatAttachmentSize(attachment.size)}</span>
+                                    </div>
                                   </div>
                                 );
                               }
@@ -1185,7 +1201,14 @@ export default function ChatPage() {
                                     key={attachment.id}
                                     className="chat-page__attachment chat-page__attachment--audio"
                                   >
-                                    <AudioMessagePlayer src={attachment.url} />
+                                    <AudioMessagePlayer
+                                      src={attachment.url}
+                                      fileName={attachment.name}
+                                    />
+                                    <div className="chat-page__attachment-meta">
+                                      <strong>Голосовое сообщение</strong>
+                                      <span>{formatAttachmentSize(attachment.size)}</span>
+                                    </div>
                                   </div>
                                 );
                               }
@@ -1194,7 +1217,9 @@ export default function ChatPage() {
                                   key={attachment.id}
                                   className="chat-page__attachment chat-page__attachment--file"
                                 >
-                                  <DescriptionRoundedIcon fontSize="small" />
+                                  <span className="chat-page__attachment-file-mark">
+                                    {getAttachmentExtension(attachment.name)}
+                                  </span>
                                   <a
                                     className="chat-page__attachment-file-link"
                                     href={attachment.url}
@@ -1203,6 +1228,9 @@ export default function ChatPage() {
                                   >
                                     {truncateFileName(attachment.name, 26)}
                                   </a>
+                                  <span className="chat-page__attachment-file-size">
+                                    {formatAttachmentSize(attachment.size)}
+                                  </span>
                                   <a
                                     className="chat-page__attachment-file-download"
                                     href={attachment.url}
@@ -1218,6 +1246,9 @@ export default function ChatPage() {
                         ) : null}
 
                         <div className="chat-page__message-foot">
+                          {message.editedAt ? (
+                            <span className="chat-page__message-edited">изм.</span>
+                          ) : null}
                           <time>{formatTime(message.createdAt)}</time>
                           {ownMessage ? (
                             <span className="chat-page__read-state">
@@ -1271,24 +1302,19 @@ export default function ChatPage() {
                               <strong>
                                 {truncateFileName(getComposerAttachmentTitle(attachment), 28)}
                               </strong>
+                              <span>
+                                {kind === "file"
+                                  ? `${getAttachmentExtension(attachment.name)} • ${formatAttachmentSize(
+                                      attachment.size
+                                    )}`
+                                  : formatAttachmentSize(attachment.size)}
+                              </span>
                             </div>
                           </a>
                           <IconButton
                             size="small"
                             className="chat-page__composer-attachment-remove"
                             disableRipple
-                            sx={{
-                              position: "absolute",
-                              top: "4px",
-                              right: "6px",
-                              zIndex: 3,
-                              width: "18px",
-                              height: "18px",
-                              minWidth: "18px",
-                              minHeight: "18px",
-                              padding: 0,
-                              margin: 0,
-                            }}
                             onClick={() =>
                               setComposerAttachments((current) =>
                                 current.filter((item) => item.id !== attachment.id)

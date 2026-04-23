@@ -393,6 +393,7 @@ export class MediaRepository {
       releaseRefs: string;
       purchaseRefs: string;
       newsRefs: string;
+      chatRefs: string;
     }>(
       `
         SELECT
@@ -442,7 +443,16 @@ export class MediaRepository {
               FROM jsonb_array_elements(COALESCE(np.attachments_json, '[]'::jsonb)) AS attachment
               WHERE attachment->>'mediaObjectId' = $1
             )
-          ) AS "newsRefs"
+          ) AS "newsRefs",
+          (
+            SELECT COUNT(*)::text
+            FROM chat_messages cm
+            WHERE EXISTS (
+              SELECT 1
+              FROM jsonb_array_elements(COALESCE(cm.attachments_json, '[]'::jsonb)) AS attachment
+              WHERE attachment->>'mediaObjectId' = $1
+            )
+          ) AS "chatRefs"
       `,
       [objectId]
     );
@@ -451,6 +461,7 @@ export class MediaRepository {
     const releaseRefs = Number(row?.releaseRefs ?? 0);
     const purchaseRefs = Number(row?.purchaseRefs ?? 0);
     const newsRefs = Number(row?.newsRefs ?? 0);
+    const chatRefs = Number(row?.chatRefs ?? 0);
     return {
       draftRefs: Number.isFinite(draftRefs) ? draftRefs : 0,
       releaseRefs: Number.isFinite(releaseRefs) ? releaseRefs : 0,
@@ -459,7 +470,8 @@ export class MediaRepository {
         (Number.isFinite(draftRefs) ? draftRefs : 0) +
         (Number.isFinite(releaseRefs) ? releaseRefs : 0) +
         (Number.isFinite(purchaseRefs) ? purchaseRefs : 0) +
-        (Number.isFinite(newsRefs) ? newsRefs : 0),
+        (Number.isFinite(newsRefs) ? newsRefs : 0) +
+        (Number.isFinite(chatRefs) ? chatRefs : 0),
     };
   }
 

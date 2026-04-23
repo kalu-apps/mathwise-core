@@ -842,6 +842,18 @@ export async function uploadNewsAttachmentFile(
   return uploaded.objectId;
 }
 
+export async function uploadChatAttachmentFile(
+  file: File,
+  options?: { signal?: AbortSignal }
+): Promise<string> {
+  const uploaded = await uploadObjectToStorage({
+    file,
+    category: "chat-attachment",
+    signal: options?.signal,
+  });
+  return uploaded.objectId;
+}
+
 export async function getOwnedMediaDownloadUrl(
   objectId: string
 ): Promise<DownloadUrlResponse> {

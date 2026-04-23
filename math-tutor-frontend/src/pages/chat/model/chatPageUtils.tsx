@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
-import { fileToDataUrl } from "@/shared/lib/files";
+import {
+  getOwnedMediaDownloadUrl,
+  uploadChatAttachmentFile,
+} from "@/shared/lib/mediaPipeline";
 import type {
   TeacherChatAttachment,
   TeacherChatMessage,
@@ -71,6 +74,24 @@ export const formatPlaybackTime = (seconds: number) => {
     .toString()
     .padStart(2, "0");
   return `${mins}:${secs}`;
+};
+
+export const formatAttachmentSize = (size: number | null | undefined) => {
+  if (typeof size !== "number" || !Number.isFinite(size) || size <= 0) return "—";
+  if (size < 1024) return `${Math.round(size)} B`;
+  const kb = size / 1024;
+  if (kb < 1024) return `${kb.toFixed(kb >= 100 ? 0 : 1)} KB`;
+  const mb = kb / 1024;
+  if (mb < 1024) return `${mb.toFixed(mb >= 100 ? 0 : 1)} MB`;
+  const gb = mb / 1024;
+  return `${gb.toFixed(gb >= 100 ? 0 : 1)} GB`;
+};
+
+export const getAttachmentExtension = (name: string) => {
+  const safeName = (name ?? "").trim();
+  const dotIndex = safeName.lastIndexOf(".");
+  if (dotIndex <= 0 || dotIndex >= safeName.length - 1) return "FILE";
+  return safeName.slice(dotIndex + 1).toUpperCase().slice(0, 6);
 };
 
 const CHAT_LINK_PATTERN = /\b((?:https?:\/\/|www\.)[^\s]+)/gi;
@@ -206,13 +227,15 @@ export const normalizeChatThread = (
 
 export const createAttachmentFromFile = async (
   file: File
-): Promise<TeacherChatAttachment> => ({
-  id:
-    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID()
-      : `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-  name: file.name,
-  mimeType: file.type || "application/octet-stream",
-  size: file.size,
-  url: await fileToDataUrl(file),
-});
+): Promise<TeacherChatAttachment> => {
+  const mediaObjectId = await uploadChatAttachmentFile(file);
+  const access = await getOwnedMediaDownloadUrl(mediaObjectId);
+  return {
+    id: mediaObjectId,
+    name: file.name,
+    mimeType: file.type || "application/octet-stream",
+    size: file.size,
+    url: access.downloadUrl,
+    mediaObjectId,
+  };
+};

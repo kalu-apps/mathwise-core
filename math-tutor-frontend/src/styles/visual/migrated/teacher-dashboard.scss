@@ -281,8 +281,9 @@
 
   &__identity-copy {
     min-width: 0;
-    display: flex;
-    align-items: flex-end;
+    display: grid;
+    align-content: end;
+    gap: 2px;
     min-height: 100%;
     padding-bottom: 2px;
 
@@ -297,6 +298,17 @@
       text-overflow: ellipsis;
       overflow: hidden;
     }
+  }
+
+  &__identity-email {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__identity-edit {
@@ -1626,6 +1638,10 @@
 
   .teacher-dashboard__identity-copy h3 {
     font-size: 14px;
+  }
+
+  .teacher-dashboard__identity-email {
+    font-size: 10px;
   }
 
   .teacher-dashboard__profile-edit-grid {

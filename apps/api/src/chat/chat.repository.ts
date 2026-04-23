@@ -43,37 +43,46 @@ type ThreadIdentityRow = {
 
 const normalizeAttachments = (value: unknown): TeacherChatAttachmentDto[] => {
   if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => {
-      if (!item || typeof item !== "object") return null;
-      const candidate = item as {
-        id?: unknown;
-        name?: unknown;
-        mimeType?: unknown;
-        size?: unknown;
-        url?: unknown;
-      };
-      if (
-        typeof candidate.id !== "string" ||
-        typeof candidate.name !== "string" ||
-        typeof candidate.mimeType !== "string" ||
-        typeof candidate.url !== "string"
-      ) {
-        return null;
-      }
-      const size =
-        typeof candidate.size === "number" && Number.isFinite(candidate.size)
-          ? Math.max(0, Math.floor(candidate.size))
-          : 0;
-      return {
-        id: candidate.id,
-        name: candidate.name,
-        mimeType: candidate.mimeType,
-        size,
-        url: candidate.url,
-      } satisfies TeacherChatAttachmentDto;
-    })
-    .filter((item): item is TeacherChatAttachmentDto => Boolean(item));
+  return value.reduce<TeacherChatAttachmentDto[]>((acc, item) => {
+    if (!item || typeof item !== "object") return acc;
+    const candidate = item as {
+      id?: unknown;
+      name?: unknown;
+      mimeType?: unknown;
+      size?: unknown;
+      url?: unknown;
+      mediaObjectId?: unknown;
+    };
+    if (
+      typeof candidate.id !== "string" ||
+      typeof candidate.name !== "string" ||
+      typeof candidate.mimeType !== "string"
+    ) {
+      return acc;
+    }
+    const mediaObjectId =
+      typeof candidate.mediaObjectId === "string"
+        ? candidate.mediaObjectId.trim()
+        : "";
+    const url =
+      typeof candidate.url === "string" ? candidate.url.trim() : "";
+    if (!url && !mediaObjectId) {
+      return acc;
+    }
+    const size =
+      typeof candidate.size === "number" && Number.isFinite(candidate.size)
+        ? Math.max(0, Math.floor(candidate.size))
+        : 0;
+    acc.push({
+      id: candidate.id,
+      name: candidate.name,
+      mimeType: candidate.mimeType,
+      size,
+      url,
+      mediaObjectId: mediaObjectId || undefined,
+    });
+    return acc;
+  }, []);
 };
 
 const mapThreadRow = (row: ThreadRow): TeacherChatThreadDto => ({

@@ -2,6 +2,7 @@ import { HttpException, Injectable, OnModuleInit } from "@nestjs/common";
 import type { AuthUserDto } from "../auth/auth.types";
 import { AuthRepository } from "../auth/auth.repository";
 import { CapabilitiesService } from "../capabilities/capabilities.service";
+import { MediaService } from "../media/media.service";
 import { ensureId } from "../purchases/purchases.helpers";
 import { ChatRepository } from "./chat.repository";
 import type {
@@ -22,27 +23,29 @@ const normalizeAttachments = (
   value: SendTeacherChatMessagePayloadDto["attachments"]
 ): TeacherChatAttachmentDto[] => {
   if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => {
-      if (!item || typeof item !== "object") return null;
-      const id = typeof item.id === "string" ? item.id.trim() : "";
-      const name = typeof item.name === "string" ? item.name.trim() : "";
-      const mimeType =
-        typeof item.mimeType === "string" ? item.mimeType.trim() : "";
-      const url = typeof item.url === "string" ? item.url.trim() : "";
-      if (!id || !name || !mimeType || !url) return null;
-      return {
-        id,
-        name,
-        mimeType,
-        size:
-          typeof item.size === "number" && Number.isFinite(item.size)
-            ? Math.max(0, Math.floor(item.size))
-            : 0,
-        url,
-      };
-    })
-    .filter((item): item is TeacherChatAttachmentDto => Boolean(item));
+  return value.reduce<TeacherChatAttachmentDto[]>((acc, item) => {
+    if (!item || typeof item !== "object") return acc;
+    const id = typeof item.id === "string" ? item.id.trim() : "";
+    const name = typeof item.name === "string" ? item.name.trim() : "";
+    const mimeType =
+      typeof item.mimeType === "string" ? item.mimeType.trim() : "";
+    const url = typeof item.url === "string" ? item.url.trim() : "";
+    const mediaObjectId =
+      typeof item.mediaObjectId === "string" ? item.mediaObjectId.trim() : "";
+    if (!id || !name || !mimeType || (!url && !mediaObjectId)) return acc;
+    acc.push({
+      id,
+      name,
+      mimeType,
+      size:
+        typeof item.size === "number" && Number.isFinite(item.size)
+          ? Math.max(0, Math.floor(item.size))
+          : 0,
+      url,
+      mediaObjectId: mediaObjectId || undefined,
+    });
+    return acc;
+  }, []);
 };
 
 @Injectable()
@@ -50,7 +53,8 @@ export class ChatService implements OnModuleInit {
   constructor(
     private readonly chatRepository: ChatRepository,
     private readonly authRepository: AuthRepository,
-    private readonly capabilitiesService: CapabilitiesService
+    private readonly capabilitiesService: CapabilitiesService,
+    private readonly mediaService: MediaService
   ) {}
 
   async onModuleInit() {
@@ -121,7 +125,8 @@ export class ChatService implements OnModuleInit {
     if (params.actorUser.role === "student") {
       await this.assertStudentPremiumAccess(params.actorUser, thread.teacherId);
     }
-    return this.chatRepository.listMessagesByThread(params.threadId);
+    const messages = await this.chatRepository.listMessagesByThread(params.threadId);
+    return this.hydrateMessageAttachments(messages);
   }
 
   async sendMessage(params: {
@@ -143,7 +148,7 @@ export class ChatService implements OnModuleInit {
     });
 
     const createdAt = nowIso();
-    return this.chatRepository.insertMessage({
+    const created = await this.chatRepository.insertMessage({
       id: ensureId("chat_msg"),
       threadId: thread.id,
       senderId: params.actorUser.id,
@@ -154,6 +159,8 @@ export class ChatService implements OnModuleInit {
       attachments,
       createdAt,
     });
+    const [hydrated] = await this.hydrateMessageAttachments([created]);
+    return hydrated ?? created;
   }
 
   async updateMessage(params: {
@@ -180,6 +187,10 @@ export class ChatService implements OnModuleInit {
     }
     const text = normalizeMessageText(params.payload.text ?? "");
     const attachments = normalizeAttachments(params.payload.attachments);
+    const previousAttachmentObjectIds = this.collectMediaObjectIds(
+      message.attachments
+    );
+    const nextAttachmentObjectIds = this.collectMediaObjectIds(attachments);
     if (!text && attachments.length === 0) {
       throw new HttpException(
         { error: "Сообщение не может быть пустым.", code: "validation_failed" },
@@ -195,7 +206,12 @@ export class ChatService implements OnModuleInit {
     if (!updated) {
       throw new HttpException({ error: "Сообщение не найдено." }, 404);
     }
-    return updated;
+    const detachedObjectIds = previousAttachmentObjectIds.filter(
+      (id) => !nextAttachmentObjectIds.includes(id)
+    );
+    await this.releaseMediaObjectIds(detachedObjectIds);
+    const [hydrated] = await this.hydrateMessageAttachments([updated]);
+    return hydrated ?? updated;
   }
 
   async deleteMessage(params: {
@@ -220,6 +236,7 @@ export class ChatService implements OnModuleInit {
     if (thread.id !== message.threadId) {
       throw new HttpException({ error: "Недопустимый threadId." }, 409);
     }
+    const attachedObjectIds = this.collectMediaObjectIds(message.attachments);
 
     const deleted = await this.chatRepository.markMessageDeletedForAll({
       id: params.messageId,
@@ -228,6 +245,7 @@ export class ChatService implements OnModuleInit {
     if (!deleted) {
       throw new HttpException({ error: "Сообщение не найдено." }, 404);
     }
+    await this.releaseMediaObjectIds(attachedObjectIds);
     return { ok: true };
   }
 
@@ -239,7 +257,12 @@ export class ChatService implements OnModuleInit {
     if (params.actorUser.role === "student") {
       await this.assertStudentPremiumAccess(params.actorUser, thread.teacherId);
     }
+    const messages = await this.chatRepository.listMessagesByThread(params.threadId);
+    const objectIds = this.collectMediaObjectIds(
+      messages.flatMap((message) => message.attachments ?? [])
+    );
     await this.chatRepository.clearThreadMessages(params.threadId, nowIso());
+    await this.releaseMediaObjectIds(objectIds);
     return { ok: true };
   }
 
@@ -353,5 +376,91 @@ export class ChatService implements OnModuleInit {
         403
       );
     }
+  }
+
+  private collectMediaObjectIds(
+    attachments: TeacherChatAttachmentDto[] | undefined
+  ): string[] {
+    if (!Array.isArray(attachments) || attachments.length === 0) return [];
+    return Array.from(
+      new Set(
+        attachments
+          .map((attachment) => attachment.mediaObjectId?.trim() || "")
+          .filter(Boolean)
+      )
+    );
+  }
+
+  private async releaseMediaObjectIds(objectIds: string[]): Promise<void> {
+    const normalized = Array.from(
+      new Set(objectIds.map((item) => item.trim()).filter(Boolean))
+    );
+    if (normalized.length === 0) return;
+    try {
+      await this.mediaService.releaseMediaObjects({
+        objectIds: normalized,
+        reason: "chat_attachment_detach",
+      });
+    } catch (error) {
+      if (typeof console !== "undefined") {
+        console.warn("[chat] media-release-failed", {
+          objectIds: normalized,
+          error:
+            error instanceof Error
+              ? {
+                  name: error.name,
+                  message: error.message,
+                }
+              : error,
+        });
+      }
+    }
+  }
+
+  private async hydrateMessageAttachments(
+    messages: TeacherChatMessageDto[]
+  ): Promise<TeacherChatMessageDto[]> {
+    const mediaCache = new Map<string, string>();
+    return Promise.all(
+      messages.map(async (message) => {
+        const sourceAttachments = Array.isArray(message.attachments)
+          ? message.attachments
+          : [];
+        if (sourceAttachments.length === 0) return message;
+
+        const hydratedAttachments = await Promise.all(
+          sourceAttachments.map(async (attachment) => {
+            const mediaObjectId = attachment.mediaObjectId?.trim();
+            if (!mediaObjectId) return attachment;
+
+            const cachedUrl = mediaCache.get(mediaObjectId);
+            if (cachedUrl) {
+              return {
+                ...attachment,
+                url: cachedUrl,
+              };
+            }
+
+            try {
+              const access = await this.mediaService.getRuntimeDownloadUrlByObjectId(
+                mediaObjectId
+              );
+              mediaCache.set(mediaObjectId, access.downloadUrl);
+              return {
+                ...attachment,
+                url: access.downloadUrl,
+              };
+            } catch {
+              return attachment;
+            }
+          })
+        );
+
+        return {
+          ...message,
+          attachments: hydratedAttachments,
+        };
+      })
+    );
   }
 }

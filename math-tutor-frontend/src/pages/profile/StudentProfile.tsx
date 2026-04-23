@@ -956,6 +956,7 @@ export default function StudentProfile() {
                 </Avatar>
                 <div className="student-profile__identity-copy">
                   <h3>{identityName || "Профиль студента"}</h3>
+                  <p className="student-profile__identity-email">{user.email}</p>
                 </div>
               </div>
             </section>
@@ -1018,6 +1019,7 @@ export default function StudentProfile() {
                 </Avatar>
                 <div className="student-profile__identity-copy">
                   <h3>{identityName || "Профиль студента"}</h3>
+                  <p className="student-profile__identity-email">{user.email}</p>
                 </div>
               </div>
             </section>

@@ -869,35 +869,30 @@ export default function Booking() {
             {t("booking.checkoutDescription")}
           </Typography>
           <TextField
-            label="Email"
             type="email"
             value={guestEmail}
             onChange={(e) => setGuestEmail(e.target.value)}
+            placeholder="Email"
             fullWidth
-            InputLabelProps={{ shrink: true }}
           />
           <TextField
-            label={t("common.firstName")}
             value={guestFirstName}
             onChange={(e) => setGuestFirstName(e.target.value)}
+            placeholder={t("common.firstName")}
             fullWidth
-            InputLabelProps={{ shrink: true }}
           />
           <TextField
-            label={t("common.lastName")}
             value={guestLastName}
             onChange={(e) => setGuestLastName(e.target.value)}
+            placeholder={t("common.lastName")}
             fullWidth
-            InputLabelProps={{ shrink: true }}
           />
           <TextField
-            label={t("common.phone")}
             value={formatRuPhoneInput(guestPhone)}
             onChange={(e) => setGuestPhone(formatRuPhoneInput(e.target.value))}
             placeholder={PHONE_MASK_TEMPLATE}
             inputProps={{ inputMode: "tel" }}
             fullWidth
-            InputLabelProps={{ shrink: true }}
           />
         </DialogContent>
         <DialogActions>
