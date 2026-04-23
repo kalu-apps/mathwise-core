@@ -167,16 +167,6 @@ export function AudioMessagePlayer({
     audio.playbackRate = playbackRate;
   }, [playbackRate]);
 
-  useEffect(() => {
-    if (
-      typeof durationSeconds === "number" &&
-      Number.isFinite(durationSeconds) &&
-      durationSeconds > 0
-    ) {
-      setDuration((current) => (current > 0 ? current : durationSeconds));
-    }
-  }, [durationSeconds]);
-
   const progressRatio =
     duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0;
   const activeBars = isPlaying
