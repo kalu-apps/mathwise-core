@@ -5,7 +5,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type FormEvent,
 } from "react";
 import {
   Alert,
@@ -27,7 +26,6 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import AttachFileRoundedIcon from "@mui/icons-material/AttachFileRounded";
-import MicRoundedIcon from "@mui/icons-material/MicRounded";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import DoneRoundedIcon from "@mui/icons-material/DoneRounded";
 import DoneAllRoundedIcon from "@mui/icons-material/DoneAllRounded";
@@ -170,7 +168,6 @@ export default function ChatPage() {
   const isTeacher = user?.role === "teacher";
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
-  const composerFormRef = useRef<HTMLFormElement | null>(null);
   const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageElementRefs = useRef(new Map<string, HTMLElement>());
@@ -703,9 +700,8 @@ export default function ChatPage() {
     };
   }, []);
 
-  const handleSubmit = useCallback(
-    async (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
+  const submitComposer = useCallback(
+    async () => {
       if (!user || sending || isRecordingAudio) return;
       const text = inputValue.trim().slice(0, 4000);
       const safeAttachments = composerAttachments
@@ -982,13 +978,14 @@ export default function ChatPage() {
       void startAudioRecording();
       return;
     }
-    composerFormRef.current?.requestSubmit();
+    void submitComposer();
   }, [
     hasDraftContent,
     isRecordingAudio,
     sending,
     startAudioRecording,
     stopAudioRecording,
+    submitComposer,
   ]);
 
   useEffect(() => {
@@ -1008,62 +1005,63 @@ export default function ChatPage() {
       ) : null}
 
       <section className="chat-page__shell">
-        <aside className="chat-page__sidebar">
-          {isTeacher ? (
-            <TextField
-              value={threadQuery}
-              onChange={(event) => setThreadQuery(event.target.value)}
-              placeholder="Поиск студента..."
-              size="small"
-              fullWidth
-            />
-          ) : null}
-          <div className="chat-page__thread-list">
-            {threadsLoading ? (
-              <div className="chat-page__state">
-                <CircularProgress size={24} />
-              </div>
-            ) : filteredThreads.length === 0 ? (
-              <div className="chat-page__state">Нет доступных диалогов.</div>
-            ) : (
-              filteredThreads.map((thread) => (
-                <button
-                  key={thread.id}
-                  type="button"
-                  className={`chat-page__thread-item ${
-                    thread.id === selectedThreadId ? "is-active" : ""
-                  }`}
-                  onClick={() => setSelectedThreadId(thread.id)}
-                >
-                  <Avatar
-                    src={isTeacher ? thread.studentPhoto : thread.teacherPhoto}
-                    className="chat-page__thread-avatar"
+        <div className="chat-page__workspace">
+          <aside className="chat-page__sidebar">
+            {isTeacher ? (
+              <TextField
+                value={threadQuery}
+                onChange={(event) => setThreadQuery(event.target.value)}
+                placeholder="Поиск студента..."
+                size="small"
+                fullWidth
+              />
+            ) : null}
+            <div className="chat-page__thread-list">
+              {threadsLoading ? (
+                <div className="chat-page__state">
+                  <CircularProgress size={24} />
+                </div>
+              ) : filteredThreads.length === 0 ? (
+                <div className="chat-page__state">Нет доступных диалогов.</div>
+              ) : (
+                filteredThreads.map((thread) => (
+                  <button
+                    key={thread.id}
+                    type="button"
+                    className={`chat-page__thread-item ${
+                      thread.id === selectedThreadId ? "is-active" : ""
+                    }`}
+                    onClick={() => setSelectedThreadId(thread.id)}
                   >
-                    {isTeacher ? (
-                      <PersonRoundedIcon fontSize="small" />
-                    ) : (
-                      <SchoolRoundedIcon fontSize="small" />
-                    )}
-                  </Avatar>
-                  <div className="chat-page__thread-copy">
-                    <strong>
-                      {isTeacher ? thread.studentName : thread.teacherName || "Преподаватель"}
-                    </strong>
-                    <span>{thread.lastMessageText ?? "Нет сообщений"}</span>
-                  </div>
-                  <div className="chat-page__thread-meta">
-                    <time>{formatThreadDate(thread.lastMessageAt ?? thread.updatedAt)}</time>
-                    {thread.unreadCount > 0 && (
-                      <span className="chat-page__thread-unread">{thread.unreadCount}</span>
-                    )}
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        </aside>
+                    <Avatar
+                      src={isTeacher ? thread.studentPhoto : thread.teacherPhoto}
+                      className="chat-page__thread-avatar"
+                    >
+                      {isTeacher ? (
+                        <PersonRoundedIcon fontSize="small" />
+                      ) : (
+                        <SchoolRoundedIcon fontSize="small" />
+                      )}
+                    </Avatar>
+                    <div className="chat-page__thread-copy">
+                      <strong>
+                        {isTeacher ? thread.studentName : thread.teacherName || "Преподаватель"}
+                      </strong>
+                      <span>{thread.lastMessageText ?? "Нет сообщений"}</span>
+                    </div>
+                    <div className="chat-page__thread-meta">
+                      <time>{formatThreadDate(thread.lastMessageAt ?? thread.updatedAt)}</time>
+                      {thread.unreadCount > 0 && (
+                        <span className="chat-page__thread-unread">{thread.unreadCount}</span>
+                      )}
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </aside>
 
-        <div className="chat-page__main">
+          <div className="chat-page__main">
           <header className="chat-page__main-head">
             <div className="chat-page__main-title">
               <Avatar
@@ -1326,148 +1324,141 @@ export default function ChatPage() {
 
               {messagesError ? <Alert severity="error">{messagesError}</Alert> : null}
 
-              <form
-                ref={composerFormRef}
-                className="chat-page__composer"
-                onSubmit={handleSubmit}
-              >
-                {composerAttachments.length > 0 ? (
-                  <div className="chat-page__composer-attachments">
-                    {composerAttachments.map((attachment) => {
-                      const kind = getAttachmentKind(attachment.mimeType);
-                      return (
-                        <article
-                          key={attachment.id}
-                          className={`chat-page__composer-attachment chat-page__composer-attachment--${kind}`}
+              {composerAttachments.length > 0 ? (
+                <div className="chat-page__composer-attachments">
+                  {composerAttachments.map((attachment) => {
+                    const kind = getAttachmentKind(attachment.mimeType);
+                    return (
+                      <article
+                        key={attachment.id}
+                        className={`chat-page__composer-attachment chat-page__composer-attachment--${kind}`}
+                      >
+                        <a
+                          className="chat-page__composer-attachment-preview"
+                          href={attachment.url}
+                          target="_blank"
+                          rel="noreferrer"
                         >
-                          <a
-                            className="chat-page__composer-attachment-preview"
-                            href={attachment.url}
-                            target="_blank"
-                            rel="noreferrer"
+                          <span
+                            className={`chat-page__composer-attachment-thumb chat-page__composer-attachment-thumb--${kind}`}
                           >
-                            <span
-                              className={`chat-page__composer-attachment-thumb chat-page__composer-attachment-thumb--${kind}`}
-                            >
-                              {kind === "image" ? (
-                                <img src={attachment.url} alt={attachment.name} />
-                              ) : kind === "video" ? (
-                                <VideocamRoundedIcon fontSize="small" />
-                              ) : kind === "audio" ? (
-                                <HeadsetRoundedIcon fontSize="small" />
-                              ) : (
-                                <DescriptionRoundedIcon fontSize="small" />
-                              )}
+                            {kind === "image" ? (
+                              <img src={attachment.url} alt={attachment.name} />
+                            ) : kind === "video" ? (
+                              <VideocamRoundedIcon fontSize="small" />
+                            ) : kind === "audio" ? (
+                              <HeadsetRoundedIcon fontSize="small" />
+                            ) : (
+                              <DescriptionRoundedIcon fontSize="small" />
+                            )}
+                          </span>
+                          <div className="chat-page__composer-attachment-copy">
+                            <strong>
+                              {truncateFileName(getComposerAttachmentTitle(attachment), 28)}
+                            </strong>
+                            <span>
+                              {kind === "file"
+                                ? `${getAttachmentExtension(attachment.name)} • ${formatAttachmentSize(
+                                    attachment.size
+                                  )}`
+                                : formatAttachmentSize(attachment.size)}
                             </span>
-                            <div className="chat-page__composer-attachment-copy">
-                              <strong>
-                                {truncateFileName(getComposerAttachmentTitle(attachment), 28)}
-                              </strong>
-                              <span>
-                                {kind === "file"
-                                  ? `${getAttachmentExtension(attachment.name)} • ${formatAttachmentSize(
-                                      attachment.size
-                                    )}`
-                                  : formatAttachmentSize(attachment.size)}
-                              </span>
-                            </div>
-                          </a>
-                          <IconButton
-                            size="small"
-                            className="chat-page__composer-attachment-remove"
-                            disableRipple
-                            onClick={() =>
-                              setComposerAttachments((current) =>
-                                current.filter((item) => item.id !== attachment.id)
-                              )
-                            }
-                            aria-label="Удалить вложение"
-                          >
-                            <CloseRoundedIcon fontSize="small" />
-                          </IconButton>
-                        </article>
-                      );
-                    })}
-                  </div>
-                ) : null}
+                          </div>
+                        </a>
+                        <IconButton
+                          size="small"
+                          className="chat-page__composer-attachment-remove"
+                          disableRipple
+                          onClick={() =>
+                            setComposerAttachments((current) =>
+                              current.filter((item) => item.id !== attachment.id)
+                            )
+                          }
+                          aria-label="Удалить вложение"
+                        >
+                          <CloseRoundedIcon fontSize="small" />
+                        </IconButton>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : null}
 
-                <div className="chat-page__composer-row">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    hidden
-                    multiple
-                    onChange={async (event) => {
-                      await handlePickFiles(event.target.files);
-                      event.target.value = "";
-                    }}
+              <div className="chat-page__composer-row">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  hidden
+                  multiple
+                  onChange={async (event) => {
+                    await handlePickFiles(event.target.files);
+                    event.target.value = "";
+                  }}
+                />
+                <div className="chat-page__composer-field">
+                  <textarea
+                    ref={composerInputRef}
+                    className="chat-page__composer-input"
+                    value={inputValue}
+                    onChange={(event) => setInputValue(event.target.value)}
+                    placeholder="Введите сообщение..."
+                    rows={1}
                   />
-                  <div className="chat-page__composer-field">
-                    <textarea
-                      ref={composerInputRef}
-                      className="chat-page__composer-input"
-                      value={inputValue}
-                      onChange={(event) => setInputValue(event.target.value)}
-                      placeholder="Введите сообщение..."
-                      rows={1}
-                    />
-                    <div className="chat-page__composer-actions">
-                      {isRecordingAudio ? (
-                        <span className="chat-page__record-timer">
-                          {formatDuration(recordingSeconds)}
-                        </span>
-                      ) : null}
-                      <IconButton
-                        type="button"
-                        disabled={sending || isRecordingAudio}
-                        className="chat-page__attach-button"
-                        onClick={() => fileInputRef.current?.click()}
-                        aria-label="Прикрепить файл"
-                      >
-                        <AttachFileRoundedIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        type="button"
-                        disabled={sending}
-                        className="chat-page__send-button"
-                        onClick={handleComposerPrimaryAction}
-                        aria-label={
-                          isRecordingAudio
-                            ? "Остановить запись аудио"
-                            : hasDraftContent
-                              ? "Отправить сообщение"
-                              : "Записать голосовое сообщение"
-                        }
-                      >
-                        {sending ? (
-                          <CircularProgress size={18} color="inherit" />
-                        ) : isRecordingAudio ? (
-                          <StopRoundedIcon />
-                        ) : hasDraftContent ? (
-                          <SendRoundedIcon />
-                        ) : (
-                          <MicRoundedIcon />
-                        )}
-                      </IconButton>
-                    </div>
+                  <div className="chat-page__composer-actions">
+                    {isRecordingAudio ? (
+                      <span className="chat-page__record-timer">
+                        {formatDuration(recordingSeconds)}
+                      </span>
+                    ) : null}
+                    <IconButton
+                      type="button"
+                      disabled={sending || isRecordingAudio}
+                      className="chat-page__attach-button"
+                      onClick={() => fileInputRef.current?.click()}
+                      aria-label="Прикрепить файл"
+                    >
+                      <AttachFileRoundedIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      type="button"
+                      disabled={sending}
+                      className="chat-page__send-button"
+                      onClick={handleComposerPrimaryAction}
+                      aria-label={
+                        isRecordingAudio
+                          ? "Остановить запись аудио"
+                          : hasDraftContent
+                            ? "Отправить сообщение"
+                            : "Начать запись аудио"
+                      }
+                    >
+                      {sending ? (
+                        <CircularProgress size={18} color="inherit" />
+                      ) : isRecordingAudio ? (
+                        <StopRoundedIcon />
+                      ) : (
+                        <SendRoundedIcon />
+                      )}
+                    </IconButton>
                   </div>
                 </div>
-                {editingMessageId ? (
-                  <div className="chat-page__editing-row">
-                    <span>Режим редактирования сообщения</span>
-                    <Button
-                      size="small"
-                      onClick={() => {
-                        resetComposer();
-                      }}
-                    >
-                      Отменить
-                    </Button>
-                  </div>
-                ) : null}
-              </form>
+              </div>
+              {editingMessageId ? (
+                <div className="chat-page__editing-row">
+                  <span>Режим редактирования сообщения</span>
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      resetComposer();
+                    }}
+                  >
+                    Отменить
+                  </Button>
+                </div>
+              ) : null}
             </div>
           )}
+          </div>
         </div>
       </section>
 
