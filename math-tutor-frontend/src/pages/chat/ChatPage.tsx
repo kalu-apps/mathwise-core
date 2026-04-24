@@ -177,6 +177,10 @@ export default function ChatPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const isTeacher = user?.role === "teacher";
+  const pathname = location.pathname.toLowerCase();
+  const isTeacherView =
+    pathname.startsWith("/teacher/") ||
+    (!pathname.startsWith("/student/") && Boolean(isTeacher));
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const shellRef = useRef<HTMLElement | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
@@ -1121,9 +1125,13 @@ export default function ChatPage() {
       ) : null}
 
       <section className="chat-page__shell" ref={shellRef}>
-        <div className="chat-page__workspace">
-          <aside className="chat-page__sidebar">
-            {isTeacher ? (
+        <div
+          className={`chat-page__workspace ${
+            isTeacherView ? "chat-page__workspace--with-sidebar" : ""
+          }`}
+        >
+          {isTeacherView ? (
+            <aside className="chat-page__sidebar">
               <TextField
                 value={threadQuery}
                 onChange={(event) => setThreadQuery(event.target.value)}
@@ -1131,73 +1139,73 @@ export default function ChatPage() {
                 size="small"
                 fullWidth
               />
-            ) : null}
-            <div className="chat-page__thread-list">
-              {threadsLoading ? (
-                <div className="chat-page__state">
-                  <CircularProgress size={24} />
-                </div>
-              ) : filteredThreads.length === 0 ? (
-                <div className="chat-page__state">Нет доступных диалогов.</div>
-              ) : (
-                filteredThreads.map((thread) => (
-                  <button
-                    key={thread.id}
-                    type="button"
-                    className={`chat-page__thread-item ${
-                      thread.id === selectedThreadId ? "is-active" : ""
-                    }`}
-                    onClick={() => setSelectedThreadId(thread.id)}
-                  >
-                    <Avatar
-                      src={isTeacher ? thread.studentPhoto : thread.teacherPhoto}
-                      className="chat-page__thread-avatar"
+              <div className="chat-page__thread-list">
+                {threadsLoading ? (
+                  <div className="chat-page__state">
+                    <CircularProgress size={24} />
+                  </div>
+                ) : filteredThreads.length === 0 ? (
+                  <div className="chat-page__state">Нет доступных диалогов.</div>
+                ) : (
+                  filteredThreads.map((thread) => (
+                    <button
+                      key={thread.id}
+                      type="button"
+                      className={`chat-page__thread-item ${
+                        thread.id === selectedThreadId ? "is-active" : ""
+                      }`}
+                      onClick={() => setSelectedThreadId(thread.id)}
                     >
-                      {isTeacher ? (
-                        <PersonRoundedIcon fontSize="small" />
-                      ) : (
-                        <SchoolRoundedIcon fontSize="small" />
-                      )}
-                    </Avatar>
-                    <div className="chat-page__thread-copy">
-                      <div className="chat-page__thread-line chat-page__thread-line--head">
-                        <strong>
-                          {isTeacher
-                            ? thread.studentName
-                            : thread.teacherName || "Преподаватель"}
-                        </strong>
-                        <time>{formatThreadDate(thread.lastMessageAt ?? thread.updatedAt)}</time>
-                      </div>
-                      <div className="chat-page__thread-line chat-page__thread-line--foot">
-                        <span>{thread.lastMessageText ?? "Нет сообщений"}</span>
-                        {thread.unreadCount > 0 && (
-                          <span className="chat-page__thread-unread">{thread.unreadCount}</span>
+                      <Avatar
+                        src={isTeacherView ? thread.studentPhoto : thread.teacherPhoto}
+                        className="chat-page__thread-avatar"
+                      >
+                        {isTeacherView ? (
+                          <PersonRoundedIcon fontSize="small" />
+                        ) : (
+                          <SchoolRoundedIcon fontSize="small" />
                         )}
+                      </Avatar>
+                      <div className="chat-page__thread-copy">
+                        <div className="chat-page__thread-line chat-page__thread-line--head">
+                          <strong>
+                            {isTeacherView
+                              ? thread.studentName
+                              : thread.teacherName || "Преподаватель"}
+                          </strong>
+                          <time>{formatThreadDate(thread.lastMessageAt ?? thread.updatedAt)}</time>
+                        </div>
+                        <div className="chat-page__thread-line chat-page__thread-line--foot">
+                          <span>{thread.lastMessageText ?? "Нет сообщений"}</span>
+                          {thread.unreadCount > 0 && (
+                            <span className="chat-page__thread-unread">{thread.unreadCount}</span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </aside>
+                    </button>
+                  ))
+                )}
+              </div>
+            </aside>
+          ) : null}
 
           <div className="chat-page__main">
           <header className="chat-page__main-head">
             <div className="chat-page__main-title">
               <Avatar
-                src={isTeacher ? selectedThread?.studentPhoto : selectedThread?.teacherPhoto}
+                src={isTeacherView ? selectedThread?.studentPhoto : selectedThread?.teacherPhoto}
                 className="chat-page__main-avatar"
               >
-                {isTeacher ? <PersonRoundedIcon /> : <SchoolRoundedIcon />}
+                {isTeacherView ? <PersonRoundedIcon /> : <SchoolRoundedIcon />}
               </Avatar>
               <div>
                 <h2>
-                  {isTeacher
+                  {isTeacherView
                     ? selectedThread?.studentName ?? "Выберите диалог"
                     : selectedThread?.teacherName ?? "Чат"}
                 </h2>
                 <p>
-                  {isTeacher
+                  {isTeacherView
                     ? selectedThread?.studentEmail ?? "Сообщения и обратная связь"
                     : "Личные ответы преподавателя в одном окне"}
                 </p>

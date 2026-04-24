@@ -67,6 +67,11 @@ export function ImmersiveMediaOverlay({
     return null;
   }
 
+  const portalHost =
+    document.fullscreenElement instanceof HTMLElement
+      ? document.fullscreenElement
+      : document.body;
+
   const handleBackdropClick = (event: MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
       onClose();
@@ -118,6 +123,6 @@ export function ImmersiveMediaOverlay({
         </div>
       </div>
     </div>,
-    document.body
+    portalHost
   );
 }

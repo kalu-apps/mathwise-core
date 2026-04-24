@@ -14,13 +14,29 @@
     color-mix(in srgb, #ece2ff 86%, transparent),
     color-mix(in srgb, #ffe2d0 72%, transparent)
   );
+  --chat-bubble-teacher: linear-gradient(
+    140deg,
+    color-mix(in srgb, #dff2ff 76%, #8fc7ff 24%),
+    color-mix(in srgb, #cde6ff 72%, #6ea9ff 28%)
+  );
+  --chat-bubble-student: linear-gradient(
+    140deg,
+    color-mix(in srgb, #ffe8d7 76%, #ffb57f 24%),
+    color-mix(in srgb, #ffd9bd 72%, #ff9c6a 28%)
+  );
+  --chat-bubble-teacher-border: color-mix(in srgb, #73b4ff 54%, #ffffff 46%);
+  --chat-bubble-student-border: color-mix(in srgb, #ffa96c 54%, #ffffff 46%);
+  --chat-bubble-teacher-shadow: 0 10px 22px
+    color-mix(in srgb, #5a96e9 26%, transparent);
+  --chat-bubble-student-shadow: 0 10px 22px
+    color-mix(in srgb, #d97d48 26%, transparent);
   --chat-bubble-border: color-mix(in srgb, #d6c5ff 44%, #ffffff 56%);
   --chat-glass-violet: color-mix(in srgb, #8f6dff 34%, transparent);
   --chat-glass-orange: color-mix(in srgb, #ff9f66 28%, transparent);
   --chat-audio-toggle-bg: color-mix(in srgb, #ffffff 92%, #e8eef5 8%);
   --chat-audio-toggle-fg: color-mix(in srgb, #5f6f82 90%, #38495b 10%);
-  --chat-audio-wave-idle: color-mix(in srgb, #334a67 78%, #9db2cc 22%);
-  --chat-audio-wave-active: color-mix(in srgb, #f07f4f 74%, #9e7dff 26%);
+  --chat-audio-wave-idle: color-mix(in srgb, #f6b58e 62%, #ffd8be 38%);
+  --chat-audio-wave-active: color-mix(in srgb, #ff8d4d 70%, #ff59b1 30%);
   --chat-audio-speed-border: color-mix(in srgb, #aebac8 76%, #ffffff 24%);
   --chat-audio-speed-glow: color-mix(in srgb, #dbe3ec 62%, transparent);
   --chat-audio-time-color: color-mix(in srgb, #5d6979 86%, #ffffff 14%);
@@ -51,13 +67,29 @@
     color-mix(in srgb, #6f56cf 56%, transparent),
     color-mix(in srgb, #c07f59 44%, transparent)
   );
+  --chat-bubble-teacher: linear-gradient(
+    140deg,
+    color-mix(in srgb, #32589a 72%, #6fb8ff 28%),
+    color-mix(in srgb, #2a4f8e 70%, #5aa9ff 30%)
+  );
+  --chat-bubble-student: linear-gradient(
+    140deg,
+    color-mix(in srgb, #8f5636 72%, #ff9f63 28%),
+    color-mix(in srgb, #794733 68%, #ff8f5a 32%)
+  );
+  --chat-bubble-teacher-border: color-mix(in srgb, #6aa9ff 58%, #d8e9ff 42%);
+  --chat-bubble-student-border: color-mix(in srgb, #ff9b63 58%, #ffd7bf 42%);
+  --chat-bubble-teacher-shadow: 0 10px 24px
+    color-mix(in srgb, #4e8dd9 34%, transparent);
+  --chat-bubble-student-shadow: 0 10px 24px
+    color-mix(in srgb, #d17b45 34%, transparent);
   --chat-bubble-border: color-mix(in srgb, #cbbcff 34%, #ffffff 12%);
   --chat-glass-violet: color-mix(in srgb, #7f61f1 44%, transparent);
   --chat-glass-orange: color-mix(in srgb, #d58955 38%, transparent);
   --chat-audio-toggle-bg: color-mix(in srgb, #f6fbff 18%, #172232 82%);
   --chat-audio-toggle-fg: color-mix(in srgb, #ebf2fa 84%, #b9c6d6 16%);
-  --chat-audio-wave-idle: color-mix(in srgb, #dbe6ff 88%, #9db2d1 12%);
-  --chat-audio-wave-active: color-mix(in srgb, #ffd8b8 82%, #b89cff 18%);
+  --chat-audio-wave-idle: color-mix(in srgb, #f0a26d 58%, #c792ff 42%);
+  --chat-audio-wave-active: color-mix(in srgb, #ff9e54 64%, #ff6bb9 36%);
   --chat-audio-speed-border: color-mix(in srgb, #ffd9bc 52%, #9db0c7 48%);
   --chat-audio-speed-glow: color-mix(in srgb, #ffd8ba 40%, transparent);
   --chat-audio-time-color: color-mix(in srgb, #eef4fb 90%, #c0ccdc 10%);
@@ -99,7 +131,7 @@
 
 .chat-page__workspace {
   display: grid;
-  grid-template-columns: minmax(196px, 248px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   height: 100%;
   min-height: 0;
@@ -128,6 +160,10 @@
   overflow: hidden;
   position: relative;
   isolation: isolate;
+}
+
+.chat-page__workspace--with-sidebar {
+  grid-template-columns: minmax(196px, 248px) minmax(0, 1fr);
 }
 
 .chat-page__workspace::before {
@@ -446,7 +482,7 @@
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 0;
-  border-radius: 0;
+  border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--chat-accent) 20%, #ffffff 80%);
   background: transparent;
   overflow: hidden;
@@ -613,9 +649,24 @@
   min-height: 180px;
 }
 
-.chat-page__message.is-teacher,
+.chat-page__message.is-teacher {
+  background: var(--chat-bubble-teacher);
+  border: 1px solid var(--chat-bubble-teacher-border);
+  box-shadow: var(--chat-bubble-teacher-shadow);
+}
+
 .chat-page__message.is-student {
-  border-color: transparent;
+  background: var(--chat-bubble-student);
+  border: 1px solid var(--chat-bubble-student-border);
+  box-shadow: var(--chat-bubble-student-shadow);
+}
+
+.chat-page__message.is-teacher .chat-page__message-author {
+  color: color-mix(in srgb, #2e5b8d 86%, #6ea3de 14%);
+}
+
+.chat-page__message.is-student .chat-page__message-author {
+  color: color-mix(in srgb, #8f4f2e 86%, #d78e62 14%);
 }
 
 .chat-page__message.is-deleted {
@@ -846,7 +897,7 @@
 }
 
 .chat-page__attachment--audio {
-  width: min(504px, 100%);
+  width: min(605px, 100%);
   padding: 0;
   border: 0;
   background: transparent;
@@ -918,7 +969,7 @@
 
 .chat-page__audio-wave {
   width: 100%;
-  height: 16px;
+  height: 18px;
   display: flex;
   align-items: end;
   gap: 2px;
@@ -927,20 +978,33 @@
 .chat-page__audio-wave span {
   flex: 1 1 0;
   border-radius: 999px;
-  background: var(--chat-audio-wave-idle);
-  min-height: 3px;
-  opacity: 1;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--chat-audio-wave-idle) 42%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #fff3e6 46%, var(--chat-audio-wave-idle) 54%) 0%,
+    var(--chat-audio-wave-idle) 62%,
+    color-mix(in srgb, var(--chat-audio-wave-idle) 76%, #a65f3f 24%) 100%
+  );
+  min-height: 4px;
+  opacity: 0.72;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--chat-audio-wave-idle) 28%, transparent);
   transition:
-    background-color 0.16s ease,
+    background 0.18s ease,
     opacity 0.16s ease,
-    transform 0.16s ease;
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
 }
 
 .chat-page__audio-wave span.is-active {
-  background: var(--chat-audio-wave-active);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #ffe9d2 44%, var(--chat-audio-wave-active) 56%) 0%,
+    var(--chat-audio-wave-active) 58%,
+    color-mix(in srgb, var(--chat-audio-wave-active) 74%, #ff68ad 26%) 100%
+  );
   opacity: 1;
-  box-shadow: 0 0 8px color-mix(in srgb, var(--chat-audio-wave-active) 54%, transparent);
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--chat-audio-wave-active) 56%, transparent),
+    0 1px 4px color-mix(in srgb, #3a1f15 18%, transparent);
 }
 
 .chat-page__audio-player.is-playing .chat-page__audio-wave span.is-active {
@@ -1320,7 +1384,9 @@
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
-  border-radius: 1px !important;
+  border-radius: 0 !important;
+  color: color-mix(in srgb, var(--chat-accent) 74%, #4f6076 26%) !important;
+  opacity: 1;
 }
 
 .chat-page__attach-button.MuiIconButton-root:hover,
@@ -1337,6 +1403,8 @@
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
+  color: color-mix(in srgb, var(--chat-accent-strong) 54%, var(--chat-accent) 46%) !important;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--chat-accent) 40%, transparent));
 }
 
 .chat-page__attach-button.MuiIconButton-root:focus-visible,
@@ -1397,9 +1465,14 @@
 .chat-page__attach-button.Mui-disabled,
 .chat-page__audio-button.Mui-disabled,
 .chat-page__send-button.Mui-disabled {
-  color: color-mix(in srgb, #ffffff 38%, transparent);
+  color: color-mix(in srgb, #5f7186 58%, transparent);
   background: transparent;
   filter: none;
+}
+
+.chat-page .chat-page__send-button.MuiIconButton-root.Mui-disabled {
+  color: color-mix(in srgb, #7a8da3 54%, transparent) !important;
+  opacity: 0.46;
 }
 
 .chat-page__editing-row {
