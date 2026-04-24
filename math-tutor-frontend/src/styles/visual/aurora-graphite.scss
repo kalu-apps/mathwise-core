@@ -605,9 +605,20 @@ select:focus-visible,
 }
 
 .chat-page__messages {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+.chat-page__conversation,
+.chat-page__composer-field,
+.chat-page__composer-input {
+  border-radius: 0 !important;
+}
+
+.chat-page__conversation {
   background: var(--ag-tier1-bg) !important;
   border: 1px solid var(--ag-tier1-border) !important;
-  border-radius: var(--radius-lg) !important;
 }
 
 .chat-page__message-foot,

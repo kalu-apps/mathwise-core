@@ -60,6 +60,17 @@ export function AudioMessagePlayer({
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const listenedReportedRef = useRef(Boolean(listenedByPeer));
+  const onListenedRef = useRef(onListened);
+  const durationRef = useRef(
+    typeof durationSeconds === "number" && Number.isFinite(durationSeconds)
+      ? Math.max(0, durationSeconds)
+      : 0
+  );
+  const durationSecondsRef = useRef(
+    typeof durationSeconds === "number" && Number.isFinite(durationSeconds)
+      ? Math.max(0, durationSeconds)
+      : 0
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(
     typeof durationSeconds === "number" && Number.isFinite(durationSeconds)
@@ -71,14 +82,14 @@ export function AudioMessagePlayer({
 
   const tryReportListened = useCallback(
     (nextCurrentTime: number, fallbackDuration?: number) => {
-      if (!onListened || listenedReportedRef.current) return;
+      if (!onListenedRef.current || listenedReportedRef.current) return;
       const totalDuration =
-        duration > 0
-          ? duration
+        durationRef.current > 0
+          ? durationRef.current
           : typeof fallbackDuration === "number" && Number.isFinite(fallbackDuration)
             ? fallbackDuration
-            : typeof durationSeconds === "number" && Number.isFinite(durationSeconds)
-              ? durationSeconds
+            : durationSecondsRef.current > 0
+              ? durationSecondsRef.current
               : 0;
       if (totalDuration <= 0) return;
       const listenedThreshold = Math.min(
@@ -90,10 +101,10 @@ export function AudioMessagePlayer({
       );
       if (nextCurrentTime >= listenedThreshold) {
         listenedReportedRef.current = true;
-        onListened();
+        onListenedRef.current();
       }
     },
-    [duration, durationSeconds, onListened]
+    []
   );
 
   const waveBars = useMemo(() => {
@@ -152,6 +163,21 @@ export function AudioMessagePlayer({
   }, [listenedByPeer, src]);
 
   useEffect(() => {
+    onListenedRef.current = onListened;
+  }, [onListened]);
+
+  useEffect(() => {
+    durationRef.current = duration;
+  }, [duration]);
+
+  useEffect(() => {
+    durationSecondsRef.current =
+      typeof durationSeconds === "number" && Number.isFinite(durationSeconds)
+        ? Math.max(0, durationSeconds)
+        : 0;
+  }, [durationSeconds]);
+
+  useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
     const onLoadedMetadata = () => {
@@ -205,9 +231,15 @@ export function AudioMessagePlayer({
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("ended", onEnded);
-      audio.pause();
     };
   }, [durationSeconds, src, tryReportListened]);
+
+  useEffect(
+    () => () => {
+      audioRef.current?.pause();
+    },
+    []
+  );
 
   useEffect(() => {
     const audio = audioRef.current;
