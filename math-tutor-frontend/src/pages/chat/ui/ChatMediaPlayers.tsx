@@ -4,6 +4,8 @@ import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
+import DoneRoundedIcon from "@mui/icons-material/DoneRounded";
+import DoneAllRoundedIcon from "@mui/icons-material/DoneAllRounded";
 import { formatPlaybackTime } from "@/pages/chat/model/chatPageUtils";
 
 const AUDIO_PLAYBACK_RATES = [1, 1.25, 1.5, 2];
@@ -41,12 +43,20 @@ export function AudioMessagePlayer({
   waveform,
   listenedByPeer,
   onListened,
+  messageTimestamp,
+  showEdited,
+  showReadState,
+  readByPeer,
 }: {
   src: string;
   durationSeconds?: number;
   waveform?: number[];
   listenedByPeer?: boolean;
   onListened?: () => void;
+  messageTimestamp?: string;
+  showEdited?: boolean;
+  showReadState?: boolean;
+  readByPeer?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const listenedReportedRef = useRef(Boolean(listenedByPeer));
@@ -261,6 +271,23 @@ export function AudioMessagePlayer({
           <div className="chat-page__audio-time">
             <span>{formatPlaybackTime(duration)}</span>
           </div>
+          {messageTimestamp ? (
+            <div className="chat-page__audio-message-meta">
+              {showEdited ? (
+                <span className="chat-page__message-edited">изм.</span>
+              ) : null}
+              <time>{messageTimestamp}</time>
+              {showReadState ? (
+                <span className="chat-page__read-state">
+                  {readByPeer ? (
+                    <DoneAllRoundedIcon fontSize="inherit" />
+                  ) : (
+                    <DoneRoundedIcon fontSize="inherit" />
+                  )}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

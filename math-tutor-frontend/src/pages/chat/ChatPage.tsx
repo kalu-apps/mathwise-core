@@ -36,6 +36,8 @@ import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import HeadsetRoundedIcon from "@mui/icons-material/HeadsetRounded";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import DeleteSweepRoundedIcon from "@mui/icons-material/DeleteSweepRounded";
+import OpenInFullRoundedIcon from "@mui/icons-material/OpenInFullRounded";
+import CloseFullscreenRoundedIcon from "@mui/icons-material/CloseFullscreenRounded";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import {
@@ -172,9 +174,11 @@ export default function ChatPage() {
   const [isRecordingAudio, setIsRecordingAudio] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [mediaPreview, setMediaPreview] = useState<ChatMediaPreviewState | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const isTeacher = user?.role === "teacher";
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
+  const shellRef = useRef<HTMLElement | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
   const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -196,6 +200,20 @@ export default function ChatPage() {
     if (!showBackButton) return;
     navigate(backFrom);
   }, [backFrom, navigate, showBackButton]);
+
+  const handleToggleFullscreen = useCallback(async () => {
+    const shell = shellRef.current;
+    if (!shell) return;
+    try {
+      if (document.fullscreenElement === shell) {
+        await document.exitFullscreen();
+        return;
+      }
+      await shell.requestFullscreen();
+    } catch {
+      // noop: browser can block fullscreen if action was interrupted
+    }
+  }, []);
 
   const closeMessageMenu = useCallback(() => {
     setMessageMenu({
@@ -283,6 +301,17 @@ export default function ChatPage() {
         .catch(() => undefined);
     }, 320);
   }, [loadMessages, loadThreads, selectedThreadId, user]);
+
+  useEffect(() => {
+    const syncFullscreenState = () => {
+      setIsFullscreen(document.fullscreenElement === shellRef.current);
+    };
+    syncFullscreenState();
+    document.addEventListener("fullscreenchange", syncFullscreenState);
+    return () => {
+      document.removeEventListener("fullscreenchange", syncFullscreenState);
+    };
+  }, []);
 
   useEffect(() => {
     if (markReadThrottleRef.current === null) return;
@@ -516,7 +545,7 @@ export default function ChatPage() {
     const node = composerInputRef.current;
     if (!node) return;
     node.style.height = "auto";
-    node.style.height = `${Math.min(168, Math.max(42, node.scrollHeight))}px`;
+    node.style.height = `${Math.min(168, Math.max(34, node.scrollHeight))}px`;
   }, []);
 
   useEffect(() => {
@@ -1091,7 +1120,7 @@ export default function ChatPage() {
         </IconButton>
       ) : null}
 
-      <section className="chat-page__shell">
+      <section className="chat-page__shell" ref={shellRef}>
         <div className="chat-page__workspace">
           <aside className="chat-page__sidebar">
             {isTeacher ? (
@@ -1174,15 +1203,32 @@ export default function ChatPage() {
                 </p>
               </div>
             </div>
-            {isTeacher && selectedThread ? (
+            {selectedThread ? (
               <div className="chat-page__head-actions">
                 <IconButton
-                  className="chat-page__clear-button"
-                  onClick={() => setClearDialogOpen(true)}
-                  aria-label="Очистить чат"
+                  className="chat-page__fullscreen-button"
+                  onClick={() => void handleToggleFullscreen()}
+                  aria-label={
+                    isFullscreen
+                      ? "Выйти из полноэкранного режима"
+                      : "Открыть чат в полноэкранном режиме"
+                  }
                 >
-                  <DeleteSweepRoundedIcon fontSize="small" />
+                  {isFullscreen ? (
+                    <CloseFullscreenRoundedIcon fontSize="small" />
+                  ) : (
+                    <OpenInFullRoundedIcon fontSize="small" />
+                  )}
                 </IconButton>
+                {isTeacher ? (
+                  <IconButton
+                    className="chat-page__clear-button"
+                    onClick={() => setClearDialogOpen(true)}
+                    aria-label="Очистить чат"
+                  >
+                    <DeleteSweepRoundedIcon fontSize="small" />
+                  </IconButton>
+                ) : null}
               </div>
             ) : null}
           </header>
@@ -1252,15 +1298,28 @@ export default function ChatPage() {
                     const ownMessage = message.senderId === user?.id;
                     const senderClass =
                       message.senderRole === "teacher" ? "is-teacher" : "is-student";
+                    const attachments = Array.isArray(message.attachments)
+                      ? message.attachments
+                      : [];
+                    const attachmentKinds = attachments.map((attachment) =>
+                      getAttachmentKind(attachment.mimeType)
+                    );
+                    const hasAudioAttachments = attachmentKinds.includes("audio");
+                    const hasNonAudioAttachments = attachmentKinds.some(
+                      (kind) => kind !== "audio"
+                    );
+                    const isAudioOnlyMessage =
+                      !message.text &&
+                      (Boolean(message.voice) || hasAudioAttachments) &&
+                      !hasNonAudioAttachments;
                     const isMediaOnlyMessage =
                       !message.text &&
                       !message.voice &&
-                      Array.isArray(message.attachments) &&
-                      message.attachments.length > 0 &&
-                      message.attachments.every((attachment) => {
-                        const kind = getAttachmentKind(attachment.mimeType);
-                        return kind === "image" || kind === "video";
-                      });
+                      attachments.length > 0 &&
+                      attachmentKinds.every((kind) => kind === "image" || kind === "video");
+                    const messageTimestampLabel = formatTime(message.createdAt);
+                    const showVoiceInlineMeta = Boolean(message.voice) && isAudioOnlyMessage;
+                    let inlineAudioMetaRendered = showVoiceInlineMeta;
                     return (
                       <article
                         key={message.id}
@@ -1276,6 +1335,8 @@ export default function ChatPage() {
                           ownMessage ? "is-own" : ""
                         } ${
                           isMediaOnlyMessage ? "is-media-only" : ""
+                        } ${
+                          isAudioOnlyMessage ? "is-audio-only" : ""
                         }`}
                         onMouseEnter={() => {
                           if (messageMenu.message?.id === message.id) {
@@ -1315,6 +1376,16 @@ export default function ChatPage() {
                                 durationSeconds={message.voice.durationSeconds}
                                 waveform={message.voice.waveform}
                                 listenedByPeer={message.voice.listenedByPeer}
+                                messageTimestamp={
+                                  showVoiceInlineMeta ? messageTimestampLabel : undefined
+                                }
+                                showEdited={
+                                  showVoiceInlineMeta && Boolean(message.editedAt)
+                                }
+                                showReadState={showVoiceInlineMeta && ownMessage}
+                                readByPeer={
+                                  showVoiceInlineMeta ? message.readByPeer : undefined
+                                }
                                 onListened={
                                   ownMessage
                                     ? undefined
@@ -1327,9 +1398,9 @@ export default function ChatPage() {
                           </div>
                         ) : null}
 
-                        {message.attachments && message.attachments.length > 0 ? (
+                        {attachments.length > 0 ? (
                           <div className="chat-page__message-attachments">
-                            {message.attachments.map((attachment) => {
+                            {attachments.map((attachment) => {
                               const kind = getAttachmentKind(attachment.mimeType);
                               if (kind === "image" || kind === "video") {
                                 return (
@@ -1367,12 +1438,36 @@ export default function ChatPage() {
                                 );
                               }
                               if (kind === "audio") {
+                                const showAttachmentInlineMeta =
+                                  isAudioOnlyMessage && !inlineAudioMetaRendered;
+                                if (showAttachmentInlineMeta) {
+                                  inlineAudioMetaRendered = true;
+                                }
                                 return (
                                   <div
                                     key={attachment.id}
                                     className="chat-page__attachment chat-page__attachment--audio"
                                   >
-                                    <AudioMessagePlayer src={attachment.url} />
+                                    <AudioMessagePlayer
+                                      src={attachment.url}
+                                      messageTimestamp={
+                                        showAttachmentInlineMeta
+                                          ? messageTimestampLabel
+                                          : undefined
+                                      }
+                                      showEdited={
+                                        showAttachmentInlineMeta &&
+                                        Boolean(message.editedAt)
+                                      }
+                                      showReadState={
+                                        showAttachmentInlineMeta && ownMessage
+                                      }
+                                      readByPeer={
+                                        showAttachmentInlineMeta
+                                          ? message.readByPeer
+                                          : undefined
+                                      }
+                                    />
                                   </div>
                                 );
                               }
@@ -1409,21 +1504,23 @@ export default function ChatPage() {
                           </div>
                         ) : null}
 
-                        <div className="chat-page__message-foot">
-                          {message.editedAt ? (
-                            <span className="chat-page__message-edited">изм.</span>
-                          ) : null}
-                          <time>{formatTime(message.createdAt)}</time>
-                          {ownMessage ? (
-                            <span className="chat-page__read-state">
-                              {message.readByPeer ? (
-                                <DoneAllRoundedIcon fontSize="inherit" />
-                              ) : (
-                                <DoneRoundedIcon fontSize="inherit" />
-                              )}
-                            </span>
-                          ) : null}
-                        </div>
+                        {!isAudioOnlyMessage ? (
+                          <div className="chat-page__message-foot">
+                            {message.editedAt ? (
+                              <span className="chat-page__message-edited">изм.</span>
+                            ) : null}
+                            <time>{messageTimestampLabel}</time>
+                            {ownMessage ? (
+                              <span className="chat-page__read-state">
+                                {message.readByPeer ? (
+                                  <DoneAllRoundedIcon fontSize="inherit" />
+                                ) : (
+                                  <DoneRoundedIcon fontSize="inherit" />
+                                )}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </article>
                     );
                   })
@@ -1523,7 +1620,11 @@ export default function ChatPage() {
                     event.target.value = "";
                   }}
                 />
-                <div className="chat-page__composer-field">
+                <div
+                  className={`chat-page__composer-field ${
+                    isRecordingAudio ? "is-recording" : ""
+                  }`}
+                >
                   <div className="chat-page__composer-actions chat-page__composer-actions--left">
                     <IconButton
                       type="button"
