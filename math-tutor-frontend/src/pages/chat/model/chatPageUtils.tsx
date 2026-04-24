@@ -14,11 +14,22 @@ export const formatThreadDate = (value?: string) => {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
+  const now = new Date();
+  const isSameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  if (isSameDay) {
+    return new Intl.DateTimeFormat("ru-RU", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  }
+  const isSameYear = date.getFullYear() === now.getFullYear();
   return new Intl.DateTimeFormat("ru-RU", {
     day: "2-digit",
     month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
+    ...(isSameYear ? {} : { year: "numeric" as const }),
   }).format(date);
 };
 

@@ -102,6 +102,14 @@ export function AudioMessagePlayer({
     const audio = audioRef.current;
     if (!audio) return;
     if (audio.paused) {
+      if (
+        Number.isFinite(audio.duration) &&
+        audio.duration > 0 &&
+        audio.currentTime >= audio.duration - 0.02
+      ) {
+        audio.currentTime = 0;
+        setCurrentTime(0);
+      }
       try {
         await audio.play();
         setIsPlaying(true);
@@ -158,13 +166,21 @@ export function AudioMessagePlayer({
       setCurrentTime(nextCurrentTime);
       tryReportListened(nextCurrentTime, audio.duration);
     };
-    const onPause = () => setIsPlaying(false);
+    const onPause = () => {
+      const trackDuration = Number.isFinite(audio.duration) ? audio.duration : 0;
+      if (trackDuration > 0 && audio.currentTime >= trackDuration - 0.02) {
+        audio.currentTime = 0;
+        setCurrentTime(0);
+      }
+      setIsPlaying(false);
+    };
     const onPlay = () => setIsPlaying(true);
     const onEnded = () => {
       tryReportListened(
         Number.isFinite(audio.duration) ? audio.duration : audio.currentTime,
         audio.duration
       );
+      audio.currentTime = 0;
       setIsPlaying(false);
       setCurrentTime(0);
     };
@@ -194,7 +210,6 @@ export function AudioMessagePlayer({
   const activeBars = isPlaying
     ? Math.max(1, Math.round(progressRatio * waveBars.length))
     : Math.max(0, Math.round(progressRatio * waveBars.length));
-  const hasElapsed = currentTime > 0;
 
   return (
     <div
@@ -216,25 +231,20 @@ export function AudioMessagePlayer({
         )}
       </button>
       <div className="chat-page__audio-content">
-        <div className="chat-page__audio-wave-wrap" aria-hidden="true">
-          <div className="chat-page__audio-wave">
-            {waveBars.map((height, index) => (
-              <span
-                key={index}
-                style={{
-                  height: `${height}%`,
-                  animationDelay: `${(index % 8) * 0.06}s`,
-                }}
-                className={index < activeBars ? "is-active" : ""}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="chat-page__audio-meta">
-          <div className="chat-page__audio-time">
-            {hasElapsed ? <span>{formatPlaybackTime(currentTime)}</span> : null}
-            {hasElapsed ? <span className="chat-page__audio-time-dot">•</span> : null}
-            <span>{formatPlaybackTime(duration)}</span>
+        <div className="chat-page__audio-topline">
+          <div className="chat-page__audio-wave-wrap" aria-hidden="true">
+            <div className="chat-page__audio-wave">
+              {waveBars.map((height, index) => (
+                <span
+                  key={index}
+                  style={{
+                    height: `${height}%`,
+                    animationDelay: `${(index % 8) * 0.06}s`,
+                  }}
+                  className={index < activeBars ? "is-active" : ""}
+                />
+              ))}
+            </div>
           </div>
           {isPlaying ? (
             <button
@@ -246,6 +256,11 @@ export function AudioMessagePlayer({
               {playbackRate}x
             </button>
           ) : null}
+        </div>
+        <div className="chat-page__audio-meta">
+          <div className="chat-page__audio-time">
+            <span>{formatPlaybackTime(duration)}</span>
+          </div>
         </div>
       </div>
     </div>

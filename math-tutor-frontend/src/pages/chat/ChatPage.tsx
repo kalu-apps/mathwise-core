@@ -493,6 +493,7 @@ export default function ChatPage() {
     const items: TimelineItem[] = [];
     let previousDay = "";
     visibleMessages.forEach((message) => {
+      if (message.deletedForAll) return;
       const dayKey = toDayKey(message.createdAt);
       if (dayKey !== previousDay) {
         previousDay = dayKey;
@@ -1130,16 +1131,20 @@ export default function ChatPage() {
                       )}
                     </Avatar>
                     <div className="chat-page__thread-copy">
-                      <strong>
-                        {isTeacher ? thread.studentName : thread.teacherName || "Преподаватель"}
-                      </strong>
-                      <span>{thread.lastMessageText ?? "Нет сообщений"}</span>
-                    </div>
-                    <div className="chat-page__thread-meta">
-                      <time>{formatThreadDate(thread.lastMessageAt ?? thread.updatedAt)}</time>
-                      {thread.unreadCount > 0 && (
-                        <span className="chat-page__thread-unread">{thread.unreadCount}</span>
-                      )}
+                      <div className="chat-page__thread-line chat-page__thread-line--head">
+                        <strong>
+                          {isTeacher
+                            ? thread.studentName
+                            : thread.teacherName || "Преподаватель"}
+                        </strong>
+                        <time>{formatThreadDate(thread.lastMessageAt ?? thread.updatedAt)}</time>
+                      </div>
+                      <div className="chat-page__thread-line chat-page__thread-line--foot">
+                        <span>{thread.lastMessageText ?? "Нет сообщений"}</span>
+                        {thread.unreadCount > 0 && (
+                          <span className="chat-page__thread-unread">{thread.unreadCount}</span>
+                        )}
+                      </div>
                     </div>
                   </button>
                 ))
@@ -1247,9 +1252,7 @@ export default function ChatPage() {
                     const ownMessage = message.senderId === user?.id;
                     const senderClass =
                       message.senderRole === "teacher" ? "is-teacher" : "is-student";
-                    const isDeleted = Boolean(message.deletedForAll);
                     const isMediaOnlyMessage =
-                      !isDeleted &&
                       !message.text &&
                       !message.voice &&
                       Array.isArray(message.attachments) &&
@@ -1271,7 +1274,7 @@ export default function ChatPage() {
                         }}
                         className={`chat-page__message ${senderClass} ${
                           ownMessage ? "is-own" : ""
-                        } ${isDeleted ? "is-deleted" : ""} ${
+                        } ${
                           isMediaOnlyMessage ? "is-media-only" : ""
                         }`}
                         onMouseEnter={() => {
@@ -1285,7 +1288,7 @@ export default function ChatPage() {
                           }
                         }}
                         onContextMenu={(event) => {
-                          if (!ownMessage || isDeleted) return;
+                          if (!ownMessage) return;
                           event.preventDefault();
                           cancelMessageMenuClose();
                           setMessageMenu({
@@ -1562,6 +1565,7 @@ export default function ChatPage() {
                     <IconButton
                       type="button"
                       disabled={sending || isRecordingAudio || !hasDraftContent}
+                      disableRipple
                       className="chat-page__send-button"
                       onClick={handleComposerSendAction}
                       aria-label="Отправить сообщение"
