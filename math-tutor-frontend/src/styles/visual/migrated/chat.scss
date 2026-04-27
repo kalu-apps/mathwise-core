@@ -606,13 +606,21 @@
 
 .chat-page__message.is-media-only {
   background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
+  border: 2px solid var(--chat-sender-border, transparent) !important;
+  box-shadow: var(--chat-sender-shadow, none) !important;
   backdrop-filter: none !important;
   padding: 0;
   gap: 2px;
   max-width: min(86%, 760px);
   overflow: visible;
+}
+
+:root[data-theme="dark"] .chat-page__message.is-media-only {
+  border-color: var(
+    --chat-sender-border-dark,
+    var(--chat-sender-border, transparent)
+  ) !important;
+  box-shadow: var(--chat-sender-shadow-dark, var(--chat-sender-shadow, none)) !important;
 }
 
 .chat-page__message.is-media-only .chat-page__message-author {

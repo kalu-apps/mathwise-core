@@ -143,64 +143,64 @@ type ChatSenderStyle = CSSProperties & {
 
 const CHAT_SENDER_PALETTES: ChatSenderPalette[] = [
   {
-    background: "linear-gradient(140deg, #ede4ff 0%, #d9f5ff 100%)",
-    backgroundDark: "linear-gradient(140deg, #4b3296 0%, #28588a 100%)",
-    border: "color-mix(in srgb, #8262ff 38%, transparent)",
-    borderDark: "color-mix(in srgb, #a994ff 42%, transparent)",
-    shadow: "0 12px 26px color-mix(in srgb, #755bea 26%, transparent)",
-    shadowDark: "0 14px 30px color-mix(in srgb, #6a57e4 34%, transparent)",
-    author: "#4630b6",
-    authorDark: "#e9e3ff",
-    meta: "color-mix(in srgb, #4b3c88 70%, #6b7892 30%)",
-    metaDark: "color-mix(in srgb, #efe9ff 74%, #a9bed8 26%)",
+    background: "linear-gradient(140deg, #c9b8ff 0%, #a7ebff 100%)",
+    backgroundDark: "linear-gradient(140deg, #6a4fe0 0%, #1970a3 100%)",
+    border: "color-mix(in srgb, #704fff 58%, transparent)",
+    borderDark: "color-mix(in srgb, #b8a8ff 54%, transparent)",
+    shadow: "0 14px 30px color-mix(in srgb, #6d54e8 34%, transparent)",
+    shadowDark: "0 16px 34px color-mix(in srgb, #806aff 44%, transparent)",
+    author: "#32209a",
+    authorDark: "#f1edff",
+    meta: "color-mix(in srgb, #34268c 78%, #58677f 22%)",
+    metaDark: "color-mix(in srgb, #f2edff 82%, #bfefff 18%)",
   },
   {
-    background: "linear-gradient(140deg, #fff1bf 0%, #ffd7c8 100%)",
-    backgroundDark: "linear-gradient(140deg, #965321 0%, #7c382d 100%)",
-    border: "color-mix(in srgb, #ff8543 42%, transparent)",
-    borderDark: "color-mix(in srgb, #ffac55 42%, transparent)",
-    shadow: "0 12px 26px color-mix(in srgb, #e77f39 26%, transparent)",
-    shadowDark: "0 14px 30px color-mix(in srgb, #df8344 34%, transparent)",
-    author: "#a2471d",
-    authorDark: "#ffe4c7",
-    meta: "color-mix(in srgb, #8b4a22 72%, #6b7892 28%)",
-    metaDark: "color-mix(in srgb, #ffe4c7 74%, #f0b06b 26%)",
+    background: "linear-gradient(140deg, #ffd36d 0%, #ff9875 100%)",
+    backgroundDark: "linear-gradient(140deg, #b96718 0%, #9b3f2f 100%)",
+    border: "color-mix(in srgb, #ff7f32 60%, transparent)",
+    borderDark: "color-mix(in srgb, #ffc36d 54%, transparent)",
+    shadow: "0 14px 30px color-mix(in srgb, #ed7d32 34%, transparent)",
+    shadowDark: "0 16px 34px color-mix(in srgb, #f09445 44%, transparent)",
+    author: "#87330d",
+    authorDark: "#fff0d6",
+    meta: "color-mix(in srgb, #743814 80%, #6b5560 20%)",
+    metaDark: "color-mix(in srgb, #fff0d6 82%, #ffc074 18%)",
   },
   {
-    background: "linear-gradient(140deg, #dffbea 0%, #d8f4ef 100%)",
-    backgroundDark: "linear-gradient(140deg, #1d6a55 0%, #214f67 100%)",
-    border: "color-mix(in srgb, #34b985 40%, transparent)",
-    borderDark: "color-mix(in srgb, #7ee3c2 36%, transparent)",
-    shadow: "0 12px 26px color-mix(in srgb, #2ca978 24%, transparent)",
-    shadowDark: "0 14px 30px color-mix(in srgb, #3ac799 30%, transparent)",
-    author: "#187153",
-    authorDark: "#d7fff0",
-    meta: "color-mix(in srgb, #236b55 70%, #6b7892 30%)",
-    metaDark: "color-mix(in srgb, #ddfff2 74%, #a6d9d2 26%)",
+    background: "linear-gradient(140deg, #9bf0c4 0%, #8fe7e2 100%)",
+    backgroundDark: "linear-gradient(140deg, #188265 0%, #236b86 100%)",
+    border: "color-mix(in srgb, #21b982 54%, transparent)",
+    borderDark: "color-mix(in srgb, #8df0cf 46%, transparent)",
+    shadow: "0 14px 30px color-mix(in srgb, #27a978 30%, transparent)",
+    shadowDark: "0 16px 34px color-mix(in srgb, #3ad1a2 38%, transparent)",
+    author: "#096846",
+    authorDark: "#e2fff4",
+    meta: "color-mix(in srgb, #145f49 78%, #566c74 22%)",
+    metaDark: "color-mix(in srgb, #e2fff4 80%, #a7ede4 20%)",
   },
   {
-    background: "linear-gradient(140deg, #ffe4ee 0%, #fff0d8 100%)",
-    backgroundDark: "linear-gradient(140deg, #8e2f64 0%, #80502c 100%)",
-    border: "color-mix(in srgb, #ec5f99 38%, transparent)",
-    borderDark: "color-mix(in srgb, #ff94c3 36%, transparent)",
-    shadow: "0 12px 26px color-mix(in srgb, #d94e8c 24%, transparent)",
-    shadowDark: "0 14px 30px color-mix(in srgb, #df5d9d 30%, transparent)",
-    author: "#9a2e62",
-    authorDark: "#ffe2f0",
-    meta: "color-mix(in srgb, #884363 70%, #6b7892 30%)",
-    metaDark: "color-mix(in srgb, #ffe2f0 74%, #ffc77d 26%)",
+    background: "linear-gradient(140deg, #ffabd1 0%, #ffd58a 100%)",
+    backgroundDark: "linear-gradient(140deg, #a33872 0%, #9b6730 100%)",
+    border: "color-mix(in srgb, #eb4f98 52%, transparent)",
+    borderDark: "color-mix(in srgb, #ffa0ca 46%, transparent)",
+    shadow: "0 14px 30px color-mix(in srgb, #dc4e8c 30%, transparent)",
+    shadowDark: "0 16px 34px color-mix(in srgb, #ec6ba9 38%, transparent)",
+    author: "#882454",
+    authorDark: "#ffeaf4",
+    meta: "color-mix(in srgb, #7c3156 78%, #7a5664 22%)",
+    metaDark: "color-mix(in srgb, #ffeaf4 80%, #ffd795 20%)",
   },
   {
-    background: "linear-gradient(140deg, #dceaff 0%, #ebe5ff 100%)",
-    backgroundDark: "linear-gradient(140deg, #244f95 0%, #49378f 100%)",
-    border: "color-mix(in srgb, #5f8fff 38%, transparent)",
-    borderDark: "color-mix(in srgb, #8fb5ff 38%, transparent)",
-    shadow: "0 12px 26px color-mix(in srgb, #477be2 24%, transparent)",
-    shadowDark: "0 14px 30px color-mix(in srgb, #5e8fea 30%, transparent)",
-    author: "#275bb8",
-    authorDark: "#e3ecff",
-    meta: "color-mix(in srgb, #355e9f 70%, #6b7892 30%)",
-    metaDark: "color-mix(in srgb, #e4edff 74%, #c3b8ff 26%)",
+    background: "linear-gradient(140deg, #99c5ff 0%, #d0b5ff 100%)",
+    backgroundDark: "linear-gradient(140deg, #2161bf 0%, #6246b7 100%)",
+    border: "color-mix(in srgb, #4f82ff 54%, transparent)",
+    borderDark: "color-mix(in srgb, #9bc0ff 46%, transparent)",
+    shadow: "0 14px 30px color-mix(in srgb, #477be2 30%, transparent)",
+    shadowDark: "0 16px 34px color-mix(in srgb, #6b9cff 38%, transparent)",
+    author: "#174dab",
+    authorDark: "#edf4ff",
+    meta: "color-mix(in srgb, #27599e 78%, #596a86 22%)",
+    metaDark: "color-mix(in srgb, #edf4ff 80%, #dacdff 20%)",
   },
 ];
 
@@ -634,16 +634,19 @@ export default function ChatPage() {
   }, [visibleMessages]);
 
   const senderStyles = useMemo(() => {
-    const senderIds = new Set<string>();
-    if (selectedThread?.teacherId) senderIds.add(selectedThread.teacherId);
-    if (selectedThread?.studentId) senderIds.add(selectedThread.studentId);
+    const orderedSenderIds: string[] = [];
+    const addSenderId = (senderId: string | undefined) => {
+      const normalized = senderId?.trim();
+      if (!normalized || orderedSenderIds.includes(normalized)) return;
+      orderedSenderIds.push(normalized);
+    };
+    addSenderId(selectedThread?.teacherId);
+    addSenderId(selectedThread?.studentId);
     messages.forEach((message) => {
-      if (message.senderId) senderIds.add(message.senderId);
+      addSenderId(message.senderId);
     });
     return new Map(
-      Array.from(senderIds)
-        .sort()
-        .map((senderId, index) => [
+      orderedSenderIds.map((senderId, index) => [
           senderId,
           createChatSenderStyle(
             CHAT_SENDER_PALETTES[index % CHAT_SENDER_PALETTES.length] ??
