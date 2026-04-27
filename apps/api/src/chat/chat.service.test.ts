@@ -159,3 +159,65 @@ test("chat: booking-capable student can access messages", async () => {
   assert.equal(messages.length, 1);
   assert.equal(messages[0]?.threadId, "thread_booking_1");
 });
+
+test("chat: hydrates voice url by voice id when mediaObjectId is missing", async () => {
+  const service = new ChatService(
+    {
+      ensureSchema: async () => undefined,
+      findThreadById: async () => ({
+        id: "thread_voice_1",
+        studentId: "student_3",
+        teacherId: "teacher_3",
+      }),
+      listMessagesByThread: async () => [
+        {
+          id: "msg_voice_1",
+          threadId: "thread_voice_1",
+          senderId: "teacher_3",
+          senderRole: "teacher",
+          senderName: "Teacher Three",
+          senderPhoto: null,
+          text: "",
+          attachments: [],
+          voice: {
+            id: "media_voice_1",
+            mimeType: "audio/webm",
+            size: 1024,
+            url: "https://expired.example.test/voice.webm",
+          },
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    } as never,
+    {} as never,
+    {} as never,
+    {
+      getRuntimeDownloadUrlByObjectId: async (objectId: string) => ({
+        objectId,
+        objectKey: `stage/chat/${objectId}.webm`,
+        downloadUrl: `https://signed.example.test/${objectId}.webm`,
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        contentType: "audio/webm",
+        sizeBytes: 1024,
+      }),
+    } as never
+  );
+
+  const messages = await service.getMessages({
+    actorUser: {
+      id: "teacher_3",
+      email: "teacher3@example.test",
+      firstName: "Teacher",
+      lastName: "Three",
+      role: "teacher",
+    },
+    threadId: "thread_voice_1",
+  });
+
+  assert.equal(messages.length, 1);
+  assert.equal(
+    messages[0]?.voice?.url,
+    "https://signed.example.test/media_voice_1.webm"
+  );
+  assert.equal(messages[0]?.voice?.mediaObjectId, "media_voice_1");
+});

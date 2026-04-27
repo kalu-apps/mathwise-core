@@ -198,7 +198,6 @@ export default function ChatPage() {
   const recorderTimerRef = useRef<number | null>(null);
   const recorderSecondsRef = useRef(0);
   const listenedVoicePendingRef = useRef(new Set<string>());
-  const messageMenuCloseTimerRef = useRef<number | null>(null);
 
   const goBack = useCallback(() => {
     if (!showBackButton) return;
@@ -227,20 +226,6 @@ export default function ChatPage() {
       y: 0,
     });
   }, []);
-
-  const cancelMessageMenuClose = useCallback(() => {
-    if (messageMenuCloseTimerRef.current !== null) {
-      window.clearTimeout(messageMenuCloseTimerRef.current);
-      messageMenuCloseTimerRef.current = null;
-    }
-  }, []);
-
-  const scheduleMessageMenuClose = useCallback(() => {
-    cancelMessageMenuClose();
-    messageMenuCloseTimerRef.current = window.setTimeout(() => {
-      closeMessageMenu();
-    }, 120);
-  }, [cancelMessageMenuClose, closeMessageMenu]);
 
   const loadThreads = useCallback(
     async (options?: { keepSpinner?: boolean }) => {
@@ -750,9 +735,6 @@ export default function ChatPage() {
       }
       if (recorderStreamRef.current) {
         recorderStreamRef.current.getTracks().forEach((track) => track.stop());
-      }
-      if (messageMenuCloseTimerRef.current !== null) {
-        window.clearTimeout(messageMenuCloseTimerRef.current);
       }
     };
   }, []);
@@ -1328,6 +1310,14 @@ export default function ChatPage() {
                     const messageTimestampLabel = formatTime(message.createdAt);
                     const showVoiceInlineMeta = Boolean(message.voice) && isAudioOnlyMessage;
                     let inlineAudioMetaRendered = showVoiceInlineMeta;
+                    const currentSenderName =
+                      message.senderRole === "teacher"
+                        ? selectedThread?.teacherName
+                        : selectedThread?.studentName;
+                    const displaySenderName =
+                      currentSenderName?.trim() ||
+                      message.senderName?.trim() ||
+                      "Собеседник";
                     return (
                       <article
                         key={message.id}
@@ -1346,20 +1336,9 @@ export default function ChatPage() {
                         } ${
                           isAudioOnlyMessage ? "is-audio-only" : ""
                         }`}
-                        onMouseEnter={() => {
-                          if (messageMenu.message?.id === message.id) {
-                            cancelMessageMenuClose();
-                          }
-                        }}
-                        onMouseLeave={() => {
-                          if (messageMenu.message?.id === message.id) {
-                            scheduleMessageMenuClose();
-                          }
-                        }}
                         onContextMenu={(event) => {
                           if (!ownMessage) return;
                           event.preventDefault();
-                          cancelMessageMenuClose();
                           setMessageMenu({
                             open: true,
                             message,
@@ -1370,7 +1349,7 @@ export default function ChatPage() {
                       >
                         {!ownMessage ? (
                           <span className="chat-page__message-author">
-                            {message.senderName || "Собеседник"}
+                            {displaySenderName}
                           </span>
                         ) : null}
 
@@ -1381,6 +1360,9 @@ export default function ChatPage() {
                             <div className="chat-page__attachment chat-page__attachment--audio">
                               <AudioMessagePlayer
                                 src={message.voice.url}
+                                mediaIdentity={
+                                  message.voice.mediaObjectId || message.voice.id
+                                }
                                 durationSeconds={message.voice.durationSeconds}
                                 waveform={message.voice.waveform}
                                 listenedByPeer={message.voice.listenedByPeer}
@@ -1458,6 +1440,9 @@ export default function ChatPage() {
                                   >
                                     <AudioMessagePlayer
                                       src={attachment.url}
+                                      mediaIdentity={
+                                        attachment.mediaObjectId || attachment.id
+                                      }
                                       messageTimestamp={
                                         showAttachmentInlineMeta
                                           ? messageTimestampLabel
@@ -1542,6 +1527,7 @@ export default function ChatPage() {
                 <div className="chat-page__composer-voice">
                   <AudioMessagePlayer
                     src={composerVoice.url}
+                    mediaIdentity={composerVoice.mediaObjectId || composerVoice.id}
                     durationSeconds={composerVoice.durationSeconds}
                     waveform={composerVoice.waveform}
                   />
@@ -1786,6 +1772,8 @@ export default function ChatPage() {
       <Menu
         open={messageMenu.open}
         onClose={closeMessageMenu}
+        disablePortal={isFullscreen}
+        container={isFullscreen ? shellRef.current : undefined}
         anchorReference="anchorPosition"
         anchorPosition={
           messageMenu.open
@@ -1795,10 +1783,6 @@ export default function ChatPage() {
               }
             : undefined
         }
-        MenuListProps={{
-          onMouseEnter: cancelMessageMenuClose,
-          onMouseLeave: scheduleMessageMenuClose,
-        }}
         className="chat-page__context-menu"
       >
         <MenuItem

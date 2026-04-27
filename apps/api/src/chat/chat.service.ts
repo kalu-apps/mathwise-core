@@ -21,6 +21,19 @@ const nowIso = () => new Date().toISOString();
 
 const normalizeMessageText = (value: string) => value.trim();
 
+const isLikelyMediaObjectId = (value: string) => value.startsWith("media_");
+
+const resolveMediaObjectId = (params: {
+  mediaObjectId?: string;
+  fallbackId?: string;
+}): string | undefined => {
+  const mediaObjectId = params.mediaObjectId?.trim() ?? "";
+  if (mediaObjectId) return mediaObjectId;
+  const fallbackId = params.fallbackId?.trim() ?? "";
+  if (fallbackId && isLikelyMediaObjectId(fallbackId)) return fallbackId;
+  return undefined;
+};
+
 const normalizeAttachments = (
   value: SendTeacherChatMessagePayloadDto["attachments"]
 ): TeacherChatAttachmentDto[] => {
@@ -32,8 +45,11 @@ const normalizeAttachments = (
     const mimeType =
       typeof item.mimeType === "string" ? item.mimeType.trim() : "";
     const url = typeof item.url === "string" ? item.url.trim() : "";
-    const mediaObjectId =
-      typeof item.mediaObjectId === "string" ? item.mediaObjectId.trim() : "";
+    const mediaObjectId = resolveMediaObjectId({
+      mediaObjectId:
+        typeof item.mediaObjectId === "string" ? item.mediaObjectId : undefined,
+      fallbackId: id,
+    });
     if (!id || !name || !mimeType || (!url && !mediaObjectId)) return acc;
     acc.push({
       id,
@@ -44,7 +60,7 @@ const normalizeAttachments = (
           ? Math.max(0, Math.floor(item.size))
           : 0,
       url,
-      mediaObjectId: mediaObjectId || undefined,
+      mediaObjectId,
     });
     return acc;
   }, []);
@@ -71,8 +87,11 @@ const normalizeVoiceMessage = (
   const id = typeof value.id === "string" ? value.id.trim() : "";
   const mimeType = typeof value.mimeType === "string" ? value.mimeType.trim() : "";
   const url = typeof value.url === "string" ? value.url.trim() : "";
-  const mediaObjectId =
-    typeof value.mediaObjectId === "string" ? value.mediaObjectId.trim() : "";
+  const mediaObjectId = resolveMediaObjectId({
+    mediaObjectId:
+      typeof value.mediaObjectId === "string" ? value.mediaObjectId : undefined,
+    fallbackId: id,
+  });
   if (!id || !mimeType || (!url && !mediaObjectId)) return undefined;
   const size =
     typeof value.size === "number" && Number.isFinite(value.size)
@@ -91,7 +110,7 @@ const normalizeVoiceMessage = (
     mimeType,
     size,
     url,
-    mediaObjectId: mediaObjectId || undefined,
+    mediaObjectId,
     durationSeconds,
     waveform: normalizeVoiceWaveform(value.waveform),
     listenedByPeer,
@@ -105,7 +124,10 @@ const toVoiceFromAttachment = (
   mimeType: attachment.mimeType,
   size: attachment.size,
   url: attachment.url,
-  mediaObjectId: attachment.mediaObjectId,
+  mediaObjectId: resolveMediaObjectId({
+    mediaObjectId: attachment.mediaObjectId,
+    fallbackId: attachment.id,
+  }),
   listenedByPeer: false,
 });
 
@@ -557,11 +579,17 @@ export class ChatService implements OnModuleInit {
     const candidates: string[] = [];
     if (Array.isArray(params.attachments)) {
       params.attachments.forEach((attachment) => {
-        const mediaObjectId = attachment.mediaObjectId?.trim();
+        const mediaObjectId = resolveMediaObjectId({
+          mediaObjectId: attachment.mediaObjectId,
+          fallbackId: attachment.id,
+        });
         if (mediaObjectId) candidates.push(mediaObjectId);
       });
     }
-    const voiceMediaObjectId = params.voice?.mediaObjectId?.trim();
+    const voiceMediaObjectId = resolveMediaObjectId({
+      mediaObjectId: params.voice?.mediaObjectId,
+      fallbackId: params.voice?.id,
+    });
     if (voiceMediaObjectId) {
       candidates.push(voiceMediaObjectId);
     }
@@ -623,7 +651,10 @@ export class ChatService implements OnModuleInit {
 
         const hydratedAttachments = await Promise.all(
           sourceAttachments.map(async (attachment) => {
-            const mediaObjectId = attachment.mediaObjectId?.trim();
+            const mediaObjectId = resolveMediaObjectId({
+              mediaObjectId: attachment.mediaObjectId,
+              fallbackId: attachment.id,
+            });
             if (!mediaObjectId) return attachment;
             const hydratedUrl = await hydrateUrl(mediaObjectId);
             if (hydratedUrl) {
@@ -636,12 +667,23 @@ export class ChatService implements OnModuleInit {
           })
         );
         let hydratedVoice = sourceVoice;
-        if (sourceVoice?.mediaObjectId) {
-          const hydratedUrl = await hydrateUrl(sourceVoice.mediaObjectId);
+        const sourceVoiceMediaObjectId = resolveMediaObjectId({
+          mediaObjectId: sourceVoice?.mediaObjectId,
+          fallbackId: sourceVoice?.id,
+        });
+        if (sourceVoiceMediaObjectId && sourceVoice) {
+          if (sourceVoice.mediaObjectId !== sourceVoiceMediaObjectId) {
+            hydratedVoice = {
+              ...sourceVoice,
+              mediaObjectId: sourceVoiceMediaObjectId,
+            };
+          }
+          const hydratedUrl = await hydrateUrl(sourceVoiceMediaObjectId);
           if (hydratedUrl) {
             hydratedVoice = {
               ...sourceVoice,
               url: hydratedUrl,
+              mediaObjectId: sourceVoiceMediaObjectId,
             };
           }
         }

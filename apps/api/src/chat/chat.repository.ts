@@ -44,6 +44,19 @@ type ThreadIdentityRow = {
   teacherId: string;
 };
 
+const isLikelyMediaObjectId = (value: string) => value.startsWith("media_");
+
+const resolveMediaObjectId = (params: {
+  mediaObjectId?: string;
+  fallbackId?: string;
+}): string | undefined => {
+  const mediaObjectId = params.mediaObjectId?.trim() ?? "";
+  if (mediaObjectId) return mediaObjectId;
+  const fallbackId = params.fallbackId?.trim() ?? "";
+  if (fallbackId && isLikelyMediaObjectId(fallbackId)) return fallbackId;
+  return undefined;
+};
+
 const normalizeAttachments = (value: unknown): TeacherChatAttachmentDto[] => {
   if (!Array.isArray(value)) return [];
   return value.reduce<TeacherChatAttachmentDto[]>((acc, item) => {
@@ -63,10 +76,15 @@ const normalizeAttachments = (value: unknown): TeacherChatAttachmentDto[] => {
     ) {
       return acc;
     }
-    const mediaObjectId =
-      typeof candidate.mediaObjectId === "string"
-        ? candidate.mediaObjectId.trim()
-        : "";
+    const id = candidate.id.trim();
+    if (!id) return acc;
+    const mediaObjectId = resolveMediaObjectId({
+      mediaObjectId:
+        typeof candidate.mediaObjectId === "string"
+          ? candidate.mediaObjectId
+          : undefined,
+      fallbackId: id,
+    });
     const url =
       typeof candidate.url === "string" ? candidate.url.trim() : "";
     if (!url && !mediaObjectId) {
@@ -77,12 +95,12 @@ const normalizeAttachments = (value: unknown): TeacherChatAttachmentDto[] => {
         ? Math.max(0, Math.floor(candidate.size))
         : 0;
     acc.push({
-      id: candidate.id,
+      id,
       name: candidate.name,
       mimeType: candidate.mimeType,
       size,
       url,
-      mediaObjectId: mediaObjectId || undefined,
+      mediaObjectId,
     });
     return acc;
   }, []);
@@ -118,10 +136,13 @@ const normalizeVoiceMessage = (
   const mimeType =
     typeof candidate.mimeType === "string" ? candidate.mimeType.trim() : "";
   const url = typeof candidate.url === "string" ? candidate.url.trim() : "";
-  const mediaObjectId =
-    typeof candidate.mediaObjectId === "string"
-      ? candidate.mediaObjectId.trim()
-      : "";
+  const mediaObjectId = resolveMediaObjectId({
+    mediaObjectId:
+      typeof candidate.mediaObjectId === "string"
+        ? candidate.mediaObjectId
+        : undefined,
+    fallbackId: id,
+  });
   if (!id || !mimeType || (!url && !mediaObjectId)) return undefined;
   const size =
     typeof candidate.size === "number" && Number.isFinite(candidate.size)
@@ -138,7 +159,7 @@ const normalizeVoiceMessage = (
     mimeType,
     size,
     url,
-    mediaObjectId: mediaObjectId || undefined,
+    mediaObjectId,
     durationSeconds,
     waveform: normalizeVoiceWaveform(candidate.waveform),
   };
@@ -173,7 +194,10 @@ const extractLegacyVoice = (
       mimeType: legacy.mimeType,
       size: legacy.size,
       url: legacy.url,
-      mediaObjectId: legacy.mediaObjectId,
+      mediaObjectId: resolveMediaObjectId({
+        mediaObjectId: legacy.mediaObjectId,
+        fallbackId: legacy.id,
+      }),
     },
   };
 };
@@ -470,22 +494,30 @@ export class ChatRepository {
     const rows = await this.databaseService.query<MessageRow>(
       `
         SELECT
-          id,
-          thread_id AS "threadId",
-          sender_id AS "senderId",
-          sender_role AS "senderRole",
-          sender_name AS "senderName",
-          sender_photo AS "senderPhoto",
-          text,
-          created_at AS "createdAt",
-          edited_at AS "editedAt",
-          attachments_json AS attachments,
-          voice_message_json AS "voiceMessage",
-          voice_listened_by_peer AS "voiceListenedByPeer",
-          deleted_for_all AS "deletedForAll"
-        FROM chat_messages
-        WHERE thread_id = $1
-        ORDER BY created_at ASC, id ASC
+          m.id,
+          m.thread_id AS "threadId",
+          m.sender_id AS "senderId",
+          m.sender_role AS "senderRole",
+          COALESCE(
+            NULLIF(BTRIM(CONCAT_WS(' ', au.first_name, au.last_name)), ''),
+            m.sender_name
+          ) AS "senderName",
+          CASE
+            WHEN au.id IS NULL THEN m.sender_photo
+            ELSE au.photo
+          END AS "senderPhoto",
+          m.text,
+          m.created_at AS "createdAt",
+          m.edited_at AS "editedAt",
+          m.attachments_json AS attachments,
+          m.voice_message_json AS "voiceMessage",
+          m.voice_listened_by_peer AS "voiceListenedByPeer",
+          m.deleted_for_all AS "deletedForAll"
+        FROM chat_messages m
+        LEFT JOIN auth_users au
+          ON au.id = m.sender_id
+        WHERE m.thread_id = $1
+        ORDER BY m.created_at ASC, m.id ASC
       `,
       [threadId]
     );
@@ -496,21 +528,29 @@ export class ChatRepository {
     const rows = await this.databaseService.query<MessageRow>(
       `
         SELECT
-          id,
-          thread_id AS "threadId",
-          sender_id AS "senderId",
-          sender_role AS "senderRole",
-          sender_name AS "senderName",
-          sender_photo AS "senderPhoto",
-          text,
-          created_at AS "createdAt",
-          edited_at AS "editedAt",
-          attachments_json AS attachments,
-          voice_message_json AS "voiceMessage",
-          voice_listened_by_peer AS "voiceListenedByPeer",
-          deleted_for_all AS "deletedForAll"
-        FROM chat_messages
-        WHERE id = $1
+          m.id,
+          m.thread_id AS "threadId",
+          m.sender_id AS "senderId",
+          m.sender_role AS "senderRole",
+          COALESCE(
+            NULLIF(BTRIM(CONCAT_WS(' ', au.first_name, au.last_name)), ''),
+            m.sender_name
+          ) AS "senderName",
+          CASE
+            WHEN au.id IS NULL THEN m.sender_photo
+            ELSE au.photo
+          END AS "senderPhoto",
+          m.text,
+          m.created_at AS "createdAt",
+          m.edited_at AS "editedAt",
+          m.attachments_json AS attachments,
+          m.voice_message_json AS "voiceMessage",
+          m.voice_listened_by_peer AS "voiceListenedByPeer",
+          m.deleted_for_all AS "deletedForAll"
+        FROM chat_messages m
+        LEFT JOIN auth_users au
+          ON au.id = m.sender_id
+        WHERE m.id = $1
         LIMIT 1
       `,
       [messageId]

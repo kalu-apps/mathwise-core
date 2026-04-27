@@ -39,6 +39,7 @@ const resizeWaveform = (input: number[], targetBars: number): number[] => {
 
 export function AudioMessagePlayer({
   src,
+  mediaIdentity,
   durationSeconds,
   waveform,
   listenedByPeer,
@@ -49,6 +50,7 @@ export function AudioMessagePlayer({
   readByPeer,
 }: {
   src: string;
+  mediaIdentity?: string;
   durationSeconds?: number;
   waveform?: number[];
   listenedByPeer?: boolean;
@@ -59,6 +61,11 @@ export function AudioMessagePlayer({
   readByPeer?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const progressRafRef = useRef<number | null>(null);
+  const pendingSrcRef = useRef<string | null>(null);
+  const previousIdentityRef = useRef(
+    (typeof mediaIdentity === "string" && mediaIdentity.trim()) || src
+  );
   const listenedReportedRef = useRef(Boolean(listenedByPeer));
   const onListenedRef = useRef(onListened);
   const durationRef = useRef(
@@ -79,6 +86,7 @@ export function AudioMessagePlayer({
   );
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [playbackSrc, setPlaybackSrc] = useState(src);
 
   const tryReportListened = useCallback(
     (nextCurrentTime: number, fallbackDuration?: number) => {
@@ -131,17 +139,20 @@ export function AudioMessagePlayer({
         audio.currentTime = 0;
         setCurrentTime(0);
       }
+      setIsPlaying(true);
       try {
         await audio.play();
-        setIsPlaying(true);
       } catch {
         setIsPlaying(false);
+        if (src !== playbackSrc) {
+          setPlaybackSrc(src);
+        }
       }
       return;
     }
     audio.pause();
     setIsPlaying(false);
-  }, []);
+  }, [playbackSrc, src]);
 
   const handleCyclePlaybackRate = useCallback(() => {
     const currentIndex = AUDIO_PLAYBACK_RATES.findIndex((rate) => rate === playbackRate);
@@ -178,6 +189,47 @@ export function AudioMessagePlayer({
   }, [durationSeconds]);
 
   useEffect(() => {
+    const nextIdentity =
+      (typeof mediaIdentity === "string" && mediaIdentity.trim()) || src;
+    const previousIdentity = previousIdentityRef.current;
+    const identityChanged = nextIdentity !== previousIdentity;
+
+    if (identityChanged) {
+      previousIdentityRef.current = nextIdentity;
+      pendingSrcRef.current = null;
+      setPlaybackSrc(src);
+      setCurrentTime(0);
+      setIsPlaying(false);
+      setPlaybackRate(1);
+      setDuration(
+        typeof durationSeconds === "number" && Number.isFinite(durationSeconds)
+          ? Math.max(0, durationSeconds)
+          : 0
+      );
+      return;
+    }
+
+    if (isPlaying) {
+      pendingSrcRef.current = src;
+      return;
+    }
+
+    if (src !== playbackSrc) {
+      setPlaybackSrc(src);
+    }
+  }, [durationSeconds, isPlaying, mediaIdentity, playbackSrc, src]);
+
+  useEffect(() => {
+    if (isPlaying) return;
+    const pendingSrc = pendingSrcRef.current;
+    if (!pendingSrc) return;
+    pendingSrcRef.current = null;
+    if (pendingSrc !== playbackSrc) {
+      setPlaybackSrc(pendingSrc);
+    }
+  }, [isPlaying, playbackSrc]);
+
+  useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
     const onLoadedMetadata = () => {
@@ -197,6 +249,7 @@ export function AudioMessagePlayer({
         setDuration(0);
       }
     };
+    const onDurationChange = () => onLoadedMetadata();
     const onTimeUpdate = () => {
       const nextCurrentTime = audio.currentTime;
       setCurrentTime(nextCurrentTime);
@@ -221,21 +274,47 @@ export function AudioMessagePlayer({
       setCurrentTime(0);
     };
     audio.addEventListener("loadedmetadata", onLoadedMetadata);
+    audio.addEventListener("durationchange", onDurationChange);
+    audio.addEventListener("canplay", onDurationChange);
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("pause", onPause);
     audio.addEventListener("play", onPlay);
     audio.addEventListener("ended", onEnded);
     return () => {
       audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+      audio.removeEventListener("durationchange", onDurationChange);
+      audio.removeEventListener("canplay", onDurationChange);
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("ended", onEnded);
     };
-  }, [durationSeconds, src, tryReportListened]);
+  }, [durationSeconds, playbackSrc, tryReportListened]);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const syncProgress = () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      setCurrentTime(audio.currentTime);
+      progressRafRef.current = window.requestAnimationFrame(syncProgress);
+    };
+    progressRafRef.current = window.requestAnimationFrame(syncProgress);
+    return () => {
+      if (progressRafRef.current !== null) {
+        window.cancelAnimationFrame(progressRafRef.current);
+        progressRafRef.current = null;
+      }
+    };
+  }, [isPlaying]);
 
   useEffect(
     () => () => {
+      if (progressRafRef.current !== null) {
+        window.cancelAnimationFrame(progressRafRef.current);
+        progressRafRef.current = null;
+      }
+      pendingSrcRef.current = null;
       audioRef.current?.pause();
     },
     []
@@ -247,11 +326,23 @@ export function AudioMessagePlayer({
     audio.playbackRate = playbackRate;
   }, [playbackRate]);
 
+  const displayDuration =
+    duration > 0
+      ? duration
+      : durationSecondsRef.current > 0
+        ? durationSecondsRef.current
+        : 0;
   const progressRatio =
-    duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0;
-  const activeBars = isPlaying
-    ? Math.max(1, Math.round(progressRatio * waveBars.length))
-    : Math.max(0, Math.round(progressRatio * waveBars.length));
+    displayDuration > 0 ? Math.min(1, Math.max(0, currentTime / displayDuration)) : 0;
+  const activeBars =
+    displayDuration > 0
+      ? isPlaying
+        ? Math.max(1, Math.round(progressRatio * waveBars.length))
+        : Math.max(0, Math.round(progressRatio * waveBars.length))
+      : isPlaying
+        ? ((Math.floor(currentTime * 14) % waveBars.length) + waveBars.length) %
+            waveBars.length || 1
+        : 0;
 
   return (
     <div
@@ -259,7 +350,7 @@ export function AudioMessagePlayer({
         listenedByPeer ? "is-listened" : ""
       }`}
     >
-      <audio ref={audioRef} preload="metadata" src={src} />
+      <audio ref={audioRef} preload="metadata" src={playbackSrc} />
       <button
         type="button"
         className={`chat-page__audio-toggle ${isPlaying ? "is-active" : ""}`}
@@ -301,7 +392,13 @@ export function AudioMessagePlayer({
         </div>
         <div className="chat-page__audio-meta">
           <div className="chat-page__audio-time">
-            <span>{formatPlaybackTime(duration)}</span>
+            <span>{formatPlaybackTime(currentTime)}</span>
+            {displayDuration > 0 ? (
+              <>
+                <span className="chat-page__audio-time-dot"> / </span>
+                <span>{formatPlaybackTime(displayDuration)}</span>
+              </>
+            ) : null}
           </div>
           {messageTimestamp ? (
             <div className="chat-page__audio-message-meta">
