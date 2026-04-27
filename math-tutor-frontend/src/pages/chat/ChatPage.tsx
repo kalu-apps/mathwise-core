@@ -30,7 +30,6 @@ import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import MicRoundedIcon from "@mui/icons-material/MicRounded";
 import DoneRoundedIcon from "@mui/icons-material/DoneRounded";
 import DoneAllRoundedIcon from "@mui/icons-material/DoneAllRounded";
-import VideocamRoundedIcon from "@mui/icons-material/VideocamRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import HeadsetRoundedIcon from "@mui/icons-material/HeadsetRounded";
@@ -103,10 +102,11 @@ type MessageContextMenuState = {
 
 type ChatMediaPreviewItem = {
   id: string;
-  kind: "image" | "video";
+  kind: "image" | "video" | "file";
   url: string;
   title: string;
   downloadName: string;
+  mimeType?: string;
 };
 
 type ChatMediaPreviewState = {
@@ -988,24 +988,33 @@ export default function ChatPage() {
     : null;
 
   const openMediaPreview = useCallback(
-    (attachments: TeacherChatAttachment[], attachmentId?: string) => {
-      const previewItems: ChatMediaPreviewItem[] = attachments
-        .map((attachment, index) => {
+    (
+      attachments: TeacherChatAttachment[],
+      attachmentId?: string,
+      options?: { includeFiles?: boolean }
+    ) => {
+      const previewItems = attachments.reduce<ChatMediaPreviewItem[]>(
+        (acc, attachment, index) => {
           const url = (attachment.url ?? "").trim();
-          if (!url) return null;
+          if (!url) return acc;
           const kind = getAttachmentKind(attachment.mimeType);
-          if (kind !== "image" && kind !== "video") return null;
-          const fallbackExtension = kind === "video" ? "mp4" : "jpg";
+          if (kind !== "image" && kind !== "video" && kind !== "file") return acc;
+          if (kind === "file" && !options?.includeFiles) return acc;
+          const fallbackExtension =
+            kind === "video" ? "mp4" : kind === "image" ? "jpg" : "file";
           const normalizedName = attachment.name?.trim() || "";
-          return {
+          acc.push({
             id: attachment.id || `${kind}-${index}`,
             kind,
             url,
             title: normalizedName || "Вложение",
             downloadName: normalizedName || `chat-media-${index + 1}.${fallbackExtension}`,
-          };
-        })
-        .filter((item): item is ChatMediaPreviewItem => Boolean(item));
+            mimeType: attachment.mimeType,
+          });
+          return acc;
+        },
+        []
+      );
       if (previewItems.length === 0) return;
       const initialIndex = attachmentId
         ? previewItems.findIndex((item) => item.id === attachmentId)
@@ -1550,16 +1559,23 @@ export default function ChatPage() {
                 <div className="chat-page__composer-attachments">
                   {composerAttachments.map((attachment) => {
                     const kind = getAttachmentKind(attachment.mimeType);
+                    const canPreviewAttachment =
+                      kind === "image" || kind === "video" || kind === "file";
                     return (
                       <article
                         key={attachment.id}
                         className={`chat-page__composer-attachment chat-page__composer-attachment--${kind}`}
                       >
-                        <a
+                        <button
+                          type="button"
                           className="chat-page__composer-attachment-preview"
-                          href={attachment.url}
-                          target="_blank"
-                          rel="noreferrer"
+                          disabled={!canPreviewAttachment}
+                          onClick={() =>
+                            openMediaPreview(composerAttachments, attachment.id, {
+                              includeFiles: true,
+                            })
+                          }
+                          aria-label="Открыть превью вложения"
                         >
                           <span
                             className={`chat-page__composer-attachment-thumb chat-page__composer-attachment-thumb--${kind}`}
@@ -1567,7 +1583,12 @@ export default function ChatPage() {
                             {kind === "image" ? (
                               <img src={attachment.url} alt={attachment.name} />
                             ) : kind === "video" ? (
-                              <VideocamRoundedIcon fontSize="small" />
+                              <video
+                                src={attachment.url}
+                                muted
+                                playsInline
+                                preload="metadata"
+                              />
                             ) : kind === "audio" ? (
                               <HeadsetRoundedIcon fontSize="small" />
                             ) : (
@@ -1586,7 +1607,7 @@ export default function ChatPage() {
                                 : formatAttachmentSize(attachment.size)}
                             </span>
                           </div>
-                        </a>
+                        </button>
                         <IconButton
                           size="small"
                           className="chat-page__composer-attachment-remove"
@@ -1833,7 +1854,9 @@ export default function ChatPage() {
         nextLabel="Следующее вложение"
       >
         {previewCurrentMedia ? (
-          <div className="chat-page__preview-shell">
+          <div
+            className={`chat-page__preview-shell chat-page__preview-shell--${previewCurrentMedia.kind}`}
+          >
             {previewCurrentMedia.kind === "video" ? (
               <video
                 controls
@@ -1842,6 +1865,22 @@ export default function ChatPage() {
                 src={previewCurrentMedia.url}
                 className="immersive-media-overlay__media chat-page__preview-media"
               />
+            ) : previewCurrentMedia.kind === "file" ? (
+              <div className="chat-page__preview-file">
+                <iframe
+                  src={previewCurrentMedia.url}
+                  title={previewCurrentMedia.title}
+                  className="chat-page__preview-file-frame"
+                />
+                <a
+                  className="chat-page__preview-file-open"
+                  href={previewCurrentMedia.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Открыть файл отдельно
+                </a>
+              </div>
             ) : (
               <img
                 src={previewCurrentMedia.url}
@@ -1856,12 +1895,16 @@ export default function ChatPage() {
               title={
                 previewCurrentMedia.kind === "video"
                   ? "Скачать видео"
-                  : "Скачать изображение"
+                  : previewCurrentMedia.kind === "image"
+                    ? "Скачать изображение"
+                    : "Скачать файл"
               }
               aria-label={
                 previewCurrentMedia.kind === "video"
                   ? "Скачать видео"
-                  : "Скачать изображение"
+                  : previewCurrentMedia.kind === "image"
+                    ? "Скачать изображение"
+                    : "Скачать файл"
               }
             >
               <DownloadRoundedIcon fontSize="inherit" />
