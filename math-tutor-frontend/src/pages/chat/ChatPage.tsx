@@ -1359,6 +1359,7 @@ export default function ChatPage() {
                           <div className="chat-page__message-attachments">
                             <div className="chat-page__attachment chat-page__attachment--audio">
                               <AudioMessagePlayer
+                                key={message.voice.mediaObjectId || message.voice.id}
                                 src={message.voice.url}
                                 mediaIdentity={
                                   message.voice.mediaObjectId || message.voice.id
@@ -1439,6 +1440,7 @@ export default function ChatPage() {
                                     className="chat-page__attachment chat-page__attachment--audio"
                                   >
                                     <AudioMessagePlayer
+                                      key={attachment.mediaObjectId || attachment.id}
                                       src={attachment.url}
                                       mediaIdentity={
                                         attachment.mediaObjectId || attachment.id
@@ -1526,6 +1528,7 @@ export default function ChatPage() {
               {composerVoice ? (
                 <div className="chat-page__composer-voice">
                   <AudioMessagePlayer
+                    key={composerVoice.mediaObjectId || composerVoice.id}
                     src={composerVoice.url}
                     mediaIdentity={composerVoice.mediaObjectId || composerVoice.id}
                     durationSeconds={composerVoice.durationSeconds}

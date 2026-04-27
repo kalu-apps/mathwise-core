@@ -39,7 +39,6 @@ const resizeWaveform = (input: number[], targetBars: number): number[] => {
 
 export function AudioMessagePlayer({
   src,
-  mediaIdentity,
   durationSeconds,
   waveform,
   listenedByPeer,
@@ -62,10 +61,6 @@ export function AudioMessagePlayer({
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressRafRef = useRef<number | null>(null);
-  const pendingSrcRef = useRef<string | null>(null);
-  const previousIdentityRef = useRef(
-    (typeof mediaIdentity === "string" && mediaIdentity.trim()) || src
-  );
   const listenedReportedRef = useRef(Boolean(listenedByPeer));
   const onListenedRef = useRef(onListened);
   const durationRef = useRef(
@@ -87,6 +82,7 @@ export function AudioMessagePlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [playbackSrc, setPlaybackSrc] = useState(src);
+  const audioSrc = isPlaying ? playbackSrc : src;
 
   const tryReportListened = useCallback(
     (nextCurrentTime: number, fallbackDuration?: number) => {
@@ -140,19 +136,17 @@ export function AudioMessagePlayer({
         setCurrentTime(0);
       }
       setIsPlaying(true);
+      setPlaybackSrc(src);
       try {
         await audio.play();
       } catch {
         setIsPlaying(false);
-        if (src !== playbackSrc) {
-          setPlaybackSrc(src);
-        }
       }
       return;
     }
     audio.pause();
     setIsPlaying(false);
-  }, [playbackSrc, src]);
+  }, [src]);
 
   const handleCyclePlaybackRate = useCallback(() => {
     const currentIndex = AUDIO_PLAYBACK_RATES.findIndex((rate) => rate === playbackRate);
@@ -187,47 +181,6 @@ export function AudioMessagePlayer({
         ? Math.max(0, durationSeconds)
         : 0;
   }, [durationSeconds]);
-
-  useEffect(() => {
-    const nextIdentity =
-      (typeof mediaIdentity === "string" && mediaIdentity.trim()) || src;
-    const previousIdentity = previousIdentityRef.current;
-    const identityChanged = nextIdentity !== previousIdentity;
-
-    if (identityChanged) {
-      previousIdentityRef.current = nextIdentity;
-      pendingSrcRef.current = null;
-      setPlaybackSrc(src);
-      setCurrentTime(0);
-      setIsPlaying(false);
-      setPlaybackRate(1);
-      setDuration(
-        typeof durationSeconds === "number" && Number.isFinite(durationSeconds)
-          ? Math.max(0, durationSeconds)
-          : 0
-      );
-      return;
-    }
-
-    if (isPlaying) {
-      pendingSrcRef.current = src;
-      return;
-    }
-
-    if (src !== playbackSrc) {
-      setPlaybackSrc(src);
-    }
-  }, [durationSeconds, isPlaying, mediaIdentity, playbackSrc, src]);
-
-  useEffect(() => {
-    if (isPlaying) return;
-    const pendingSrc = pendingSrcRef.current;
-    if (!pendingSrc) return;
-    pendingSrcRef.current = null;
-    if (pendingSrc !== playbackSrc) {
-      setPlaybackSrc(pendingSrc);
-    }
-  }, [isPlaying, playbackSrc]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -289,7 +242,7 @@ export function AudioMessagePlayer({
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("ended", onEnded);
     };
-  }, [durationSeconds, playbackSrc, tryReportListened]);
+  }, [durationSeconds, audioSrc, tryReportListened]);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -314,7 +267,6 @@ export function AudioMessagePlayer({
         window.cancelAnimationFrame(progressRafRef.current);
         progressRafRef.current = null;
       }
-      pendingSrcRef.current = null;
       audioRef.current?.pause();
     },
     []
@@ -326,12 +278,11 @@ export function AudioMessagePlayer({
     audio.playbackRate = playbackRate;
   }, [playbackRate]);
 
-  const displayDuration =
-    duration > 0
-      ? duration
-      : durationSecondsRef.current > 0
-        ? durationSecondsRef.current
-        : 0;
+  const fallbackDuration =
+    typeof durationSeconds === "number" && Number.isFinite(durationSeconds)
+      ? Math.max(0, durationSeconds)
+      : 0;
+  const displayDuration = duration > 0 ? duration : fallbackDuration;
   const progressRatio =
     displayDuration > 0 ? Math.min(1, Math.max(0, currentTime / displayDuration)) : 0;
   const activeBars =
@@ -350,7 +301,7 @@ export function AudioMessagePlayer({
         listenedByPeer ? "is-listened" : ""
       }`}
     >
-      <audio ref={audioRef} preload="metadata" src={playbackSrc} />
+      <audio ref={audioRef} preload="metadata" src={audioSrc} />
       <button
         type="button"
         className={`chat-page__audio-toggle ${isPlaying ? "is-active" : ""}`}
