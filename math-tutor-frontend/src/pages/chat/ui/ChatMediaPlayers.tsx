@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type PointerEvent,
+} from "react";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
@@ -8,7 +17,7 @@ import DoneRoundedIcon from "@mui/icons-material/DoneRounded";
 import DoneAllRoundedIcon from "@mui/icons-material/DoneAllRounded";
 import { formatPlaybackTime } from "@/pages/chat/model/chatPageUtils";
 
-const AUDIO_PLAYBACK_RATES = [1, 1.25, 1.5, 2];
+const AUDIO_PLAYBACK_RATES = [1, 1.5, 2];
 const AUDIO_WAVE_BARS = [
   38, 44, 35, 52, 40, 60, 42, 64, 48, 58, 34, 56, 44, 62, 37, 49, 33, 46,
   30, 42, 36, 55, 41, 63, 47, 59, 35, 54, 43, 61, 39, 50, 34, 45, 31, 40,
@@ -17,7 +26,7 @@ const AUDIO_WAVE_BARS = [
 const AUDIO_LISTENED_THRESHOLD_RATIO = 0.45;
 const AUDIO_LISTENED_THRESHOLD_MIN_SECONDS = 0.8;
 const AUDIO_LISTENED_THRESHOLD_MAX_SECONDS = 5;
-const AUDIO_WAVE_DISPLAY_BARS = 40;
+const AUDIO_WAVE_DISPLAY_BARS = 46;
 
 const resizeWaveform = (input: number[], targetBars: number): number[] => {
   if (input.length === 0) return [];
@@ -60,7 +69,9 @@ export function AudioMessagePlayer({
   readByPeer?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const waveSeekRef = useRef<HTMLDivElement | null>(null);
   const progressRafRef = useRef<number | null>(null);
+  const isSeekingRef = useRef(false);
   const listenedReportedRef = useRef(Boolean(listenedByPeer));
   const onListenedRef = useRef(onListened);
   const durationRef = useRef(
@@ -113,7 +124,7 @@ export function AudioMessagePlayer({
 
   const waveBars = useMemo(() => {
     if (!Array.isArray(waveform) || waveform.length === 0) {
-      return AUDIO_WAVE_BARS;
+      return resizeWaveform(AUDIO_WAVE_BARS, AUDIO_WAVE_DISPLAY_BARS);
     }
     const normalized = waveform
       .filter((item): item is number => typeof item === "number" && Number.isFinite(item))
@@ -122,6 +133,51 @@ export function AudioMessagePlayer({
     if (normalized.length === 0) return AUDIO_WAVE_BARS;
     return resizeWaveform(normalized, AUDIO_WAVE_DISPLAY_BARS);
   }, [waveform]);
+
+  const visualWaveBars = useMemo(
+    () =>
+      waveBars.map((height, index) => {
+        const previous = waveBars[index - 1] ?? height;
+        const next = waveBars[index + 1] ?? height;
+        return Math.max(8, Math.round(height * 0.68 + previous * 0.16 + next * 0.16));
+      }),
+    [waveBars]
+  );
+
+  const seekToAudioTime = useCallback(
+    (nextTime: number) => {
+      const audio = audioRef.current;
+      const totalDuration =
+        audio && Number.isFinite(audio.duration) && audio.duration > 0
+          ? audio.duration
+          : durationRef.current > 0
+            ? durationRef.current
+            : durationSecondsRef.current;
+      if (!Number.isFinite(totalDuration) || totalDuration <= 0) return;
+      const safeTime = Math.min(totalDuration, Math.max(0, nextTime));
+      if (audio) {
+        audio.currentTime = safeTime;
+      }
+      setCurrentTime(safeTime);
+      tryReportListened(safeTime, totalDuration);
+    },
+    [tryReportListened]
+  );
+
+  const seekAudioFromClientX = useCallback(
+    (clientX: number) => {
+      const node = waveSeekRef.current;
+      if (!node) return;
+      const rect = node.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      const totalDuration =
+        durationRef.current > 0 ? durationRef.current : durationSecondsRef.current;
+      if (!Number.isFinite(totalDuration) || totalDuration <= 0) return;
+      seekToAudioTime(totalDuration * ratio);
+    },
+    [seekToAudioTime]
+  );
 
   const togglePlayback = useCallback(async () => {
     const audio = audioRef.current;
@@ -162,6 +218,60 @@ export function AudioMessagePlayer({
       audio.playbackRate = nextRate;
     }
   }, [playbackRate]);
+
+  const handleWavePointerDown = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      isSeekingRef.current = true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+      seekAudioFromClientX(event.clientX);
+    },
+    [seekAudioFromClientX]
+  );
+
+  const handleWavePointerMove = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (!isSeekingRef.current) return;
+      event.preventDefault();
+      seekAudioFromClientX(event.clientX);
+    },
+    [seekAudioFromClientX]
+  );
+
+  const handleWavePointerUp = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    isSeekingRef.current = false;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }, []);
+
+  const handleWaveKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      const audio = audioRef.current;
+      const totalDuration =
+        audio && Number.isFinite(audio.duration) && audio.duration > 0
+          ? audio.duration
+          : durationRef.current > 0
+            ? durationRef.current
+            : durationSecondsRef.current;
+      if (!Number.isFinite(totalDuration) || totalDuration <= 0) return;
+      if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+        event.preventDefault();
+        seekToAudioTime(currentTime - 5);
+      } else if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+        event.preventDefault();
+        seekToAudioTime(currentTime + 5);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        seekToAudioTime(0);
+      } else if (event.key === "End") {
+        event.preventDefault();
+        seekToAudioTime(totalDuration);
+      }
+    },
+    [currentTime, seekToAudioTime]
+  );
 
   useEffect(() => {
     listenedReportedRef.current = Boolean(listenedByPeer);
@@ -288,12 +398,21 @@ export function AudioMessagePlayer({
   const activeBars =
     displayDuration > 0
       ? isPlaying
-        ? Math.max(1, Math.round(progressRatio * waveBars.length))
-        : Math.max(0, Math.round(progressRatio * waveBars.length))
+        ? Math.max(1, Math.round(progressRatio * visualWaveBars.length))
+        : Math.max(0, Math.round(progressRatio * visualWaveBars.length))
       : isPlaying
-        ? ((Math.floor(currentTime * 14) % waveBars.length) + waveBars.length) %
-            waveBars.length || 1
+        ? ((Math.floor(currentTime * 14) % visualWaveBars.length) +
+            visualWaveBars.length) %
+            visualWaveBars.length || 1
         : 0;
+  const playbackRateLabel =
+    playbackRate === 1
+      ? "x1"
+      : `x${
+          Number.isInteger(playbackRate)
+            ? playbackRate
+            : playbackRate.toFixed(1)
+        }`;
 
   return (
     <div
@@ -316,9 +435,29 @@ export function AudioMessagePlayer({
       </button>
       <div className="chat-page__audio-content">
         <div className="chat-page__audio-topline">
-          <div className="chat-page__audio-wave-wrap" aria-hidden="true">
+          <div
+            ref={waveSeekRef}
+            className="chat-page__audio-wave-wrap"
+            role="slider"
+            tabIndex={displayDuration > 0 ? 0 : -1}
+            aria-label="Перемотать аудиосообщение"
+            aria-valuemin={0}
+            aria-valuemax={Math.max(0, Math.round(displayDuration))}
+            aria-valuenow={Math.max(0, Math.round(currentTime))}
+            aria-valuetext={`${formatPlaybackTime(currentTime)} из ${formatPlaybackTime(displayDuration)}`}
+            style={
+              {
+                "--audio-progress": `${Math.round(progressRatio * 1000) / 10}%`,
+              } as CSSProperties
+            }
+            onPointerDown={handleWavePointerDown}
+            onPointerMove={handleWavePointerMove}
+            onPointerUp={handleWavePointerUp}
+            onPointerCancel={handleWavePointerUp}
+            onKeyDown={handleWaveKeyDown}
+          >
             <div className="chat-page__audio-wave">
-              {waveBars.map((height, index) => (
+              {visualWaveBars.map((height, index) => (
                 <span
                   key={index}
                   style={{
@@ -335,9 +474,9 @@ export function AudioMessagePlayer({
               type="button"
               className="chat-page__audio-speed"
               onClick={handleCyclePlaybackRate}
-              aria-label="Скорость воспроизведения"
+              aria-label={`Скорость воспроизведения ${playbackRateLabel}`}
             >
-              {playbackRate}x
+              {playbackRateLabel}
             </button>
           ) : null}
         </div>
