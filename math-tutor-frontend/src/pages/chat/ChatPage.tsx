@@ -5,7 +5,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
 } from "react";
 import {
   Alert,
@@ -114,108 +113,6 @@ type ChatMediaPreviewState = {
   items: ChatMediaPreviewItem[];
   index: number;
 };
-
-type ChatSenderPalette = {
-  background: string;
-  backgroundDark: string;
-  border: string;
-  borderDark: string;
-  shadow: string;
-  shadowDark: string;
-  author: string;
-  authorDark: string;
-  meta: string;
-  metaDark: string;
-};
-
-type ChatSenderStyle = CSSProperties & {
-  "--chat-sender-bg": string;
-  "--chat-sender-bg-dark": string;
-  "--chat-sender-border": string;
-  "--chat-sender-border-dark": string;
-  "--chat-sender-shadow": string;
-  "--chat-sender-shadow-dark": string;
-  "--chat-sender-author": string;
-  "--chat-sender-author-dark": string;
-  "--chat-sender-meta": string;
-  "--chat-sender-meta-dark": string;
-};
-
-const CHAT_SENDER_PALETTES: ChatSenderPalette[] = [
-  {
-    background: "linear-gradient(140deg, #ede4ff 0%, #d9f5ff 100%)",
-    backgroundDark: "linear-gradient(140deg, #4b3296 0%, #28588a 100%)",
-    border: "color-mix(in srgb, #8262ff 38%, transparent)",
-    borderDark: "color-mix(in srgb, #a994ff 42%, transparent)",
-    shadow: "0 12px 26px color-mix(in srgb, #755bea 26%, transparent)",
-    shadowDark: "0 14px 30px color-mix(in srgb, #6a57e4 34%, transparent)",
-    author: "#4630b6",
-    authorDark: "#e9e3ff",
-    meta: "color-mix(in srgb, #4b3c88 70%, #6b7892 30%)",
-    metaDark: "color-mix(in srgb, #efe9ff 74%, #a9bed8 26%)",
-  },
-  {
-    background: "linear-gradient(140deg, #fff1bf 0%, #ffd7c8 100%)",
-    backgroundDark: "linear-gradient(140deg, #965321 0%, #7c382d 100%)",
-    border: "color-mix(in srgb, #ff8543 42%, transparent)",
-    borderDark: "color-mix(in srgb, #ffac55 42%, transparent)",
-    shadow: "0 12px 26px color-mix(in srgb, #e77f39 26%, transparent)",
-    shadowDark: "0 14px 30px color-mix(in srgb, #df8344 34%, transparent)",
-    author: "#a2471d",
-    authorDark: "#ffe4c7",
-    meta: "color-mix(in srgb, #8b4a22 72%, #6b7892 28%)",
-    metaDark: "color-mix(in srgb, #ffe4c7 74%, #f0b06b 26%)",
-  },
-  {
-    background: "linear-gradient(140deg, #dffbea 0%, #d8f4ef 100%)",
-    backgroundDark: "linear-gradient(140deg, #1d6a55 0%, #214f67 100%)",
-    border: "color-mix(in srgb, #34b985 40%, transparent)",
-    borderDark: "color-mix(in srgb, #7ee3c2 36%, transparent)",
-    shadow: "0 12px 26px color-mix(in srgb, #2ca978 24%, transparent)",
-    shadowDark: "0 14px 30px color-mix(in srgb, #3ac799 30%, transparent)",
-    author: "#187153",
-    authorDark: "#d7fff0",
-    meta: "color-mix(in srgb, #236b55 70%, #6b7892 30%)",
-    metaDark: "color-mix(in srgb, #ddfff2 74%, #a6d9d2 26%)",
-  },
-  {
-    background: "linear-gradient(140deg, #ffe4ee 0%, #fff0d8 100%)",
-    backgroundDark: "linear-gradient(140deg, #8e2f64 0%, #80502c 100%)",
-    border: "color-mix(in srgb, #ec5f99 38%, transparent)",
-    borderDark: "color-mix(in srgb, #ff94c3 36%, transparent)",
-    shadow: "0 12px 26px color-mix(in srgb, #d94e8c 24%, transparent)",
-    shadowDark: "0 14px 30px color-mix(in srgb, #df5d9d 30%, transparent)",
-    author: "#9a2e62",
-    authorDark: "#ffe2f0",
-    meta: "color-mix(in srgb, #884363 70%, #6b7892 30%)",
-    metaDark: "color-mix(in srgb, #ffe2f0 74%, #ffc77d 26%)",
-  },
-  {
-    background: "linear-gradient(140deg, #dceaff 0%, #ebe5ff 100%)",
-    backgroundDark: "linear-gradient(140deg, #244f95 0%, #49378f 100%)",
-    border: "color-mix(in srgb, #5f8fff 38%, transparent)",
-    borderDark: "color-mix(in srgb, #8fb5ff 38%, transparent)",
-    shadow: "0 12px 26px color-mix(in srgb, #477be2 24%, transparent)",
-    shadowDark: "0 14px 30px color-mix(in srgb, #5e8fea 30%, transparent)",
-    author: "#275bb8",
-    authorDark: "#e3ecff",
-    meta: "color-mix(in srgb, #355e9f 70%, #6b7892 30%)",
-    metaDark: "color-mix(in srgb, #e4edff 74%, #c3b8ff 26%)",
-  },
-];
-
-const createChatSenderStyle = (palette: ChatSenderPalette): ChatSenderStyle => ({
-  "--chat-sender-bg": palette.background,
-  "--chat-sender-bg-dark": palette.backgroundDark,
-  "--chat-sender-border": palette.border,
-  "--chat-sender-border-dark": palette.borderDark,
-  "--chat-sender-shadow": palette.shadow,
-  "--chat-sender-shadow-dark": palette.shadowDark,
-  "--chat-sender-author": palette.author,
-  "--chat-sender-author-dark": palette.authorDark,
-  "--chat-sender-meta": palette.meta,
-  "--chat-sender-meta-dark": palette.metaDark,
-});
 
 type TimelineItem =
   | {
@@ -632,26 +529,6 @@ export default function ChatPage() {
     });
     return items;
   }, [visibleMessages]);
-
-  const senderStyles = useMemo(() => {
-    const senderIds = new Set<string>();
-    if (selectedThread?.teacherId) senderIds.add(selectedThread.teacherId);
-    if (selectedThread?.studentId) senderIds.add(selectedThread.studentId);
-    messages.forEach((message) => {
-      if (message.senderId) senderIds.add(message.senderId);
-    });
-    return new Map(
-      Array.from(senderIds)
-        .sort()
-        .map((senderId, index) => [
-          senderId,
-          createChatSenderStyle(
-            CHAT_SENDER_PALETTES[index % CHAT_SENDER_PALETTES.length] ??
-              CHAT_SENDER_PALETTES[0]
-          ),
-        ])
-    );
-  }, [messages, selectedThread?.studentId, selectedThread?.teacherId]);
 
   const adjustComposerHeight = useCallback(() => {
     const node = composerInputRef.current;
@@ -1468,7 +1345,6 @@ export default function ChatPage() {
                         } ${
                           isAudioOnlyMessage ? "is-audio-only" : ""
                         }`}
-                        style={senderStyles.get(message.senderId)}
                         onContextMenu={(event) => {
                           if (!ownMessage) return;
                           event.preventDefault();
