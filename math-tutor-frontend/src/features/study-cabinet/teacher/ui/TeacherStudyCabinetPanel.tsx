@@ -1,14 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
-import {
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  MenuItem,
-  TextField,
-} from "@mui/material";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Booking } from "@/entities/booking/model/types";
 import type { StudyCabinetNote } from "@/shared/lib/studyCabinet";
 import type {
@@ -27,6 +17,11 @@ import {
   timeToMinutes,
   toLocalDateKey,
 } from "@/features/study-cabinet/teacher/model/plannerEvents";
+import { TeacherPlannerIcon } from "@/features/study-cabinet/teacher/ui/TeacherPlannerIcons";
+import {
+  TeacherPlannerButton,
+  TeacherPlannerIconButton,
+} from "@/features/study-cabinet/teacher/ui/TeacherPlannerPrimitives";
 import { TeacherPlannerWorkspace } from "@/features/study-cabinet/teacher/ui/TeacherPlannerWorkspace";
 
 const getTemplatePreset = (templateId: TeacherStudyNoteTemplateId, booking?: Booking) => {
@@ -119,11 +114,32 @@ export function TeacherStudyCabinetPanel({
     "prep" | "followup" | "focus" | "break" | "custom"
   >("custom");
   const [linkedBookingId, setLinkedBookingId] = useState<string | null>(null);
+  const noteTitleInputRef = useRef<HTMLInputElement | null>(null);
 
   const now = new Date();
   const nowTimestamp = now.getTime();
   const todayKey = toLocalDateKey(now);
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const closeNoteModal = useCallback(() => {
+    setNoteModalOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!noteModalOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const focusTimer = window.setTimeout(() => noteTitleInputRef.current?.focus(), 40);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeNoteModal();
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [closeNoteModal, noteModalOpen]);
 
   const openTemplateNote = useCallback((request: TeacherStudyNoteDraftRequest = {}) => {
     const templateId = request.templateId ?? "custom";
@@ -234,13 +250,13 @@ export function TeacherStudyCabinetPanel({
     } else if (!editingNoteId && onCreateNote) {
       onCreateNote(payload);
     }
-    setNoteModalOpen(false);
+    closeNoteModal();
   };
 
   const deleteEditingNote = () => {
     if (!editingNoteId || !onDeleteNote) return;
     onDeleteNote(editingNoteId);
-    setNoteModalOpen(false);
+    closeNoteModal();
   };
 
   return (
@@ -257,139 +273,178 @@ export function TeacherStudyCabinetPanel({
         onDeleteNote={onDeleteNote}
       />
 
-      <Dialog
-        open={noteModalOpen}
-        onClose={() => setNoteModalOpen(false)}
-        fullWidth
-        maxWidth="sm"
-        className="ui-dialog ui-dialog--compact teacher-note-dialog"
-      >
-        <DialogTitle>{editingNoteId ? "Редактировать заметку" : "Новая заметка"}</DialogTitle>
-        <DialogContent>
-          <div className="study-cabinet-panel__note-modal">
-            <TextField
-              label="Заголовок"
-              value={noteTitle}
-              onChange={(event) => setNoteTitle(event.target.value)}
-              variant="outlined"
-              size="small"
-              fullWidth
-            />
-            <TextField
-              label="Комментарий"
-              value={noteBody}
-              onChange={(event) => setNoteBody(event.target.value)}
-              variant="outlined"
-              size="small"
-              fullWidth
-              multiline
-              minRows={3}
-            />
-            <TextField
-              label="Тип"
-              select
-              value={noteKind}
-              onChange={(event) =>
-                setNoteKind(
-                  event.target.value as "prep" | "followup" | "focus" | "break" | "custom"
-                )
-              }
-              variant="outlined"
-              size="small"
-              fullWidth
-            >
-              {TEACHER_NOTE_KIND_OPTIONS.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
-            <div className="study-cabinet-panel__note-modal-row">
-              <TextField
-                label="Дата"
-                type="date"
-                value={noteDate}
-                onChange={(event) => {
-                  const nextDate = event.target.value;
-                  const normalizedDate = nextDate && nextDate >= todayKey ? nextDate : todayKey;
-                  setNoteDate(normalizedDate);
-                  setNoteTimeError(null);
-                }}
-                variant="outlined"
-                size="small"
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ min: todayKey }}
-              />
-              <TextField
-                label="С"
-                select
-                value={resolvedNoteTime}
-                onChange={(event) => {
-                  setNoteTime(event.target.value);
-                  setNoteTimeError(null);
-                }}
-                variant="outlined"
-                size="small"
-                fullWidth
-                error={Boolean(noteTimeError)}
-                helperText={noteTimeError ?? " "}
-                InputLabelProps={{ shrink: true }}
-                disabled={startTimeOptions.length === 0}
-              >
-                {startTimeOptions.map((option) => (
-                  <MenuItem key={option} value={option}>{option}</MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                label="До"
-                select
-                value={resolvedNoteEndTime}
-                onChange={(event) => {
-                  setNoteEndTime(event.target.value);
-                  setNoteTimeError(null);
-                }}
-                variant="outlined"
-                size="small"
-                fullWidth
-                error={Boolean(noteTimeError)}
-                helperText={noteTimeError ? " " : " "}
-                InputLabelProps={{ shrink: true }}
-                disabled={endTimeOptions.length === 0}
-              >
-                {endTimeOptions.map((option) => (
-                  <MenuItem key={option} value={option}>{option}</MenuItem>
-                ))}
-              </TextField>
-            </div>
-            <div className="study-cabinet-panel__note-color">
-              <span>Цвет</span>
-              <div className="study-cabinet-panel__note-color-palette">
-                {TEACHER_NOTE_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={`study-cabinet-panel__note-color-swatch ${noteColor === color ? "is-active" : ""}`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setNoteColor(color)}
-                    aria-label={`Выбрать цвет ${color}`}
+      {noteModalOpen ? (
+        <div
+          className="teacher-note-dialog"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeNoteModal();
+          }}
+        >
+          <form
+            className="teacher-note-dialog__panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="teacher-note-dialog-title"
+            onSubmit={(event) => {
+              event.preventDefault();
+              saveNote();
+            }}
+          >
+            <header className="teacher-note-dialog__head">
+              <div>
+                <span className="study-cabinet-panel__kicker">Planner note</span>
+                <h3 id="teacher-note-dialog-title">
+                  {editingNoteId ? "Редактировать заметку" : "Новая заметка"}
+                </h3>
+              </div>
+              <TeacherPlannerIconButton label="Закрыть заметку" onClick={closeNoteModal}>
+                <TeacherPlannerIcon name="x" />
+              </TeacherPlannerIconButton>
+            </header>
+
+            <div className="study-cabinet-panel__note-modal">
+              <label className="teacher-note-field">
+                <span>Заголовок</span>
+                <input
+                  ref={noteTitleInputRef}
+                  className="teacher-note-field__control"
+                  value={noteTitle}
+                  onChange={(event) => setNoteTitle(event.target.value)}
+                  placeholder="Например: подготовить материалы"
+                />
+              </label>
+
+              <label className="teacher-note-field">
+                <span>Комментарий</span>
+                <textarea
+                  className="teacher-note-field__control teacher-note-field__control--textarea"
+                  value={noteBody}
+                  onChange={(event) => setNoteBody(event.target.value)}
+                  rows={3}
+                  placeholder="Контекст, план, ссылка или короткое напоминание"
+                />
+              </label>
+
+              <label className="teacher-note-field">
+                <span>Тип</span>
+                <select
+                  className="teacher-note-field__control"
+                  value={noteKind}
+                  onChange={(event) =>
+                    setNoteKind(
+                      event.target.value as "prep" | "followup" | "focus" | "break" | "custom"
+                    )
+                  }
+                >
+                  {TEACHER_NOTE_KIND_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="study-cabinet-panel__note-modal-row">
+                <label className="teacher-note-field">
+                  <span>Дата</span>
+                  <input
+                    className="teacher-note-field__control"
+                    type="date"
+                    min={todayKey}
+                    value={noteDate}
+                    onChange={(event) => {
+                      const nextDate = event.target.value;
+                      const normalizedDate = nextDate && nextDate >= todayKey ? nextDate : todayKey;
+                      setNoteDate(normalizedDate);
+                      setNoteTimeError(null);
+                    }}
                   />
-                ))}
+                </label>
+
+                <label className="teacher-note-field">
+                  <span>С</span>
+                  <select
+                    className="teacher-note-field__control"
+                    value={resolvedNoteTime}
+                    disabled={startTimeOptions.length === 0}
+                    onChange={(event) => {
+                      setNoteTime(event.target.value);
+                      setNoteTimeError(null);
+                    }}
+                  >
+                    {startTimeOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="teacher-note-field">
+                  <span>До</span>
+                  <select
+                    className="teacher-note-field__control"
+                    value={resolvedNoteEndTime}
+                    disabled={endTimeOptions.length === 0}
+                    onChange={(event) => {
+                      setNoteEndTime(event.target.value);
+                      setNoteTimeError(null);
+                    }}
+                  >
+                    {endTimeOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {noteTimeError ? (
+                <p className="teacher-note-field__error" role="alert">
+                  {noteTimeError}
+                </p>
+              ) : null}
+
+              <div className="study-cabinet-panel__note-color">
+                <span>Цветовой акцент</span>
+                <div className="study-cabinet-panel__note-color-palette">
+                  {TEACHER_NOTE_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      className={`study-cabinet-panel__note-color-swatch ${noteColor === color ? "is-active" : ""}`}
+                      style={{ backgroundColor: color }}
+                      onClick={() => setNoteColor(color)}
+                      aria-label={`Выбрать цвет ${color}`}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </DialogContent>
-        <DialogActions>
-          {editingNoteId && onDeleteNote ? (
-            <Button color="error" onClick={deleteEditingNote} startIcon={<DeleteOutlineRoundedIcon />}>
-              Удалить
-            </Button>
-          ) : null}
-          <Button onClick={() => setNoteModalOpen(false)}>Отмена</Button>
-          <Button variant="contained" onClick={saveNote} disabled={!noteTitle.trim()}>
-            Сохранить
-          </Button>
-        </DialogActions>
-      </Dialog>
+
+            <footer className="teacher-note-dialog__actions">
+              {editingNoteId && onDeleteNote ? (
+                <TeacherPlannerButton
+                  variant="danger"
+                  icon={<TeacherPlannerIcon name="trash" />}
+                  onClick={deleteEditingNote}
+                >
+                  Удалить
+                </TeacherPlannerButton>
+              ) : null}
+              <span />
+              <TeacherPlannerButton variant="ghost" onClick={closeNoteModal}>
+                Отмена
+              </TeacherPlannerButton>
+              <TeacherPlannerButton variant="primary" type="submit" disabled={!noteTitle.trim()}>
+                Сохранить
+              </TeacherPlannerButton>
+            </footer>
+          </form>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -1,15 +1,4 @@
 import type { CSSProperties } from "react";
-import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
-import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import EditRoundedIcon from "@mui/icons-material/EditRounded";
-import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
-import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
-import LockClockRoundedIcon from "@mui/icons-material/LockClockRounded";
-import NotesRoundedIcon from "@mui/icons-material/NotesRounded";
-import PaymentRoundedIcon from "@mui/icons-material/PaymentRounded";
-import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
-import { Button, IconButton, Tooltip } from "@mui/material";
 import type { Booking } from "@/entities/booking/model/types";
 import type { StudyCabinetNote } from "@/shared/lib/studyCabinet";
 import type { TeacherPlannerEvent } from "@/features/study-cabinet/teacher/model/types";
@@ -17,6 +6,11 @@ import {
   formatPlannerDate,
   getPlannerEventTimeLabel,
 } from "@/features/study-cabinet/teacher/model/plannerEvents";
+import { TeacherPlannerIcon } from "@/features/study-cabinet/teacher/ui/TeacherPlannerIcons";
+import {
+  TeacherPlannerButton,
+  TeacherPlannerIconButton,
+} from "@/features/study-cabinet/teacher/ui/TeacherPlannerPrimitives";
 
 type TeacherPlannerDetailPanelProps = {
   event: TeacherPlannerEvent | null;
@@ -28,9 +22,10 @@ type TeacherPlannerDetailPanelProps = {
 };
 
 const getDetailIcon = (event: TeacherPlannerEvent) => {
-  if (event.kind === "availability-slot") return <LockClockRoundedIcon fontSize="small" />;
-  if (event.kind === "note") return <NotesRoundedIcon fontSize="small" />;
-  return <EventAvailableRoundedIcon fontSize="small" />;
+  if (event.kind === "availability-slot") return <TeacherPlannerIcon name="lock" />;
+  if (event.kind === "note") return <TeacherPlannerIcon name="note" />;
+  if (event.kind === "trial-booking") return <TeacherPlannerIcon name="spark" />;
+  return <TeacherPlannerIcon name="event" />;
 };
 
 export function TeacherPlannerDetailPanel({
@@ -45,7 +40,7 @@ export function TeacherPlannerDetailPanel({
     return (
       <aside className="teacher-planner-detail teacher-planner-detail--empty">
         <span className="teacher-planner-detail__empty-icon">
-          <ScheduleRoundedIcon fontSize="small" />
+          <TeacherPlannerIcon name="schedule" />
         </span>
         <strong>Выберите событие</strong>
         <p>Здесь появятся детали занятия, свободного слота или напоминания.</p>
@@ -76,16 +71,16 @@ export function TeacherPlannerDetailPanel({
 
       <div className="teacher-planner-detail__meta">
         <span>
-          <ScheduleRoundedIcon fontSize="inherit" />
+          <TeacherPlannerIcon name="calendar" />
           {formatPlannerDate(event.dateKey)}
         </span>
         <span>
-          <ScheduleRoundedIcon fontSize="inherit" />
+          <TeacherPlannerIcon name="clock" />
           {getPlannerEventTimeLabel(event)}
         </span>
         {event.paymentLabel ? (
           <span className={event.paymentLabel === "Не оплачено" ? "is-warning" : ""}>
-            <PaymentRoundedIcon fontSize="inherit" />
+            <TeacherPlannerIcon name="card" />
             {event.paymentLabel}
           </span>
         ) : null}
@@ -113,7 +108,7 @@ export function TeacherPlannerDetailPanel({
               target="_blank"
               rel="noreferrer"
             >
-              <LinkRoundedIcon fontSize="small" />
+              <TeacherPlannerIcon name="link" />
               Открыть ссылку на занятие
             </a>
           ) : null}
@@ -143,57 +138,51 @@ export function TeacherPlannerDetailPanel({
       <div className="teacher-planner-detail__actions">
         {booking ? (
           <>
-            <Button size="small" variant="contained" onClick={onOpenSchedule}>
+            <TeacherPlannerButton variant="primary" onClick={onOpenSchedule}>
               Открыть занятие
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<AutoStoriesRoundedIcon />}
+            </TeacherPlannerButton>
+            <TeacherPlannerButton
+              variant="secondary"
+              icon={<TeacherPlannerIcon name="book" />}
               onClick={() => onCreatePrepNote(booking)}
             >
               Подготовка
-            </Button>
+            </TeacherPlannerButton>
             {booking.studentId ? (
-              <Button
-                size="small"
-                variant="text"
-                startIcon={<ChatBubbleOutlineRoundedIcon />}
+              <TeacherPlannerButton
+                variant="ghost"
+                icon={<TeacherPlannerIcon name="chat" />}
                 onClick={() => onOpenStudentChat?.(booking.studentId)}
               >
                 Чат
-              </Button>
+              </TeacherPlannerButton>
             ) : null}
           </>
         ) : null}
 
         {availability ? (
-          <Button size="small" variant="contained" onClick={onOpenSchedule}>
+          <TeacherPlannerButton variant="primary" onClick={onOpenSchedule}>
             Открыть слоты
-          </Button>
+          </TeacherPlannerButton>
         ) : null}
 
         {note ? (
           <>
-            <Button
-              size="small"
-              variant="contained"
-              startIcon={<EditRoundedIcon />}
+            <TeacherPlannerButton
+              variant="primary"
+              icon={<TeacherPlannerIcon name="edit" />}
               onClick={() => onEditNote(note)}
             >
               Редактировать
-            </Button>
+            </TeacherPlannerButton>
             {onDeleteNote ? (
-              <Tooltip title="Удалить напоминание">
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => onDeleteNote(note.id)}
-                  aria-label="Удалить напоминание"
-                >
-                  <DeleteOutlineRoundedIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <TeacherPlannerIconButton
+                label="Удалить напоминание"
+                variant="danger"
+                onClick={() => onDeleteNote(note.id)}
+              >
+                <TeacherPlannerIcon name="trash" />
+              </TeacherPlannerIconButton>
             ) : null}
           </>
         ) : null}

@@ -1,13 +1,10 @@
 import type { CSSProperties } from "react";
-import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
-import LockClockRoundedIcon from "@mui/icons-material/LockClockRounded";
-import NotesRoundedIcon from "@mui/icons-material/NotesRounded";
-import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
 import type { TeacherPlannerEvent } from "@/features/study-cabinet/teacher/model/types";
 import {
   getPlannerEventLayout,
   getPlannerEventTimeLabel,
 } from "@/features/study-cabinet/teacher/model/plannerEvents";
+import { TeacherPlannerIcon } from "@/features/study-cabinet/teacher/ui/TeacherPlannerIcons";
 
 type TeacherPlannerEventCardProps = {
   event: TeacherPlannerEvent;
@@ -18,10 +15,10 @@ type TeacherPlannerEventCardProps = {
 };
 
 const getEventIcon = (event: TeacherPlannerEvent) => {
-  if (event.kind === "trial-booking") return <WorkspacePremiumRoundedIcon fontSize="inherit" />;
-  if (event.kind === "regular-booking") return <EventAvailableRoundedIcon fontSize="inherit" />;
-  if (event.kind === "availability-slot") return <LockClockRoundedIcon fontSize="inherit" />;
-  return <NotesRoundedIcon fontSize="inherit" />;
+  if (event.kind === "trial-booking") return <TeacherPlannerIcon name="spark" />;
+  if (event.kind === "regular-booking") return <TeacherPlannerIcon name="event" />;
+  if (event.kind === "availability-slot") return <TeacherPlannerIcon name="lock" />;
+  return <TeacherPlannerIcon name="note" />;
 };
 
 export function TeacherPlannerEventCard({

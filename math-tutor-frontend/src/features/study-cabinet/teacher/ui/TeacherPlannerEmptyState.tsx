@@ -1,6 +1,5 @@
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
-import { Button } from "@mui/material";
+import { TeacherPlannerIcon } from "@/features/study-cabinet/teacher/ui/TeacherPlannerIcons";
+import { TeacherPlannerButton } from "@/features/study-cabinet/teacher/ui/TeacherPlannerPrimitives";
 
 type TeacherPlannerEmptyStateProps = {
   title: string;
@@ -21,7 +20,7 @@ export function TeacherPlannerEmptyState({
     return (
       <div className="teacher-planner-empty teacher-planner-empty--loading" aria-live="polite">
         <span className="teacher-planner-empty__icon">
-          <CalendarMonthRoundedIcon fontSize="small" />
+          <TeacherPlannerIcon name="calendar" />
         </span>
         <div>
           <strong>Загружаем расписание</strong>
@@ -34,16 +33,20 @@ export function TeacherPlannerEmptyState({
   return (
     <div className="teacher-planner-empty">
       <span className="teacher-planner-empty__icon">
-        <CalendarMonthRoundedIcon fontSize="small" />
+        <TeacherPlannerIcon name="calendar" />
       </span>
       <div>
         <strong>{title}</strong>
         <p>{description}</p>
       </div>
       {actionLabel && onAction ? (
-        <Button size="small" variant="outlined" startIcon={<AddRoundedIcon />} onClick={onAction}>
+        <TeacherPlannerButton
+          variant="secondary"
+          icon={<TeacherPlannerIcon name="add" />}
+          onClick={onAction}
+        >
           {actionLabel}
-        </Button>
+        </TeacherPlannerButton>
       ) : null}
     </div>
   );

@@ -871,65 +871,10 @@
   gap: 12px;
 }
 
-.study-cabinet-panel__note-modal .MuiTextField-root .MuiInputBase-root {
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--border-subtle) 72%, transparent);
-  background: color-mix(in srgb, var(--surface-elevated) 92%, transparent);
-  padding-inline: 4px;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 18%, transparent);
-}
-
-.study-cabinet-panel__note-modal .MuiTextField-root .MuiInputBase-root.Mui-focused {
-  border-color: color-mix(in srgb, #38bdf8 44%, var(--border-subtle));
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #ffffff 20%, transparent),
-    0 0 0 3px color-mix(in srgb, #38bdf8 12%, transparent);
-}
-
-.study-cabinet-panel__note-modal .MuiTextField-root .MuiInputBase-root:hover,
-.study-cabinet-panel__note-modal .MuiTextField-root .MuiInputBase-root.Mui-focused {
-  background: color-mix(in srgb, var(--surface-elevated) 96%, transparent) !important;
-}
-
-.study-cabinet-panel__note-modal
-  .MuiTextField-root
-  .MuiOutlinedInput-root
-  .MuiOutlinedInput-notchedOutline {
-  border-color: transparent !important;
-}
-
-.study-cabinet-panel__note-modal
-  .MuiTextField-root
-  .MuiOutlinedInput-root:hover
-  .MuiOutlinedInput-notchedOutline,
-.study-cabinet-panel__note-modal
-  .MuiTextField-root
-  .MuiOutlinedInput-root.Mui-focused
-  .MuiOutlinedInput-notchedOutline {
-  border-color: transparent !important;
-}
-
-.study-cabinet-panel__note-modal .MuiTextField-root .MuiInputBase-input {
-  padding: 8px 6px;
-  font-size: 14px;
-  outline: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-}
-
-.study-cabinet-panel__note-modal .MuiTextField-root textarea.MuiInputBase-input {
-  padding-top: 8px;
-}
-
 .study-cabinet-panel__note-modal-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-}
-
-.study-cabinet-panel__note-modal .MuiFormHelperText-root {
-  min-height: 14px;
-  margin-left: 0;
 }
 
 .study-cabinet-panel__note-color {
@@ -965,16 +910,109 @@
     0 0 0 4px color-mix(in srgb, #38bdf8 56%, transparent);
 }
 
-.teacher-note-dialog .MuiDialog-paper {
+.teacher-note-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: color-mix(in srgb, #020617 48%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.teacher-note-dialog__panel {
+  width: min(620px, 100%);
+  max-height: min(760px, 92vh);
+  display: grid;
+  gap: 16px;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
   border-radius: 22px;
-  border: 1px solid color-mix(in srgb, var(--border-subtle) 72%, transparent);
   background:
     linear-gradient(
       180deg,
       color-mix(in srgb, var(--surface-elevated) 98%, transparent),
       color-mix(in srgb, var(--surface-soft) 88%, transparent)
     );
-  box-shadow: 0 24px 70px color-mix(in srgb, #0f172a 22%, transparent);
+  box-shadow: 0 24px 70px color-mix(in srgb, #0f172a 28%, transparent);
+  padding: 18px;
+}
+
+.teacher-note-dialog__head,
+.teacher-note-dialog__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.teacher-note-dialog__head {
+  justify-content: space-between;
+}
+
+.teacher-note-dialog__head h3 {
+  margin: 2px 0 0;
+  color: var(--text-primary);
+  font-size: 22px;
+  line-height: 1.14;
+}
+
+.teacher-note-dialog__actions {
+  justify-content: flex-end;
+}
+
+.teacher-note-dialog__actions > span {
+  flex: 1 1 auto;
+}
+
+.teacher-note-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.teacher-note-field > span {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.teacher-note-field__control {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 72%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-elevated) 92%, transparent);
+  color: var(--text-primary);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 18%, transparent);
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+}
+
+.teacher-note-field__control--textarea {
+  min-height: 92px;
+  resize: vertical;
+  padding-block: 10px;
+  line-height: 1.45;
+}
+
+.teacher-note-field__control:hover,
+.teacher-note-field__control:focus {
+  border-color: color-mix(in srgb, #38bdf8 44%, var(--border-subtle));
+}
+
+.teacher-note-field__control:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.teacher-note-field__error {
+  margin: -2px 0 0;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .study-cabinet-panel__empty {
@@ -2433,6 +2471,107 @@
   min-width: 0;
 }
 
+.teacher-planner-button,
+.teacher-planner-icon-button {
+  appearance: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.teacher-planner-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  border-radius: 11px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.teacher-planner-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.54;
+}
+
+.teacher-planner-button:not(:disabled):hover,
+.teacher-planner-icon-button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.teacher-planner-button__icon,
+.teacher-planner-icon-button {
+  display: inline-grid;
+  place-items: center;
+}
+
+.teacher-planner-button__icon svg,
+.teacher-planner-icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.teacher-planner-button--primary {
+  background: color-mix(in srgb, #0f172a 86%, var(--accent-primary));
+  color: #ffffff;
+  box-shadow: 0 10px 20px color-mix(in srgb, #0f172a 16%, transparent);
+}
+
+.teacher-planner-button--secondary {
+  border: 1px solid color-mix(in srgb, var(--card-border) 58%, transparent);
+  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  color: var(--text-primary);
+}
+
+.teacher-planner-button--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.teacher-planner-button--danger {
+  border: 1px solid color-mix(in srgb, #ef4444 34%, var(--card-border));
+  background: color-mix(in srgb, #ef4444 10%, var(--surface-elevated));
+  color: #dc2626;
+}
+
+.teacher-planner-icon-button {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: transform 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+
+.teacher-planner-icon-button--ghost,
+.teacher-planner-icon-button--secondary {
+  background: color-mix(in srgb, var(--surface-elevated) 72%, transparent);
+  color: var(--text-secondary);
+}
+
+.teacher-planner-icon-button--danger {
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+  color: #dc2626;
+}
+
+.teacher-planner-button:focus-visible,
+.teacher-planner-icon-button:focus-visible,
+.teacher-planner-view-switch button:focus-visible,
+.teacher-planner-tabs button:focus-visible,
+.teacher-planner-grid__day-head:focus-visible,
+.teacher-planner-grid__slot:focus-visible,
+.teacher-planner-event:focus-visible,
+.teacher-note-field__control:focus-visible,
+.study-cabinet-panel__note-color-swatch:focus-visible {
+  outline: 2px solid color-mix(in srgb, #38bdf8 72%, transparent);
+  outline-offset: 2px;
+}
+
 .teacher-planner-workspace {
   --teacher-planner-grid-min: 780px;
   --teacher-planner-line: color-mix(in srgb, var(--border-subtle) 58%, transparent);
@@ -2517,6 +2656,11 @@
     font-size: 18px;
   }
 
+  > span svg {
+    width: 18px;
+    height: 18px;
+  }
+
   small,
   em {
     display: block;
@@ -2599,6 +2743,11 @@
   white-space: nowrap;
   cursor: pointer;
   transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.teacher-planner-view-switch button svg {
+  width: 15px;
+  height: 15px;
 }
 
 .teacher-planner-view-switch button.is-active,
@@ -2694,6 +2843,11 @@
   border-radius: 12px;
   color: #0f766e;
   background: color-mix(in srgb, #5eead4 20%, var(--surface-elevated));
+}
+
+.teacher-planner-empty__icon svg {
+  width: 18px;
+  height: 18px;
 }
 
 .teacher-planner-empty--loading .teacher-planner-empty__icon {
@@ -2958,6 +3112,11 @@
   font-size: 14px;
 }
 
+.teacher-planner-event__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
 .teacher-planner-event__body {
   display: grid;
   gap: 2px;
@@ -3095,6 +3254,12 @@
   color: color-mix(in srgb, var(--teacher-planner-event-color, #38bdf8) 78%, var(--text-primary));
 }
 
+.teacher-planner-detail__empty-icon svg,
+.teacher-planner-detail__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
 .teacher-planner-detail__rail {
   position: absolute;
   inset: 0 auto 0 0;
@@ -3140,6 +3305,12 @@
   font-weight: 700;
 }
 
+.teacher-planner-detail__meta span svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
 .teacher-planner-detail__meta span.is-warning {
   color: var(--feedback-warning);
 }
@@ -3181,6 +3352,12 @@
   font-size: 12px;
   font-weight: 800;
   text-decoration: none;
+}
+
+.teacher-planner-detail__link svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
 }
 
 .teacher-planner-detail__actions {
@@ -3252,7 +3429,7 @@
     grid-template-columns: 38px minmax(0, 1fr);
   }
 
-  .teacher-planner-empty .MuiButton-root {
+  .teacher-planner-empty .teacher-planner-button {
     grid-column: 1 / -1;
     width: fit-content;
   }
@@ -3286,7 +3463,7 @@
   }
 
   .teacher-planner-view-switch button,
-  .teacher-planner-actions .MuiButton-root {
+  .teacher-planner-actions .teacher-planner-button {
     flex: 1 1 0;
   }
 
@@ -3339,7 +3516,7 @@
     text-align: left;
   }
 
-  .teacher-planner-detail__actions .MuiButton-root {
+  .teacher-planner-detail__actions .teacher-planner-button {
     flex: 1 1 100%;
   }
 }

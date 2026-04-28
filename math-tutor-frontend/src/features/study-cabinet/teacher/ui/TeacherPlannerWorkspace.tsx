@@ -1,9 +1,4 @@
-import { useMemo, useState } from "react";
-import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
-import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
-import PaymentRoundedIcon from "@mui/icons-material/PaymentRounded";
-import TimelapseRoundedIcon from "@mui/icons-material/TimelapseRounded";
-import { useMediaQuery } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
 import type { Booking } from "@/entities/booking/model/types";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
 import type { StudyCabinetNote } from "@/shared/lib/studyCabinet";
@@ -36,6 +31,7 @@ import {
 import { TeacherPlannerCalendarGrid } from "@/features/study-cabinet/teacher/ui/TeacherPlannerCalendarGrid";
 import { TeacherPlannerDetailPanel } from "@/features/study-cabinet/teacher/ui/TeacherPlannerDetailPanel";
 import { TeacherPlannerEmptyState } from "@/features/study-cabinet/teacher/ui/TeacherPlannerEmptyState";
+import { TeacherPlannerIcon } from "@/features/study-cabinet/teacher/ui/TeacherPlannerIcons";
 import { TeacherPlannerTabs } from "@/features/study-cabinet/teacher/ui/TeacherPlannerTabs";
 import { TeacherPlannerToolbar } from "@/features/study-cabinet/teacher/ui/TeacherPlannerToolbar";
 
@@ -53,6 +49,22 @@ type TeacherPlannerWorkspaceProps = {
 
 const getFirstVisibleEventId = (events: TeacherPlannerEvent[]) => events[0]?.id ?? null;
 
+const useCompactPlannerLayout = () => {
+  const [isCompact, setIsCompact] = useState(() =>
+    typeof window === "undefined" ? false : window.matchMedia("(max-width: 960px)").matches
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 960px)");
+    const handleChange = () => setIsCompact(mediaQuery.matches);
+    handleChange();
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
+  return isCompact;
+};
+
 export function TeacherPlannerWorkspace({
   bookings,
   availability,
@@ -64,7 +76,7 @@ export function TeacherPlannerWorkspace({
   onEditNote,
   onDeleteNote,
 }: TeacherPlannerWorkspaceProps) {
-  const isCompactLayout = useMediaQuery("(max-width:960px)");
+  const isCompactLayout = useCompactPlannerLayout();
   const [requestedMode, setRequestedMode] = useState<TeacherPlannerViewMode>("week");
   const [activeTab, setActiveTab] = useState<TeacherPlannerTabId>("all");
   const [selectedDateKey, setSelectedDateKey] = useState(() => toLocalDateKey(new Date()));
@@ -180,7 +192,7 @@ export function TeacherPlannerWorkspace({
       <div className="teacher-planner-summary" aria-label="Сводка расписания">
         <div className="teacher-planner-summary__item teacher-planner-summary__item--next">
           <span>
-            <EventAvailableRoundedIcon fontSize="inherit" />
+            <TeacherPlannerIcon name="event" />
           </span>
           <div>
             <small>Ближайшее занятие</small>
@@ -194,7 +206,7 @@ export function TeacherPlannerWorkspace({
         </div>
         <div className="teacher-planner-summary__item">
           <span>
-            <TimelapseRoundedIcon fontSize="inherit" />
+            <TeacherPlannerIcon name="clock" />
           </span>
           <div>
             <small>Сегодня</small>
@@ -204,7 +216,7 @@ export function TeacherPlannerWorkspace({
         </div>
         <div className="teacher-planner-summary__item teacher-planner-summary__item--payment">
           <span>
-            <PaymentRoundedIcon fontSize="inherit" />
+            <TeacherPlannerIcon name="card" />
           </span>
           <div>
             <small>Оплата</small>
@@ -214,7 +226,7 @@ export function TeacherPlannerWorkspace({
         </div>
         <div className="teacher-planner-summary__item teacher-planner-summary__item--notes">
           <span>
-            <NotificationsActiveRoundedIcon fontSize="inherit" />
+            <TeacherPlannerIcon name="bell" />
           </span>
           <div>
             <small>Неделя</small>

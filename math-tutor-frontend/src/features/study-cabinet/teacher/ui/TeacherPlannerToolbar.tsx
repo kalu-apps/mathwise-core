@@ -1,11 +1,9 @@
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
-import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
-import TodayRoundedIcon from "@mui/icons-material/TodayRounded";
-import ViewAgendaRoundedIcon from "@mui/icons-material/ViewAgendaRounded";
-import ViewWeekRoundedIcon from "@mui/icons-material/ViewWeekRounded";
-import { Button, IconButton, Tooltip } from "@mui/material";
 import type { TeacherPlannerViewMode } from "@/features/study-cabinet/teacher/model/types";
+import { TeacherPlannerIcon } from "@/features/study-cabinet/teacher/ui/TeacherPlannerIcons";
+import {
+  TeacherPlannerButton,
+  TeacherPlannerIconButton,
+} from "@/features/study-cabinet/teacher/ui/TeacherPlannerPrimitives";
 
 type TeacherPlannerToolbarProps = {
   mode: TeacherPlannerViewMode;
@@ -36,7 +34,7 @@ export function TeacherPlannerToolbar({
           className={mode === "day" ? "is-active" : ""}
           onClick={() => onModeChange("day")}
         >
-          <ViewAgendaRoundedIcon fontSize="small" />
+          <TeacherPlannerIcon name="day" />
           <span>День</span>
         </button>
         {!compact ? (
@@ -45,33 +43,37 @@ export function TeacherPlannerToolbar({
             className={mode === "week" ? "is-active" : ""}
             onClick={() => onModeChange("week")}
           >
-            <ViewWeekRoundedIcon fontSize="small" />
+            <TeacherPlannerIcon name="week" />
             <span>Неделя</span>
           </button>
         ) : null}
       </div>
 
       <div className="teacher-planner-period">
-        <Tooltip title="Предыдущий период">
-          <IconButton size="small" onClick={onPrevious} aria-label="Предыдущий период">
-            <ChevronLeftRoundedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <TeacherPlannerIconButton label="Предыдущий период" onClick={onPrevious}>
+          <TeacherPlannerIcon name="chevron-left" />
+        </TeacherPlannerIconButton>
         <strong>{rangeLabel}</strong>
-        <Tooltip title="Следующий период">
-          <IconButton size="small" onClick={onNext} aria-label="Следующий период">
-            <ChevronRightRoundedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <TeacherPlannerIconButton label="Следующий период" onClick={onNext}>
+          <TeacherPlannerIcon name="chevron-right" />
+        </TeacherPlannerIconButton>
       </div>
 
       <div className="teacher-planner-actions">
-        <Button size="small" variant="outlined" startIcon={<TodayRoundedIcon />} onClick={onToday}>
+        <TeacherPlannerButton
+          variant="secondary"
+          icon={<TeacherPlannerIcon name="calendar" />}
+          onClick={onToday}
+        >
           Сегодня
-        </Button>
-        <Button size="small" variant="contained" startIcon={<AddRoundedIcon />} onClick={onCreateNote}>
+        </TeacherPlannerButton>
+        <TeacherPlannerButton
+          variant="primary"
+          icon={<TeacherPlannerIcon name="add" />}
+          onClick={onCreateNote}
+        >
           Заметка
-        </Button>
+        </TeacherPlannerButton>
       </div>
     </div>
   );
