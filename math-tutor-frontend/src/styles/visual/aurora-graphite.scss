@@ -503,8 +503,7 @@ select:focus-visible,
 .MuiTabs-root,
 .student-profile__tabs,
 .teacher-dashboard__tabs,
-.study-cabinet-panel__student-tabset,
-.study-cabinet-panel__teacher-tabset {
+.study-cabinet-panel__student-tabset {
   background: var(--ag-tier2-bg) !important;
   border: 1px solid var(--ag-tier2-border) !important;
   border-radius: var(--radius-md) !important;

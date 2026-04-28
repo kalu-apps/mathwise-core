@@ -12,6 +12,8 @@ import {
 type TeacherPlannerEventCardProps = {
   event: TeacherPlannerEvent;
   selected: boolean;
+  lane?: number;
+  laneCount?: number;
   onSelect: (event: TeacherPlannerEvent) => void;
 };
 
@@ -25,6 +27,8 @@ const getEventIcon = (event: TeacherPlannerEvent) => {
 export function TeacherPlannerEventCard({
   event,
   selected,
+  lane = 0,
+  laneCount = 1,
   onSelect,
 }: TeacherPlannerEventCardProps) {
   const layout = getPlannerEventLayout(event);
@@ -32,6 +36,13 @@ export function TeacherPlannerEventCard({
     top: `${layout.top}px`,
     height: `${layout.height}px`,
     "--teacher-planner-event-color": event.color,
+    ...(laneCount > 1
+      ? {
+          left: `calc(${(lane / laneCount) * 100}% + 2px)`,
+          right: "auto",
+          width: `calc(${100 / laneCount}% - 4px)`,
+        }
+      : {}),
   } as CSSProperties;
 
   return (
@@ -44,16 +55,21 @@ export function TeacherPlannerEventCard({
       onClick={() => onSelect(event)}
       aria-pressed={selected}
     >
+      <span className="teacher-planner-event__rail" aria-hidden="true" />
       <span className="teacher-planner-event__icon">{getEventIcon(event)}</span>
       <span className="teacher-planner-event__body">
+        <span className="teacher-planner-event__meta">
+          <em>{getPlannerEventTimeLabel(event)}</em>
+          <small>{event.badge}</small>
+        </span>
         <strong>{event.title}</strong>
-        <span>{getPlannerEventTimeLabel(event)}</span>
-        <em>{event.subtitle}</em>
+        <span>{event.subtitle}</span>
       </span>
-      <span className="teacher-planner-event__badges">
-        <small>{event.badge}</small>
-        {event.secondaryBadge ? <small>{event.secondaryBadge}</small> : null}
-      </span>
+      {event.secondaryBadge ? (
+        <span className="teacher-planner-event__badges">
+          <small>{event.secondaryBadge}</small>
+        </span>
+      ) : null}
     </button>
   );
 }

@@ -53,11 +53,9 @@ import { StudyCabinetPanel } from "@/shared/ui/StudyCabinetPanel";
 import { ListSkeleton } from "@/shared/ui/loading";
 import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
 import {
-  buildStudyCabinetWeekActivity,
   createStudyCabinetNote,
   deleteStudyCabinetNote,
   getStudyCabinetNotes,
-  recordStudyCabinetActivity,
   updateStudyCabinetNote,
   type StudyCabinetNote,
 } from "@/shared/lib/studyCabinet";
@@ -195,7 +193,6 @@ export default function TeacherDashboard() {
   const [bookingDeletingId, setBookingDeletingId] = useState<string | null>(null);
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
   const [teacherStudyNotes, setTeacherStudyNotes] = useState<StudyCabinetNote[]>([]);
-  const [teacherStudyActivityVersion, setTeacherStudyActivityVersion] = useState(0);
   const [studentsWithFeedbackIds, setStudentsWithFeedbackIds] = useState<
     string[]
   >([]);
@@ -348,43 +345,6 @@ export default function TeacherDashboard() {
       unsubscribe();
     };
   }, [syncTeacherStudyNotes, tab]);
-
-  useEffect(() => {
-    if (tab !== TEACHER_STUDY_TAB_INDEX || !userId) return;
-    let lastMarkAt = Date.now();
-    const intervalId = window.setInterval(() => {
-      const now = Date.now();
-      const elapsedMinutes = Math.floor((now - lastMarkAt) / 60_000);
-      if (elapsedMinutes > 0) {
-        recordStudyCabinetActivity({
-          role: "teacher",
-          userId,
-          minutes: elapsedMinutes,
-        });
-        lastMarkAt = now;
-        setTeacherStudyActivityVersion((prev) => prev + 1);
-      }
-    }, 60_000);
-
-    return () => {
-      window.clearInterval(intervalId);
-      const now = Date.now();
-      const elapsedMinutes = Math.max(1, Math.floor((now - lastMarkAt) / 60_000));
-      recordStudyCabinetActivity({
-        role: "teacher",
-        userId,
-        minutes: elapsedMinutes,
-      });
-      setTeacherStudyActivityVersion((prev) => prev + 1);
-    };
-  }, [tab, userId]);
-
-  const teacherStudyActivityDays = useMemo(() => {
-    const recalcSeed = teacherStudyActivityVersion;
-    void recalcSeed;
-    if (!userId) return [];
-    return buildStudyCabinetWeekActivity("teacher", userId);
-  }, [teacherStudyActivityVersion, userId]);
 
   const handleCreateTeacherStudyNote = useCallback(
     (payload: {
@@ -1966,17 +1926,10 @@ export default function TeacherDashboard() {
             <div className="teacher-dashboard__section">
               <StudyCabinetPanel
                 role="teacher"
-                userId={user.id}
                 bookings={bookings}
                 availability={availability}
                 notes={teacherStudyNotes}
-                activityDays={teacherStudyActivityDays}
-                chatUnreadCount={chatUnreadCount}
                 loading={dashboardLoading || bookingLoading || availabilityLoading}
-                onWorkbookClick={() => {
-                  void handleTeacherOpenWorkbook();
-                }}
-                onChatClick={() => openTeacherTab(TEACHER_CHAT_TAB_INDEX)}
                 onOpenSchedule={() => openTeacherTab(3)}
                 onOpenStudentChat={openTeacherChatForStudent}
                 onCreateNote={handleCreateTeacherStudyNote}

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
@@ -55,13 +56,20 @@ export function TeacherPlannerDetailPanel({
   const booking = event.booking;
   const note = event.note;
   const availability = event.availability;
+  const detailStyle = {
+    "--teacher-planner-event-color": event.color,
+  } as CSSProperties;
 
   return (
-    <aside className={`teacher-planner-detail teacher-planner-detail--${event.kind}`}>
+    <aside
+      className={`teacher-planner-detail teacher-planner-detail--${event.kind}`}
+      style={detailStyle}
+    >
+      <span className="teacher-planner-detail__rail" aria-hidden="true" />
       <div className="teacher-planner-detail__head">
         <span className="teacher-planner-detail__icon">{getDetailIcon(event)}</span>
         <div>
-          <span>{event.badge}</span>
+          <span className="teacher-planner-detail__eyebrow">{event.badge}</span>
           <h3>{event.title}</h3>
         </div>
       </div>
@@ -81,6 +89,7 @@ export function TeacherPlannerDetailPanel({
             {event.paymentLabel}
           </span>
         ) : null}
+        {event.secondaryBadge ? <span>{event.secondaryBadge}</span> : null}
       </div>
 
       <div className="teacher-planner-detail__body">

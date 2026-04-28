@@ -1,31 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton,
   MenuItem,
   TextField,
-  Tooltip,
 } from "@mui/material";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
-import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import type { Booking } from "@/entities/booking/model/types";
-import {
-  defaultCabinetTaskState,
-  dismissCabinetTask,
-  normalizeCabinetTaskState,
-  snoozeCabinetTask,
-  unsnoozeCabinetTask,
-  type CabinetTaskState,
-} from "@/features/study-cabinet/shared/model/taskState";
 import type { StudyCabinetNote } from "@/shared/lib/studyCabinet";
-import { readStorage, writeStorage } from "@/shared/lib/localDb";
 import type {
   TeacherStudyCabinetPanelProps,
   TeacherStudyNoteDraftRequest,
@@ -37,36 +22,12 @@ import {
   buildLocalDateTime,
   buildTimeOptions,
   ceilToStep,
-  formatDayTime,
-  getBookingEnd,
   getBookingStart,
   minutesToTime,
   timeToMinutes,
   toLocalDateKey,
 } from "@/features/study-cabinet/teacher/model/plannerEvents";
 import { TeacherPlannerWorkspace } from "@/features/study-cabinet/teacher/ui/TeacherPlannerWorkspace";
-
-const SNOOZE_MS = 1000 * 60 * 60 * 12;
-
-const TASK_STATE_STORAGE_PREFIX = "teacher-cabinet:task-state:";
-
-type ReminderGroup = "urgent" | "week" | "snoozed";
-
-type TeacherTask = {
-  id: string;
-  title: string;
-  subtitle: string;
-  tag: string;
-  estimateMinutes: number;
-  group: Exclude<ReminderGroup, "snoozed">;
-  tone: "accent" | "warning" | "neutral";
-  dueAt?: number;
-  onDoNow?: () => void;
-  onSecondary?: () => void;
-  secondaryLabel?: string;
-};
-
-const getTaskStateKey = (userId: string) => `${TASK_STATE_STORAGE_PREFIX}${userId}`;
 
 const getTemplatePreset = (templateId: TeacherStudyNoteTemplateId, booking?: Booking) => {
   if (templateId === "prep") {
@@ -76,7 +37,7 @@ const getTemplatePreset = (templateId: TeacherStudyNoteTemplateId, booking?: Boo
         ? `План урока, материалы и ключевые точки для ${booking.studentName}.`
         : "План, материалы и ключевые задачи перед занятием.",
       durationMinutes: 15,
-      color: "#38bdf8",
+      color: "#0ea5e9",
     };
   }
   if (templateId === "followup") {
@@ -86,7 +47,7 @@ const getTemplatePreset = (templateId: TeacherStudyNoteTemplateId, booking?: Boo
         ? `Следующие шаги, домашнее задание и рекомендации для ${booking.studentName}.`
         : "Зафиксировать итог и следующие шаги для ученика.",
       durationMinutes: 10,
-      color: "#22c55e",
+      color: "#10b981",
     };
   }
   if (templateId === "office") {
@@ -94,7 +55,7 @@ const getTemplatePreset = (templateId: TeacherStudyNoteTemplateId, booking?: Boo
       title: "Приёмные часы",
       body: "Свободный блок для ответов ученикам и подготовки.",
       durationMinutes: 30,
-      color: "#a855f7",
+      color: "#8b5cf6",
     };
   }
   if (templateId === "break") {
@@ -123,27 +84,28 @@ const mapTemplateToNoteKind = (
   return "custom";
 };
 
+const TEACHER_NOTE_KIND_OPTIONS: Array<{
+  value: "prep" | "followup" | "focus" | "break" | "custom";
+  label: string;
+}> = [
+  { value: "prep", label: "Подготовка" },
+  { value: "followup", label: "Итог" },
+  { value: "focus", label: "Фокус" },
+  { value: "break", label: "Перерыв" },
+  { value: "custom", label: "Напоминание" },
+];
+
 export function TeacherStudyCabinetPanel({
-  userId,
   bookings,
   availability,
   notes,
-  chatUnreadCount,
   loading = false,
-  onWorkbookClick,
-  onChatClick,
   onOpenSchedule,
   onOpenStudentChat,
   onCreateNote,
   onUpdateNote,
   onDeleteNote,
 }: TeacherStudyCabinetPanelProps) {
-  const [taskGroup, setTaskGroup] = useState<ReminderGroup>("urgent");
-  const [taskState, setTaskState] = useState<CabinetTaskState>(() =>
-    normalizeCabinetTaskState(
-      readStorage<CabinetTaskState>(getTaskStateKey(userId), defaultCabinetTaskState)
-    )
-  );
   const [noteModalOpen, setNoteModalOpen] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteTitle, setNoteTitle] = useState("");
@@ -162,48 +124,6 @@ export function TeacherStudyCabinetPanel({
   const nowTimestamp = now.getTime();
   const todayKey = toLocalDateKey(now);
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
-  const normalizedTaskState = useMemo(
-    () => normalizeCabinetTaskState(taskState, nowTimestamp),
-    [taskState, nowTimestamp]
-  );
-
-  useEffect(() => {
-    writeStorage(getTaskStateKey(userId), normalizedTaskState);
-  }, [normalizedTaskState, userId]);
-
-  const scheduledBookings = useMemo(
-    () =>
-      [...bookings]
-        .filter((booking) => getBookingEnd(booking).getTime() >= nowTimestamp)
-        .sort((a, b) => getBookingStart(a).getTime() - getBookingStart(b).getTime()),
-    [bookings, nowTimestamp]
-  );
-
-  const nextSession = scheduledBookings[0] ?? null;
-
-  const unpaidQueue = useMemo(
-    () => scheduledBookings.filter((booking) => booking.lessonKind === "regular" && booking.paymentStatus === "unpaid"),
-    [scheduledBookings]
-  );
-
-  const manualReminderNotes = useMemo(
-    () =>
-      notes
-        .filter((note) => note.remind && !note.done && note.dueAt)
-        .sort((a, b) => new Date(a.dueAt ?? 0).getTime() - new Date(b.dueAt ?? 0).getTime()),
-    [notes]
-  );
-
-  const upcomingReminderBookings = useMemo(
-    () =>
-      scheduledBookings
-        .filter((booking) => booking.id !== nextSession?.id)
-        .filter((booking) => getBookingStart(booking).getTime() - nowTimestamp <= 7 * 24 * 60 * 60 * 1000)
-        .filter((booking) => !(booking.lessonKind === "regular" && booking.paymentStatus === "unpaid"))
-        .slice(0, 4),
-    [scheduledBookings, nextSession, nowTimestamp]
-  );
 
   const openTemplateNote = useCallback((request: TeacherStudyNoteDraftRequest = {}) => {
     const templateId = request.templateId ?? "custom";
@@ -323,242 +243,8 @@ export function TeacherStudyCabinetPanel({
     setNoteModalOpen(false);
   };
 
-  const draftTaskList = useMemo<TeacherTask[]>(() => {
-    const tasks: TeacherTask[] = [];
-
-    upcomingReminderBookings.forEach((booking) => {
-      const startAt = getBookingStart(booking).getTime();
-      const isTrial = booking.lessonKind === "trial";
-      tasks.push({
-        id: `session-${booking.id}`,
-        title: `Сессия: ${booking.studentName}`,
-        subtitle: `${formatDayTime(startAt)} · ${isTrial ? "пробное занятие" : "плановая 1:1-сессия"}`,
-        tag: isTrial ? "Пробное" : "Платное",
-        estimateMinutes: 2,
-        group: startAt - nowTimestamp <= 24 * 60 * 60 * 1000 ? "urgent" : "week",
-        tone: isTrial ? "accent" : "neutral",
-        dueAt: startAt,
-        onDoNow: onOpenSchedule,
-        onSecondary: () => onOpenStudentChat?.(booking.studentId),
-        secondaryLabel: "Написать",
-      });
-    });
-
-    unpaidQueue.forEach((booking) => {
-      tasks.push({
-        id: `payment-${booking.id}`,
-        title: `Проверить оплату: ${booking.studentName}`,
-        subtitle: `${formatDayTime(getBookingStart(booking))} · платное занятие ещё не оплачено`,
-        tag: "Не оплачено",
-        estimateMinutes: 2,
-        group: getBookingStart(booking).getTime() - nowTimestamp <= 24 * 60 * 60 * 1000 ? "urgent" : "week",
-        tone: "warning",
-        dueAt: getBookingStart(booking).getTime(),
-        onDoNow: onOpenSchedule,
-        onSecondary: () => onOpenStudentChat?.(booking.studentId),
-        secondaryLabel: "Написать",
-      });
-    });
-
-    manualReminderNotes.forEach((note) => {
-      const dueAt = note.dueAt ? new Date(note.dueAt).getTime() : Number.NaN;
-      if (!Number.isFinite(dueAt)) return;
-      tasks.push({
-        id: `note-${note.id}`,
-        title: note.title,
-        subtitle: note.body || `Заметка на ${formatDayTime(dueAt)}`,
-        tag: "Заметка",
-        estimateMinutes: 2,
-        group: dueAt - nowTimestamp <= 24 * 60 * 60 * 1000 ? "urgent" : "week",
-        tone: "neutral",
-        dueAt,
-        onDoNow: () => openEditModal(note),
-      });
-    });
-
-    const seen = new Set<string>();
-    return tasks.filter((task) => {
-      if (seen.has(task.id)) return false;
-      seen.add(task.id);
-      return true;
-    });
-  }, [manualReminderNotes, nowTimestamp, onOpenSchedule, onOpenStudentChat, openEditModal, upcomingReminderBookings, unpaidQueue]);
-
-  const dismissedTaskSet = useMemo(
-    () => new Set(normalizedTaskState.dismissed),
-    [normalizedTaskState.dismissed]
-  );
-
-  const reminderTasks = useMemo(() => {
-    const active = draftTaskList.filter((task) => {
-      if (dismissedTaskSet.has(task.id)) return false;
-      const snoozeUntil = normalizedTaskState.snoozed[task.id];
-      return !(typeof snoozeUntil === "number" && snoozeUntil > nowTimestamp);
-    });
-    const snoozed = draftTaskList.filter((task) => {
-      if (dismissedTaskSet.has(task.id)) return false;
-      const snoozeUntil = normalizedTaskState.snoozed[task.id];
-      return typeof snoozeUntil === "number" && snoozeUntil > nowTimestamp;
-    });
-
-    return {
-      urgent: active.filter((task) => task.group === "urgent"),
-      week: active.filter((task) => task.group === "week"),
-      snoozed,
-    };
-  }, [dismissedTaskSet, draftTaskList, normalizedTaskState.snoozed, nowTimestamp]);
-
-  const activeActionCount = reminderTasks.urgent.length + reminderTasks.week.length;
-
-  const handleSnoozeTask = (taskId: string) => {
-    setTaskState((prev) =>
-      normalizeCabinetTaskState(
-        snoozeCabinetTask(prev, taskId, Date.now() + SNOOZE_MS)
-      )
-    );
-  };
-
-  const handleDismissTask = (taskId: string) => {
-    setTaskState((prev) => normalizeCabinetTaskState(dismissCabinetTask(prev, taskId)));
-  };
-
-  const handleUnsnoozeTask = (taskId: string) => {
-    setTaskState((prev) => normalizeCabinetTaskState(unsnoozeCabinetTask(prev, taskId)));
-  };
-
-  const currentReminderTasks =
-    taskGroup === "urgent"
-      ? reminderTasks.urgent
-      : taskGroup === "week"
-        ? reminderTasks.week
-        : reminderTasks.snoozed;
-
-  const renderTaskCard = (task: TeacherTask, isSnoozed: boolean) => (
-    <article
-      key={task.id}
-      className={`study-cabinet-panel__teacher-task study-cabinet-panel__teacher-task--${task.tone}`}
-    >
-      <div className="study-cabinet-panel__teacher-task-head">
-        <span className="study-cabinet-panel__teacher-task-badge">{task.tag}</span>
-        <span className="study-cabinet-panel__teacher-task-time">≈ {task.estimateMinutes} мин</span>
-      </div>
-      <strong>{task.title}</strong>
-      <p>{task.subtitle}</p>
-      <div className="study-cabinet-panel__teacher-task-actions">
-        <Button size="small" onClick={() => task.onDoNow?.()} disabled={!task.onDoNow}>
-          {isSnoozed ? "Вернуть" : "Сделать сейчас"}
-        </Button>
-        {task.secondaryLabel ? (
-          <Button size="small" variant="text" onClick={() => task.onSecondary?.()}>
-            {task.secondaryLabel}
-          </Button>
-        ) : null}
-        <Button
-          size="small"
-          variant="text"
-          onClick={() => (isSnoozed ? handleUnsnoozeTask(task.id) : handleSnoozeTask(task.id))}
-        >
-          {isSnoozed ? "Оставить" : "Отложить"}
-        </Button>
-        <Button size="small" color="inherit" onClick={() => handleDismissTask(task.id)}>
-          Скрыть
-        </Button>
-      </div>
-    </article>
-  );
-
-  const reminderHint =
-    activeActionCount > 0
-      ? activeActionCount === 1
-        ? "Есть 1 задача, требующая внимания."
-        : `Есть ${activeActionCount} задач, требующих внимания.`
-      : null;
-
   return (
-    <section className={`study-cabinet-panel study-cabinet-panel--teacher-redesign ${activeActionCount > 0 ? "study-cabinet-panel--alert" : ""}`}>
-      {reminderHint ? <div className="study-cabinet-panel__urgent">{reminderHint}</div> : null}
-
-      <div className="study-cabinet-panel__teacher-overview-row">
-        <div className="study-cabinet-panel__cover study-cabinet-panel__teacher-cover-card">
-          <div className="study-cabinet-panel__veil" />
-          <div className="study-cabinet-panel__cover-content">
-            <div className="study-cabinet-panel__hero study-cabinet-panel__teacher-hero">
-              <div className="study-cabinet-panel__hero-bar">
-                <span className="study-cabinet-panel__kicker">Учебный кабинет преподавателя</span>
-                <div className="study-cabinet-panel__teacher-indicators">
-                  {chatUnreadCount > 0 ? (
-                    <span className="study-cabinet-panel__teacher-pill">
-                      <ForumRoundedIcon fontSize="inherit" /> Непрочитано: {chatUnreadCount}
-                    </span>
-                  ) : null}
-                  <Tooltip title="Быстрая заметка">
-                    <IconButton
-                      className="study-cabinet-panel__teacher-icon-action"
-                      onClick={() => openTemplateNote({ templateId: "custom" })}
-                      aria-label="Добавить заметку"
-                    >
-                      <AddRoundedIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </div>
-              </div>
-              <h2>Командный центр преподавателя</h2>
-              <p>
-                Операционный центр преподавателя: ближайшие занятия, напоминания и доступ к ключевым разделам без дублирования расписания, чата и аналитики.
-              </p>
-              <div className="study-cabinet-panel__hero-nav study-cabinet-panel__teacher-hero-nav">
-                {onWorkbookClick ? (
-                  <button
-                    type="button"
-                    className="study-cabinet-panel__hero-btn"
-                    onClick={onWorkbookClick}
-                  >
-                    <AutoStoriesRoundedIcon fontSize="small" />
-                    <span>Рабочая тетрадь</span>
-                  </button>
-                ) : null}
-                {onChatClick ? (
-                  <button
-                    type="button"
-                    className="study-cabinet-panel__hero-btn study-cabinet-panel__hero-btn--chat"
-                    onClick={onChatClick}
-                  >
-                    <ForumRoundedIcon fontSize="small" />
-                    <span>Чат</span>
-                  </button>
-                ) : null}
-                <button type="button" className="study-cabinet-panel__hero-btn" onClick={onOpenSchedule}>
-                  <CalendarMonthRoundedIcon fontSize="small" />
-                  <span>Расписание</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <article className="study-cabinet-panel__smart-card study-cabinet-panel__smart-card--reminders study-cabinet-panel__teacher-reminders-card">
-          <div className="study-cabinet-panel__smart-head">
-            <div>
-              <span className="study-cabinet-panel__kicker">Напоминания</span>
-            </div>
-            <div className="study-cabinet-panel__teacher-tabset">
-              <button type="button" className={taskGroup === "urgent" ? "is-active" : ""} onClick={() => setTaskGroup("urgent")}>Срочно</button>
-              <button type="button" className={taskGroup === "week" ? "is-active" : ""} onClick={() => setTaskGroup("week")}>Неделя</button>
-              <button type="button" className={taskGroup === "snoozed" ? "is-active" : ""} onClick={() => setTaskGroup("snoozed")}>Отложено</button>
-            </div>
-          </div>
-          <div className="study-cabinet-panel__teacher-task-list">
-            {currentReminderTasks.length > 0 ? (
-              currentReminderTasks.map((task) => renderTaskCard(task, taskGroup === "snoozed"))
-            ) : (
-              <div className="study-cabinet-panel__empty">
-                {taskGroup === "snoozed" ? "Отложенных задач нет." : "Актуальных задач в этой группе нет."}
-              </div>
-            )}
-          </div>
-        </article>
-      </div>
-
+    <section className="study-cabinet-panel study-cabinet-panel--teacher-redesign">
       <TeacherPlannerWorkspace
         bookings={bookings}
         availability={availability}
@@ -576,7 +262,7 @@ export function TeacherStudyCabinetPanel({
         onClose={() => setNoteModalOpen(false)}
         fullWidth
         maxWidth="sm"
-        className="ui-dialog ui-dialog--compact"
+        className="ui-dialog ui-dialog--compact teacher-note-dialog"
       >
         <DialogTitle>{editingNoteId ? "Редактировать заметку" : "Новая заметка"}</DialogTitle>
         <DialogContent>
@@ -599,6 +285,25 @@ export function TeacherStudyCabinetPanel({
               multiline
               minRows={3}
             />
+            <TextField
+              label="Тип"
+              select
+              value={noteKind}
+              onChange={(event) =>
+                setNoteKind(
+                  event.target.value as "prep" | "followup" | "focus" | "break" | "custom"
+                )
+              }
+              variant="outlined"
+              size="small"
+              fullWidth
+            >
+              {TEACHER_NOTE_KIND_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
             <div className="study-cabinet-panel__note-modal-row">
               <TextField
                 label="Дата"

@@ -15,10 +15,10 @@ export const PLANNER_HOUR_HEIGHT = 38;
 
 export const TEACHER_NOTE_COLORS = [
   "#f59e0b",
-  "#38bdf8",
-  "#22c55e",
-  "#a855f7",
-  "#ef4444",
+  "#0ea5e9",
+  "#10b981",
+  "#8b5cf6",
+  "#f43f5e",
   "#f97316",
   "#14b8a6",
 ];
@@ -251,7 +251,7 @@ const buildBookingEvent = (booking: Booking): TeacherPlannerEvent | null => {
         : "Не оплачено",
     studentId: booking.studentId,
     studentName: booking.studentName,
-    color: isTrial ? "#14b8a6" : isUnpaid ? "#f59e0b" : "#3b82f6",
+    color: isTrial ? "#14b8a6" : isUnpaid ? "#f59e0b" : "#2563eb",
     booking,
   };
 };
@@ -278,7 +278,7 @@ const buildAvailabilityEvent = (slot: AvailabilitySlot): TeacherPlannerEvent | n
     description: "Слот управляется во вкладке индивидуальных занятий.",
     badge: "Слот",
     statusLabel: "Свободно",
-    color: "#8b5cf6",
+    color: "#7c3aed",
     availability: slot,
   };
 };

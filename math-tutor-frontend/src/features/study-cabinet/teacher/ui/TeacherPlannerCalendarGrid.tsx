@@ -27,6 +27,51 @@ type TeacherPlannerCalendarGridProps = {
   onCreateNoteAtSlot: (dateKey: string, startTime: string) => void;
 };
 
+type PlannerEventLane = {
+  lane: number;
+  laneCount: number;
+};
+
+const buildEventLaneMap = (events: TeacherPlannerEvent[]) => {
+  const result = new Map<string, PlannerEventLane>();
+  const sortedEvents = [...events].sort((a, b) => {
+    if (a.startMinutes !== b.startMinutes) return a.startMinutes - b.startMinutes;
+    return b.endMinutes - a.endMinutes;
+  });
+  const clusters: TeacherPlannerEvent[][] = [];
+  let currentCluster: TeacherPlannerEvent[] = [];
+  let currentClusterEnd = -1;
+
+  sortedEvents.forEach((event) => {
+    if (currentCluster.length === 0 || event.startMinutes < currentClusterEnd) {
+      currentCluster.push(event);
+      currentClusterEnd = Math.max(currentClusterEnd, event.endMinutes);
+      return;
+    }
+    clusters.push(currentCluster);
+    currentCluster = [event];
+    currentClusterEnd = event.endMinutes;
+  });
+
+  if (currentCluster.length > 0) clusters.push(currentCluster);
+
+  clusters.forEach((cluster) => {
+    const laneEnds: number[] = [];
+    const assigned = cluster.map((event) => {
+      const laneIndex = laneEnds.findIndex((endMinute) => endMinute <= event.startMinutes);
+      const lane = laneIndex >= 0 ? laneIndex : laneEnds.length;
+      laneEnds[lane] = event.endMinutes;
+      return { event, lane };
+    });
+    const laneCount = Math.max(1, laneEnds.length);
+    assigned.forEach(({ event, lane }) => {
+      result.set(event.id, { lane, laneCount });
+    });
+  });
+
+  return result;
+};
+
 export function TeacherPlannerCalendarGrid({
   days,
   eventsByDay,
@@ -48,6 +93,8 @@ export function TeacherPlannerCalendarGrid({
     });
   }, []);
   const slotCount = ((PLANNER_END_HOUR - PLANNER_START_HOUR) * 60) / PLANNER_SLOT_MINUTES;
+  const nowLineTop =
+    ((nowMinutes - PLANNER_START_HOUR * 60) / 60) * PLANNER_HOUR_HEIGHT;
 
   useEffect(() => {
     const container = scrollRef.current;
@@ -72,25 +119,29 @@ export function TeacherPlannerCalendarGrid({
           className="teacher-planner-grid__day-heads"
           style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
         >
-          {days.map((day, index) => (
-            <button
-              key={day.key}
-              type="button"
-              className={`teacher-planner-grid__day-head ${
-                selectedDateKey === day.key ? "is-selected" : ""
-              } ${day.key === todayKey ? "is-today" : ""}`}
-              onClick={() => onSelectDate(day.key)}
-            >
-              <span>
-                {mode === "week"
-                  ? PLANNER_WEEKDAY_LABELS[index]
-                  : day.date.toLocaleDateString("ru-RU", { weekday: "short" }).replace(".", "")}
-              </span>
-              <strong>
-                {day.date.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })}
-              </strong>
-            </button>
-          ))}
+          {days.map((day, index) => {
+            const dayEvents = eventsByDay.get(day.key) ?? [];
+            return (
+              <button
+                key={day.key}
+                type="button"
+                className={`teacher-planner-grid__day-head ${
+                  selectedDateKey === day.key ? "is-selected" : ""
+                } ${day.key === todayKey ? "is-today" : ""}`}
+                onClick={() => onSelectDate(day.key)}
+              >
+                <span>
+                  {mode === "week"
+                    ? PLANNER_WEEKDAY_LABELS[index]
+                    : day.date.toLocaleDateString("ru-RU", { weekday: "short" }).replace(".", "")}
+                </span>
+                <strong>
+                  {day.date.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })}
+                </strong>
+                <em>{dayEvents.length}</em>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -106,6 +157,7 @@ export function TeacherPlannerCalendarGrid({
         >
           {days.map((day) => {
             const dayEvents = eventsByDay.get(day.key) ?? [];
+            const laneMap = buildEventLaneMap(dayEvents);
             return (
               <div key={day.key} className="teacher-planner-grid__day">
                 <div className="teacher-planner-grid__slots">
@@ -137,11 +189,20 @@ export function TeacherPlannerCalendarGrid({
                 </div>
 
                 <div className="teacher-planner-grid__events">
+                  {day.key === todayKey ? (
+                    <span
+                      className="teacher-planner-grid__now-line"
+                      style={{ top: `${nowLineTop}px` }}
+                      aria-hidden="true"
+                    />
+                  ) : null}
                   {dayEvents.map((event) => (
                     <TeacherPlannerEventCard
                       key={event.id}
                       event={event}
                       selected={selectedEventId === event.id}
+                      lane={laneMap.get(event.id)?.lane ?? 0}
+                      laneCount={laneMap.get(event.id)?.laneCount ?? 1}
                       onSelect={onSelectEvent}
                     />
                   ))}

@@ -85,19 +85,10 @@ export type TeacherStudyNoteUpdatePayload = TeacherStudyNotePayload & {
 };
 
 export type TeacherStudyCabinetPanelProps = {
-  userId: string;
   bookings: Booking[];
   availability: AvailabilitySlot[];
   notes: StudyCabinetNote[];
-  activityDays: Array<{
-    key: string;
-    label: string;
-    minutes: number;
-  }>;
-  chatUnreadCount: number;
   loading?: boolean;
-  onWorkbookClick?: () => void;
-  onChatClick?: () => void;
   onOpenSchedule?: () => void;
   onOpenStudentChat?: (studentId: string) => void;
   onCreateNote?: (payload: TeacherStudyNotePayload) => void;
