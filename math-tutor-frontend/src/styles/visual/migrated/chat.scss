@@ -15,21 +15,21 @@
     color-mix(in srgb, #ffe2d0 72%, transparent)
   );
   --chat-bubble-teacher: linear-gradient(
-    140deg,
-    color-mix(in srgb, #ede4ff 54%, #8262ff 46%),
-    color-mix(in srgb, #d8f4ff 56%, #35b9ff 44%)
+    142deg,
+    color-mix(in srgb, #f2eaff 42%, #7b5cff 58%) 0%,
+    color-mix(in srgb, #dff7ff 38%, #16b8ff 62%) 100%
   );
   --chat-bubble-student: linear-gradient(
-    140deg,
-    color-mix(in srgb, #fff0bf 50%, #ffba33 50%),
-    color-mix(in srgb, #ffdcc8 50%, #ff7347 50%)
+    142deg,
+    color-mix(in srgb, #fff4bf 36%, #ffb12e 64%) 0%,
+    color-mix(in srgb, #ffe0d3 34%, #ff6748 66%) 100%
   );
-  --chat-bubble-teacher-border: color-mix(in srgb, #775dff 42%, transparent);
-  --chat-bubble-student-border: color-mix(in srgb, #ff8543 44%, transparent);
-  --chat-bubble-teacher-shadow: 0 10px 22px
-    color-mix(in srgb, #755bea 28%, transparent);
-  --chat-bubble-student-shadow: 0 10px 22px
-    color-mix(in srgb, #e77f39 28%, transparent);
+  --chat-bubble-teacher-border: color-mix(in srgb, #7458ff 58%, transparent);
+  --chat-bubble-student-border: color-mix(in srgb, #ff7640 60%, transparent);
+  --chat-bubble-teacher-shadow: 0 12px 28px
+    color-mix(in srgb, #6852f2 34%, transparent);
+  --chat-bubble-student-shadow: 0 12px 28px
+    color-mix(in srgb, #ed7a35 34%, transparent);
   --chat-bubble-teacher-author: color-mix(in srgb, #4a35b9 84%, #2887c7 16%);
   --chat-bubble-student-author: color-mix(in srgb, #a24a1e 82%, #cc7a22 18%);
   --chat-bubble-border: color-mix(in srgb, #d6c5ff 44%, #ffffff 56%);
@@ -70,21 +70,21 @@
     color-mix(in srgb, #c07f59 44%, transparent)
   );
   --chat-bubble-teacher: linear-gradient(
-    140deg,
-    color-mix(in srgb, #4b3296 58%, #a48cff 42%),
-    color-mix(in srgb, #275487 56%, #55c7ff 44%)
+    142deg,
+    color-mix(in srgb, #2f1e70 38%, #866dff 62%) 0%,
+    color-mix(in srgb, #153b64 36%, #19b8ff 64%) 100%
   );
   --chat-bubble-student: linear-gradient(
-    140deg,
-    color-mix(in srgb, #965321 54%, #ffb546 46%),
-    color-mix(in srgb, #7c382d 54%, #ff7556 46%)
+    142deg,
+    color-mix(in srgb, #6d3617 36%, #ffab35 64%) 0%,
+    color-mix(in srgb, #6c2422 34%, #ff6048 66%) 100%
   );
-  --chat-bubble-teacher-border: color-mix(in srgb, #a994ff 42%, transparent);
-  --chat-bubble-student-border: color-mix(in srgb, #ffac55 42%, transparent);
-  --chat-bubble-teacher-shadow: 0 10px 24px
-    color-mix(in srgb, #745df0 34%, transparent);
-  --chat-bubble-student-shadow: 0 10px 24px
-    color-mix(in srgb, #df8344 34%, transparent);
+  --chat-bubble-teacher-border: color-mix(in srgb, #b6a6ff 56%, transparent);
+  --chat-bubble-student-border: color-mix(in srgb, #ffc06b 56%, transparent);
+  --chat-bubble-teacher-shadow: 0 12px 30px
+    color-mix(in srgb, #8068ff 38%, transparent);
+  --chat-bubble-student-shadow: 0 12px 30px
+    color-mix(in srgb, #ff8949 38%, transparent);
   --chat-bubble-teacher-author: color-mix(in srgb, #e8e2ff 86%, #9ad8ff 14%);
   --chat-bubble-student-author: color-mix(in srgb, #ffe2c4 86%, #ffc46a 14%);
   --chat-bubble-border: color-mix(in srgb, #cbbcff 34%, #ffffff 12%);

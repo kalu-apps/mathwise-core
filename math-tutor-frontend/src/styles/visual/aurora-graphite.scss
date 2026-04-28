@@ -311,7 +311,6 @@ label,
 .booking-page .MuiFormControl-root .MuiOutlinedInput-root,
 .booking-page .MuiButton-outlined,
 .booking-page .MuiButton-text,
-.chat-page__message,
 .chat-page__composer-input,
 .teacher-dashboard__slot,
 .student-profile__calendar-panel,
@@ -635,6 +634,24 @@ select:focus-visible,
 .chat-page__composer-input {
   background: transparent !important;
   border: 0 !important;
+  box-shadow: none !important;
+}
+
+.chat-page__message.is-teacher {
+  background: var(--chat-bubble-teacher) !important;
+  border-color: var(--chat-bubble-teacher-border) !important;
+  box-shadow: var(--chat-bubble-teacher-shadow) !important;
+}
+
+.chat-page__message.is-student {
+  background: var(--chat-bubble-student) !important;
+  border-color: var(--chat-bubble-student-border) !important;
+  box-shadow: var(--chat-bubble-student-shadow) !important;
+}
+
+.chat-page__message.is-media-only {
+  background: transparent !important;
+  border-color: transparent !important;
   box-shadow: none !important;
 }
 
