@@ -49,8 +49,19 @@ import {
   WORKBOOK_POPUP_BLOCKED_MESSAGE,
 } from "@/shared/lib/openExternalWhiteboard";
 import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
+import { StudyCabinetPanel } from "@/shared/ui/StudyCabinetPanel";
 import { ListSkeleton } from "@/shared/ui/loading";
 import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
+import {
+  buildStudyCabinetWeekActivity,
+  createStudyCabinetNote,
+  deleteStudyCabinetNote,
+  getStudyCabinetNotes,
+  recordStudyCabinetActivity,
+  updateStudyCabinetNote,
+  type StudyCabinetNote,
+} from "@/shared/lib/studyCabinet";
+import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { updateUserProfile } from "@/features/auth/model/api";
@@ -183,6 +194,8 @@ export default function TeacherDashboard() {
   const [bookingSavingId, setBookingSavingId] = useState<string | null>(null);
   const [bookingDeletingId, setBookingDeletingId] = useState<string | null>(null);
   const [editingBookingId, setEditingBookingId] = useState<string | null>(null);
+  const [teacherStudyNotes, setTeacherStudyNotes] = useState<StudyCabinetNote[]>([]);
+  const [teacherStudyActivityVersion, setTeacherStudyActivityVersion] = useState(0);
   const [studentsWithFeedbackIds, setStudentsWithFeedbackIds] = useState<
     string[]
   >([]);
@@ -316,6 +329,120 @@ export default function TeacherDashboard() {
     setBookingLoading,
     setBookingError,
   });
+
+  const syncTeacherStudyNotes = useCallback(() => {
+    if (!userId) {
+      setTeacherStudyNotes([]);
+      return;
+    }
+    setTeacherStudyNotes(getStudyCabinetNotes("teacher", userId));
+  }, [userId]);
+
+  useEffect(() => {
+    if (tab !== TEACHER_STUDY_TAB_INDEX) return;
+    syncTeacherStudyNotes();
+    const unsubscribe = subscribeAppDataUpdates(() => {
+      syncTeacherStudyNotes();
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [syncTeacherStudyNotes, tab]);
+
+  useEffect(() => {
+    if (tab !== TEACHER_STUDY_TAB_INDEX || !userId) return;
+    let lastMarkAt = Date.now();
+    const intervalId = window.setInterval(() => {
+      const now = Date.now();
+      const elapsedMinutes = Math.floor((now - lastMarkAt) / 60_000);
+      if (elapsedMinutes > 0) {
+        recordStudyCabinetActivity({
+          role: "teacher",
+          userId,
+          minutes: elapsedMinutes,
+        });
+        lastMarkAt = now;
+        setTeacherStudyActivityVersion((prev) => prev + 1);
+      }
+    }, 60_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+      const now = Date.now();
+      const elapsedMinutes = Math.max(1, Math.floor((now - lastMarkAt) / 60_000));
+      recordStudyCabinetActivity({
+        role: "teacher",
+        userId,
+        minutes: elapsedMinutes,
+      });
+      setTeacherStudyActivityVersion((prev) => prev + 1);
+    };
+  }, [tab, userId]);
+
+  const teacherStudyActivityDays = useMemo(() => {
+    const recalcSeed = teacherStudyActivityVersion;
+    void recalcSeed;
+    if (!userId) return [];
+    return buildStudyCabinetWeekActivity("teacher", userId);
+  }, [teacherStudyActivityVersion, userId]);
+
+  const handleCreateTeacherStudyNote = useCallback(
+    (payload: {
+      title: string;
+      body: string;
+      dueAt: string | null;
+      endAt: string | null;
+      remind: boolean;
+      color: string;
+      kind?: StudyCabinetNote["kind"];
+      linkedBookingId?: string | null;
+    }) => {
+      if (!userId) return;
+      createStudyCabinetNote({
+        role: "teacher",
+        userId,
+        ...payload,
+      });
+      syncTeacherStudyNotes();
+    },
+    [syncTeacherStudyNotes, userId]
+  );
+
+  const handleUpdateTeacherStudyNote = useCallback(
+    (payload: {
+      noteId: string;
+      title: string;
+      body: string;
+      dueAt: string | null;
+      endAt: string | null;
+      remind: boolean;
+      color: string;
+      kind?: StudyCabinetNote["kind"];
+      linkedBookingId?: string | null;
+    }) => {
+      if (!userId) return;
+      updateStudyCabinetNote({
+        role: "teacher",
+        userId,
+        ...payload,
+      });
+      syncTeacherStudyNotes();
+    },
+    [syncTeacherStudyNotes, userId]
+  );
+
+  const handleDeleteTeacherStudyNote = useCallback(
+    (noteId: string) => {
+      if (!userId) return;
+      deleteStudyCabinetNote({
+        role: "teacher",
+        userId,
+        noteId,
+      });
+      syncTeacherStudyNotes();
+    },
+    [syncTeacherStudyNotes, userId]
+  );
 
   const { scheduled: scheduledBookings, completed: completedBookings } = useMemo(
     () => splitTeacherBookingsByCompletion(bookings),
@@ -553,6 +680,32 @@ export default function TeacherDashboard() {
       setDashboardError(WORKBOOK_POPUP_BLOCKED_MESSAGE);
     }
   }, [setDashboardError]);
+
+  const openTeacherTab = useCallback(
+    (nextTab: number) => {
+      setTab(nextTab);
+      setSearchParams({ tab: TEACHER_TAB_KEYS[nextTab] });
+    },
+    [setSearchParams, setTab]
+  );
+
+  const openTeacherChatForStudent = useCallback(
+    (studentId: string) => {
+      const params = new URLSearchParams(searchParams);
+      params.set("tab", TEACHER_TAB_KEYS[TEACHER_CHAT_TAB_INDEX]);
+      const threadId = chatThreadIdsByStudentId[studentId];
+      if (threadId) {
+        params.set("threadId", threadId);
+        params.delete("studentId");
+      } else {
+        params.set("studentId", studentId);
+        params.delete("threadId");
+      }
+      setTab(TEACHER_CHAT_TAB_INDEX);
+      setSearchParams(params);
+    },
+    [chatThreadIdsByStudentId, searchParams, setSearchParams, setTab]
+  );
 
   const deleteCourseFull = async (courseId: string) => {
     await deleteCourseWithCascade(courseId, {
@@ -1810,7 +1963,27 @@ export default function TeacherDashboard() {
           )}
 
           {tab === TEACHER_STUDY_TAB_INDEX && (
-            <div className="teacher-dashboard__section" />
+            <div className="teacher-dashboard__section">
+              <StudyCabinetPanel
+                role="teacher"
+                userId={user.id}
+                bookings={bookings}
+                availability={availability}
+                notes={teacherStudyNotes}
+                activityDays={teacherStudyActivityDays}
+                chatUnreadCount={chatUnreadCount}
+                loading={dashboardLoading || bookingLoading || availabilityLoading}
+                onWorkbookClick={() => {
+                  void handleTeacherOpenWorkbook();
+                }}
+                onChatClick={() => openTeacherTab(TEACHER_CHAT_TAB_INDEX)}
+                onOpenSchedule={() => openTeacherTab(3)}
+                onOpenStudentChat={openTeacherChatForStudent}
+                onCreateNote={handleCreateTeacherStudyNote}
+                onUpdateNote={handleUpdateTeacherStudyNote}
+                onDeleteNote={handleDeleteTeacherStudyNote}
+              />
+            </div>
           )}
 
           {tab === TEACHER_WORKBOOK_TAB_INDEX && (
