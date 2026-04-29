@@ -32,7 +32,7 @@ const getTemplatePreset = (templateId: TeacherStudyNoteTemplateId, booking?: Boo
         ? `План урока, материалы и ключевые точки для ${booking.studentName}.`
         : "План, материалы и ключевые задачи перед занятием.",
       durationMinutes: 15,
-      color: "#0ea5e9",
+      color: "var(--feedback-info)",
     };
   }
   if (templateId === "followup") {
@@ -42,7 +42,7 @@ const getTemplatePreset = (templateId: TeacherStudyNoteTemplateId, booking?: Boo
         ? `Следующие шаги, домашнее задание и рекомендации для ${booking.studentName}.`
         : "Зафиксировать итог и следующие шаги для ученика.",
       durationMinutes: 10,
-      color: "#10b981",
+      color: "var(--accent-mint)",
     };
   }
   if (templateId === "office") {
@@ -50,7 +50,7 @@ const getTemplatePreset = (templateId: TeacherStudyNoteTemplateId, booking?: Boo
       title: "Приёмные часы",
       body: "Свободный блок для ответов ученикам и подготовки.",
       durationMinutes: 30,
-      color: "#8b5cf6",
+      color: "var(--accent-violet)",
     };
   }
   if (templateId === "break") {
@@ -58,7 +58,7 @@ const getTemplatePreset = (templateId: TeacherStudyNoteTemplateId, booking?: Boo
       title: "Перерыв",
       body: "Короткая пауза между занятиями.",
       durationMinutes: 15,
-      color: "#f59e0b",
+      color: "var(--feedback-warning)",
     };
   }
   return {

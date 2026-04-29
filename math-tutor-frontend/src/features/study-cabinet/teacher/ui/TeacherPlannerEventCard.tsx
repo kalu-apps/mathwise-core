@@ -10,6 +10,7 @@ type TeacherPlannerEventCardProps = {
   height: number;
   lane?: number;
   laneCount?: number;
+  detailPanelId?: string;
   onSelect: (event: TeacherPlannerEvent) => void;
 };
 
@@ -27,8 +28,10 @@ export function TeacherPlannerEventCard({
   height,
   lane = 0,
   laneCount = 1,
+  detailPanelId,
   onSelect,
 }: TeacherPlannerEventCardProps) {
+  const timeLabel = getPlannerEventTimeLabel(event);
   const style = {
     top: `${top}px`,
     height: `${height}px`,
@@ -42,6 +45,54 @@ export function TeacherPlannerEventCard({
       : {}),
   } as CSSProperties;
 
+  if (event.kind === "note") {
+    const noteDensityClass =
+      height <= 58 ? "is-note-tiny" : height <= 88 ? "is-note-compact" : "";
+    const noteWidthClass = laneCount > 1 ? "is-note-narrow" : "";
+    const noteMeta = [event.subtitle, event.secondaryBadge, event.statusLabel]
+      .filter((item): item is string => Boolean(item))
+      .filter((item, index, list) => list.indexOf(item) === index)
+      .slice(0, 2);
+
+    return (
+      <button
+        type="button"
+        className={`teacher-daily-event teacher-daily-event--note ${
+          selected ? "is-selected" : ""
+        } ${noteDensityClass} ${noteWidthClass}`}
+        style={style}
+        onClick={() => onSelect(event)}
+        aria-pressed={selected}
+        aria-controls={detailPanelId}
+      >
+        <span className="teacher-daily-event__note-topline">
+          <span className="teacher-daily-event__note-badge">
+            <TeacherPlannerIcon name="note" />
+            {event.badge}
+          </span>
+          <span className="teacher-daily-event__note-time">
+            <TeacherPlannerIcon name="clock" />
+            {timeLabel}
+          </span>
+        </span>
+
+        <span className="teacher-daily-event__note-bodyline">
+          <strong>{event.title}</strong>
+          {event.description ? <span>{event.description}</span> : null}
+        </span>
+
+        <span className="teacher-daily-event__note-footer">
+          <span className="teacher-daily-event__note-meta">
+            {noteMeta.map((item) => (
+              <em key={item}>{item}</em>
+            ))}
+          </span>
+          <span className="teacher-daily-event__note-cta">Детали</span>
+        </span>
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -51,12 +102,13 @@ export function TeacherPlannerEventCard({
       style={style}
       onClick={() => onSelect(event)}
       aria-pressed={selected}
+      aria-controls={detailPanelId}
     >
       <span className="teacher-daily-event__rail" aria-hidden="true" />
       <span className="teacher-daily-event__body">
         <span className="teacher-daily-event__meta">
           <i>{getEventIcon(event)}</i>
-          <em>{getPlannerEventTimeLabel(event)}</em>
+          <em>{timeLabel}</em>
           <small>{event.badge}</small>
         </span>
         <strong>{event.title}</strong>

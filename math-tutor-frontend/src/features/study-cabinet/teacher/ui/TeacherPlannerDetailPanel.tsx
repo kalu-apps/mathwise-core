@@ -14,6 +14,7 @@ import {
 
 type TeacherPlannerDetailPanelProps = {
   event: TeacherPlannerEvent | null;
+  id?: string;
   onOpenSchedule?: () => void;
   onOpenStudentChat?: (studentId: string) => void;
   onCreatePrepNote: (booking: Booking) => void;
@@ -30,6 +31,7 @@ const getDetailIcon = (event: TeacherPlannerEvent) => {
 
 export function TeacherPlannerDetailPanel({
   event,
+  id,
   onOpenSchedule,
   onOpenStudentChat,
   onCreatePrepNote,
@@ -38,7 +40,7 @@ export function TeacherPlannerDetailPanel({
 }: TeacherPlannerDetailPanelProps) {
   if (!event) {
     return (
-      <aside className="teacher-daily-detail teacher-daily-detail--empty">
+      <aside id={id} className="teacher-daily-detail teacher-daily-detail--empty">
         <span className="teacher-daily-detail__empty-icon">
           <TeacherPlannerIcon name="schedule" />
         </span>
@@ -56,7 +58,11 @@ export function TeacherPlannerDetailPanel({
   } as CSSProperties;
 
   return (
-    <aside className={`teacher-daily-detail teacher-daily-detail--${event.kind}`} style={detailStyle}>
+    <aside
+      id={id}
+      className={`teacher-daily-detail teacher-daily-detail--${event.kind}`}
+      style={detailStyle}
+    >
       <span className="teacher-daily-detail__rail" aria-hidden="true" />
       <header className="teacher-daily-detail__head">
         <span className="teacher-daily-detail__icon">{getDetailIcon(event)}</span>

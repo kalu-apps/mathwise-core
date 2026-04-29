@@ -49,6 +49,7 @@ type TeacherPlannerWorkspaceProps = {
 };
 
 const getFirstVisibleEventId = (events: TeacherPlannerEvent[]) => events[0]?.id ?? null;
+const TEACHER_DAILY_DETAIL_PANEL_ID = "teacher-daily-detail-panel";
 
 const isBookingEvent = (event: TeacherPlannerEvent) =>
   event.kind === "trial-booking" || event.kind === "regular-booking";
@@ -131,9 +132,7 @@ export function TeacherPlannerWorkspace({
   );
   const emptyState = getPlannerEmptyState(activeTab);
   const selectedDayBookings = selectedDayAllEvents.filter(isBookingEvent);
-  const selectedDayNotes = selectedDayAllEvents.filter((event) => event.kind === "note");
   const selectedDaySlots = selectedDayAllEvents.filter((event) => event.kind === "availability-slot");
-  const nextDayEvents = selectedDayAllEvents.filter((event) => event.startAtMs >= nowTs).slice(0, 4);
   const unpaidWeekEvents = summary.unpaidBookings.slice(0, 3);
 
   const shiftDay = (step: number) => {
@@ -155,6 +154,13 @@ export function TeacherPlannerWorkspace({
   const selectEvent = (event: TeacherPlannerEvent) => {
     setSelectedDateKey(event.dateKey);
     setSelectedEventId(event.id);
+    if (isCompactLayout) {
+      window.setTimeout(() => {
+        document
+          .getElementById(TEACHER_DAILY_DETAIL_PANEL_ID)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 0);
+    }
   };
 
   const createNoteAtSlot = (dateKey: string, startTime: string) => {
@@ -166,7 +172,6 @@ export function TeacherPlannerWorkspace({
     <section className="teacher-daily-planner">
       <header className="teacher-daily-planner__hero">
         <div className="teacher-daily-planner__title">
-          <span className="study-cabinet-panel__kicker">Учебный кабинет</span>
           <h2>План преподавателя на день</h2>
           <p>
             {formatPlannerDate(selectedDateKey)} · {selectedDayAllEvents.length} событий ·{" "}
@@ -244,14 +249,6 @@ export function TeacherPlannerWorkspace({
             <em>окон доступности</em>
           </div>
         </article>
-        <article>
-          <span><TeacherPlannerIcon name="bell" /></span>
-          <div>
-            <small>Напоминания</small>
-            <strong>{selectedDayNotes.length}</strong>
-            <em>заметок в фокусе</em>
-          </div>
-        </article>
       </div>
 
       <div className="teacher-daily-planner__tabs" role="tablist" aria-label="Типы событий">
@@ -278,7 +275,7 @@ export function TeacherPlannerWorkspace({
           <span><TeacherPlannerIcon name="calendar" /></span>
           <div>
             <strong>Загружаем расписание</strong>
-            <p>Собираем занятия, свободные слоты и напоминания.</p>
+            <p>Собираем занятия, свободные слоты и заметки.</p>
           </div>
         </div>
       ) : null}
@@ -287,7 +284,6 @@ export function TeacherPlannerWorkspace({
         <aside className="teacher-daily-agenda">
           <div className="teacher-daily-agenda__head">
             <div>
-              <span className="study-cabinet-panel__kicker">Agenda</span>
               <h3>План дня</h3>
             </div>
             <strong>{selectedDayEvents.length}</strong>
@@ -304,6 +300,7 @@ export function TeacherPlannerWorkspace({
                   }`}
                   style={{ "--teacher-daily-event-color": event.color } as CSSProperties}
                   onClick={() => selectEvent(event)}
+                  aria-controls={TEACHER_DAILY_DETAIL_PANEL_ID}
                 >
                   <i aria-hidden="true" />
                   <span>
@@ -331,20 +328,6 @@ export function TeacherPlannerWorkspace({
             </div>
           )}
 
-          <section className="teacher-daily-agenda__focus">
-            <span className="study-cabinet-panel__kicker">Next</span>
-            {nextDayEvents.length > 0 ? (
-              nextDayEvents.map((event) => (
-                <button key={event.id} type="button" onClick={() => selectEvent(event)}>
-                  <strong>{event.title}</strong>
-                  <span>{getPlannerEventTimeLabel(event)}</span>
-                </button>
-              ))
-            ) : (
-              <p>На выбранный день больше нет ближайших событий.</p>
-            )}
-          </section>
-
           {!isCompactLayout && unpaidWeekEvents.length > 0 ? (
             <section className="teacher-daily-agenda__focus teacher-daily-agenda__focus--warning">
               <span className="study-cabinet-panel__kicker">Оплата</span>
@@ -364,11 +347,13 @@ export function TeacherPlannerWorkspace({
           todayKey={todayKey}
           nowMinutes={nowMinutes}
           selectedEventId={selectedEvent?.id ?? effectiveSelectedEventId}
+          detailPanelId={TEACHER_DAILY_DETAIL_PANEL_ID}
           onSelectEvent={selectEvent}
           onCreateNoteAtSlot={createNoteAtSlot}
         />
 
         <TeacherPlannerDetailPanel
+          id={TEACHER_DAILY_DETAIL_PANEL_ID}
           event={selectedEvent}
           onOpenSchedule={onOpenSchedule}
           onOpenStudentChat={onOpenStudentChat}

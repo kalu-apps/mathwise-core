@@ -14,6 +14,7 @@ type TeacherPlannerCalendarGridProps = {
   todayKey: string;
   nowMinutes: number;
   selectedEventId: string | null;
+  detailPanelId?: string;
   onSelectEvent: (event: TeacherPlannerEvent) => void;
   onCreateNoteAtSlot: (dateKey: string, startTime: string) => void;
 };
@@ -91,6 +92,7 @@ export function TeacherPlannerCalendarGrid({
   todayKey,
   nowMinutes,
   selectedEventId,
+  detailPanelId,
   onSelectEvent,
   onCreateNoteAtSlot,
 }: TeacherPlannerCalendarGridProps) {
@@ -123,7 +125,6 @@ export function TeacherPlannerCalendarGrid({
     <section className="teacher-daily-timeline" aria-label="Дневное расписание">
       <header className="teacher-daily-timeline__head">
         <div>
-          <span className="study-cabinet-panel__kicker">Timeline</span>
           <h3>{formatPlannerDate(dateKey)}</h3>
         </div>
         <span>
@@ -189,6 +190,7 @@ export function TeacherPlannerCalendarGrid({
                 height={height}
                 lane={lane}
                 laneCount={laneCount}
+                detailPanelId={detailPanelId}
                 onSelect={onSelectEvent}
               />
             );
