@@ -1,14 +1,13 @@
 import type { CSSProperties } from "react";
 import type { TeacherPlannerEvent } from "@/features/study-cabinet/teacher/model/types";
-import {
-  getPlannerEventLayout,
-  getPlannerEventTimeLabel,
-} from "@/features/study-cabinet/teacher/model/plannerEvents";
+import { getPlannerEventTimeLabel } from "@/features/study-cabinet/teacher/model/plannerEvents";
 import { TeacherPlannerIcon } from "@/features/study-cabinet/teacher/ui/TeacherPlannerIcons";
 
 type TeacherPlannerEventCardProps = {
   event: TeacherPlannerEvent;
   selected: boolean;
+  top: number;
+  height: number;
   lane?: number;
   laneCount?: number;
   onSelect: (event: TeacherPlannerEvent) => void;
@@ -24,15 +23,16 @@ const getEventIcon = (event: TeacherPlannerEvent) => {
 export function TeacherPlannerEventCard({
   event,
   selected,
+  top,
+  height,
   lane = 0,
   laneCount = 1,
   onSelect,
 }: TeacherPlannerEventCardProps) {
-  const layout = getPlannerEventLayout(event);
   const style = {
-    top: `${layout.top}px`,
-    height: `${layout.height}px`,
-    "--teacher-planner-event-color": event.color,
+    top: `${top}px`,
+    height: `${height}px`,
+    "--teacher-daily-event-color": event.color,
     ...(laneCount > 1
       ? {
           left: `calc(${(lane / laneCount) * 100}% + 2px)`,
@@ -45,17 +45,17 @@ export function TeacherPlannerEventCard({
   return (
     <button
       type="button"
-      className={`teacher-planner-event teacher-planner-event--${event.kind} ${
+      className={`teacher-daily-event teacher-daily-event--${event.kind} ${
         selected ? "is-selected" : ""
       }`}
       style={style}
       onClick={() => onSelect(event)}
       aria-pressed={selected}
     >
-      <span className="teacher-planner-event__rail" aria-hidden="true" />
-      <span className="teacher-planner-event__icon">{getEventIcon(event)}</span>
-      <span className="teacher-planner-event__body">
-        <span className="teacher-planner-event__meta">
+      <span className="teacher-daily-event__rail" aria-hidden="true" />
+      <span className="teacher-daily-event__body">
+        <span className="teacher-daily-event__meta">
+          <i>{getEventIcon(event)}</i>
           <em>{getPlannerEventTimeLabel(event)}</em>
           <small>{event.badge}</small>
         </span>
@@ -63,7 +63,7 @@ export function TeacherPlannerEventCard({
         <span>{event.subtitle}</span>
       </span>
       {event.secondaryBadge ? (
-        <span className="teacher-planner-event__badges">
+        <span className="teacher-daily-event__badges">
           <small>{event.secondaryBadge}</small>
         </span>
       ) : null}

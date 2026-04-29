@@ -1,19 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { Booking } from "@/entities/booking/model/types";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
 import type { StudyCabinetNote } from "@/shared/lib/studyCabinet";
 import {
   type TeacherPlannerEvent,
   type TeacherPlannerTabId,
-  type TeacherPlannerViewMode,
   type TeacherStudyNoteDraftRequest,
 } from "@/features/study-cabinet/teacher/model/types";
 import {
+  PLANNER_WEEKDAY_LABELS,
   addDays,
   buildPlannerDays,
   buildTeacherPlannerEvents,
   formatDayTime,
-  formatPlannerRangeLabel,
+  formatPlannerDate,
   getPlannerEventTimeLabel,
   startOfWeek,
   toLocalDateKey,
@@ -21,19 +21,20 @@ import {
 } from "@/features/study-cabinet/teacher/model/plannerEvents";
 import {
   buildPlannerTabCounts,
+  filterTeacherPlannerEvents,
   getPlannerEmptyState,
   getPlannerEventsForRange,
-  groupPlannerEventsByDay,
   selectPlannerEventById,
   selectPlannerSummary,
   TEACHER_PLANNER_TABS,
 } from "@/features/study-cabinet/teacher/model/plannerSelectors";
 import { TeacherPlannerCalendarGrid } from "@/features/study-cabinet/teacher/ui/TeacherPlannerCalendarGrid";
 import { TeacherPlannerDetailPanel } from "@/features/study-cabinet/teacher/ui/TeacherPlannerDetailPanel";
-import { TeacherPlannerEmptyState } from "@/features/study-cabinet/teacher/ui/TeacherPlannerEmptyState";
 import { TeacherPlannerIcon } from "@/features/study-cabinet/teacher/ui/TeacherPlannerIcons";
-import { TeacherPlannerTabs } from "@/features/study-cabinet/teacher/ui/TeacherPlannerTabs";
-import { TeacherPlannerToolbar } from "@/features/study-cabinet/teacher/ui/TeacherPlannerToolbar";
+import {
+  TeacherPlannerButton,
+  TeacherPlannerIconButton,
+} from "@/features/study-cabinet/teacher/ui/TeacherPlannerPrimitives";
 
 type TeacherPlannerWorkspaceProps = {
   bookings: Booking[];
@@ -48,6 +49,9 @@ type TeacherPlannerWorkspaceProps = {
 };
 
 const getFirstVisibleEventId = (events: TeacherPlannerEvent[]) => events[0]?.id ?? null;
+
+const isBookingEvent = (event: TeacherPlannerEvent) =>
+  event.kind === "trial-booking" || event.kind === "regular-booking";
 
 const useCompactPlannerLayout = () => {
   const [isCompact, setIsCompact] = useState(() =>
@@ -77,93 +81,75 @@ export function TeacherPlannerWorkspace({
   onDeleteNote,
 }: TeacherPlannerWorkspaceProps) {
   const isCompactLayout = useCompactPlannerLayout();
-  const [requestedMode, setRequestedMode] = useState<TeacherPlannerViewMode>("week");
   const [activeTab, setActiveTab] = useState<TeacherPlannerTabId>("all");
   const [selectedDateKey, setSelectedDateKey] = useState(() => toLocalDateKey(new Date()));
-  const [visibleRangeStart, setVisibleRangeStart] = useState(() => startOfWeek(new Date()));
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
   const now = new Date();
   const todayKey = toLocalDateKey(now);
   const nowTs = now.getTime();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const mode: TeacherPlannerViewMode = isCompactLayout ? "day" : requestedMode;
+  const selectedDate = useMemo(() => fromDateKey(selectedDateKey), [selectedDateKey]);
+  const weekStart = useMemo(() => startOfWeek(selectedDate), [selectedDate]);
 
-  const plannerDays = useMemo(
-    () => buildPlannerDays(mode, selectedDateKey, visibleRangeStart),
-    [mode, selectedDateKey, visibleRangeStart]
+  const weekDays = useMemo(
+    () => buildPlannerDays("week", selectedDateKey, weekStart),
+    [selectedDateKey, weekStart]
   );
-  const dayKeys = useMemo(
-    () => new Set(plannerDays.map((day) => day.key)),
-    [plannerDays]
+  const weekKeys = useMemo(
+    () => new Set(weekDays.map((day) => day.key)),
+    [weekDays]
   );
-  const weekKeys = useMemo(() => {
-    const weekStart = startOfWeek(fromDateKey(selectedDateKey));
-    return new Set(
-      Array.from({ length: 7 }).map((_, index) => toLocalDateKey(addDays(weekStart, index)))
-    );
-  }, [selectedDateKey]);
-
+  const selectedDayKeys = useMemo(() => new Set([selectedDateKey]), [selectedDateKey]);
   const allEvents = useMemo(
     () => buildTeacherPlannerEvents({ bookings, availability, notes }),
     [availability, bookings, notes]
   );
-  const rangeEvents = useMemo(
-    () => getPlannerEventsForRange({ events: allEvents, dayKeys, activeTab: "all" }),
-    [allEvents, dayKeys]
+  const weekEvents = useMemo(
+    () => getPlannerEventsForRange({ events: allEvents, dayKeys: weekKeys, activeTab: "all" }),
+    [allEvents, weekKeys]
   );
-  const visibleEvents = useMemo(
-    () => getPlannerEventsForRange({ events: allEvents, dayKeys, activeTab }),
-    [activeTab, allEvents, dayKeys]
+  const selectedDayAllEvents = useMemo(
+    () => getPlannerEventsForRange({ events: allEvents, dayKeys: selectedDayKeys, activeTab: "all" }),
+    [allEvents, selectedDayKeys]
   );
-  const eventsByDay = useMemo(
-    () => groupPlannerEventsByDay(visibleEvents),
-    [visibleEvents]
+  const selectedDayEvents = useMemo(
+    () => filterTeacherPlannerEvents(selectedDayAllEvents, activeTab),
+    [activeTab, selectedDayAllEvents]
   );
-  const tabCounts = useMemo(() => buildPlannerTabCounts(rangeEvents), [rangeEvents]);
+  const tabCounts = useMemo(() => buildPlannerTabCounts(weekEvents), [weekEvents]);
   const selectedEventIdIsVisible = selectedEventId
-    ? visibleEvents.some((event) => event.id === selectedEventId)
+    ? selectedDayEvents.some((event) => event.id === selectedEventId)
     : false;
   const effectiveSelectedEventId = selectedEventIdIsVisible
     ? selectedEventId
-    : getFirstVisibleEventId(visibleEvents);
-  const selectedEvent = selectPlannerEventById(visibleEvents, effectiveSelectedEventId);
+    : getFirstVisibleEventId(selectedDayEvents);
+  const selectedEvent = selectPlannerEventById(selectedDayEvents, effectiveSelectedEventId);
   const summary = useMemo(
     () => selectPlannerSummary({ events: allEvents, todayKey, weekKeys, nowTs }),
     [allEvents, nowTs, todayKey, weekKeys]
   );
-  const rangeLabel = useMemo(() => formatPlannerRangeLabel(plannerDays), [plannerDays]);
   const emptyState = getPlannerEmptyState(activeTab);
+  const selectedDayBookings = selectedDayAllEvents.filter(isBookingEvent);
+  const selectedDayNotes = selectedDayAllEvents.filter((event) => event.kind === "note");
+  const selectedDaySlots = selectedDayAllEvents.filter((event) => event.kind === "availability-slot");
+  const nextDayEvents = selectedDayAllEvents.filter((event) => event.startAtMs >= nowTs).slice(0, 4);
+  const unpaidWeekEvents = summary.unpaidBookings.slice(0, 3);
 
-  const handleModeChange = (nextMode: TeacherPlannerViewMode) => {
-    setRequestedMode(nextMode);
-    if (nextMode === "week") {
-      setVisibleRangeStart(startOfWeek(fromDateKey(selectedDateKey)));
-    }
-  };
-
-  const shiftRange = (step: number) => {
-    if (mode === "day") {
-      const nextDate = addDays(fromDateKey(selectedDateKey), step);
-      const nextKey = toLocalDateKey(nextDate);
-      setSelectedDateKey(nextKey);
-      setVisibleRangeStart(startOfWeek(nextDate));
-      return;
-    }
-    setVisibleRangeStart((prev) => addDays(prev, step * 7));
+  const shiftDay = (step: number) => {
+    const nextDate = addDays(fromDateKey(selectedDateKey), step);
+    setSelectedDateKey(toLocalDateKey(nextDate));
+    setSelectedEventId(null);
   };
 
   const goToday = () => {
-    const current = new Date();
-    setSelectedDateKey(toLocalDateKey(current));
-    setVisibleRangeStart(startOfWeek(current));
+    setSelectedDateKey(toLocalDateKey(new Date()));
+    setSelectedEventId(null);
   };
 
   const selectDate = (dateKey: string) => {
     setSelectedDateKey(dateKey);
-    if (mode === "week") {
-      setVisibleRangeStart(startOfWeek(fromDateKey(dateKey)));
-    }
+    setSelectedEventId(null);
   };
 
   const selectEvent = (event: TeacherPlannerEvent) => {
@@ -177,106 +163,211 @@ export function TeacherPlannerWorkspace({
   };
 
   return (
-    <section className="teacher-planner-workspace">
-      <div className="teacher-planner-workspace__head">
-        <div>
-          <span className="study-cabinet-panel__kicker">Planner</span>
-          <h2>Расписание преподавателя</h2>
+    <section className="teacher-daily-planner">
+      <header className="teacher-daily-planner__hero">
+        <div className="teacher-daily-planner__title">
+          <span className="study-cabinet-panel__kicker">Учебный кабинет</span>
+          <h2>План преподавателя на день</h2>
+          <p>
+            {formatPlannerDate(selectedDateKey)} · {selectedDayAllEvents.length} событий ·{" "}
+            {selectedDayBookings.length} занятий
+          </p>
         </div>
-        <p>
-          {rangeEvents.length} событий в периоде · {tabCounts.bookings} занятий ·{" "}
-          {tabCounts.availability} слотов
-        </p>
+        <div className="teacher-daily-planner__hero-actions">
+          <TeacherPlannerButton
+            variant="secondary"
+            icon={<TeacherPlannerIcon name="calendar" />}
+            onClick={goToday}
+          >
+            Сегодня
+          </TeacherPlannerButton>
+          <TeacherPlannerButton
+            variant="primary"
+            icon={<TeacherPlannerIcon name="add" />}
+            onClick={() => onCreateNote({ templateId: "custom", dateKey: selectedDateKey })}
+          >
+            Заметка
+          </TeacherPlannerButton>
+        </div>
+      </header>
+
+      <div className="teacher-daily-planner__week" aria-label="Неделя">
+        <TeacherPlannerIconButton label="Предыдущий день" onClick={() => shiftDay(-1)}>
+          <TeacherPlannerIcon name="chevron-left" />
+        </TeacherPlannerIconButton>
+        <div className="teacher-daily-week-strip">
+          {weekDays.map((day, index) => {
+            const dayEvents = weekEvents.filter((event) => event.dateKey === day.key);
+            return (
+              <button
+                key={day.key}
+                type="button"
+                className={`teacher-daily-week-strip__day ${
+                  selectedDateKey === day.key ? "is-selected" : ""
+                } ${day.key === todayKey ? "is-today" : ""}`}
+                onClick={() => selectDate(day.key)}
+              >
+                <span>{PLANNER_WEEKDAY_LABELS[index]}</span>
+                <strong>{day.date.toLocaleDateString("ru-RU", { day: "2-digit" })}</strong>
+                <em>{dayEvents.length}</em>
+              </button>
+            );
+          })}
+        </div>
+        <TeacherPlannerIconButton label="Следующий день" onClick={() => shiftDay(1)}>
+          <TeacherPlannerIcon name="chevron-right" />
+        </TeacherPlannerIconButton>
       </div>
 
-      <div className="teacher-planner-summary" aria-label="Сводка расписания">
-        <div className="teacher-planner-summary__item teacher-planner-summary__item--next">
-          <span>
-            <TeacherPlannerIcon name="event" />
-          </span>
+      <div className="teacher-daily-planner__metrics" aria-label="Сводка дня">
+        <article>
+          <span><TeacherPlannerIcon name="event" /></span>
           <div>
-            <small>Ближайшее занятие</small>
-            <strong>{summary.nextBooking ? summary.nextBooking.title : "Нет в горизонте"}</strong>
-            <em>
-              {summary.nextBooking
-                ? `${formatDayTime(summary.nextBooking.startAtMs)} · ${summary.nextBooking.badge}`
-                : "Добавьте слоты или дождитесь записи"}
-            </em>
+            <small>Ближайшее</small>
+            <strong>{summary.nextBooking ? summary.nextBooking.title : "Нет занятий"}</strong>
+            <em>{summary.nextBooking ? formatDayTime(summary.nextBooking.startAtMs) : "Свободный фокус"}</em>
           </div>
-        </div>
-        <div className="teacher-planner-summary__item">
-          <span>
-            <TeacherPlannerIcon name="clock" />
-          </span>
+        </article>
+        <article>
+          <span><TeacherPlannerIcon name="clock" /></span>
           <div>
-            <small>Сегодня</small>
-            <strong>{summary.todayBookings.length}</strong>
-            <em>занятий в текущем дне</em>
+            <small>Выбранный день</small>
+            <strong>{selectedDayBookings.length}</strong>
+            <em>занятий в расписании</em>
           </div>
-        </div>
-        <div className="teacher-planner-summary__item teacher-planner-summary__item--payment">
-          <span>
-            <TeacherPlannerIcon name="card" />
-          </span>
+        </article>
+        <article>
+          <span><TeacherPlannerIcon name="lock" /></span>
           <div>
-            <small>Оплата</small>
-            <strong>{summary.unpaidBookings.length}</strong>
-            <em>неоплаченных платных занятий</em>
+            <small>Слоты</small>
+            <strong>{selectedDaySlots.length}</strong>
+            <em>окон доступности</em>
           </div>
-        </div>
-        <div className="teacher-planner-summary__item teacher-planner-summary__item--notes">
-          <span>
-            <TeacherPlannerIcon name="bell" />
-          </span>
+        </article>
+        <article>
+          <span><TeacherPlannerIcon name="bell" /></span>
           <div>
-            <small>Неделя</small>
-            <strong>{summary.reminderEvents.length}</strong>
-            <em>напоминаний в фокусе</em>
+            <small>Напоминания</small>
+            <strong>{selectedDayNotes.length}</strong>
+            <em>заметок в фокусе</em>
           </div>
-        </div>
+        </article>
       </div>
 
-      <TeacherPlannerToolbar
-        mode={mode}
-        compact={isCompactLayout}
-        rangeLabel={rangeLabel}
-        onModeChange={handleModeChange}
-        onPrevious={() => shiftRange(-1)}
-        onNext={() => shiftRange(1)}
-        onToday={goToday}
-        onCreateNote={() => onCreateNote({ templateId: "custom", dateKey: selectedDateKey })}
-      />
+      <div className="teacher-daily-planner__tabs" role="tablist" aria-label="Типы событий">
+        {TEACHER_PLANNER_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={activeTab === tab.id ? "is-active" : ""}
+            onClick={() => {
+              setActiveTab(tab.id);
+              setSelectedEventId(null);
+            }}
+          >
+            <span>{tab.label}</span>
+            <em>{tabCounts[tab.id]}</em>
+          </button>
+        ))}
+      </div>
 
-      <TeacherPlannerTabs
-        tabs={TEACHER_PLANNER_TABS}
-        activeTab={activeTab}
-        counts={tabCounts}
-        onChange={setActiveTab}
-      />
-
-      {visibleEvents.length === 0 || loading ? (
-        <TeacherPlannerEmptyState
-          title={emptyState.title}
-          description={emptyState.description}
-          actionLabel={activeTab === "availability" ? "Открыть слоты" : "Создать заметку"}
-          onAction={activeTab === "availability" ? onOpenSchedule : () => onCreateNote({ templateId: "custom", dateKey: selectedDateKey })}
-          loading={loading}
-        />
+      {loading ? (
+        <div className="teacher-daily-planner__loading" aria-live="polite">
+          <span><TeacherPlannerIcon name="calendar" /></span>
+          <div>
+            <strong>Загружаем расписание</strong>
+            <p>Собираем занятия, свободные слоты и напоминания.</p>
+          </div>
+        </div>
       ) : null}
 
-      <div className="teacher-planner-layout">
+      <div className="teacher-daily-planner__body">
+        <aside className="teacher-daily-agenda">
+          <div className="teacher-daily-agenda__head">
+            <div>
+              <span className="study-cabinet-panel__kicker">Agenda</span>
+              <h3>План дня</h3>
+            </div>
+            <strong>{selectedDayEvents.length}</strong>
+          </div>
+
+          {selectedDayEvents.length > 0 ? (
+            <div className="teacher-daily-agenda__list">
+              {selectedDayEvents.map((event) => (
+                <button
+                  key={event.id}
+                  type="button"
+                  className={`teacher-daily-agenda__item ${
+                    selectedEvent?.id === event.id ? "is-selected" : ""
+                  }`}
+                  style={{ "--teacher-daily-event-color": event.color } as CSSProperties}
+                  onClick={() => selectEvent(event)}
+                >
+                  <i aria-hidden="true" />
+                  <span>
+                    <strong>{event.title}</strong>
+                    <em>{getPlannerEventTimeLabel(event)} · {event.badge}</em>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="teacher-daily-agenda__empty">
+              <strong>{emptyState.title}</strong>
+              <p>{emptyState.description}</p>
+              <TeacherPlannerButton
+                variant={activeTab === "availability" ? "secondary" : "primary"}
+                icon={<TeacherPlannerIcon name={activeTab === "availability" ? "lock" : "add"} />}
+                onClick={
+                  activeTab === "availability"
+                    ? onOpenSchedule
+                    : () => onCreateNote({ templateId: "custom", dateKey: selectedDateKey })
+                }
+              >
+                {activeTab === "availability" ? "Открыть слоты" : "Создать заметку"}
+              </TeacherPlannerButton>
+            </div>
+          )}
+
+          <section className="teacher-daily-agenda__focus">
+            <span className="study-cabinet-panel__kicker">Next</span>
+            {nextDayEvents.length > 0 ? (
+              nextDayEvents.map((event) => (
+                <button key={event.id} type="button" onClick={() => selectEvent(event)}>
+                  <strong>{event.title}</strong>
+                  <span>{getPlannerEventTimeLabel(event)}</span>
+                </button>
+              ))
+            ) : (
+              <p>На выбранный день больше нет ближайших событий.</p>
+            )}
+          </section>
+
+          {!isCompactLayout && unpaidWeekEvents.length > 0 ? (
+            <section className="teacher-daily-agenda__focus teacher-daily-agenda__focus--warning">
+              <span className="study-cabinet-panel__kicker">Оплата</span>
+              {unpaidWeekEvents.map((event) => (
+                <button key={event.id} type="button" onClick={() => selectEvent(event)}>
+                  <strong>{event.title}</strong>
+                  <span>{formatDayTime(event.startAtMs)}</span>
+                </button>
+              ))}
+            </section>
+          ) : null}
+        </aside>
+
         <TeacherPlannerCalendarGrid
-          days={plannerDays}
-          eventsByDay={eventsByDay}
-          selectedDateKey={selectedDateKey}
+          dateKey={selectedDateKey}
+          events={selectedDayEvents}
           todayKey={todayKey}
           nowMinutes={nowMinutes}
-          mode={mode}
           selectedEventId={selectedEvent?.id ?? effectiveSelectedEventId}
-          onSelectDate={selectDate}
           onSelectEvent={selectEvent}
           onCreateNoteAtSlot={createNoteAtSlot}
         />
+
         <TeacherPlannerDetailPanel
           event={selectedEvent}
           onOpenSchedule={onOpenSchedule}
@@ -286,12 +377,6 @@ export function TeacherPlannerWorkspace({
           onDeleteNote={onDeleteNote}
         />
       </div>
-
-      {summary.nextEvent && visibleEvents.length > 0 ? (
-        <div className="teacher-planner-footnote">
-          Следующее событие: {summary.nextEvent.title}, {getPlannerEventTimeLabel(summary.nextEvent)}
-        </div>
-      ) : null}
     </section>
   );
 }

@@ -1,28 +1,19 @@
 import { useEffect, useMemo, useRef } from "react";
-import type {
-  TeacherPlannerDay,
-  TeacherPlannerEvent,
-  TeacherPlannerViewMode,
-} from "@/features/study-cabinet/teacher/model/types";
+import type { TeacherPlannerEvent } from "@/features/study-cabinet/teacher/model/types";
 import {
-  PLANNER_END_HOUR,
-  PLANNER_HOUR_HEIGHT,
   PLANNER_SLOT_MINUTES,
-  PLANNER_START_HOUR,
-  PLANNER_WEEKDAY_LABELS,
+  formatPlannerDate,
   minutesToTime,
 } from "@/features/study-cabinet/teacher/model/plannerEvents";
 import { TeacherPlannerEventCard } from "@/features/study-cabinet/teacher/ui/TeacherPlannerEventCard";
+import { TeacherPlannerIcon } from "@/features/study-cabinet/teacher/ui/TeacherPlannerIcons";
 
 type TeacherPlannerCalendarGridProps = {
-  days: TeacherPlannerDay[];
-  eventsByDay: Map<string, TeacherPlannerEvent[]>;
-  selectedDateKey: string;
+  dateKey: string;
+  events: TeacherPlannerEvent[];
   todayKey: string;
   nowMinutes: number;
-  mode: TeacherPlannerViewMode;
   selectedEventId: string | null;
-  onSelectDate: (dateKey: string) => void;
   onSelectEvent: (event: TeacherPlannerEvent) => void;
   onCreateNoteAtSlot: (dateKey: string, startTime: string) => void;
 };
@@ -31,6 +22,10 @@ type PlannerEventLane = {
   lane: number;
   laneCount: number;
 };
+
+const HOUR_HEIGHT = 62;
+const MIN_START_HOUR = 6;
+const MIN_END_HOUR = 22;
 
 const buildEventLaneMap = (events: TeacherPlannerEvent[]) => {
   const result = new Map<string, PlannerEventLane>();
@@ -72,146 +67,134 @@ const buildEventLaneMap = (events: TeacherPlannerEvent[]) => {
   return result;
 };
 
+const getTimelineBounds = (events: TeacherPlannerEvent[]) => {
+  const startHour = Math.max(
+    0,
+    Math.min(
+      MIN_START_HOUR,
+      events.length ? Math.floor(Math.min(...events.map((event) => event.startMinutes)) / 60) - 1 : MIN_START_HOUR
+    )
+  );
+  const endHour = Math.min(
+    24,
+    Math.max(
+      MIN_END_HOUR,
+      events.length ? Math.ceil(Math.max(...events.map((event) => event.endMinutes)) / 60) + 1 : MIN_END_HOUR
+    )
+  );
+  return { startHour, endHour };
+};
+
 export function TeacherPlannerCalendarGrid({
-  days,
-  eventsByDay,
-  selectedDateKey,
+  dateKey,
+  events,
   todayKey,
   nowMinutes,
-  mode,
   selectedEventId,
-  onSelectDate,
   onSelectEvent,
   onCreateNoteAtSlot,
 }: TeacherPlannerCalendarGridProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const hourLabels = useMemo(() => {
-    const count = PLANNER_END_HOUR - PLANNER_START_HOUR + 1;
-    return Array.from({ length: count }).map((_, index) => {
-      const hour = PLANNER_START_HOUR + index;
-      return `${String(hour).padStart(2, "0")}:00`;
-    });
-  }, []);
-  const slotCount = ((PLANNER_END_HOUR - PLANNER_START_HOUR) * 60) / PLANNER_SLOT_MINUTES;
-  const nowLineTop =
-    ((nowMinutes - PLANNER_START_HOUR * 60) / 60) * PLANNER_HOUR_HEIGHT;
+  const { startHour, endHour } = useMemo(() => getTimelineBounds(events), [events]);
+  const hourLabels = useMemo(
+    () =>
+      Array.from({ length: endHour - startHour + 1 }).map((_, index) => {
+        const hour = startHour + index;
+        return `${String(hour).padStart(2, "0")}:00`;
+      }),
+    [endHour, startHour]
+  );
+  const laneMap = useMemo(() => buildEventLaneMap(events), [events]);
+  const slotCount = ((endHour - startHour) * 60) / PLANNER_SLOT_MINUTES;
+  const canvasHeight = (endHour - startHour) * HOUR_HEIGHT;
+  const nowLineTop = ((nowMinutes - startHour * 60) / 60) * HOUR_HEIGHT;
+  const showNowLine = dateKey === todayKey && nowLineTop >= 0 && nowLineTop <= canvasHeight;
 
   useEffect(() => {
     const container = scrollRef.current;
-    if (!container) return;
-    const hasTodayInView = days.some((day) => day.key === todayKey);
-    if (!hasTodayInView) return;
-    const targetTop =
-      ((nowMinutes - PLANNER_START_HOUR * 60) / 60) * PLANNER_HOUR_HEIGHT -
-      PLANNER_HOUR_HEIGHT * 2;
-    container.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
-  }, [days, nowMinutes, todayKey]);
+    if (!container || dateKey !== todayKey) return;
+    container.scrollTo({
+      top: Math.max(0, nowLineTop - HOUR_HEIGHT * 2),
+      behavior: "smooth",
+    });
+  }, [dateKey, nowLineTop, todayKey]);
 
   return (
-    <div
-      className={`teacher-planner-grid teacher-planner-grid--${mode}`}
-      ref={scrollRef}
-      aria-label="Календарное полотно преподавателя"
-    >
-      <div className="teacher-planner-grid__header">
-        <div className="teacher-planner-grid__time-head">Время</div>
-        <div
-          className="teacher-planner-grid__day-heads"
-          style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
-        >
-          {days.map((day, index) => {
-            const dayEvents = eventsByDay.get(day.key) ?? [];
-            return (
-              <button
-                key={day.key}
-                type="button"
-                className={`teacher-planner-grid__day-head ${
-                  selectedDateKey === day.key ? "is-selected" : ""
-                } ${day.key === todayKey ? "is-today" : ""}`}
-                onClick={() => onSelectDate(day.key)}
-              >
-                <span>
-                  {mode === "week"
-                    ? PLANNER_WEEKDAY_LABELS[index]
-                    : day.date.toLocaleDateString("ru-RU", { weekday: "short" }).replace(".", "")}
-                </span>
-                <strong>
-                  {day.date.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" })}
-                </strong>
-                <em>{dayEvents.length}</em>
-              </button>
-            );
-          })}
+    <section className="teacher-daily-timeline" aria-label="Дневное расписание">
+      <header className="teacher-daily-timeline__head">
+        <div>
+          <span className="study-cabinet-panel__kicker">Timeline</span>
+          <h3>{formatPlannerDate(dateKey)}</h3>
         </div>
-      </div>
+        <span>
+          <TeacherPlannerIcon name="clock" />
+          {events.length} событий
+        </span>
+      </header>
 
-      <div className="teacher-planner-grid__body">
-        <div className="teacher-planner-grid__time-axis">
-          {hourLabels.map((label) => (
-            <span key={label}>{label}</span>
+      <div className="teacher-daily-timeline__scroll" ref={scrollRef}>
+        <div className="teacher-daily-timeline__axis" style={{ height: `${canvasHeight}px` }}>
+          {hourLabels.map((label, index) => (
+            <span key={label} style={{ top: `${index * HOUR_HEIGHT}px` }}>
+              {label}
+            </span>
           ))}
         </div>
-        <div
-          className="teacher-planner-grid__days"
-          style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
-        >
-          {days.map((day) => {
-            const dayEvents = eventsByDay.get(day.key) ?? [];
-            const laneMap = buildEventLaneMap(dayEvents);
-            return (
-              <div key={day.key} className="teacher-planner-grid__day">
-                <div className="teacher-planner-grid__slots">
-                  {Array.from({ length: slotCount }).map((_, slotIndex) => {
-                    const slotMinutes = PLANNER_START_HOUR * 60 + slotIndex * PLANNER_SLOT_MINUTES;
-                    const slotEndMinutes = slotMinutes + PLANNER_SLOT_MINUTES;
-                    const startTime = minutesToTime(slotMinutes);
-                    const hasEventInSlot = dayEvents.some(
-                      (event) =>
-                        event.startMinutes < slotEndMinutes && event.endMinutes > slotMinutes
-                    );
-                    const isPastTodaySlot =
-                      day.key === todayKey && slotMinutes < nowMinutes && !hasEventInSlot;
-                    return (
-                      <button
-                        key={`${day.key}-${slotIndex}`}
-                        type="button"
-                        className={`teacher-planner-grid__slot ${
-                          isPastTodaySlot ? "is-disabled" : "is-clickable"
-                        }`}
-                        onClick={() => {
-                          if (!isPastTodaySlot) onCreateNoteAtSlot(day.key, startTime);
-                        }}
-                        tabIndex={isPastTodaySlot ? -1 : 0}
-                        aria-label={`Создать заметку ${day.key} ${startTime}`}
-                      />
-                    );
-                  })}
-                </div>
+        <div className="teacher-daily-timeline__canvas" style={{ height: `${canvasHeight}px` }}>
+          <div className="teacher-daily-timeline__slots">
+            {Array.from({ length: slotCount }).map((_, slotIndex) => {
+              const slotMinutes = startHour * 60 + slotIndex * PLANNER_SLOT_MINUTES;
+              const slotEndMinutes = slotMinutes + PLANNER_SLOT_MINUTES;
+              const startTime = minutesToTime(slotMinutes);
+              const hasEventInSlot = events.some(
+                (event) => event.startMinutes < slotEndMinutes && event.endMinutes > slotMinutes
+              );
+              const isPastTodaySlot = dateKey === todayKey && slotMinutes < nowMinutes && !hasEventInSlot;
+              return (
+                <button
+                  key={`${dateKey}-${slotIndex}`}
+                  type="button"
+                  className={`teacher-daily-timeline__slot ${
+                    isPastTodaySlot ? "is-disabled" : "is-clickable"
+                  }`}
+                  onClick={() => {
+                    if (!isPastTodaySlot) onCreateNoteAtSlot(dateKey, startTime);
+                  }}
+                  tabIndex={isPastTodaySlot ? -1 : 0}
+                  aria-label={`Создать заметку ${dateKey} ${startTime}`}
+                />
+              );
+            })}
+          </div>
 
-                <div className="teacher-planner-grid__events">
-                  {day.key === todayKey ? (
-                    <span
-                      className="teacher-planner-grid__now-line"
-                      style={{ top: `${nowLineTop}px` }}
-                      aria-hidden="true"
-                    />
-                  ) : null}
-                  {dayEvents.map((event) => (
-                    <TeacherPlannerEventCard
-                      key={event.id}
-                      event={event}
-                      selected={selectedEventId === event.id}
-                      lane={laneMap.get(event.id)?.lane ?? 0}
-                      laneCount={laneMap.get(event.id)?.laneCount ?? 1}
-                      onSelect={onSelectEvent}
-                    />
-                  ))}
-                </div>
-              </div>
+          {showNowLine ? (
+            <span
+              className="teacher-daily-timeline__now"
+              style={{ top: `${nowLineTop}px` }}
+              aria-hidden="true"
+            />
+          ) : null}
+
+          {events.map((event) => {
+            const lane = laneMap.get(event.id)?.lane ?? 0;
+            const laneCount = laneMap.get(event.id)?.laneCount ?? 1;
+            const top = ((event.startMinutes - startHour * 60) / 60) * HOUR_HEIGHT;
+            const height = Math.max(34, ((event.endMinutes - event.startMinutes) / 60) * HOUR_HEIGHT - 6);
+            return (
+              <TeacherPlannerEventCard
+                key={event.id}
+                event={event}
+                selected={selectedEventId === event.id}
+                top={top}
+                height={height}
+                lane={lane}
+                laneCount={laneCount}
+                onSelect={onSelectEvent}
+              />
             );
           })}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

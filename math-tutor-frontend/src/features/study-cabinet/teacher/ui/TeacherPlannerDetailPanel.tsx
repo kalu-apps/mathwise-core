@@ -38,12 +38,12 @@ export function TeacherPlannerDetailPanel({
 }: TeacherPlannerDetailPanelProps) {
   if (!event) {
     return (
-      <aside className="teacher-planner-detail teacher-planner-detail--empty">
-        <span className="teacher-planner-detail__empty-icon">
+      <aside className="teacher-daily-detail teacher-daily-detail--empty">
+        <span className="teacher-daily-detail__empty-icon">
           <TeacherPlannerIcon name="schedule" />
         </span>
-        <strong>Выберите событие</strong>
-        <p>Здесь появятся детали занятия, свободного слота или напоминания.</p>
+        <strong>Выберите блок дня</strong>
+        <p>Детали занятия, свободного слота или напоминания появятся здесь.</p>
       </aside>
     );
   }
@@ -52,24 +52,21 @@ export function TeacherPlannerDetailPanel({
   const note = event.note;
   const availability = event.availability;
   const detailStyle = {
-    "--teacher-planner-event-color": event.color,
+    "--teacher-daily-event-color": event.color,
   } as CSSProperties;
 
   return (
-    <aside
-      className={`teacher-planner-detail teacher-planner-detail--${event.kind}`}
-      style={detailStyle}
-    >
-      <span className="teacher-planner-detail__rail" aria-hidden="true" />
-      <div className="teacher-planner-detail__head">
-        <span className="teacher-planner-detail__icon">{getDetailIcon(event)}</span>
+    <aside className={`teacher-daily-detail teacher-daily-detail--${event.kind}`} style={detailStyle}>
+      <span className="teacher-daily-detail__rail" aria-hidden="true" />
+      <header className="teacher-daily-detail__head">
+        <span className="teacher-daily-detail__icon">{getDetailIcon(event)}</span>
         <div>
-          <span className="teacher-planner-detail__eyebrow">{event.badge}</span>
+          <span className="teacher-daily-detail__eyebrow">{event.badge}</span>
           <h3>{event.title}</h3>
         </div>
-      </div>
+      </header>
 
-      <div className="teacher-planner-detail__meta">
+      <div className="teacher-daily-detail__meta">
         <span>
           <TeacherPlannerIcon name="calendar" />
           {formatPlannerDate(event.dateKey)}
@@ -87,23 +84,23 @@ export function TeacherPlannerDetailPanel({
         {event.secondaryBadge ? <span>{event.secondaryBadge}</span> : null}
       </div>
 
-      <div className="teacher-planner-detail__body">
+      <section className="teacher-daily-detail__section teacher-daily-detail__section--main">
         <strong>{event.subtitle}</strong>
         <p>{event.description}</p>
         {event.statusLabel ? <em>{event.statusLabel}</em> : null}
-      </div>
+      </section>
 
       {booking ? (
-        <div className="teacher-planner-detail__section">
-          <span className="study-cabinet-panel__kicker">Связанные данные</span>
-          <div className="teacher-planner-detail__facts">
+        <section className="teacher-daily-detail__section">
+          <span className="study-cabinet-panel__kicker">Ученик и материалы</span>
+          <div className="teacher-daily-detail__facts">
             <span>{booking.studentEmail}</span>
             {booking.studentPhone ? <span>{booking.studentPhone}</span> : null}
             <span>Материалы: {booking.materials.length}</span>
           </div>
           {booking.meetingUrl ? (
             <a
-              className="teacher-planner-detail__link"
+              className="teacher-daily-detail__link"
               href={booking.meetingUrl}
               target="_blank"
               rel="noreferrer"
@@ -112,30 +109,30 @@ export function TeacherPlannerDetailPanel({
               Открыть ссылку на занятие
             </a>
           ) : null}
-        </div>
+        </section>
       ) : null}
 
       {note ? (
-        <div className="teacher-planner-detail__section">
+        <section className="teacher-daily-detail__section">
           <span className="study-cabinet-panel__kicker">Заметка</span>
-          <div className="teacher-planner-detail__facts">
+          <div className="teacher-daily-detail__facts">
             <span>{note.remind ? "Напоминание включено" : "Без напоминания"}</span>
             {note.linkedBookingId ? <span>Связано с занятием</span> : null}
           </div>
-        </div>
+        </section>
       ) : null}
 
       {availability ? (
-        <div className="teacher-planner-detail__section">
+        <section className="teacher-daily-detail__section">
           <span className="study-cabinet-panel__kicker">Слот</span>
           <p>
             Это слой расписания. Управление свободными окнами остаётся во вкладке
             «Индивидуальные занятия».
           </p>
-        </div>
+        </section>
       ) : null}
 
-      <div className="teacher-planner-detail__actions">
+      <div className="teacher-daily-detail__actions">
         {booking ? (
           <>
             <TeacherPlannerButton variant="primary" onClick={onOpenSchedule}>

@@ -16,10 +16,10 @@ export function TeacherPlannerButton({
   return (
     <button
       type={type}
-      className={`teacher-planner-button teacher-planner-button--${variant} ${className}`}
+      className={`teacher-daily-button teacher-daily-button--${variant} ${className}`}
       {...props}
     >
-      {icon ? <span className="teacher-planner-button__icon">{icon}</span> : null}
+      {icon ? <span className="teacher-daily-button__icon">{icon}</span> : null}
       <span>{children}</span>
     </button>
   );
@@ -42,7 +42,7 @@ export function TeacherPlannerIconButton({
   return (
     <button
       type={type}
-      className={`teacher-planner-icon-button teacher-planner-icon-button--${variant} ${className}`}
+      className={`teacher-daily-icon-button teacher-daily-icon-button--${variant} ${className}`}
       aria-label={label}
       title={title ?? label}
       {...props}
