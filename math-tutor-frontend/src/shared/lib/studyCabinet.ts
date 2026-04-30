@@ -21,9 +21,16 @@ export type StudyCabinetNote = {
 type StudyActivityByDay = Record<string, number>;
 
 const NOTES_TTL_MS = 1000 * 60 * 60 * 24 * 365;
-const DEFAULT_NOTE_COLOR = "#f59e0b";
+const DEFAULT_NOTE_COLOR = "var(--accent-primary)";
 
 const ALLOWED_NOTE_COLORS = new Set([
+  "var(--accent-primary)",
+  "var(--accent-violet)",
+  "var(--accent-secondary)",
+  "var(--accent-mint)",
+  "var(--feedback-warning)",
+  "var(--feedback-danger)",
+  "var(--feedback-info)",
   "#f59e0b",
   "#38bdf8",
   "#22c55e",

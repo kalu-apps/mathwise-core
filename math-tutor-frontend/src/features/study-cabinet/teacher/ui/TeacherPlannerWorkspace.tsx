@@ -214,7 +214,7 @@ export function TeacherPlannerWorkspace({
               >
                 <span>{PLANNER_WEEKDAY_LABELS[index]}</span>
                 <strong>{day.date.toLocaleDateString("ru-RU", { day: "2-digit" })}</strong>
-                <em>{dayEvents.length}</em>
+                {dayEvents.length > 0 ? <em>{dayEvents.length}</em> : null}
               </button>
             );
           })}

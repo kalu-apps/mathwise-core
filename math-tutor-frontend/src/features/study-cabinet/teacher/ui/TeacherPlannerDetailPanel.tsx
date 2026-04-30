@@ -7,10 +7,7 @@ import {
   getPlannerEventTimeLabel,
 } from "@/features/study-cabinet/teacher/model/plannerEvents";
 import { TeacherPlannerIcon } from "@/features/study-cabinet/teacher/ui/TeacherPlannerIcons";
-import {
-  TeacherPlannerButton,
-  TeacherPlannerIconButton,
-} from "@/features/study-cabinet/teacher/ui/TeacherPlannerPrimitives";
+import { TeacherPlannerButton } from "@/features/study-cabinet/teacher/ui/TeacherPlannerPrimitives";
 
 type TeacherPlannerDetailPanelProps = {
   event: TeacherPlannerEvent | null;
@@ -70,6 +67,28 @@ export function TeacherPlannerDetailPanel({
           <span className="teacher-daily-detail__eyebrow">{event.badge}</span>
           <h3>{event.title}</h3>
         </div>
+        {note ? (
+          <div className="teacher-daily-detail__note-actions" aria-label="Действия с заметкой">
+            <button
+              type="button"
+              className="teacher-daily-detail__note-action"
+              onClick={() => onEditNote(note)}
+              aria-label="Редактировать заметку"
+            >
+              <TeacherPlannerIcon name="edit" />
+            </button>
+            {onDeleteNote ? (
+              <button
+                type="button"
+                className="teacher-daily-detail__note-action teacher-daily-detail__note-action--danger"
+                onClick={() => onDeleteNote(note.id)}
+                aria-label="Удалить заметку"
+              >
+                <TeacherPlannerIcon name="trash" />
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </header>
 
       <div className="teacher-daily-detail__meta">
@@ -118,16 +137,6 @@ export function TeacherPlannerDetailPanel({
         </section>
       ) : null}
 
-      {note ? (
-        <section className="teacher-daily-detail__section">
-          <span className="study-cabinet-panel__kicker">Заметка</span>
-          <div className="teacher-daily-detail__facts">
-            <span>{note.remind ? "Напоминание включено" : "Без напоминания"}</span>
-            {note.linkedBookingId ? <span>Связано с занятием</span> : null}
-          </div>
-        </section>
-      ) : null}
-
       {availability ? (
         <section className="teacher-daily-detail__section">
           <span className="study-cabinet-panel__kicker">Слот</span>
@@ -138,58 +147,39 @@ export function TeacherPlannerDetailPanel({
         </section>
       ) : null}
 
-      <div className="teacher-daily-detail__actions">
-        {booking ? (
-          <>
-            <TeacherPlannerButton variant="primary" onClick={onOpenSchedule}>
-              Открыть занятие
-            </TeacherPlannerButton>
-            <TeacherPlannerButton
-              variant="secondary"
-              icon={<TeacherPlannerIcon name="book" />}
-              onClick={() => onCreatePrepNote(booking)}
-            >
-              Подготовка
-            </TeacherPlannerButton>
-            {booking.studentId ? (
-              <TeacherPlannerButton
-                variant="ghost"
-                icon={<TeacherPlannerIcon name="chat" />}
-                onClick={() => onOpenStudentChat?.(booking.studentId)}
-              >
-                Чат
+      {booking || availability ? (
+        <div className="teacher-daily-detail__actions">
+          {booking ? (
+            <>
+              <TeacherPlannerButton variant="primary" onClick={onOpenSchedule}>
+                Открыть занятие
               </TeacherPlannerButton>
-            ) : null}
-          </>
-        ) : null}
-
-        {availability ? (
-          <TeacherPlannerButton variant="primary" onClick={onOpenSchedule}>
-            Открыть слоты
-          </TeacherPlannerButton>
-        ) : null}
-
-        {note ? (
-          <>
-            <TeacherPlannerButton
-              variant="primary"
-              icon={<TeacherPlannerIcon name="edit" />}
-              onClick={() => onEditNote(note)}
-            >
-              Редактировать
-            </TeacherPlannerButton>
-            {onDeleteNote ? (
-              <TeacherPlannerIconButton
-                label="Удалить напоминание"
-                variant="danger"
-                onClick={() => onDeleteNote(note.id)}
+              <TeacherPlannerButton
+                variant="secondary"
+                icon={<TeacherPlannerIcon name="book" />}
+                onClick={() => onCreatePrepNote(booking)}
               >
-                <TeacherPlannerIcon name="trash" />
-              </TeacherPlannerIconButton>
-            ) : null}
-          </>
-        ) : null}
-      </div>
+                Подготовка
+              </TeacherPlannerButton>
+              {booking.studentId ? (
+                <TeacherPlannerButton
+                  variant="ghost"
+                  icon={<TeacherPlannerIcon name="chat" />}
+                  onClick={() => onOpenStudentChat?.(booking.studentId)}
+                >
+                  Чат
+                </TeacherPlannerButton>
+              ) : null}
+            </>
+          ) : null}
+
+          {availability ? (
+            <TeacherPlannerButton variant="primary" onClick={onOpenSchedule}>
+              Открыть слоты
+            </TeacherPlannerButton>
+          ) : null}
+        </div>
+      ) : null}
     </aside>
   );
 }

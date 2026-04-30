@@ -32,20 +32,27 @@ export function TeacherPlannerEventCard({
   onSelect,
 }: TeacherPlannerEventCardProps) {
   const timeLabel = getPlannerEventTimeLabel(event);
+  const isNote = event.kind === "note";
   const style = {
     top: `${top}px`,
     height: `${height}px`,
     "--teacher-daily-event-color": event.color,
     ...(laneCount > 1
-      ? {
-          left: `calc(${(lane / laneCount) * 100}% + 2px)`,
-          right: "auto",
-          width: `calc(${100 / laneCount}% - 4px)`,
-        }
+      ? isNote
+        ? {
+            left: `${(lane / laneCount) * 100}%`,
+            right: "auto",
+            width: `calc(${100 / laneCount}% - 1px)`,
+          }
+        : {
+            left: `calc(${(lane / laneCount) * 100}% + 2px)`,
+            right: "auto",
+            width: `calc(${100 / laneCount}% - 4px)`,
+          }
       : {}),
   } as CSSProperties;
 
-  if (event.kind === "note") {
+  if (isNote) {
     const noteDensityClass =
       height <= 58 ? "is-note-tiny" : height <= 88 ? "is-note-compact" : "";
     const noteWidthClass = laneCount > 1 ? "is-note-narrow" : "";

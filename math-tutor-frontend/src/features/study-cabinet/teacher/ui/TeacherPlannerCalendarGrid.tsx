@@ -27,6 +27,7 @@ type PlannerEventLane = {
 const HOUR_HEIGHT = 62;
 const MIN_START_HOUR = 6;
 const MIN_END_HOUR = 22;
+const SLOT_HEIGHT = (PLANNER_SLOT_MINUTES / 60) * HOUR_HEIGHT;
 
 const buildEventLaneMap = (events: TeacherPlannerEvent[]) => {
   const result = new Map<string, PlannerEventLane>();
@@ -180,7 +181,11 @@ export function TeacherPlannerCalendarGrid({
             const lane = laneMap.get(event.id)?.lane ?? 0;
             const laneCount = laneMap.get(event.id)?.laneCount ?? 1;
             const top = ((event.startMinutes - startHour * 60) / 60) * HOUR_HEIGHT;
-            const height = Math.max(34, ((event.endMinutes - event.startMinutes) / 60) * HOUR_HEIGHT - 6);
+            const rawHeight = ((event.endMinutes - event.startMinutes) / 60) * HOUR_HEIGHT;
+            const height =
+              event.kind === "note"
+                ? Math.max(SLOT_HEIGHT, rawHeight)
+                : Math.max(34, rawHeight - 6);
             return (
               <TeacherPlannerEventCard
                 key={event.id}
