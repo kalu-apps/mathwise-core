@@ -866,15 +866,11 @@
 }
 
 .study-cabinet-panel__note-modal {
-  min-height: 0;
   margin-top: 0;
   padding: 10px 4px 2px 0;
   display: grid;
   gap: 12px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  -webkit-overflow-scrolling: touch;
+  min-width: 0;
 }
 
 .study-cabinet-panel__note-modal-row {
@@ -920,11 +916,10 @@
   position: fixed;
   inset: 0;
   z-index: 1500;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  min-height: 100vh;
-  min-height: 100dvh;
+  display: block;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
   padding: clamp(12px, 3.5vh, 28px) 18px;
   overflow-x: hidden;
   overflow-y: auto;
@@ -935,15 +930,13 @@
 }
 
 .teacher-note-dialog__panel {
-  flex: 0 1 min(620px, 100%);
   width: min(620px, 100%);
-  max-height: calc(100vh - 36px);
-  max-height: calc(100dvh - 36px);
-  min-height: 0;
+  min-height: auto;
+  margin: 0 auto;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto;
   gap: 16px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
   border-radius: 22px;
   background:
@@ -1082,8 +1075,6 @@
   }
 
   .teacher-note-dialog__panel {
-    max-height: calc(100vh - 20px);
-    max-height: calc(100dvh - 20px);
     gap: 12px;
     border-radius: 18px;
     padding: 14px;
