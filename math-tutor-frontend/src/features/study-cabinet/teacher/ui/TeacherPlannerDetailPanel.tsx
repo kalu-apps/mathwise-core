@@ -44,7 +44,7 @@ export function TeacherPlannerDetailPanel({
         <span className="teacher-daily-detail__empty-icon">
           <TeacherPlannerIcon name="schedule" />
         </span>
-        <strong>Выберите блок дня</strong>
+        <strong>Выберите событие</strong>
         <p>Детали занятия, свободного слота или напоминания появятся здесь.</p>
       </aside>
     );

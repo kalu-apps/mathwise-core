@@ -81,14 +81,15 @@ export function TeacherPlannerEventCard({
           {event.description ? <span>{event.description}</span> : null}
         </span>
 
-        <span className="teacher-daily-event__note-footer">
-          <span className="teacher-daily-event__note-meta">
-            {noteMeta.map((item) => (
-              <em key={item}>{item}</em>
-            ))}
+        {noteMeta.length > 0 ? (
+          <span className="teacher-daily-event__note-footer">
+            <span className="teacher-daily-event__note-meta">
+              {noteMeta.map((item) => (
+                <em key={item}>{item}</em>
+              ))}
+            </span>
           </span>
-          <span className="teacher-daily-event__note-cta">Детали</span>
-        </span>
+        ) : null}
       </button>
     );
   }

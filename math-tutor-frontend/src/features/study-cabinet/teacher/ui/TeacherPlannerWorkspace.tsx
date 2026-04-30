@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Booking } from "@/entities/booking/model/types";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
 import type { StudyCabinetNote } from "@/shared/lib/studyCabinet";
@@ -14,7 +14,6 @@ import {
   buildTeacherPlannerEvents,
   formatDayTime,
   formatPlannerDate,
-  getPlannerEventTimeLabel,
   startOfWeek,
   toLocalDateKey,
   fromDateKey,
@@ -22,7 +21,6 @@ import {
 import {
   buildPlannerTabCounts,
   filterTeacherPlannerEvents,
-  getPlannerEmptyState,
   getPlannerEventsForRange,
   selectPlannerEventById,
   selectPlannerSummary,
@@ -130,10 +128,8 @@ export function TeacherPlannerWorkspace({
     () => selectPlannerSummary({ events: allEvents, todayKey, weekKeys, nowTs }),
     [allEvents, nowTs, todayKey, weekKeys]
   );
-  const emptyState = getPlannerEmptyState(activeTab);
   const selectedDayBookings = selectedDayAllEvents.filter(isBookingEvent);
   const selectedDaySlots = selectedDayAllEvents.filter((event) => event.kind === "availability-slot");
-  const unpaidWeekEvents = summary.unpaidBookings.slice(0, 3);
 
   const shiftDay = (step: number) => {
     const nextDate = addDays(fromDateKey(selectedDateKey), step);
@@ -154,6 +150,10 @@ export function TeacherPlannerWorkspace({
   const selectEvent = (event: TeacherPlannerEvent) => {
     setSelectedDateKey(event.dateKey);
     setSelectedEventId(event.id);
+    if (event.kind === "note" && event.note) {
+      onEditNote(event.note);
+      return;
+    }
     if (isCompactLayout) {
       window.setTimeout(() => {
         document
@@ -172,7 +172,7 @@ export function TeacherPlannerWorkspace({
     <section className="teacher-daily-planner">
       <header className="teacher-daily-planner__hero">
         <div className="teacher-daily-planner__title">
-          <h2>План преподавателя на день</h2>
+          <h2>Календарь преподавателя</h2>
           <p>
             {formatPlannerDate(selectedDateKey)} · {selectedDayAllEvents.length} событий ·{" "}
             {selectedDayBookings.length} занятий
@@ -281,66 +281,6 @@ export function TeacherPlannerWorkspace({
       ) : null}
 
       <div className="teacher-daily-planner__body">
-        <aside className="teacher-daily-agenda">
-          <div className="teacher-daily-agenda__head">
-            <div>
-              <h3>План дня</h3>
-            </div>
-            <strong>{selectedDayEvents.length}</strong>
-          </div>
-
-          {selectedDayEvents.length > 0 ? (
-            <div className="teacher-daily-agenda__list">
-              {selectedDayEvents.map((event) => (
-                <button
-                  key={event.id}
-                  type="button"
-                  className={`teacher-daily-agenda__item ${
-                    selectedEvent?.id === event.id ? "is-selected" : ""
-                  }`}
-                  style={{ "--teacher-daily-event-color": event.color } as CSSProperties}
-                  onClick={() => selectEvent(event)}
-                  aria-controls={TEACHER_DAILY_DETAIL_PANEL_ID}
-                >
-                  <i aria-hidden="true" />
-                  <span>
-                    <strong>{event.title}</strong>
-                    <em>{getPlannerEventTimeLabel(event)} · {event.badge}</em>
-                  </span>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="teacher-daily-agenda__empty">
-              <strong>{emptyState.title}</strong>
-              <p>{emptyState.description}</p>
-              <TeacherPlannerButton
-                variant={activeTab === "availability" ? "secondary" : "primary"}
-                icon={<TeacherPlannerIcon name={activeTab === "availability" ? "lock" : "add"} />}
-                onClick={
-                  activeTab === "availability"
-                    ? onOpenSchedule
-                    : () => onCreateNote({ templateId: "custom", dateKey: selectedDateKey })
-                }
-              >
-                {activeTab === "availability" ? "Открыть слоты" : "Создать заметку"}
-              </TeacherPlannerButton>
-            </div>
-          )}
-
-          {!isCompactLayout && unpaidWeekEvents.length > 0 ? (
-            <section className="teacher-daily-agenda__focus teacher-daily-agenda__focus--warning">
-              <span className="study-cabinet-panel__kicker">Оплата</span>
-              {unpaidWeekEvents.map((event) => (
-                <button key={event.id} type="button" onClick={() => selectEvent(event)}>
-                  <strong>{event.title}</strong>
-                  <span>{formatDayTime(event.startAtMs)}</span>
-                </button>
-              ))}
-            </section>
-          ) : null}
-        </aside>
-
         <TeacherPlannerCalendarGrid
           dateKey={selectedDateKey}
           events={selectedDayEvents}
