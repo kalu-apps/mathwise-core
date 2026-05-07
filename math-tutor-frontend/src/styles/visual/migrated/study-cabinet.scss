@@ -2714,12 +2714,11 @@
 
 .teacher-daily-week-strip {
   display: grid;
-  grid-template-columns: repeat(7, minmax(52px, 68px));
+  grid-template-columns: repeat(var(--teacher-visible-days, 7), minmax(52px, 68px));
   justify-content: center;
   gap: 4px;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: thin;
+  overflow: hidden;
 }
 
 .teacher-daily-week-strip__day {
@@ -3688,7 +3687,7 @@
   }
 
   .teacher-daily-week-strip {
-    grid-template-columns: repeat(7, minmax(52px, 68px));
+    grid-template-columns: repeat(var(--teacher-visible-days, 7), minmax(52px, 68px));
   }
 
   .teacher-daily-timeline {

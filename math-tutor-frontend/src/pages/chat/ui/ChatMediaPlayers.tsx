@@ -17,7 +17,6 @@ import DoneRoundedIcon from "@mui/icons-material/DoneRounded";
 import DoneAllRoundedIcon from "@mui/icons-material/DoneAllRounded";
 import { formatPlaybackTime } from "@/pages/chat/model/chatPageUtils";
 
-const AUDIO_PLAYBACK_RATES = [1, 1.5, 2];
 const AUDIO_WAVE_BARS = [
   38, 44, 35, 52, 40, 60, 42, 64, 48, 58, 34, 56, 44, 62, 37, 49, 33, 46,
   30, 42, 36, 55, 41, 63, 47, 59, 35, 54, 43, 61, 39, 50, 34, 45, 31, 40,
@@ -27,6 +26,16 @@ const AUDIO_LISTENED_THRESHOLD_RATIO = 0.45;
 const AUDIO_LISTENED_THRESHOLD_MIN_SECONDS = 0.8;
 const AUDIO_LISTENED_THRESHOLD_MAX_SECONDS = 5;
 const AUDIO_WAVE_DISPLAY_BARS = 46;
+
+export type AudioMessagePlaybackState = {
+  id: string;
+  src: string;
+  title: string;
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  ended?: boolean;
+};
 
 const resizeWaveform = (input: number[], targetBars: number): number[] => {
   if (input.length === 0) return [];
@@ -48,10 +57,15 @@ const resizeWaveform = (input: number[], targetBars: number): number[] => {
 
 export function AudioMessagePlayer({
   src,
+  mediaIdentity,
+  title,
   durationSeconds,
   waveform,
   listenedByPeer,
   onListened,
+  playbackRate = 1,
+  activeAudioId,
+  onPlaybackStateChange,
   messageTimestamp,
   showEdited,
   showReadState,
@@ -59,10 +73,14 @@ export function AudioMessagePlayer({
 }: {
   src: string;
   mediaIdentity?: string;
+  title?: string;
   durationSeconds?: number;
   waveform?: number[];
   listenedByPeer?: boolean;
   onListened?: () => void;
+  playbackRate?: number;
+  activeAudioId?: string | null;
+  onPlaybackStateChange?: (state: AudioMessagePlaybackState) => void;
   messageTimestamp?: string;
   showEdited?: boolean;
   showReadState?: boolean;
@@ -91,9 +109,52 @@ export function AudioMessagePlayer({
       : 0
   );
   const [currentTime, setCurrentTime] = useState(0);
-  const [playbackRate, setPlaybackRate] = useState(1);
   const [playbackSrc, setPlaybackSrc] = useState(src);
   const audioSrc = isPlaying ? playbackSrc : src;
+  const audioIdentity = mediaIdentity?.trim() || src;
+  const audioTitle = title?.trim() || "Голосовое сообщение";
+  const safePlaybackRate =
+    Number.isFinite(playbackRate) && playbackRate > 0 ? playbackRate : 1;
+
+  const emitPlaybackState = useCallback(
+    ({
+      isPlaying: nextIsPlaying,
+      currentTime: nextCurrentTime,
+      duration: nextDuration,
+      ended,
+    }: {
+      isPlaying: boolean;
+      currentTime: number;
+      duration?: number;
+      ended?: boolean;
+    }) => {
+      if (!onPlaybackStateChange) return;
+      const resolvedDuration =
+        typeof nextDuration === "number" &&
+        Number.isFinite(nextDuration) &&
+        nextDuration > 0
+          ? nextDuration
+          : durationRef.current > 0
+            ? durationRef.current
+            : durationSecondsRef.current;
+      onPlaybackStateChange({
+        id: audioIdentity,
+        src,
+        title: audioTitle,
+        isPlaying: nextIsPlaying,
+        currentTime:
+          Number.isFinite(nextCurrentTime) && nextCurrentTime > 0
+            ? nextCurrentTime
+            : 0,
+        duration:
+          Number.isFinite(resolvedDuration) && resolvedDuration > 0
+            ? resolvedDuration
+            : 0,
+        ended,
+      });
+    },
+    [audioIdentity, audioTitle, onPlaybackStateChange, src]
+  );
 
   const tryReportListened = useCallback(
     (nextCurrentTime: number, fallbackDuration?: number) => {
@@ -193,31 +254,22 @@ export function AudioMessagePlayer({
       }
       setIsPlaying(true);
       setPlaybackSrc(src);
+      audio.playbackRate = safePlaybackRate;
       try {
         await audio.play();
       } catch {
         setIsPlaying(false);
+        emitPlaybackState({
+          isPlaying: false,
+          currentTime: audio.currentTime,
+          duration: audio.duration,
+        });
       }
       return;
     }
     audio.pause();
     setIsPlaying(false);
-  }, [src]);
-
-  const handleCyclePlaybackRate = useCallback(() => {
-    const currentIndex = AUDIO_PLAYBACK_RATES.findIndex((rate) => rate === playbackRate);
-    const nextRate =
-      AUDIO_PLAYBACK_RATES[
-        currentIndex >= 0
-          ? (currentIndex + 1) % AUDIO_PLAYBACK_RATES.length
-          : 0
-      ] ?? 1;
-    setPlaybackRate(nextRate);
-    const audio = audioRef.current;
-    if (audio) {
-      audio.playbackRate = nextRate;
-    }
-  }, [playbackRate]);
+  }, [emitPlaybackState, safePlaybackRate, src]);
 
   const handleWavePointerDown = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
@@ -317,6 +369,13 @@ export function AudioMessagePlayer({
       const nextCurrentTime = audio.currentTime;
       setCurrentTime(nextCurrentTime);
       tryReportListened(nextCurrentTime, audio.duration);
+      if (!audio.paused) {
+        emitPlaybackState({
+          isPlaying: true,
+          currentTime: nextCurrentTime,
+          duration: audio.duration,
+        });
+      }
     };
     const onPause = () => {
       const trackDuration = Number.isFinite(audio.duration) ? audio.duration : 0;
@@ -325,13 +384,32 @@ export function AudioMessagePlayer({
         setCurrentTime(0);
       }
       setIsPlaying(false);
+      emitPlaybackState({
+        isPlaying: false,
+        currentTime: audio.currentTime,
+        duration: trackDuration,
+      });
     };
-    const onPlay = () => setIsPlaying(true);
+    const onPlay = () => {
+      audio.playbackRate = safePlaybackRate;
+      setIsPlaying(true);
+      emitPlaybackState({
+        isPlaying: true,
+        currentTime: audio.currentTime,
+        duration: audio.duration,
+      });
+    };
     const onEnded = () => {
       tryReportListened(
         Number.isFinite(audio.duration) ? audio.duration : audio.currentTime,
         audio.duration
       );
+      emitPlaybackState({
+        isPlaying: false,
+        currentTime: 0,
+        duration: audio.duration,
+        ended: true,
+      });
       audio.currentTime = 0;
       setIsPlaying(false);
       setCurrentTime(0);
@@ -352,7 +430,13 @@ export function AudioMessagePlayer({
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("ended", onEnded);
     };
-  }, [durationSeconds, audioSrc, tryReportListened]);
+  }, [
+    durationSeconds,
+    audioSrc,
+    emitPlaybackState,
+    safePlaybackRate,
+    tryReportListened,
+  ]);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -385,8 +469,16 @@ export function AudioMessagePlayer({
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    audio.playbackRate = playbackRate;
-  }, [playbackRate]);
+    audio.playbackRate = safePlaybackRate;
+  }, [safePlaybackRate]);
+
+  useEffect(() => {
+    if (!activeAudioId || activeAudioId === audioIdentity) return;
+    const audio = audioRef.current;
+    if (!audio || audio.paused) return;
+    audio.pause();
+    setIsPlaying(false);
+  }, [activeAudioId, audioIdentity]);
 
   const fallbackDuration =
     typeof durationSeconds === "number" && Number.isFinite(durationSeconds)
@@ -405,15 +497,6 @@ export function AudioMessagePlayer({
             visualWaveBars.length) %
             visualWaveBars.length || 1
         : 0;
-  const playbackRateLabel =
-    playbackRate === 1
-      ? "x1"
-      : `x${
-          Number.isInteger(playbackRate)
-            ? playbackRate
-            : playbackRate.toFixed(1)
-        }`;
-
   return (
     <div
       className={`chat-page__audio-player ${isPlaying ? "is-playing" : ""} ${
@@ -469,16 +552,6 @@ export function AudioMessagePlayer({
               ))}
             </div>
           </div>
-          {isPlaying ? (
-            <button
-              type="button"
-              className="chat-page__audio-speed"
-              onClick={handleCyclePlaybackRate}
-              aria-label={`Скорость воспроизведения ${playbackRateLabel}`}
-            >
-              {playbackRateLabel}
-            </button>
-          ) : null}
         </div>
         <div className="chat-page__audio-meta">
           <div className="chat-page__audio-time">

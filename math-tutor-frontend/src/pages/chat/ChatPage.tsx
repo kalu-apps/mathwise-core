@@ -37,6 +37,7 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import DeleteSweepRoundedIcon from "@mui/icons-material/DeleteSweepRounded";
 import OpenInFullRoundedIcon from "@mui/icons-material/OpenInFullRounded";
 import CloseFullscreenRoundedIcon from "@mui/icons-material/CloseFullscreenRounded";
+import GraphicEqRoundedIcon from "@mui/icons-material/GraphicEqRounded";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import {
@@ -66,6 +67,7 @@ import {
   formatAttachmentSize,
   formatDayLabel,
   formatDuration,
+  formatPlaybackTime,
   formatThreadDate,
   formatTime,
   getAttachmentKind,
@@ -82,6 +84,7 @@ import {
 } from "@/pages/chat/model/chatPageUtils";
 import {
   AudioMessagePlayer,
+  type AudioMessagePlaybackState,
 } from "@/pages/chat/ui/ChatMediaPlayers";
 
 type LocationState = {
@@ -125,6 +128,27 @@ type TimelineItem =
       id: string;
       message: TeacherChatMessage;
     };
+
+const CHAT_AUDIO_PLAYBACK_RATES = [1, 1.5, 2] as const;
+const CHAT_AUDIO_RATE_STORAGE_PREFIX = "mathwise.chat.audioRate.";
+
+const isSupportedChatAudioRate = (value: number) =>
+  CHAT_AUDIO_PLAYBACK_RATES.some((rate) => rate === value);
+
+const formatChatAudioRateLabel = (value: number) =>
+  value === 1 ? "1x" : `${Number.isInteger(value) ? value : value.toFixed(1)}x`;
+
+const readStoredChatAudioRate = (threadId: string) => {
+  try {
+    const stored = window.localStorage.getItem(
+      `${CHAT_AUDIO_RATE_STORAGE_PREFIX}${threadId}`
+    );
+    const parsed = Number(stored);
+    return isSupportedChatAudioRate(parsed) ? parsed : 1;
+  } catch {
+    return 1;
+  }
+};
 
 export default function ChatPage() {
   usePerfScreenTag("ChatPage");
@@ -175,6 +199,10 @@ export default function ChatPage() {
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [mediaPreview, setMediaPreview] = useState<ChatMediaPreviewState | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [activeAudio, setActiveAudio] =
+    useState<AudioMessagePlaybackState | null>(null);
+  const [audioPlaybackRateByThreadId, setAudioPlaybackRateByThreadId] =
+    useState<Record<string, number>>({});
 
   const isTeacher = user?.role === "teacher";
   const pathname = location.pathname.toLowerCase();
@@ -497,6 +525,70 @@ export default function ChatPage() {
     () => threads.find((thread) => thread.id === selectedThreadId) ?? null,
     [selectedThreadId, threads]
   );
+  const selectedThreadAudioRate = selectedThreadId
+    ? audioPlaybackRateByThreadId[selectedThreadId] ?? 1
+    : 1;
+  const activeAudioDock = activeAudio?.isPlaying ? activeAudio : null;
+  const activeAudioProgressRatio =
+    activeAudioDock && activeAudioDock.duration > 0
+      ? Math.min(
+          1,
+          Math.max(0, activeAudioDock.currentTime / activeAudioDock.duration)
+        )
+      : 0;
+
+  const handleAudioPlaybackStateChange = useCallback(
+    (state: AudioMessagePlaybackState) => {
+      setActiveAudio((current) => {
+        if (state.ended) {
+          return current?.id === state.id ? null : current;
+        }
+        if (state.isPlaying) {
+          return state;
+        }
+        if (current?.id !== state.id) {
+          return current;
+        }
+        return {
+          ...current,
+          ...state,
+        };
+      });
+    },
+    []
+  );
+
+  const handleSetThreadAudioRate = useCallback(
+    (nextRate: number) => {
+      if (!selectedThreadId || !isSupportedChatAudioRate(nextRate)) return;
+      setAudioPlaybackRateByThreadId((current) => ({
+        ...current,
+        [selectedThreadId]: nextRate,
+      }));
+      try {
+        window.localStorage.setItem(
+          `${CHAT_AUDIO_RATE_STORAGE_PREFIX}${selectedThreadId}`,
+          String(nextRate)
+        );
+      } catch {
+        // noop: playback rate still applies for the current session
+      }
+    },
+    [selectedThreadId]
+  );
+
+  useEffect(() => {
+    if (!selectedThreadId) return;
+    setAudioPlaybackRateByThreadId((current) => {
+      if (Object.prototype.hasOwnProperty.call(current, selectedThreadId)) {
+        return current;
+      }
+      return {
+        ...current,
+        [selectedThreadId]: readStoredChatAudioRate(selectedThreadId),
+      };
+    });
+  }, [selectedThreadId]);
 
   const filteredThreads = useMemo(() => {
     if (!isTeacher) return threads;
@@ -1101,6 +1193,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     setMediaPreview(null);
+    setActiveAudio(null);
   }, [selectedThreadId]);
 
   return (
@@ -1254,7 +1347,65 @@ export default function ChatPage() {
               {threadsLoading ? <CircularProgress size={30} /> : "Выберите диалог для начала"}
             </div>
           ) : (
-            <div className="chat-page__conversation">
+            <div
+              className={`chat-page__conversation ${
+                activeAudioDock ? "chat-page__conversation--with-audio-dock" : ""
+              }`}
+            >
+              {activeAudioDock ? (
+                <div className="chat-page__audio-dock" aria-label="Активное аудио">
+                  <span className="chat-page__audio-dock-icon" aria-hidden="true">
+                    <GraphicEqRoundedIcon fontSize="small" />
+                  </span>
+                  <div className="chat-page__audio-dock-body">
+                    <div className="chat-page__audio-dock-topline">
+                      <span className="chat-page__audio-dock-title">
+                        {activeAudioDock.title}
+                      </span>
+                      <span className="chat-page__audio-dock-time">
+                        {formatPlaybackTime(activeAudioDock.currentTime)}
+                        {activeAudioDock.duration > 0
+                          ? ` / ${formatPlaybackTime(activeAudioDock.duration)}`
+                          : ""}
+                      </span>
+                    </div>
+                    <div
+                      className="chat-page__audio-dock-track"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={Math.max(0, Math.round(activeAudioDock.duration))}
+                      aria-valuenow={Math.max(
+                        0,
+                        Math.round(activeAudioDock.currentTime)
+                      )}
+                    >
+                      <span
+                        style={{
+                          width: `${Math.round(activeAudioProgressRatio * 1000) / 10}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div
+                    className="chat-page__audio-rate-control"
+                    aria-label="Скорость аудио в этом диалоге"
+                  >
+                    {CHAT_AUDIO_PLAYBACK_RATES.map((rate) => (
+                      <button
+                        key={rate}
+                        type="button"
+                        className={`chat-page__audio-rate-button ${
+                          rate === selectedThreadAudioRate ? "is-active" : ""
+                        }`}
+                        onClick={() => handleSetThreadAudioRate(rate)}
+                        aria-pressed={rate === selectedThreadAudioRate}
+                      >
+                        {formatChatAudioRateLabel(rate)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div
                 className="chat-page__messages"
                 ref={messagesViewportRef}
@@ -1373,9 +1524,15 @@ export default function ChatPage() {
                                 mediaIdentity={
                                   message.voice.mediaObjectId || message.voice.id
                                 }
+                                title={`${displaySenderName} - голосовое сообщение`}
                                 durationSeconds={message.voice.durationSeconds}
                                 waveform={message.voice.waveform}
                                 listenedByPeer={message.voice.listenedByPeer}
+                                playbackRate={selectedThreadAudioRate}
+                                activeAudioId={activeAudio?.id ?? null}
+                                onPlaybackStateChange={
+                                  handleAudioPlaybackStateChange
+                                }
                                 messageTimestamp={
                                   showVoiceInlineMeta ? messageTimestampLabel : undefined
                                 }
@@ -1453,6 +1610,12 @@ export default function ChatPage() {
                                       src={attachment.url}
                                       mediaIdentity={
                                         attachment.mediaObjectId || attachment.id
+                                      }
+                                      title={`${displaySenderName} - аудиофайл`}
+                                      playbackRate={selectedThreadAudioRate}
+                                      activeAudioId={activeAudio?.id ?? null}
+                                      onPlaybackStateChange={
+                                        handleAudioPlaybackStateChange
                                       }
                                       messageTimestamp={
                                         showAttachmentInlineMeta
@@ -1540,8 +1703,10 @@ export default function ChatPage() {
                     key={composerVoice.mediaObjectId || composerVoice.id}
                     src={composerVoice.url}
                     mediaIdentity={composerVoice.mediaObjectId || composerVoice.id}
+                    title="Черновик голосового сообщения"
                     durationSeconds={composerVoice.durationSeconds}
                     waveform={composerVoice.waveform}
+                    playbackRate={selectedThreadAudioRate}
                   />
                   <IconButton
                     size="small"
@@ -1684,7 +1849,6 @@ export default function ChatPage() {
                     <IconButton
                       type="button"
                       disabled={sending || isRecordingAudio || !hasDraftContent}
-                      disableRipple
                       className="chat-page__send-button"
                       onClick={handleComposerSendAction}
                       aria-label="Отправить сообщение"

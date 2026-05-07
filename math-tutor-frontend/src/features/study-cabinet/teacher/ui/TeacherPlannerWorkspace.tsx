@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import type { Booking } from "@/entities/booking/model/types";
 import type { AvailabilitySlot } from "@/features/teacher-availability/model/types";
 import type { StudyCabinetNote } from "@/shared/lib/studyCabinet";
@@ -48,9 +54,25 @@ type TeacherPlannerWorkspaceProps = {
 
 const getFirstVisibleEventId = (events: TeacherPlannerEvent[]) => events[0]?.id ?? null;
 const TEACHER_DAILY_DETAIL_PANEL_ID = "teacher-daily-detail-panel";
+const TEACHER_WEEK_STRIP_DAY_MIN_WIDTH = 52;
+const TEACHER_WEEK_STRIP_GAP = 4;
+const TEACHER_WEEK_STRIP_MIN_DAYS = 3;
+const TEACHER_WEEK_STRIP_MAX_DAYS = 21;
 
 const isBookingEvent = (event: TeacherPlannerEvent) =>
   event.kind === "trial-booking" || event.kind === "regular-booking";
+
+const getPlannerWeekdayLabel = (date: Date) =>
+  PLANNER_WEEKDAY_LABELS[(date.getDay() + 6) % 7] ?? "";
+
+const getVisiblePlannerRangeStart = (
+  selectedDate: Date,
+  weekStart: Date,
+  visibleDayCount: number
+) => {
+  if (visibleDayCount >= 7) return weekStart;
+  return addDays(selectedDate, -Math.floor(visibleDayCount / 2));
+};
 
 const useCompactPlannerLayout = () => {
   const [isCompact, setIsCompact] = useState(() =>
@@ -68,6 +90,46 @@ const useCompactPlannerLayout = () => {
   return isCompact;
 };
 
+const useVisiblePlannerDayCount = () => {
+  const stripRef = useRef<HTMLDivElement | null>(null);
+  const [visibleDayCount, setVisibleDayCount] = useState(7);
+
+  useEffect(() => {
+    const node = stripRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+
+    const updateVisibleDayCount = () => {
+      const width = node.getBoundingClientRect().width;
+      if (!Number.isFinite(width) || width <= 0) return;
+      const nextCount = Math.max(
+        TEACHER_WEEK_STRIP_MIN_DAYS,
+        Math.min(
+          TEACHER_WEEK_STRIP_MAX_DAYS,
+          Math.floor(
+            (width + TEACHER_WEEK_STRIP_GAP) /
+              (TEACHER_WEEK_STRIP_DAY_MIN_WIDTH + TEACHER_WEEK_STRIP_GAP)
+          )
+        )
+      );
+      setVisibleDayCount((current) =>
+        current === nextCount ? current : nextCount
+      );
+    };
+
+    updateVisibleDayCount();
+    const resizeObserver = new ResizeObserver(updateVisibleDayCount);
+    resizeObserver.observe(node);
+    window.addEventListener("resize", updateVisibleDayCount);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateVisibleDayCount);
+    };
+  }, []);
+
+  return [stripRef, visibleDayCount] as const;
+};
+
 export function TeacherPlannerWorkspace({
   bookings,
   availability,
@@ -80,6 +142,7 @@ export function TeacherPlannerWorkspace({
   onDeleteNote,
 }: TeacherPlannerWorkspaceProps) {
   const isCompactLayout = useCompactPlannerLayout();
+  const [weekStripRef, visibleWeekDayCount] = useVisiblePlannerDayCount();
   const [activeTab, setActiveTab] = useState<TeacherPlannerTabId>("all");
   const [selectedDateKey, setSelectedDateKey] = useState(() => toLocalDateKey(new Date()));
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -90,10 +153,20 @@ export function TeacherPlannerWorkspace({
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const selectedDate = useMemo(() => fromDateKey(selectedDateKey), [selectedDateKey]);
   const weekStart = useMemo(() => startOfWeek(selectedDate), [selectedDate]);
+  const visibleRangeStart = useMemo(
+    () => getVisiblePlannerRangeStart(selectedDate, weekStart, visibleWeekDayCount),
+    [selectedDate, visibleWeekDayCount, weekStart]
+  );
 
   const weekDays = useMemo(
-    () => buildPlannerDays("week", selectedDateKey, weekStart),
-    [selectedDateKey, weekStart]
+    () =>
+      buildPlannerDays(
+        "week",
+        selectedDateKey,
+        visibleRangeStart,
+        visibleWeekDayCount
+      ),
+    [selectedDateKey, visibleRangeStart, visibleWeekDayCount]
   );
   const weekKeys = useMemo(
     () => new Set(weekDays.map((day) => day.key)),
@@ -200,8 +273,16 @@ export function TeacherPlannerWorkspace({
         <TeacherPlannerIconButton label="Предыдущий день" onClick={() => shiftDay(-1)}>
           <TeacherPlannerIcon name="chevron-left" />
         </TeacherPlannerIconButton>
-        <div className="teacher-daily-week-strip">
-          {weekDays.map((day, index) => {
+        <div
+          className="teacher-daily-week-strip"
+          ref={weekStripRef}
+          style={
+            {
+              "--teacher-visible-days": weekDays.length,
+            } as CSSProperties
+          }
+        >
+          {weekDays.map((day) => {
             const dayEvents = weekEvents.filter((event) => event.dateKey === day.key);
             return (
               <button
@@ -212,7 +293,7 @@ export function TeacherPlannerWorkspace({
                 } ${day.key === todayKey ? "is-today" : ""}`}
                 onClick={() => selectDate(day.key)}
               >
-                <span>{PLANNER_WEEKDAY_LABELS[index]}</span>
+                <span>{getPlannerWeekdayLabel(day.date)}</span>
                 <strong>{day.date.toLocaleDateString("ru-RU", { day: "2-digit" })}</strong>
                 {dayEvents.length > 0 ? <em>{dayEvents.length}</em> : null}
               </button>

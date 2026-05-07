@@ -66,12 +66,13 @@ export const startOfWeek = (dateValue: Date) => {
 export const buildPlannerDays = (
   mode: TeacherPlannerViewMode,
   selectedDateKey: string,
-  visibleRangeStart: Date
+  visibleRangeStart: Date,
+  visibleDayCount = 7
 ): TeacherPlannerDay[] => {
   if (mode === "day") {
     return [{ key: selectedDateKey, date: fromDateKey(selectedDateKey) }];
   }
-  return Array.from({ length: 7 }).map((_, index) => {
+  return Array.from({ length: Math.max(1, Math.round(visibleDayCount)) }).map((_, index) => {
     const date = addDays(visibleRangeStart, index);
     return {
       key: toLocalDateKey(date),

@@ -1000,15 +1000,19 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
   gap: 16px;
+  align-items: start;
 }
 
 .student-profile__lessons-divider {
+  align-self: stretch;
   background: color-mix(in srgb, var(--border-subtle) 84%, transparent);
 }
 
 .student-profile__lessons-panel {
   display: grid;
   gap: 10px;
+  align-content: start;
+  align-self: start;
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--border-subtle) 82%, transparent);
   background: color-mix(in srgb, var(--background-elevated) 94%, transparent);
@@ -1019,6 +1023,11 @@
 .student-profile__lessons-title {
   margin: 0;
   font-size: 16px;
+}
+
+.student-profile__lessons-panel .student-profile__empty--inner {
+  align-self: start;
+  min-height: 0;
 }
 
 .student-profile__lesson-card {
