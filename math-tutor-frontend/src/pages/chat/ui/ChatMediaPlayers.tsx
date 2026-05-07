@@ -37,6 +37,12 @@ export type AudioMessagePlaybackState = {
   ended?: boolean;
 };
 
+export type AudioMessagePlaybackCommand = {
+  id: string;
+  action: "toggle";
+  token: number;
+};
+
 const resizeWaveform = (input: number[], targetBars: number): number[] => {
   if (input.length === 0) return [];
   if (input.length === targetBars) return input;
@@ -64,6 +70,8 @@ export function AudioMessagePlayer({
   listenedByPeer,
   onListened,
   playbackRate = 1,
+  playbackCommand,
+  resumeTime,
   activeAudioId,
   onPlaybackStateChange,
   messageTimestamp,
@@ -79,6 +87,8 @@ export function AudioMessagePlayer({
   listenedByPeer?: boolean;
   onListened?: () => void;
   playbackRate?: number;
+  playbackCommand?: AudioMessagePlaybackCommand | null;
+  resumeTime?: number;
   activeAudioId?: string | null;
   onPlaybackStateChange?: (state: AudioMessagePlaybackState) => void;
   messageTimestamp?: string;
@@ -90,8 +100,15 @@ export function AudioMessagePlayer({
   const waveSeekRef = useRef<HTMLDivElement | null>(null);
   const progressRafRef = useRef<number | null>(null);
   const isSeekingRef = useRef(false);
+  const handledPlaybackCommandTokenRef = useRef<number | null>(null);
+  const togglePlaybackRef = useRef<(() => Promise<void>) | null>(null);
   const listenedReportedRef = useRef(Boolean(listenedByPeer));
   const onListenedRef = useRef(onListened);
+  const resumeTimeRef = useRef(
+    typeof resumeTime === "number" && Number.isFinite(resumeTime)
+      ? Math.max(0, resumeTime)
+      : 0
+  );
   const durationRef = useRef(
     typeof durationSeconds === "number" && Number.isFinite(durationSeconds)
       ? Math.max(0, durationSeconds)
@@ -110,7 +127,7 @@ export function AudioMessagePlayer({
   );
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackSrc, setPlaybackSrc] = useState(src);
-  const audioSrc = isPlaying ? playbackSrc : src;
+  const audioSrc = playbackSrc;
   const audioIdentity = mediaIdentity?.trim() || src;
   const audioTitle = title?.trim() || "Голосовое сообщение";
   const safePlaybackRate =
@@ -244,6 +261,10 @@ export function AudioMessagePlayer({
     const audio = audioRef.current;
     if (!audio) return;
     if (audio.paused) {
+      const knownCurrentTime =
+        Number.isFinite(currentTime) && currentTime > 0.05
+          ? currentTime
+          : resumeTimeRef.current;
       if (
         Number.isFinite(audio.duration) &&
         audio.duration > 0 &&
@@ -251,9 +272,29 @@ export function AudioMessagePlayer({
       ) {
         audio.currentTime = 0;
         setCurrentTime(0);
+      } else if (knownCurrentTime > 0.05 && audio.currentTime < 0.05) {
+        const totalDuration =
+          Number.isFinite(audio.duration) && audio.duration > 0
+            ? audio.duration
+            : durationRef.current > 0
+              ? durationRef.current
+              : durationSecondsRef.current;
+        const safeResumeTime =
+          totalDuration > 0
+            ? Math.min(totalDuration - 0.02, knownCurrentTime)
+            : knownCurrentTime;
+        try {
+          audio.currentTime = Math.max(0, safeResumeTime);
+          setCurrentTime(Math.max(0, safeResumeTime));
+        } catch {
+          // Some browsers only allow seeking after metadata; keep React state as the source of truth.
+        }
       }
       setIsPlaying(true);
-      setPlaybackSrc(src);
+      if (playbackSrc !== src && knownCurrentTime <= 0.05) {
+        audio.src = src;
+        setPlaybackSrc(src);
+      }
       audio.playbackRate = safePlaybackRate;
       try {
         await audio.play();
@@ -269,7 +310,20 @@ export function AudioMessagePlayer({
     }
     audio.pause();
     setIsPlaying(false);
-  }, [emitPlaybackState, safePlaybackRate, src]);
+  }, [currentTime, emitPlaybackState, playbackSrc, safePlaybackRate, src]);
+
+  useEffect(() => {
+    togglePlaybackRef.current = togglePlayback;
+  }, [togglePlayback]);
+
+  useEffect(() => {
+    if (!playbackCommand || playbackCommand.id !== audioIdentity) return;
+    if (handledPlaybackCommandTokenRef.current === playbackCommand.token) return;
+    handledPlaybackCommandTokenRef.current = playbackCommand.token;
+    if (playbackCommand.action === "toggle") {
+      void togglePlaybackRef.current?.();
+    }
+  }, [audioIdentity, playbackCommand]);
 
   const handleWavePointerDown = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
@@ -343,6 +397,24 @@ export function AudioMessagePlayer({
         ? Math.max(0, durationSeconds)
         : 0;
   }, [durationSeconds]);
+
+  useEffect(() => {
+    const nextResumeTime =
+      typeof resumeTime === "number" && Number.isFinite(resumeTime)
+        ? Math.max(0, resumeTime)
+        : 0;
+    resumeTimeRef.current = nextResumeTime;
+    if (!isPlaying && nextResumeTime > 0.05 && currentTime < 0.05) {
+      const audio = audioRef.current;
+      if (audio && audio.currentTime < 0.05) {
+        try {
+          audio.currentTime = nextResumeTime;
+        } catch {
+          // Metadata may not be available yet; the value is applied again before playback.
+        }
+      }
+    }
+  }, [currentTime, isPlaying, resumeTime]);
 
   useEffect(() => {
     const audio = audioRef.current;

@@ -141,11 +141,13 @@ export function TeacherPlannerWorkspace({
   onEditNote,
   onDeleteNote,
 }: TeacherPlannerWorkspaceProps) {
+  const plannerRef = useRef<HTMLElement | null>(null);
   const isCompactLayout = useCompactPlannerLayout();
   const [weekStripRef, visibleWeekDayCount] = useVisiblePlannerDayCount();
   const [activeTab, setActiveTab] = useState<TeacherPlannerTabId>("all");
   const [selectedDateKey, setSelectedDateKey] = useState(() => toLocalDateKey(new Date()));
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const now = new Date();
   const todayKey = toLocalDateKey(now);
@@ -241,8 +243,35 @@ export function TeacherPlannerWorkspace({
     onCreateNote({ templateId: "custom", dateKey, startTime });
   };
 
+  const handleToggleFullscreen = async () => {
+    const planner = plannerRef.current;
+    if (!planner) return;
+    try {
+      if (document.fullscreenElement === planner) {
+        await document.exitFullscreen();
+        return;
+      }
+      await planner.requestFullscreen();
+    } catch {
+      // Browser can reject fullscreen if the user gesture is interrupted.
+    }
+  };
+
+  useEffect(() => {
+    const syncFullscreenState = () => {
+      setIsFullscreen(document.fullscreenElement === plannerRef.current);
+    };
+    document.addEventListener("fullscreenchange", syncFullscreenState);
+    return () => {
+      document.removeEventListener("fullscreenchange", syncFullscreenState);
+    };
+  }, []);
+
   return (
-    <section className="teacher-daily-planner">
+    <section
+      ref={plannerRef}
+      className={`teacher-daily-planner ${isFullscreen ? "is-fullscreen" : ""}`}
+    >
       <header className="teacher-daily-planner__hero">
         <div className="teacher-daily-planner__title">
           <h2>Календарь преподавателя</h2>
@@ -252,6 +281,18 @@ export function TeacherPlannerWorkspace({
           </p>
         </div>
         <div className="teacher-daily-planner__hero-actions">
+          <TeacherPlannerIconButton
+            label={
+              isFullscreen
+                ? "Выйти из полноэкранного режима"
+                : "Открыть календарь на весь экран"
+            }
+            className="teacher-daily-icon-button--fullscreen"
+            aria-pressed={isFullscreen}
+            onClick={() => void handleToggleFullscreen()}
+          >
+            <TeacherPlannerIcon name={isFullscreen ? "collapse" : "expand"} />
+          </TeacherPlannerIconButton>
           <TeacherPlannerButton
             variant="secondary"
             icon={<TeacherPlannerIcon name="calendar" />}

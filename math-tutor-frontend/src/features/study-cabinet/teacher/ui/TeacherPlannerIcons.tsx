@@ -13,6 +13,8 @@ export type TeacherPlannerIconName =
   | "day"
   | "edit"
   | "event"
+  | "collapse"
+  | "expand"
   | "link"
   | "lock"
   | "note"
@@ -107,6 +109,22 @@ export function TeacherPlannerIcon({ name, ...props }: TeacherPlannerIconProps) 
           <path d="M17 3v3" />
           <rect x="4" y="5" width="16" height="15" rx="3" />
           <path d="m8 13 2.5 2.5L16 10" />
+        </>
+      ) : null}
+      {name === "collapse" ? (
+        <>
+          <path d="M9 4v5H4" />
+          <path d="m4 9 5-5" />
+          <path d="M15 20v-5h5" />
+          <path d="m20 15-5 5" />
+        </>
+      ) : null}
+      {name === "expand" ? (
+        <>
+          <path d="M8 4H4v4" />
+          <path d="m4 4 6 6" />
+          <path d="M16 20h4v-4" />
+          <path d="m20 20-6-6" />
         </>
       ) : null}
       {name === "link" ? (

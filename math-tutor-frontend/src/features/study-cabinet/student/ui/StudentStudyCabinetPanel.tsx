@@ -12,15 +12,11 @@ import {
 } from "@mui/material";
 import AutoGraphRoundedIcon from "@mui/icons-material/AutoGraphRounded";
 import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
 import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
 import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
-import SnoozeRoundedIcon from "@mui/icons-material/SnoozeRounded";
 import TipsAndUpdatesRoundedIcon from "@mui/icons-material/TipsAndUpdatesRounded";
 import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
 import { getCourseReleaseContent } from "@/entities/course/model/storage";
@@ -36,22 +32,12 @@ import {
   getBestAssessmentAttemptsMap,
 } from "@/features/assessments/model/storage";
 import { buildPublishedCourseContentProjection } from "@/features/assessments/model/releaseContent";
-import {
-  defaultCabinetTaskState,
-  dismissCabinetTask,
-  normalizeCabinetTaskState,
-  snoozeCabinetTask,
-  unsnoozeCabinetTask,
-  type CabinetTaskState,
-} from "@/features/study-cabinet/shared/model/taskState";
 import type { StudentStudyCabinetPanelProps } from "@/features/study-cabinet/student/model/types";
 import { readStorage, writeStorage } from "@/shared/lib/localDb";
 import { lessonDurationToSeconds } from "@/shared/lib/duration";
 
 const SELECTED_COURSE_STORAGE_PREFIX = "student-cabinet:selected-course:";
-const TASK_STATE_STORAGE_PREFIX = "student-cabinet:task-state:";
 const RECOMMENDATION_HISTORY_STORAGE_PREFIX = "student-cabinet:last-rec-types:";
-const TASK_SNOOZE_MS = 1000 * 60 * 60 * 18;
 let jsPdfModulePromise: Promise<typeof import("jspdf")> | null = null;
 
 const loadJsPdfModule = () => {
@@ -81,20 +67,6 @@ type NextStepCard = {
   courseId?: string;
   blockId?: string;
   onContinue: () => void;
-};
-
-type TaskKind = "lesson" | "test" | "review" | "booking" | "course" | "note";
-
-type TaskItem = {
-  id: string;
-  title: string;
-  subtitle: string;
-  badge: string;
-  estimateSeconds?: number | null;
-  tone: "accent" | "warning" | "neutral";
-  kind: TaskKind;
-  onDoNow?: () => void;
-  source: "generated" | "manual";
 };
 
 type FocusItem = {
@@ -283,8 +255,6 @@ const scoreCandidate = (
   return score;
 };
 
-const getTaskStateKey = (userId: string) => `${TASK_STATE_STORAGE_PREFIX}${userId}`;
-
 const countStreak = (days: StudentStudyCabinetPanelProps["activityDays"]) => {
   let streak = 0;
   for (let index = days.length - 1; index >= 0; index -= 1) {
@@ -301,7 +271,6 @@ export function StudentStudyCabinetPanel({
   userId,
   courses,
   bookings,
-  notes,
   activityDays,
   onWorkbookClick,
   onChatClick,
@@ -314,16 +283,9 @@ export function StudentStudyCabinetPanel({
   chatLocked,
 }: StudentStudyCabinetPanelProps) {
   const [chooseAnotherOpen, setChooseAnotherOpen] = useState(false);
-  const [supportOpen, setSupportOpen] = useState(false);
-  const [activeReminderTab, setActiveReminderTab] = useState<"now" | "later">("now");
   const [activeRhythmDayKey, setActiveRhythmDayKey] = useState<string | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string>(() =>
     readStorage<string>(`${SELECTED_COURSE_STORAGE_PREFIX}${userId}`, "")
-  );
-  const [taskState, setTaskState] = useState<CabinetTaskState>(() =>
-    normalizeCabinetTaskState(
-      readStorage<CabinetTaskState>(getTaskStateKey(userId), defaultCabinetTaskState)
-    )
   );
   const [activeCourseData, setActiveCourseData] = useState<ActiveCourseData | null>(null);
   const [courseDetailsLoading, setCourseDetailsLoading] = useState(false);
@@ -406,15 +368,6 @@ export function StudentStudyCabinetPanel({
       cancelled = true;
     };
   }, [selectedCourseId, userId]);
-
-  const normalizedTaskState = useMemo(
-    () => normalizeCabinetTaskState(taskState),
-    [taskState]
-  );
-
-  useEffect(() => {
-    writeStorage(getTaskStateKey(userId), normalizedTaskState);
-  }, [normalizedTaskState, userId]);
 
   const activeCourseSummary = useMemo(
     () => courses.find((item) => item.course.id === selectedCourseId) ?? null,
@@ -802,126 +755,6 @@ export function StudentStudyCabinetPanel({
   const nearestBooking = sortedBookings.upcoming[0] ?? null;
   const reviewLead = qualitySummary.itemsToReview[0] ?? null;
 
-  const generatedTasks = useMemo<TaskItem[]>(() => {
-    const tasks: TaskItem[] = [];
-    if (nextStep) {
-      tasks.push({
-        id: `task-${nextStep.id}`,
-        title: nextStep.title,
-        subtitle: nextStep.subtitle,
-        badge: nextStep.kind === "lesson" ? "Продолжить" : nextStep.kind === "test" ? "Тест" : nextStep.kind === "review" ? "Повторить" : "Занятие",
-        estimateSeconds: nextStep.estimateSeconds,
-        tone: "accent",
-        kind: nextStep.kind === "booking" ? "booking" : nextStep.kind,
-        onDoNow: nextStep.onContinue,
-        source: "generated",
-      });
-    }
-
-    courses
-      .filter((item) => item.progress < 100)
-      .forEach((item) => {
-        const daysSincePurchase = Math.floor(
-          (Date.now() - new Date(item.purchasedAt).getTime()) / (1000 * 60 * 60 * 24)
-        );
-        if (!Number.isFinite(daysSincePurchase) || daysSincePurchase < 10) return;
-        tasks.push({
-          id: `course-${item.course.id}`,
-          title: `Вернуться к курсу «${item.course.title}»`,
-          subtitle: `Есть непройденные материалы (${item.progress}% официального прогресса).`,
-          badge: "Курс",
-          estimateSeconds: item.remainingSeconds > 0 ? item.remainingSeconds : null,
-          tone: "warning",
-          kind: "course",
-          onDoNow: () => onOpenCourse?.(item.course.id, { source: "reminder" }),
-          source: "generated",
-        });
-      });
-
-    qualitySummary.itemsToReview.forEach((item) => {
-      tasks.push({
-        id: `review-${item.id}`,
-        title: item.title,
-        subtitle: item.label,
-        badge: "Повторить",
-        estimateSeconds: item.estimateSeconds,
-        tone: "warning",
-        kind: "review",
-        onDoNow: item.onReview,
-        source: "generated",
-      });
-    });
-
-    notes
-      .filter((note) => note.remind && !note.done && note.dueAt)
-      .forEach((note) => {
-        const noteEstimate =
-          note.dueAt && note.endAt
-            ? Math.max(
-                0,
-                Math.round(
-                  (new Date(note.endAt).getTime() - new Date(note.dueAt).getTime()) / 1000
-                )
-              )
-            : null;
-        tasks.push({
-          id: `note-${note.id}`,
-          title: note.title,
-          subtitle: note.body || `Напоминание на ${formatShortDateTime(note.dueAt ?? "")}`,
-          badge: "Заметка",
-          estimateSeconds: noteEstimate,
-          tone: "neutral",
-          kind: "note",
-          source: "manual",
-        });
-      });
-
-    if (bookingCta) {
-      tasks.push({
-        id: `booking-cta-${bookings.length}`,
-        title: bookingCta.title,
-        subtitle: bookingCta.subtitle,
-        badge: bookings.length ? "1:1" : "Пробное",
-        estimateSeconds: 45 * 60,
-        tone: "accent",
-        kind: "booking",
-        onDoNow: bookingCta.onAction,
-        source: "generated",
-      });
-    }
-
-    const seen = new Set<string>();
-    return tasks.filter((task) => {
-      if (seen.has(task.id)) return false;
-      seen.add(task.id);
-      return true;
-    });
-  }, [nextStep, courses, qualitySummary.itemsToReview, notes, bookingCta, bookings.length, onOpenCourse]);
-
-  const dismissedTaskSet = useMemo(
-    () => new Set(normalizedTaskState.dismissed),
-    [normalizedTaskState.dismissed]
-  );
-
-  const reminderTasks = useMemo(() => {
-    const now = Date.now();
-    const active = generatedTasks.filter((task) => {
-      if (dismissedTaskSet.has(task.id)) return false;
-      const snoozeUntil = normalizedTaskState.snoozed[task.id];
-      return !(typeof snoozeUntil === "number" && snoozeUntil > now);
-    });
-    const snoozed = generatedTasks.filter((task) => {
-      if (dismissedTaskSet.has(task.id)) return false;
-      const snoozeUntil = normalizedTaskState.snoozed[task.id];
-      return typeof snoozeUntil === "number" && snoozeUntil > now;
-    });
-
-    return {
-      now: active.slice(0, 6),
-      later: snoozed.slice(0, 6),
-    };
-  }, [dismissedTaskSet, generatedTasks, normalizedTaskState.snoozed]);
-
   const quickChoices = useMemo<QuickChoiceItem[]>(() => {
     const choices: QuickChoiceItem[] = [];
     if (activeCourseSummary) {
@@ -962,22 +795,6 @@ export function StudentStudyCabinetPanel({
 
     return choices;
   }, [activeCourseSummary, candidateSteps, onOpenCourse, onOpenLesson, onOpenTest]);
-
-  const handleSnoozeTask = (taskId: string) => {
-    setTaskState((prev) =>
-      normalizeCabinetTaskState(
-        snoozeCabinetTask(prev, taskId, Date.now() + TASK_SNOOZE_MS)
-      )
-    );
-  };
-
-  const handleDismissTask = (taskId: string) => {
-    setTaskState((prev) => normalizeCabinetTaskState(dismissCabinetTask(prev, taskId)));
-  };
-
-  const handleUnsnoozeTask = (taskId: string) => {
-    setTaskState((prev) => normalizeCabinetTaskState(unsnoozeCabinetTask(prev, taskId)));
-  };
 
   const downloadReport = async () => {
     if (reportExporting) return;
@@ -1037,68 +854,9 @@ export function StudentStudyCabinetPanel({
     }
   };
 
-  const renderTaskIcon = (kind: TaskKind) => {
-    if (kind === "lesson") return <AutoStoriesRoundedIcon fontSize="inherit" />;
-    if (kind === "test" || kind === "review") {
-      return <WorkspacePremiumRoundedIcon fontSize="inherit" />;
-    }
-    if (kind === "booking") return <EventAvailableRoundedIcon fontSize="inherit" />;
-    if (kind === "course") return <TipsAndUpdatesRoundedIcon fontSize="inherit" />;
-    return <ScheduleRoundedIcon fontSize="inherit" />;
-  };
-
-  const renderTaskCard = (task: TaskItem, isLater: boolean) => (
-    <article
-      key={task.id}
-      className={`study-cabinet-panel__student-task study-cabinet-panel__student-task--${task.tone}`}
-    >
-      <div className="study-cabinet-panel__student-task-head">
-        <span className="study-cabinet-panel__student-task-badge">
-          {renderTaskIcon(task.kind)}
-          {task.badge}
-        </span>
-        {formatEstimate(task.estimateSeconds) ? (
-          <span className="study-cabinet-panel__student-task-time">
-            <ScheduleRoundedIcon fontSize="inherit" />
-            {formatEstimate(task.estimateSeconds)}
-          </span>
-        ) : null}
-      </div>
-      <strong>{task.title}</strong>
-      <p>{task.subtitle}</p>
-      <div className="study-cabinet-panel__student-task-actions">
-        <Button
-          size="small"
-          variant="contained"
-          className="study-cabinet-panel__student-task-btn study-cabinet-panel__student-task-btn--primary"
-          onClick={() => task.onDoNow?.()}
-          disabled={!task.onDoNow}
-        >
-          <PlayArrowRoundedIcon fontSize="inherit" />
-          {isLater ? "Вернуть" : "Сделать"}
-        </Button>
-        <Button
-          size="small"
-          variant="text"
-          className="study-cabinet-panel__student-task-btn"
-          onClick={() => (isLater ? handleUnsnoozeTask(task.id) : handleSnoozeTask(task.id))}
-        >
-          <SnoozeRoundedIcon fontSize="inherit" />
-          {isLater ? "Оставить" : "Отложить"}
-        </Button>
-        <Button
-          size="small"
-          color="inherit"
-          variant="text"
-          className="study-cabinet-panel__student-task-btn"
-          onClick={() => handleDismissTask(task.id)}
-        >
-          <CloseRoundedIcon fontSize="inherit" />
-          Скрыть
-        </Button>
-      </div>
-    </article>
-  );
+  const completedCourseUnits = courseProgress.completedVideos + courseProgress.completedTests;
+  const totalCourseUnits = courseProgress.totalVideos + courseProgress.totalTests;
+  const selectedCourseTitle = activeCourseSummary?.course.title ?? "Маршрут обучения";
 
   if (!courses.length) {
     return (
@@ -1153,15 +911,19 @@ export function StudentStudyCabinetPanel({
     <section className="study-cabinet-panel study-cabinet-panel--student-redesign">
       <div className="study-cabinet-panel__cover">
         <div className="study-cabinet-panel__cover-content">
-          <div className="study-cabinet-panel__hero study-cabinet-panel__student-hero">
-            <div className="study-cabinet-panel__hero-bar">
+          <div className="study-cabinet-panel__student-command">
+            <div className="study-cabinet-panel__student-command-copy">
               <span className="study-cabinet-panel__kicker">Учебный кабинет</span>
+              <h2>{selectedCourseTitle}</h2>
+              <p>Личный маршрут: следующий шаг, прогресс, занятия и учебный ритм.</p>
+            </div>
+            <div className="study-cabinet-panel__student-command-side">
               <div className="study-cabinet-panel__student-indicators">
                 <span className="study-cabinet-panel__student-pill">
-                  <AutoGraphRoundedIcon fontSize="inherit" /> Прогресс {courseProgress.percent}%
+                  <AutoGraphRoundedIcon fontSize="inherit" /> {courseProgress.percent}%
                 </span>
                 <span className="study-cabinet-panel__student-pill">
-                  <LocalFireDepartmentRoundedIcon fontSize="inherit" /> В кабинете {formatDuration(cabinetTimeSeconds)}
+                  <LocalFireDepartmentRoundedIcon fontSize="inherit" /> {formatDuration(cabinetTimeSeconds)}
                 </span>
                 <Tooltip title="Скачать краткий PDF-отчёт">
                   <IconButton
@@ -1180,265 +942,151 @@ export function StudentStudyCabinetPanel({
                   </IconButton>
                 </Tooltip>
               </div>
-            </div>
-            {reportExportError ? (
-              <div className="study-cabinet-panel__student-inline-error">{reportExportError}</div>
-            ) : null}
-            <div className="study-cabinet-panel__hero-nav study-cabinet-panel__student-hero-nav">
-              {onWorkbookClick ? (
-                <Button
-                  className="study-cabinet-panel__hero-btn study-cabinet-panel__hero-btn--chat"
-                  variant="contained"
-                  onClick={onWorkbookClick}
-                >
-                  Рабочая тетрадь
-                </Button>
-              ) : null}
-              {onChatClick ? (
-                <Button
-                  className="study-cabinet-panel__hero-btn"
-                  variant="outlined"
-                  onClick={onChatClick}
-                  disabled={chatDisabled || chatLocked}
-                >
-                  Чат{chatLocked ? " (закрыт)" : ""}
-                </Button>
-              ) : null}
-              {onBrowseCourses ? (
-                <Button
-                  className="study-cabinet-panel__hero-btn"
-                  variant="outlined"
-                  onClick={onBrowseCourses}
-                >
-                  Каталог курсов
-                </Button>
-              ) : null}
-            </div>
-            <div className="study-cabinet-panel__student-hero-grid">
-              <div className="study-cabinet-panel__student-lead">
-                <div className="study-cabinet-panel__student-next-card">
-                  {courseDetailsLoading ? (
-                    <div className="study-cabinet-panel__student-loading-inline">
-                      <CircularProgress size={18} />
-                      <span>Собираем следующий шаг...</span>
-                    </div>
-                  ) : courseDetailsError ? (
-                    <div className="study-cabinet-panel__student-inline-error">{courseDetailsError}</div>
-                  ) : nextStep ? (
-                    <>
-                      <div className="study-cabinet-panel__student-next-topline">
-                        <span className={`study-cabinet-panel__student-next-badge study-cabinet-panel__student-next-badge--${nextStep.kind}`}>
-                          {getNextStepBadgeLabel(nextStep.kind)}
-                        </span>
-                        {formatEstimate(nextStep.estimateSeconds) ? (
-                          <span className="study-cabinet-panel__student-next-time">
-                            <ScheduleRoundedIcon fontSize="inherit" /> {formatEstimate(nextStep.estimateSeconds)}
-                          </span>
-                        ) : null}
-                      </div>
-                      <strong>{nextStep.title}</strong>
-                      <div className="study-cabinet-panel__student-next-description">
-                        <p>{nextStep.subtitle}</p>
-                      </div>
-                      <div className="study-cabinet-panel__student-next-actions">
-                        <Button variant="contained" onClick={nextStep.onContinue}>Продолжить</Button>
-                        <Button variant="outlined" onClick={() => setChooseAnotherOpen(true)}>Выбрать другое</Button>
-                        <Button variant="text" onClick={() => setSupportOpen((prev) => !prev)}>Мне трудно</Button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <strong>Выберите комфортный темп</strong>
-                      <p>Откройте любой урок, тест или занятие в удобный момент.</p>
-                      <div className="study-cabinet-panel__student-next-actions">
-                        <Button variant="contained" onClick={() => setChooseAnotherOpen(true)}>Выбрать действие</Button>
-                      </div>
-                    </>
-                  )}
-                  {supportOpen ? (
-                    <div className="study-cabinet-panel__student-support-row">
-                      {bookingCta ? (
-                        <button type="button" onClick={bookingCta.onAction}>
-                          <EventAvailableRoundedIcon fontSize="inherit" /> {bookingCta.actionLabel}
-                        </button>
-                      ) : null}
-                      <button type="button" onClick={onChatClick} disabled={chatDisabled || chatLocked}>
-                        <ForumRoundedIcon fontSize="inherit" /> Написать преподавателю
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="study-cabinet-panel__student-metrics-grid">
-                  <article className="study-cabinet-panel__student-metric-card study-cabinet-panel__student-metric-card--progress">
-                    <div className="study-cabinet-panel__student-metric-header">
-                      <span className="study-cabinet-panel__student-metric-heading">
-                        <AutoGraphRoundedIcon fontSize="inherit" />
-                        Прогресс
-                      </span>
-                    </div>
-                    <div className="study-cabinet-panel__student-metric-shell study-cabinet-panel__student-metric-shell--progress">
-                      <div
-                        className="study-cabinet-panel__student-progress-orbit"
-                        style={{
-                          background: `conic-gradient(
-                            ${getProgressTone(Math.max(0, courseProgress.percent - 22))} 0deg,
-                            ${getProgressTone(courseProgress.percent)} ${Math.max(
-                              10,
-                              Math.round((courseProgress.percent / 100) * 360)
-                            )}deg,
-                            color-mix(in srgb, var(--surface-soft) 94%, transparent) ${Math.max(
-                              10,
-                              Math.round((courseProgress.percent / 100) * 360)
-                            )}deg,
-                            color-mix(in srgb, var(--surface-soft) 94%, transparent) 360deg
-                          )`,
-                        }}
-                      >
-                        <span className="study-cabinet-panel__student-progress-orbit-core">
-                          <strong>{courseProgress.percent}%</strong>
-                        </span>
-                      </div>
-                      <div className="study-cabinet-panel__student-metric-content">
-                        <p className="study-cabinet-panel__student-progress-note">
-                          Прогресс обновляется только по завершённым урокам и тестам.
-                        </p>
-                      </div>
-                    </div>
-                  </article>
-
-                  <article className="study-cabinet-panel__student-metric-card study-cabinet-panel__student-metric-card--rhythm">
-                    <div className="study-cabinet-panel__student-metric-header">
-                      <span className="study-cabinet-panel__student-metric-heading">
-                        <LocalFireDepartmentRoundedIcon fontSize="inherit" />
-                        Ритм обучения
-                      </span>
-                    </div>
-                    <div className="study-cabinet-panel__student-metric-shell study-cabinet-panel__student-metric-shell--rhythm">
-                      <div className="study-cabinet-panel__student-metric-content">
-                        <div className="study-cabinet-panel__student-metric-pill-row">
-                          <span className="study-cabinet-panel__student-rhythm-frame">
-                            {bestRhythmDayLabel
-                              ? `За 7 дней: ${formatDuration(cabinetTimeSeconds)} · Пик: ${bestRhythmDayLabel}`
-                              : `За 7 дней: ${formatDuration(cabinetTimeSeconds)}`}
-                          </span>
-                        </div>
-                        <p>Учитывается активность за последние 7 дней.</p>
-                      </div>
-                    </div>
-                  </article>
-
-                  <article className="study-cabinet-panel__student-metric-card study-cabinet-panel__student-metric-card--quality">
-                    <div className="study-cabinet-panel__student-metric-header">
-                      <span className="study-cabinet-panel__student-metric-heading">
-                        <WorkspacePremiumRoundedIcon fontSize="inherit" />
-                        Что повторить
-                      </span>
-                    </div>
-                    <div className="study-cabinet-panel__student-metric-shell study-cabinet-panel__student-metric-shell--quality">
-                      <div className="study-cabinet-panel__student-metric-content">
-                        <span className="study-cabinet-panel__student-metric-lead">
-                          Лучший результат {qualitySummary.bestRecent}%
-                        </span>
-                        <p>
-                          {reviewLead
-                            ? `В фокусе: ${reviewLead.title}`
-                            : "Сейчас можно двигаться дальше."}
-                        </p>
-                        <div className="study-cabinet-panel__student-metric-footnote">
-                          {reviewLead
-                            ? reviewLead.label
-                            : "Критичных пробелов не найдено."}
-                        </div>
-                      </div>
-                      <div className="study-cabinet-panel__student-quality-pulse">
-                        {reviewLead ? (
-                          <Button size="small" onClick={reviewLead.onReview}>
-                            Повторить
-                          </Button>
-                        ) : null}
-                      </div>
-                    </div>
-                  </article>
-
-                  <article className="study-cabinet-panel__student-metric-card study-cabinet-panel__student-metric-card--booking">
-                    <div className="study-cabinet-panel__student-metric-header">
-                      <span className="study-cabinet-panel__student-metric-heading">
-                        <EventAvailableRoundedIcon fontSize="inherit" />
-                        Занятия
-                      </span>
-                    </div>
-                    <div className="study-cabinet-panel__student-metric-shell study-cabinet-panel__student-metric-shell--booking">
-                      <div className="study-cabinet-panel__student-metric-content">
-                        <span className="study-cabinet-panel__student-metric-lead">
-                          {nearestBooking
-                            ? `Ближайшая запись ${formatShortDateTime(
-                                getBookingStart(nearestBooking.date, nearestBooking.startTime)?.toISOString() ??
-                                  `${nearestBooking.date}T${nearestBooking.startTime}`
-                              )}`
-                            : "Пока нет записей"}
-                        </span>
-                        <p>
-                          {nearestBooking
-                            ? bookingCta?.subtitle
-                            : bookings.length
-                              ? "Следующее индивидуальное занятие можно запланировать в удобный слот."
-                              : "Первое индивидуальное занятие доступно в формате пробного."}
-                        </p>
-                        {bookingCta ? (
-                          <div className="study-cabinet-panel__student-metric-footer">
-                            <Button
-                              size="small"
-                              variant="contained"
-                              className="study-cabinet-panel__student-booking-action"
-                              onClick={bookingCta.onAction}
-                            >
-                              <ArrowForwardRoundedIcon fontSize="inherit" />
-                              {bookingCta.actionLabel}
-                            </Button>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </article>
-                </div>
+              <div className="study-cabinet-panel__hero-nav study-cabinet-panel__student-hero-nav">
+                {onWorkbookClick ? (
+                  <Button
+                    className="study-cabinet-panel__hero-btn study-cabinet-panel__hero-btn--chat"
+                    variant="contained"
+                    onClick={onWorkbookClick}
+                  >
+                    Рабочая тетрадь
+                  </Button>
+                ) : null}
+                {onChatClick ? (
+                  <Button
+                    className="study-cabinet-panel__hero-btn"
+                    variant="outlined"
+                    onClick={onChatClick}
+                    disabled={chatDisabled || chatLocked}
+                  >
+                    Чат{chatLocked ? " (закрыт)" : ""}
+                  </Button>
+                ) : null}
+                {onBrowseCourses ? (
+                  <Button
+                    className="study-cabinet-panel__hero-btn"
+                    variant="outlined"
+                    onClick={onBrowseCourses}
+                  >
+                    Каталог курсов
+                  </Button>
+                ) : null}
               </div>
-
-              <aside className="study-cabinet-panel__student-reminders-card">
-                  <div className="study-cabinet-panel__smart-head">
-                    <span className="study-cabinet-panel__kicker">Напоминания</span>
-                  <div className="study-cabinet-panel__student-tabset">
-                    <button
-                      type="button"
-                      className={activeReminderTab === "now" ? "is-active" : ""}
-                      onClick={() => setActiveReminderTab("now")}
-                    >
-                      Важно сейчас
-                    </button>
-                    <button
-                      type="button"
-                      className={activeReminderTab === "later" ? "is-active" : ""}
-                      onClick={() => setActiveReminderTab("later")}
-                    >
-                      Позже
-                    </button>
-                  </div>
-                </div>
-                <div className="study-cabinet-panel__student-task-list">
-                  {(activeReminderTab === "now" ? reminderTasks.now : reminderTasks.later).length > 0 ? (
-                    (activeReminderTab === "now" ? reminderTasks.now : reminderTasks.later).map((task) =>
-                      renderTaskCard(task, activeReminderTab === "later")
-                    )
-                  ) : (
-                    <div className="study-cabinet-panel__empty">
-                      {activeReminderTab === "now"
-                        ? "Срочных задач нет."
-                        : "Отложенных задач пока нет."}
-                    </div>
-                  )}
-                </div>
-              </aside>
             </div>
+          </div>
+          {reportExportError ? (
+            <div className="study-cabinet-panel__student-inline-error">{reportExportError}</div>
+          ) : null}
+          <div className="study-cabinet-panel__student-main-grid">
+            <section className="study-cabinet-panel__student-next-card">
+              {courseDetailsLoading ? (
+                <div className="study-cabinet-panel__student-loading-inline">
+                  <CircularProgress size={18} />
+                  <span>Собираем следующий шаг...</span>
+                </div>
+              ) : courseDetailsError ? (
+                <div className="study-cabinet-panel__student-inline-error">{courseDetailsError}</div>
+              ) : nextStep ? (
+                <>
+                  <div className="study-cabinet-panel__student-next-topline">
+                    <span className={`study-cabinet-panel__student-next-badge study-cabinet-panel__student-next-badge--${nextStep.kind}`}>
+                      {getNextStepBadgeLabel(nextStep.kind)}
+                    </span>
+                    {formatEstimate(nextStep.estimateSeconds) ? (
+                      <span className="study-cabinet-panel__student-next-time">
+                        <ScheduleRoundedIcon fontSize="inherit" /> {formatEstimate(nextStep.estimateSeconds)}
+                      </span>
+                    ) : null}
+                  </div>
+                  <strong>{nextStep.title}</strong>
+                  <p>{nextStep.subtitle}</p>
+                  <div className="study-cabinet-panel__student-next-actions">
+                    <Button variant="contained" onClick={nextStep.onContinue}>Продолжить</Button>
+                    <Button variant="outlined" onClick={() => setChooseAnotherOpen(true)}>Выбрать другое</Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="study-cabinet-panel__student-next-topline">
+                    <span className="study-cabinet-panel__student-next-badge">Свободный темп</span>
+                  </div>
+                  <strong>Выберите комфортный шаг</strong>
+                  <p>Откройте урок, тест или занятие в удобный момент.</p>
+                  <div className="study-cabinet-panel__student-next-actions">
+                    <Button variant="contained" onClick={() => setChooseAnotherOpen(true)}>Выбрать действие</Button>
+                  </div>
+                </>
+              )}
+              <div className="study-cabinet-panel__student-assist-strip">
+                {bookingCta ? (
+                  <button type="button" onClick={bookingCta.onAction}>
+                    <EventAvailableRoundedIcon fontSize="inherit" />
+                    <span>{bookingCta.actionLabel}</span>
+                  </button>
+                ) : null}
+                {onChatClick ? (
+                  <button type="button" onClick={onChatClick} disabled={chatDisabled || chatLocked}>
+                    <ForumRoundedIcon fontSize="inherit" />
+                    <span>Написать преподавателю</span>
+                  </button>
+                ) : null}
+              </div>
+            </section>
+
+            <aside className="study-cabinet-panel__student-insights-panel" aria-label="Сводка обучения">
+              <article className="study-cabinet-panel__student-insight-card study-cabinet-panel__student-insight-card--progress">
+                <span className="study-cabinet-panel__student-insight-label">
+                  <AutoGraphRoundedIcon fontSize="inherit" />
+                  Прогресс
+                </span>
+                <strong>{courseProgress.percent}%</strong>
+                <small>{completedCourseUnits}/{totalCourseUnits || 0} шагов завершено</small>
+                <span className="study-cabinet-panel__student-insight-track">
+                  <i style={{ width: `${courseProgress.percent}%` }} />
+                </span>
+              </article>
+              <article className="study-cabinet-panel__student-insight-card">
+                <span className="study-cabinet-panel__student-insight-label">
+                  <WorkspacePremiumRoundedIcon fontSize="inherit" />
+                  Практика
+                </span>
+                <strong>{qualitySummary.bestRecent}%</strong>
+                <small>{reviewLead ? reviewLead.label : "Повторение не требуется"}</small>
+                {reviewLead ? (
+                  <button type="button" onClick={reviewLead.onReview}>
+                    Повторить
+                  </button>
+                ) : null}
+              </article>
+              <article className="study-cabinet-panel__student-insight-card">
+                <span className="study-cabinet-panel__student-insight-label">
+                  <LocalFireDepartmentRoundedIcon fontSize="inherit" />
+                  Ритм
+                </span>
+                <strong>{formatDuration(cabinetTimeSeconds)}</strong>
+                <small>{momentum.learningDays} учебн. дн. за неделю</small>
+              </article>
+              <article className="study-cabinet-panel__student-insight-card">
+                <span className="study-cabinet-panel__student-insight-label">
+                  <EventAvailableRoundedIcon fontSize="inherit" />
+                  Занятия
+                </span>
+                <strong>
+                  {nearestBooking
+                    ? formatShortDateTime(
+                        getBookingStart(nearestBooking.date, nearestBooking.startTime)?.toISOString() ??
+                          `${nearestBooking.date}T${nearestBooking.startTime}`
+                      )
+                    : "Нет записи"}
+                </strong>
+                <small>{bookingCta?.subtitle ?? "Индивидуальный слот можно выбрать позже"}</small>
+                {bookingCta ? (
+                  <button type="button" onClick={bookingCta.onAction}>
+                    {bookingCta.actionLabel}
+                  </button>
+                ) : null}
+              </article>
+            </aside>
           </div>
         </div>
       </div>
@@ -1446,7 +1094,10 @@ export function StudentStudyCabinetPanel({
       <div className="study-cabinet-panel__student-content-grid">
         <section className="study-cabinet-panel__smart-card study-cabinet-panel__student-smart-card">
           <div className="study-cabinet-panel__student-focus-head">
-            <span className="study-cabinet-panel__kicker">Фокус обучения</span>
+            <div>
+              <span className="study-cabinet-panel__kicker">Фокус обучения</span>
+              <h3>Ближайшие действия</h3>
+            </div>
             {activeCourseSummary ? (
               <Button size="small" onClick={() => onOpenCourse?.(activeCourseSummary.course.id, { source: "block-map" })}>
                 Открыть курс
@@ -1505,7 +1156,7 @@ export function StudentStudyCabinetPanel({
                     {item.kind === "course" && typeof item.progressPercent === "number" ? (
                       <div className="study-cabinet-panel__student-focus-xp">
                         <div className="study-cabinet-panel__student-focus-xp-topline">
-                          <span>Шкала прогресса</span>
+                          <span>Прогресс курса</span>
                           <strong>{item.progressPercent}%</strong>
                         </div>
                         <div className="study-cabinet-panel__student-focus-xp-track">
@@ -1549,39 +1200,25 @@ export function StudentStudyCabinetPanel({
           <div className="study-cabinet-panel__student-rhythm-head">
             <div className="study-cabinet-panel__student-rhythm-title">
               <span className="study-cabinet-panel__kicker">Ритм обучения</span>
-              <p>Показываем активность за последние 7 дней.</p>
+              <h3>Последние 7 дней</h3>
             </div>
             <div className="study-cabinet-panel__student-rhythm-stats">
-              <span>
-                {bestRhythmDayLabel
-                  ? `За 7 дней: ${formatDuration(cabinetTimeSeconds)} · Пик: ${bestRhythmDayLabel}`
-                  : `За 7 дней: ${formatDuration(cabinetTimeSeconds)}`}
-              </span>
+              <span>{formatDuration(cabinetTimeSeconds)}</span>
+              {bestRhythmDayLabel ? <span>Пик: {bestRhythmDayLabel}</span> : null}
             </div>
           </div>
           <div className="study-cabinet-panel__student-rhythm-stage">
             <div className="study-cabinet-panel__student-rhythm-overview" role="list" aria-label="Итоги недели">
               <div className="study-cabinet-panel__student-rhythm-overview-card" role="listitem">
                 <small>Видеоуроки</small>
-                <strong>{viewedVideoSeconds > 0 ? formatDuration(viewedVideoSeconds) : "Пока нет данных"}</strong>
+                <strong>{viewedVideoSeconds > 0 ? formatDuration(viewedVideoSeconds) : "Нет данных"}</strong>
               </div>
               <div className="study-cabinet-panel__student-rhythm-overview-card" role="listitem">
-                <small>Среднее за учебный день</small>
-                <strong>{averageRhythmDaySeconds > 0 ? formatDuration(averageRhythmDaySeconds) : "Пока нет данных"}</strong>
+                <small>Среднее за день</small>
+                <strong>{averageRhythmDaySeconds > 0 ? formatDuration(averageRhythmDaySeconds) : "Нет данных"}</strong>
               </div>
             </div>
-            <div className="study-cabinet-panel__student-rhythm-chart">
-              <div className="study-cabinet-panel__student-rhythm-chart-grid" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-                <i />
-              </div>
-              <div className="study-cabinet-panel__student-rhythm-tooltip is-idle">
-                Наведите на столбец, чтобы увидеть время по каждому дню
-              </div>
-            </div>
-            <div className="study-cabinet-panel__student-rhythm-bars" role="list" aria-label="Активность по дням недели">
+            <div className="study-cabinet-panel__student-activity-strip" role="list" aria-label="Активность по дням недели">
               {activityDays.map((day) => {
                 const heightRatio =
                   day.minutes > 0
@@ -1599,7 +1236,8 @@ export function StudentStudyCabinetPanel({
                     key={day.key}
                     type="button"
                     role="listitem"
-                    className={`study-cabinet-panel__student-rhythm-bar ${day.minutes > 0 ? "is-active" : ""} ${
+                    aria-label={`${day.label}: ${day.minutes > 0 ? formatDuration(day.minutes * 60) : "0 сек"}`}
+                    className={`study-cabinet-panel__student-activity-day ${day.minutes > 0 ? "is-active" : ""} ${
                       activeRhythmDayKey === day.key ? "is-hovered" : ""
                     }`}
                     onMouseEnter={() => setActiveRhythmDayKey(day.key)}
@@ -1610,15 +1248,13 @@ export function StudentStudyCabinetPanel({
                       setActiveRhythmDayKey((current) => (current === day.key ? null : day.key))
                     }
                   >
-                    <span className="study-cabinet-panel__student-rhythm-bar-value">
-                      {day.minutes > 0 ? formatDuration(day.minutes * 60) : "0 сек"}
+                    <span className="study-cabinet-panel__student-activity-value">
+                      {day.minutes > 0 ? formatDuration(day.minutes * 60) : "0"}
                     </span>
-                    <span className="study-cabinet-panel__student-rhythm-bar-column">
-                      <i
-                        style={barStyle}
-                      />
+                    <span className="study-cabinet-panel__student-activity-capsule">
+                      <i style={barStyle} />
                     </span>
-                    <span className="study-cabinet-panel__student-rhythm-bar-label">{day.label}</span>
+                    <span className="study-cabinet-panel__student-activity-label">{day.label}</span>
                   </button>
                 );
               })}

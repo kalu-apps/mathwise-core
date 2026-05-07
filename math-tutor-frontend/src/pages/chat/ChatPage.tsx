@@ -37,7 +37,8 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import DeleteSweepRoundedIcon from "@mui/icons-material/DeleteSweepRounded";
 import OpenInFullRoundedIcon from "@mui/icons-material/OpenInFullRounded";
 import CloseFullscreenRoundedIcon from "@mui/icons-material/CloseFullscreenRounded";
-import GraphicEqRoundedIcon from "@mui/icons-material/GraphicEqRounded";
+import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
+import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import {
@@ -84,6 +85,7 @@ import {
 } from "@/pages/chat/model/chatPageUtils";
 import {
   AudioMessagePlayer,
+  type AudioMessagePlaybackCommand,
   type AudioMessagePlaybackState,
 } from "@/pages/chat/ui/ChatMediaPlayers";
 
@@ -201,6 +203,10 @@ export default function ChatPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeAudio, setActiveAudio] =
     useState<AudioMessagePlaybackState | null>(null);
+  const [audioPlaybackCommand, setAudioPlaybackCommand] =
+    useState<AudioMessagePlaybackCommand | null>(null);
+  const [audioPlaybackPositionById, setAudioPlaybackPositionById] =
+    useState<Record<string, number>>({});
   const [audioPlaybackRateByThreadId, setAudioPlaybackRateByThreadId] =
     useState<Record<string, number>>({});
 
@@ -528,7 +534,7 @@ export default function ChatPage() {
   const selectedThreadAudioRate = selectedThreadId
     ? audioPlaybackRateByThreadId[selectedThreadId] ?? 1
     : 1;
-  const activeAudioDock = activeAudio?.isPlaying ? activeAudio : null;
+  const activeAudioDock = activeAudio?.ended ? null : activeAudio;
   const activeAudioProgressRatio =
     activeAudioDock && activeAudioDock.duration > 0
       ? Math.min(
@@ -539,6 +545,27 @@ export default function ChatPage() {
 
   const handleAudioPlaybackStateChange = useCallback(
     (state: AudioMessagePlaybackState) => {
+      setAudioPlaybackPositionById((current) => {
+        if (state.ended) {
+          if (!Object.prototype.hasOwnProperty.call(current, state.id)) {
+            return current;
+          }
+          const next = { ...current };
+          delete next[state.id];
+          return next;
+        }
+        const nextTime =
+          Number.isFinite(state.currentTime) && state.currentTime > 0
+            ? state.currentTime
+            : 0;
+        if (Math.abs((current[state.id] ?? 0) - nextTime) < 0.05) {
+          return current;
+        }
+        return {
+          ...current,
+          [state.id]: nextTime,
+        };
+      });
       setActiveAudio((current) => {
         if (state.ended) {
           return current?.id === state.id ? null : current;
@@ -557,6 +584,15 @@ export default function ChatPage() {
     },
     []
   );
+
+  const handleToggleActiveAudioDock = useCallback(() => {
+    if (!activeAudioDock) return;
+    setAudioPlaybackCommand({
+      id: activeAudioDock.id,
+      action: "toggle",
+      token: window.performance.now(),
+    });
+  }, [activeAudioDock]);
 
   const handleSetThreadAudioRate = useCallback(
     (nextRate: number) => {
@@ -577,6 +613,18 @@ export default function ChatPage() {
     [selectedThreadId]
   );
 
+  const handleCycleThreadAudioRate = useCallback(() => {
+    const currentIndex = CHAT_AUDIO_PLAYBACK_RATES.findIndex(
+      (rate) => rate === selectedThreadAudioRate
+    );
+    const nextRate =
+      CHAT_AUDIO_PLAYBACK_RATES[
+        (currentIndex >= 0 ? currentIndex + 1 : 0) %
+          CHAT_AUDIO_PLAYBACK_RATES.length
+      ];
+    handleSetThreadAudioRate(nextRate);
+  }, [handleSetThreadAudioRate, selectedThreadAudioRate]);
+
   useEffect(() => {
     if (!selectedThreadId) return;
     setAudioPlaybackRateByThreadId((current) => {
@@ -588,6 +636,10 @@ export default function ChatPage() {
         [selectedThreadId]: readStoredChatAudioRate(selectedThreadId),
       };
     });
+  }, [selectedThreadId]);
+
+  useEffect(() => {
+    setActiveAudio(null);
   }, [selectedThreadId]);
 
   const filteredThreads = useMemo(() => {
@@ -1353,10 +1405,26 @@ export default function ChatPage() {
               }`}
             >
               {activeAudioDock ? (
-                <div className="chat-page__audio-dock" aria-label="Активное аудио">
-                  <span className="chat-page__audio-dock-icon" aria-hidden="true">
-                    <GraphicEqRoundedIcon fontSize="small" />
-                  </span>
+                <div
+                  className={`chat-page__audio-dock ${
+                    activeAudioDock.isPlaying ? "is-playing" : "is-paused"
+                  }`}
+                  aria-label="Активное аудио"
+                >
+                  <button
+                    type="button"
+                    className={`chat-page__audio-dock-toggle ${
+                      activeAudioDock.isPlaying ? "is-active" : ""
+                    }`}
+                    onClick={handleToggleActiveAudioDock}
+                    aria-label={activeAudioDock.isPlaying ? "Поставить аудио на паузу" : "Продолжить аудио"}
+                  >
+                    {activeAudioDock.isPlaying ? (
+                      <PauseRoundedIcon fontSize="inherit" />
+                    ) : (
+                      <PlayArrowRoundedIcon fontSize="inherit" />
+                    )}
+                  </button>
                   <div className="chat-page__audio-dock-body">
                     <div className="chat-page__audio-dock-topline">
                       <span className="chat-page__audio-dock-title">
@@ -1386,24 +1454,16 @@ export default function ChatPage() {
                       />
                     </div>
                   </div>
-                  <div
+                  <button
+                    type="button"
                     className="chat-page__audio-rate-control"
-                    aria-label="Скорость аудио в этом диалоге"
+                    onClick={handleCycleThreadAudioRate}
+                    aria-label={`Скорость аудио ${formatChatAudioRateLabel(
+                      selectedThreadAudioRate
+                    )}. Нажмите, чтобы переключить`}
                   >
-                    {CHAT_AUDIO_PLAYBACK_RATES.map((rate) => (
-                      <button
-                        key={rate}
-                        type="button"
-                        className={`chat-page__audio-rate-button ${
-                          rate === selectedThreadAudioRate ? "is-active" : ""
-                        }`}
-                        onClick={() => handleSetThreadAudioRate(rate)}
-                        aria-pressed={rate === selectedThreadAudioRate}
-                      >
-                        {formatChatAudioRateLabel(rate)}
-                      </button>
-                    ))}
-                  </div>
+                    {formatChatAudioRateLabel(selectedThreadAudioRate)}
+                  </button>
                 </div>
               ) : null}
               <div
@@ -1529,6 +1589,12 @@ export default function ChatPage() {
                                 waveform={message.voice.waveform}
                                 listenedByPeer={message.voice.listenedByPeer}
                                 playbackRate={selectedThreadAudioRate}
+                                playbackCommand={audioPlaybackCommand}
+                                resumeTime={
+                                  audioPlaybackPositionById[
+                                    message.voice.mediaObjectId || message.voice.id
+                                  ] ?? 0
+                                }
                                 activeAudioId={activeAudio?.id ?? null}
                                 onPlaybackStateChange={
                                   handleAudioPlaybackStateChange
@@ -1613,6 +1679,12 @@ export default function ChatPage() {
                                       }
                                       title={`${displaySenderName} - аудиофайл`}
                                       playbackRate={selectedThreadAudioRate}
+                                      playbackCommand={audioPlaybackCommand}
+                                      resumeTime={
+                                        audioPlaybackPositionById[
+                                          attachment.mediaObjectId || attachment.id
+                                        ] ?? 0
+                                      }
                                       activeAudioId={activeAudio?.id ?? null}
                                       onPlaybackStateChange={
                                         handleAudioPlaybackStateChange
