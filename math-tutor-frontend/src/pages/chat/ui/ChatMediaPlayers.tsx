@@ -477,7 +477,6 @@ export function AudioMessagePlayer({
     const audio = audioRef.current;
     if (!audio || audio.paused) return;
     audio.pause();
-    setIsPlaying(false);
   }, [activeAudioId, audioIdentity]);
 
   const fallbackDuration =
