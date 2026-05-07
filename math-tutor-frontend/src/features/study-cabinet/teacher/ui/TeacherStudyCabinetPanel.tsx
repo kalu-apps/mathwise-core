@@ -260,8 +260,13 @@ export function TeacherStudyCabinetPanel({
     closeNoteModal();
   };
 
+  const noteModalPortalTarget =
+    typeof document !== "undefined"
+      ? document.fullscreenElement ?? document.body
+      : null;
+
   const noteModal =
-    noteModalOpen && typeof document !== "undefined"
+    noteModalOpen && noteModalPortalTarget
       ? createPortal(
           <div
             className="teacher-note-dialog"
@@ -433,7 +438,7 @@ export function TeacherStudyCabinetPanel({
               </footer>
             </form>
           </div>,
-          document.body
+          noteModalPortalTarget
         )
       : null;
 

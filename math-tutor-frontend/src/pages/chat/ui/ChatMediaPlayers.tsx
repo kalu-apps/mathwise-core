@@ -16,16 +16,11 @@ import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import DoneRoundedIcon from "@mui/icons-material/DoneRounded";
 import DoneAllRoundedIcon from "@mui/icons-material/DoneAllRounded";
 import { formatPlaybackTime } from "@/pages/chat/model/chatPageUtils";
+import { buildAudioMessageWaveformBars } from "./chatAudioWaveform";
 
-const AUDIO_WAVE_BARS = [
-  38, 44, 35, 52, 40, 60, 42, 64, 48, 58, 34, 56, 44, 62, 37, 49, 33, 46,
-  30, 42, 36, 55, 41, 63, 47, 59, 35, 54, 43, 61, 39, 50, 34, 45, 31, 40,
-  37, 53, 46, 57,
-];
 const AUDIO_LISTENED_THRESHOLD_RATIO = 0.45;
 const AUDIO_LISTENED_THRESHOLD_MIN_SECONDS = 0.8;
 const AUDIO_LISTENED_THRESHOLD_MAX_SECONDS = 5;
-const AUDIO_WAVE_DISPLAY_BARS = 46;
 
 export type AudioMessagePlaybackState = {
   id: string;
@@ -34,32 +29,22 @@ export type AudioMessagePlaybackState = {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
+  waveform?: number[];
   ended?: boolean;
 };
 
-export type AudioMessagePlaybackCommand = {
-  id: string;
-  action: "toggle";
-  token: number;
-};
-
-const resizeWaveform = (input: number[], targetBars: number): number[] => {
-  if (input.length === 0) return [];
-  if (input.length === targetBars) return input;
-  return Array.from({ length: targetBars }, (_, index) => {
-    const start = Math.floor((index * input.length) / targetBars);
-    const end = Math.max(
-      start + 1,
-      Math.floor(((index + 1) * input.length) / targetBars)
-    );
-    let peak = 0;
-    for (let cursor = start; cursor < end; cursor += 1) {
-      const next = input[cursor] ?? 0;
-      if (next > peak) peak = next;
+export type AudioMessagePlaybackCommand =
+  | {
+      id: string;
+      action: "toggle";
+      token: number;
     }
-    return peak;
-  });
-};
+  | {
+      id: string;
+      action: "seek";
+      token: number;
+      currentTime: number;
+    };
 
 export function AudioMessagePlayer({
   src,
@@ -97,9 +82,11 @@ export function AudioMessagePlayer({
   readByPeer?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playerRef = useRef<HTMLDivElement | null>(null);
   const waveSeekRef = useRef<HTMLDivElement | null>(null);
   const progressRafRef = useRef<number | null>(null);
   const isSeekingRef = useRef(false);
+  const preloadRequestedRef = useRef(false);
   const handledPlaybackCommandTokenRef = useRef<number | null>(null);
   const togglePlaybackRef = useRef<(() => Promise<void>) | null>(null);
   const listenedReportedRef = useRef(Boolean(listenedByPeer));
@@ -132,6 +119,20 @@ export function AudioMessagePlayer({
   const audioTitle = title?.trim() || "Голосовое сообщение";
   const safePlaybackRate =
     Number.isFinite(playbackRate) && playbackRate > 0 ? playbackRate : 1;
+
+  const requestAudioPreload = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || preloadRequestedRef.current) return;
+    preloadRequestedRef.current = true;
+    audio.preload = "auto";
+    if (
+      audio.paused &&
+      audio.currentTime < 0.05 &&
+      audio.readyState < audio.HAVE_FUTURE_DATA
+    ) {
+      audio.load();
+    }
+  }, []);
 
   const emitPlaybackState = useCallback(
     ({
@@ -167,10 +168,11 @@ export function AudioMessagePlayer({
           Number.isFinite(resolvedDuration) && resolvedDuration > 0
             ? resolvedDuration
             : 0,
+        waveform,
         ended,
       });
     },
-    [audioIdentity, audioTitle, onPlaybackStateChange, src]
+    [audioIdentity, audioTitle, onPlaybackStateChange, src, waveform]
   );
 
   const tryReportListened = useCallback(
@@ -200,26 +202,9 @@ export function AudioMessagePlayer({
     []
   );
 
-  const waveBars = useMemo(() => {
-    if (!Array.isArray(waveform) || waveform.length === 0) {
-      return resizeWaveform(AUDIO_WAVE_BARS, AUDIO_WAVE_DISPLAY_BARS);
-    }
-    const normalized = waveform
-      .filter((item): item is number => typeof item === "number" && Number.isFinite(item))
-      .map((item) => Math.max(8, Math.min(100, Math.round(item))))
-      .slice(0, 96);
-    if (normalized.length === 0) return AUDIO_WAVE_BARS;
-    return resizeWaveform(normalized, AUDIO_WAVE_DISPLAY_BARS);
-  }, [waveform]);
-
   const visualWaveBars = useMemo(
-    () =>
-      waveBars.map((height, index) => {
-        const previous = waveBars[index - 1] ?? height;
-        const next = waveBars[index + 1] ?? height;
-        return Math.max(8, Math.round(height * 0.68 + previous * 0.16 + next * 0.16));
-      }),
-    [waveBars]
+    () => buildAudioMessageWaveformBars(waveform),
+    [waveform]
   );
 
   const seekToAudioTime = useCallback(
@@ -234,12 +219,21 @@ export function AudioMessagePlayer({
       if (!Number.isFinite(totalDuration) || totalDuration <= 0) return;
       const safeTime = Math.min(totalDuration, Math.max(0, nextTime));
       if (audio) {
-        audio.currentTime = safeTime;
+        try {
+          audio.currentTime = safeTime;
+        } catch {
+          // Metadata may still be resolving; React state keeps the requested seek position visible.
+        }
       }
       setCurrentTime(safeTime);
       tryReportListened(safeTime, totalDuration);
+      emitPlaybackState({
+        isPlaying: audio ? !audio.paused : isPlaying,
+        currentTime: safeTime,
+        duration: totalDuration,
+      });
     },
-    [tryReportListened]
+    [emitPlaybackState, isPlaying, tryReportListened]
   );
 
   const seekAudioFromClientX = useCallback(
@@ -261,6 +255,7 @@ export function AudioMessagePlayer({
     const audio = audioRef.current;
     if (!audio) return;
     if (audio.paused) {
+      requestAudioPreload();
       const knownCurrentTime =
         Number.isFinite(currentTime) && currentTime > 0.05
           ? currentTime
@@ -310,7 +305,14 @@ export function AudioMessagePlayer({
     }
     audio.pause();
     setIsPlaying(false);
-  }, [currentTime, emitPlaybackState, playbackSrc, safePlaybackRate, src]);
+  }, [
+    currentTime,
+    emitPlaybackState,
+    playbackSrc,
+    requestAudioPreload,
+    safePlaybackRate,
+    src,
+  ]);
 
   useEffect(() => {
     togglePlaybackRef.current = togglePlayback;
@@ -322,8 +324,11 @@ export function AudioMessagePlayer({
     handledPlaybackCommandTokenRef.current = playbackCommand.token;
     if (playbackCommand.action === "toggle") {
       void togglePlaybackRef.current?.();
+    } else if (playbackCommand.action === "seek") {
+      requestAudioPreload();
+      seekToAudioTime(playbackCommand.currentTime);
     }
-  }, [audioIdentity, playbackCommand]);
+  }, [audioIdentity, playbackCommand, requestAudioPreload, seekToAudioTime]);
 
   const handleWavePointerDown = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
@@ -415,6 +420,38 @@ export function AudioMessagePlayer({
       }
     }
   }, [currentTime, isPlaying, resumeTime]);
+
+  useEffect(() => {
+    preloadRequestedRef.current = false;
+  }, [audioSrc]);
+
+  useEffect(() => {
+    const node = playerRef.current;
+    if (!node) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      const timeoutId = globalThis.setTimeout(requestAudioPreload, 700);
+      return () => globalThis.clearTimeout(timeoutId);
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        requestAudioPreload();
+        observer.disconnect();
+      },
+      {
+        root: null,
+        rootMargin: "240px 0px",
+        threshold: 0.01,
+      }
+    );
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [audioSrc, requestAudioPreload]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -570,9 +607,13 @@ export function AudioMessagePlayer({
         : 0;
   return (
     <div
+      ref={playerRef}
       className={`chat-page__audio-player ${isPlaying ? "is-playing" : ""} ${
         listenedByPeer ? "is-listened" : ""
       }`}
+      onFocusCapture={requestAudioPreload}
+      onPointerEnter={requestAudioPreload}
+      onPointerDownCapture={requestAudioPreload}
     >
       <audio ref={audioRef} preload="metadata" src={audioSrc} />
       <button

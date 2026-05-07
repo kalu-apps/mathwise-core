@@ -5,6 +5,8 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent,
+  type PointerEvent,
 } from "react";
 import {
   Alert,
@@ -88,6 +90,7 @@ import {
   type AudioMessagePlaybackCommand,
   type AudioMessagePlaybackState,
 } from "@/pages/chat/ui/ChatMediaPlayers";
+import { buildAudioMessageWaveformBars } from "@/pages/chat/ui/chatAudioWaveform";
 
 type LocationState = {
   from?: string;
@@ -218,6 +221,7 @@ export default function ChatPage() {
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const shellRef = useRef<HTMLElement | null>(null);
   const messagesViewportRef = useRef<HTMLDivElement | null>(null);
+  const activeAudioDockTrackRef = useRef<HTMLDivElement | null>(null);
   const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messageElementRefs = useRef(new Map<string, HTMLElement>());
@@ -231,6 +235,7 @@ export default function ChatPage() {
   const recorderChunksRef = useRef<Blob[]>([]);
   const recorderTimerRef = useRef<number | null>(null);
   const recorderSecondsRef = useRef(0);
+  const activeAudioDockSeekingRef = useRef(false);
   const listenedVoicePendingRef = useRef(new Set<string>());
 
   const goBack = useCallback(() => {
@@ -534,6 +539,7 @@ export default function ChatPage() {
   const selectedThreadAudioRate = selectedThreadId
     ? audioPlaybackRateByThreadId[selectedThreadId] ?? 1
     : 1;
+  const hasComposerVoice = Boolean(composerVoice);
   const activeAudioDock = activeAudio?.ended ? null : activeAudio;
   const activeAudioProgressRatio =
     activeAudioDock && activeAudioDock.duration > 0
@@ -541,6 +547,23 @@ export default function ChatPage() {
           1,
           Math.max(0, activeAudioDock.currentTime / activeAudioDock.duration)
         )
+      : 0;
+  const activeAudioDockWaveform = activeAudioDock?.waveform;
+  const activeAudioDockWaveBars = useMemo(
+    () => buildAudioMessageWaveformBars(activeAudioDockWaveform, 42),
+    [activeAudioDockWaveform]
+  );
+  const activeAudioDockActiveBars =
+    activeAudioDock && activeAudioDock.duration > 0
+      ? activeAudioDock.isPlaying
+        ? Math.max(
+            1,
+            Math.round(activeAudioProgressRatio * activeAudioDockWaveBars.length)
+          )
+        : Math.max(
+            0,
+            Math.round(activeAudioProgressRatio * activeAudioDockWaveBars.length)
+          )
       : 0;
 
   const handleAudioPlaybackStateChange = useCallback(
@@ -593,6 +616,95 @@ export default function ChatPage() {
       token: window.performance.now(),
     });
   }, [activeAudioDock]);
+
+  const handleSeekActiveAudioDock = useCallback((nextTime: number) => {
+    if (!activeAudioDock || activeAudioDock.duration <= 0) return;
+    const safeTime = Math.min(
+      activeAudioDock.duration,
+      Math.max(0, Number.isFinite(nextTime) ? nextTime : 0)
+    );
+    setAudioPlaybackPositionById((current) => ({
+      ...current,
+      [activeAudioDock.id]: safeTime,
+    }));
+    setActiveAudio((current) => {
+      if (current?.id !== activeAudioDock.id) return current;
+      return {
+        ...current,
+        currentTime: safeTime,
+        duration: activeAudioDock.duration,
+      };
+    });
+    setAudioPlaybackCommand({
+      id: activeAudioDock.id,
+      action: "seek",
+      currentTime: safeTime,
+      token: window.performance.now(),
+    });
+  }, [activeAudioDock]);
+
+  const seekActiveAudioDockFromClientX = useCallback(
+    (clientX: number) => {
+      const node = activeAudioDockTrackRef.current;
+      if (!node || !activeAudioDock || activeAudioDock.duration <= 0) return;
+      const rect = node.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      handleSeekActiveAudioDock(activeAudioDock.duration * ratio);
+    },
+    [activeAudioDock, handleSeekActiveAudioDock]
+  );
+
+  const handleActiveAudioDockPointerDown = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      activeAudioDockSeekingRef.current = true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+      seekActiveAudioDockFromClientX(event.clientX);
+    },
+    [seekActiveAudioDockFromClientX]
+  );
+
+  const handleActiveAudioDockPointerMove = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (!activeAudioDockSeekingRef.current) return;
+      event.preventDefault();
+      seekActiveAudioDockFromClientX(event.clientX);
+    },
+    [seekActiveAudioDockFromClientX]
+  );
+
+  const handleActiveAudioDockPointerUp = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      activeAudioDockSeekingRef.current = false;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    },
+    []
+  );
+
+  const handleActiveAudioDockKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      if (!activeAudioDock || activeAudioDock.duration <= 0) return;
+      const seekStepSeconds = event.shiftKey ? 15 : 5;
+      if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+        event.preventDefault();
+        handleSeekActiveAudioDock(activeAudioDock.currentTime - seekStepSeconds);
+      } else if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+        event.preventDefault();
+        handleSeekActiveAudioDock(activeAudioDock.currentTime + seekStepSeconds);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        handleSeekActiveAudioDock(0);
+      } else if (event.key === "End") {
+        event.preventDefault();
+        handleSeekActiveAudioDock(activeAudioDock.duration);
+      }
+    },
+    [activeAudioDock, handleSeekActiveAudioDock]
+  );
 
   const handleSetThreadAudioRate = useCallback(
     (nextRate: number) => {
@@ -687,7 +799,7 @@ export default function ChatPage() {
     adjustComposerHeight,
     inputValue,
     composerAttachments.length,
-    Boolean(composerVoice),
+    hasComposerVoice,
     editingMessageId,
   ]);
 
@@ -1438,20 +1550,37 @@ export default function ChatPage() {
                       </span>
                     </div>
                     <div
+                      ref={activeAudioDockTrackRef}
                       className="chat-page__audio-dock-track"
-                      role="progressbar"
+                      role="slider"
+                      tabIndex={activeAudioDock.duration > 0 ? 0 : -1}
+                      aria-label="Перемотать активное аудио"
                       aria-valuemin={0}
                       aria-valuemax={Math.max(0, Math.round(activeAudioDock.duration))}
                       aria-valuenow={Math.max(
                         0,
                         Math.round(activeAudioDock.currentTime)
                       )}
+                      aria-valuetext={`${formatPlaybackTime(
+                        activeAudioDock.currentTime
+                      )} из ${formatPlaybackTime(activeAudioDock.duration)}`}
+                      onPointerDown={handleActiveAudioDockPointerDown}
+                      onPointerMove={handleActiveAudioDockPointerMove}
+                      onPointerUp={handleActiveAudioDockPointerUp}
+                      onPointerCancel={handleActiveAudioDockPointerUp}
+                      onKeyDown={handleActiveAudioDockKeyDown}
                     >
-                      <span
-                        style={{
-                          width: `${Math.round(activeAudioProgressRatio * 1000) / 10}%`,
-                        }}
-                      />
+                      <div className="chat-page__audio-dock-wave">
+                        {activeAudioDockWaveBars.map((height, index) => (
+                          <span
+                            key={index}
+                            className={
+                              index < activeAudioDockActiveBars ? "is-active" : ""
+                            }
+                            style={{ height: `${height}%` }}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
                   <button
