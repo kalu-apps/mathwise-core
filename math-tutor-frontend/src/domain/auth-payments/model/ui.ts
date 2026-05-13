@@ -40,7 +40,7 @@ const ACCESS_STATE_META: Record<AccessUiState, AccessStateMeta> = {
     actions: ["profile", "recover", "login"],
   },
   paid_but_restricted: {
-    severity: "warning",
+    severity: "info",
     messageKey: "access.paidButRestricted",
     actions: ["recheck", "recover", "login"],
   },

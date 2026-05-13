@@ -3,6 +3,7 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
 } from "react";
@@ -36,7 +37,6 @@ import {
   QrCode2Rounded,
   AccountBalanceWalletRounded,
   CheckCircleRounded,
-  HourglassTopRounded,
   AssignmentTurnedInRounded,
   GavelRounded,
   BoltRounded,
@@ -92,10 +92,8 @@ import {
   formatApproxMonthlyBnplLine,
   getBnplStatusBanner,
   getApproxMonthlyFrom,
-  getCheckoutDialogHint,
-  getCheckoutDialogTitle,
-  getCheckoutStatusLabel,
   getPaymentProviderLabel,
+  getResumeCheckoutCopy,
   hasLessonChangedFromPurchaseSnapshot,
   isCourseLessonLocked,
   isCourseTestLockedByAccess,
@@ -175,6 +173,10 @@ const CHECKOUT_RETRYABLE_STATUSES = new Set([
   "canceled",
   "expired",
 ]);
+
+const PAYMENT_TAB_SESSION_KEY = "mathwise:course-payment-tab";
+const PAYMENT_TAB_COMPLETE_EVENT = "mathwise:course-payment-complete";
+const PAYMENT_TAB_COMPLETE_STORAGE_KEY = "mathwise:course-payment-complete";
 
 const isCheckoutSuccessStatus = (status?: string | null) =>
   Boolean(status && CHECKOUT_SUCCESS_STATUSES.has(status));
@@ -455,6 +457,7 @@ export default function CourseDetails() {
   const isDesktopCourseLayout = useMediaQuery(theme.breakpoints.up("lg"));
   const courseId = courseIdParam ?? "";
   const { user, openAuthModal, openRecoverModal, updateUser } = useAuth();
+  const paymentTabRef = useRef<Window | null>(null);
   const {
     modalOpen,
     setModalOpen,
@@ -494,7 +497,6 @@ export default function CourseDetails() {
     setActiveCheckoutId,
     checkoutFlowStatus,
     setCheckoutFlowStatus,
-    checkoutPaymentUrl,
     setCheckoutPaymentUrl,
     setCheckoutProviderLabel,
     resumeCheckout,
@@ -554,7 +556,6 @@ export default function CourseDetails() {
     null
   );
   const purchaseSubmitGuard = useActionGuard();
-  const checkoutActionGuard = useActionGuard();
   const locationState = (location.state as CourseDetailsLocationState | null) ?? null;
   const sourceFromPath =
     typeof locationState?.from === "string" ? locationState.from : null;
@@ -634,6 +635,187 @@ export default function CourseDetails() {
     setPendingAttachCheckoutId,
     setModalOpen,
   });
+
+  const closePreparedPaymentTab = useCallback((paymentTab?: Window | null) => {
+    const target = paymentTab ?? paymentTabRef.current;
+    if (!target) return;
+    try {
+      if (!target.closed) {
+        target.close();
+      }
+    } catch {
+      // Ignore browsers that deny closing a tab after provider navigation.
+    }
+    if (paymentTabRef.current === target) {
+      paymentTabRef.current = null;
+    }
+  }, []);
+
+  const preparePaymentTab = useCallback(() => {
+    const paymentTab = window.open("", "_blank");
+    if (!paymentTab) return null;
+    paymentTabRef.current = paymentTab;
+    try {
+      paymentTab.sessionStorage.setItem(PAYMENT_TAB_SESSION_KEY, courseId);
+      paymentTab.document.open();
+      paymentTab.document.write(`<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Оплата курса</title>
+<style>
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f6f8ff;color:#263452;font:16px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.card{width:min(420px,calc(100vw - 40px));padding:28px;border:1px solid #d9e1f2;border-radius:24px;background:#fff;box-shadow:0 24px 70px rgba(73,90,135,.16)}
+.mark{width:42px;height:42px;border-radius:16px;display:grid;place-items:center;background:#eef3ff;color:#5468d9;margin-bottom:16px}
+h1{margin:0 0 8px;font-size:22px;line-height:1.2}
+p{margin:0;color:#61708f}
+</style>
+</head>
+<body>
+<main class="card" aria-live="polite">
+<div class="mark">...</div>
+<h1>Открываем оплату</h1>
+<p>Защищенная платежная страница загрузится в этой вкладке.</p>
+</main>
+</body>
+</html>`);
+      paymentTab.document.close();
+      paymentTab.focus();
+    } catch {
+      // The tab may already be controlled by the browser; navigation can still work.
+    }
+    return paymentTab;
+  }, [courseId]);
+
+  const openPaymentInTab = useCallback(
+    (paymentUrl: string | null, preparedTab?: Window | null) => {
+      const normalizedUrl = paymentUrl?.trim();
+      if (!normalizedUrl) return false;
+      const paymentTab = preparedTab ?? preparePaymentTab();
+      if (!paymentTab) return false;
+      try {
+        paymentTab.sessionStorage.setItem(PAYMENT_TAB_SESSION_KEY, courseId);
+      } catch {
+        // Best effort marker for auto-close after the provider return.
+      }
+      try {
+        paymentTab.opener = null;
+      } catch {
+        // Keep the tab usable even if the browser disallows changing opener.
+      }
+      try {
+        paymentTab.location.href = normalizedUrl;
+        paymentTab.focus();
+        paymentTabRef.current = paymentTab;
+        return true;
+      } catch {
+        try {
+          const fallbackTab = window.open(normalizedUrl, "_blank");
+          if (!fallbackTab) return false;
+          paymentTabRef.current = fallbackTab;
+          return true;
+        } catch {
+          return false;
+        }
+      }
+    },
+    [courseId, preparePaymentTab]
+  );
+
+  useEffect(() => {
+    const completePaymentReturn = () => {
+      setCheckoutFlowOpen(false);
+      setCheckoutFlowError(null);
+      setActiveCheckoutId(null);
+      setResumeCheckout(null);
+      setReloadSeq((prev) => prev + 1);
+      if (user?.role === "student" && user.id) {
+        void syncStudentCourseState(user.id);
+      }
+    };
+    const handlePaymentTabMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data as { type?: string; courseId?: string } | null;
+      if (
+        !data ||
+        data.type !== PAYMENT_TAB_COMPLETE_EVENT ||
+        data.courseId !== courseId
+      ) {
+        return;
+      }
+      completePaymentReturn();
+    };
+    const handlePaymentTabStorage = (event: StorageEvent) => {
+      if (event.key !== PAYMENT_TAB_COMPLETE_STORAGE_KEY || !event.newValue) return;
+      try {
+        const data = JSON.parse(event.newValue) as {
+          type?: string;
+          courseId?: string;
+        };
+        if (
+          data.type === PAYMENT_TAB_COMPLETE_EVENT &&
+          data.courseId === courseId
+        ) {
+          completePaymentReturn();
+        }
+      } catch {
+        // Ignore unrelated malformed storage events.
+      }
+    };
+    window.addEventListener("message", handlePaymentTabMessage);
+    window.addEventListener("storage", handlePaymentTabStorage);
+    return () => {
+      window.removeEventListener("message", handlePaymentTabMessage);
+      window.removeEventListener("storage", handlePaymentTabStorage);
+    };
+  }, [
+    courseId,
+    setActiveCheckoutId,
+    setCheckoutFlowError,
+    setCheckoutFlowOpen,
+    setReloadSeq,
+    setResumeCheckout,
+    syncStudentCourseState,
+    user?.id,
+    user?.role,
+  ]);
+
+  useEffect(() => {
+    let paymentTabCourseId: string | null = null;
+    try {
+      paymentTabCourseId = window.sessionStorage.getItem(PAYMENT_TAB_SESSION_KEY);
+    } catch {
+      return;
+    }
+    if (paymentTabCourseId !== courseId) return;
+    if (!hasPurchase && courseAccess?.canAccessAllLessons !== true) return;
+    try {
+      window.localStorage.setItem(
+        PAYMENT_TAB_COMPLETE_STORAGE_KEY,
+        JSON.stringify({
+          type: PAYMENT_TAB_COMPLETE_EVENT,
+          courseId,
+          completedAt: new Date().toISOString(),
+        })
+      );
+      window.opener?.postMessage(
+        { type: PAYMENT_TAB_COMPLETE_EVENT, courseId },
+        window.location.origin
+      );
+      window.sessionStorage.removeItem(PAYMENT_TAB_SESSION_KEY);
+    } catch {
+      // Closing is best effort; the page still remains usable if the browser blocks it.
+    }
+    const closeTimer = window.setTimeout(() => {
+      try {
+        window.close();
+      } catch {
+        // ignore
+      }
+    }, 300);
+    return () => window.clearTimeout(closeTimer);
+  }, [courseAccess?.canAccessAllLessons, courseId, hasPurchase]);
 
   const lessonsById = useMemo(
     () =>
@@ -764,17 +946,6 @@ export default function CourseDetails() {
     user?.role,
   ]);
 
-  const redirectToCheckoutPayment = useCallback((paymentUrl: string | null) => {
-    const normalizedUrl = paymentUrl?.trim();
-    if (!normalizedUrl) return false;
-    try {
-      window.location.assign(normalizedUrl);
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
-
   const handleRepairAndRecheck = useCallback(async () => {
     if (user?.role !== "student") return;
     if (!course?.id) return;
@@ -789,32 +960,84 @@ export default function CourseDetails() {
   const handleResumeCheckout = useCallback(async () => {
     if (!resumeCheckout?.id) return;
     const checkoutId = resumeCheckout.id;
+    const paymentTab = preparePaymentTab();
     setActiveCheckoutId(checkoutId);
     setCheckoutProviderLabel(getPaymentProviderLabel(resumeCheckout.method));
     setCheckoutFlowError(null);
     if (user?.role === "student") {
       const status = await refreshCheckoutFlow(checkoutId);
       const nextPaymentUrl = status ? resolveCheckoutPaymentUrl(status.payment) : null;
+      const statusValue = status?.payment.status ?? status?.state ?? resumeCheckout.state;
+      if (
+        status?.access?.accessState === "active" ||
+        status?.state === "provisioned" ||
+        isCheckoutSuccessStatus(statusValue)
+      ) {
+        closePreparedPaymentTab(paymentTab);
+        setCheckoutFlowOpen(false);
+        setCheckoutFlowError(null);
+        return;
+      }
+      if (statusValue === "provision_failed_retryable") {
+        closePreparedPaymentTab(paymentTab);
+        setCheckoutFlowOpen(false);
+        setCheckoutFlowError(null);
+        return;
+      }
       if (
         nextPaymentUrl &&
         status?.isTerminal !== true &&
         !isCheckoutSuccessStatus(status?.payment.status)
       ) {
-        setCheckoutFlowOpen(false);
-        if (redirectToCheckoutPayment(nextPaymentUrl)) {
+        if (openPaymentInTab(nextPaymentUrl, paymentTab)) {
+          setCheckoutFlowOpen(true);
           return;
         }
+        closePreparedPaymentTab(paymentTab);
         setCheckoutFlowError("Не удалось открыть страницу оплаты. Попробуйте еще раз.");
+        return;
+      }
+      if (status && isCheckoutRetryableStatus(statusValue)) {
+        try {
+          setCheckoutFlowLoading(true);
+          const retryPaymentUrl = await retryCheckoutPayment(checkoutId);
+          setCheckoutPaymentUrl(retryPaymentUrl);
+          await refreshCheckoutFlow(checkoutId, { silent: true });
+          if (openPaymentInTab(retryPaymentUrl, paymentTab)) {
+            setCheckoutFlowOpen(true);
+            return;
+          }
+          closePreparedPaymentTab(paymentTab);
+          setCheckoutFlowError(
+            "Не удалось открыть вкладку оплаты. Разрешите всплывающие окна и попробуйте еще раз."
+          );
+          return;
+        } catch (error) {
+          closePreparedPaymentTab(paymentTab);
+          setCheckoutFlowError(
+            error instanceof Error
+              ? error.message
+              : "Не удалось подготовить оплату. Попробуйте позже."
+          );
+          return;
+        } finally {
+          setCheckoutFlowLoading(false);
+        }
       }
     }
-    setCheckoutFlowOpen(true);
+    closePreparedPaymentTab(paymentTab);
+    setCheckoutFlowError("Не удалось получить ссылку на оплату. Попробуйте еще раз.");
   }, [
+    closePreparedPaymentTab,
+    openPaymentInTab,
+    preparePaymentTab,
     refreshCheckoutFlow,
-    redirectToCheckoutPayment,
     resumeCheckout,
     setActiveCheckoutId,
     setCheckoutFlowError,
+    setCheckoutFlowLoading,
     setCheckoutFlowOpen,
+    setCheckoutPaymentUrl,
     setCheckoutProviderLabel,
     user?.role,
   ]);
@@ -960,33 +1183,7 @@ export default function CourseDetails() {
     isTeacher,
   });
   const pageNoticeState = checkoutNoticeState ?? courseNoticeState;
-  const sbpPaymentView =
-    checkoutFlowStatus?.method === "sbp"
-      ? checkoutFlowStatus.payment.sbp
-      : undefined;
   const isPurchaseIdentityVerified = Boolean(user) || Boolean(purchaseIntentId);
-  const checkoutDialogStatus =
-    checkoutFlowStatus?.payment.status ?? checkoutFlowStatus?.state;
-  const checkoutDialogIsSuccess =
-    isCheckoutSuccessStatus(checkoutDialogStatus) ||
-    checkoutFlowStatus?.access?.accessState === "active";
-  const checkoutDialogIsRetryable = isCheckoutRetryableStatus(checkoutDialogStatus);
-  const checkoutDialogCanRetry =
-    checkoutDialogIsRetryable ||
-    Boolean(
-      checkoutFlowError &&
-        activeCheckoutId &&
-        !checkoutPaymentUrl &&
-        !checkoutDialogIsSuccess
-    );
-  const checkoutDialogTone = checkoutDialogIsSuccess
-    ? "success"
-    : checkoutDialogCanRetry
-    ? "warning"
-    : "pending";
-  const CheckoutDialogIcon = checkoutDialogIsSuccess
-    ? CheckCircleRounded
-    : HourglassTopRounded;
 
   const mobileDialogActionSx = isMobile
     ? {
@@ -1175,8 +1372,10 @@ export default function CourseDetails() {
     const executed = await purchaseSubmitGuard.run(
       async () => {
         let shouldOpenAttentionModal = false;
+        let paymentTab: Window | null = null;
         try {
           setPurchaseLoading(true);
+          paymentTab = preparePaymentTab();
           const result = await submitCourseCheckout({
             userId: user?.id,
             email: checkoutEmail,
@@ -1227,14 +1426,17 @@ export default function CourseDetails() {
             !isCheckoutSuccessStatus(result.payment?.status) &&
             result.checkoutState !== "provisioned"
           ) {
-            if (!redirectToCheckoutPayment(paymentUrl)) {
-              setCheckoutFlowError(
-                "Не удалось открыть страницу оплаты. Попробуйте еще раз."
-              );
+            if (openPaymentInTab(paymentUrl, paymentTab)) {
               setCheckoutFlowOpen(true);
+              return;
             }
+            closePreparedPaymentTab(paymentTab);
+            setCheckoutFlowError(
+              "Не удалось открыть вкладку оплаты. Разрешите всплывающие окна и попробуйте еще раз."
+            );
             return;
           }
+          closePreparedPaymentTab(paymentTab);
           if (user?.role === "student") {
             const status = await refreshCheckoutFlow(result.checkoutId);
             const isReady =
@@ -1246,14 +1448,15 @@ export default function CourseDetails() {
               return;
             }
           }
-          setCheckoutFlowError(
-            paymentUrl
-              ? null
-              : "Не удалось получить ссылку на оплату. Попробуйте еще раз."
-          );
-          setCheckoutFlowOpen(true);
+          if (!paymentUrl) {
+            setCheckoutFlowError(
+              "Не удалось получить ссылку на оплату. Попробуйте еще раз."
+            );
+          }
+          setCheckoutFlowOpen(false);
           return;
         } catch (error) {
+          closePreparedPaymentTab(paymentTab);
           const pendingAttachId = resolvePendingAttachCheckoutId(error);
           if (pendingAttachId) {
             setPendingAttachCheckoutId(pendingAttachId);
@@ -1276,53 +1479,6 @@ export default function CourseDetails() {
       },
       {
         lockKey: `checkout-submit:${course.id}:${checkoutEmail}:${pendingType}:${purchaseMethod}:${purchaseMethod === "bnpl" ? purchaseBnplInstallmentsCount : "single"}`,
-        retry: { label: t("common.retryCheckoutAction") },
-      }
-    );
-    if (executed === undefined) return;
-  };
-
-  const openCheckoutPayment = () => {
-    if (redirectToCheckoutPayment(checkoutPaymentUrl)) {
-      setCheckoutFlowOpen(false);
-      return;
-    }
-    setCheckoutFlowError("Не удалось получить ссылку на оплату. Попробуйте еще раз.");
-  };
-
-  const handleCheckoutRetry = async () => {
-    if (!activeCheckoutId) return;
-    const executed = await checkoutActionGuard.run(
-      async () => {
-        try {
-          setCheckoutFlowLoading(true);
-          setCheckoutFlowError(null);
-          const paymentUrl = await retryCheckoutPayment(activeCheckoutId);
-          setCheckoutPaymentUrl(paymentUrl);
-          await refreshCheckoutFlow(activeCheckoutId, { silent: true });
-          if (paymentUrl) {
-            setCheckoutFlowOpen(false);
-            if (!redirectToCheckoutPayment(paymentUrl)) {
-              setCheckoutFlowError(
-                "Не удалось открыть страницу оплаты. Попробуйте еще раз."
-              );
-              setCheckoutFlowOpen(true);
-            }
-            return;
-          }
-          setCheckoutFlowError("Не удалось получить новую ссылку на оплату.");
-        } catch (error) {
-          setCheckoutFlowError(
-            error instanceof Error
-              ? error.message
-              : "Не удалось повторить оплату. Попробуйте позже."
-          );
-        } finally {
-          setCheckoutFlowLoading(false);
-        }
-      },
-      {
-        lockKey: `checkout-action:retry:${activeCheckoutId}`,
         retry: { label: t("common.retryCheckoutAction") },
       }
     );
@@ -1638,20 +1794,47 @@ export default function CourseDetails() {
     </div>
   );
 
+  const resumeCheckoutCopy = resumeCheckout
+    ? getResumeCheckoutCopy(resumeCheckout.state)
+    : null;
+
   const purchaseSection = (
     <div className="course-details__purchase">
-      {user?.role === "student" && resumeCheckout && (
-        <Alert
-          severity="info"
-          className="ui-alert course-details__resume-alert"
-          action={
-            <Button size="small" onClick={handleResumeCheckout}>
-              Продолжить оплату
-            </Button>
-          }
+      {user?.role === "student" && resumeCheckout && resumeCheckoutCopy && (
+        <div
+          className={`course-details__payment-resume-card ${
+            checkoutFlowError ? "course-details__payment-resume-card--error" : ""
+          }`}
         >
-          Оплата курса не завершена. Можно продолжить с последнего шага.
-        </Alert>
+          <span className="course-details__payment-resume-icon">
+            <InfoOutlined fontSize="small" />
+          </span>
+          <div className="course-details__payment-resume-copy">
+            <strong>{resumeCheckoutCopy.title}</strong>
+            <p>{resumeCheckoutCopy.body}</p>
+            {checkoutFlowError ? (
+              <span className="course-details__payment-resume-error">
+                {checkoutFlowError}
+              </span>
+            ) : null}
+          </div>
+          <Button
+            type="button"
+            variant="contained"
+            className="course-details__payment-resume-action"
+            onClick={() => void handleResumeCheckout()}
+            disabled={checkoutFlowLoading}
+            startIcon={
+              checkoutFlowLoading ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : (
+                <PaymentsRounded fontSize="small" />
+              )
+            }
+          >
+            {resumeCheckoutCopy.action}
+          </Button>
+        </div>
       )}
       <div className="course-details__offer course-details__offer--premium">
         <div className="course-details__card course-details__card--premium">
@@ -2529,101 +2712,6 @@ export default function CourseDetails() {
         </DialogActions>
       </Dialog>
 
-      <Dialog
-        open={checkoutFlowOpen}
-        onClose={() => setCheckoutFlowOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        className="ui-dialog ui-dialog--compact course-details-dialog"
-      >
-        <DialogTitleWithClose
-          title={
-            <span className="course-details__checkout-title">
-              <CheckoutDialogIcon fontSize="small" />
-              {getCheckoutDialogTitle(checkoutDialogStatus)}
-            </span>
-          }
-          onClose={() => setCheckoutFlowOpen(false)}
-          closeAriaLabel="Закрыть окно оплаты"
-        />
-        <DialogContent sx={stackedDialogContentSx}>
-          <div
-            className={`course-details__payment-status-card course-details__payment-status-card--${checkoutDialogTone}`}
-          >
-            <span className="course-details__payment-status-icon">
-              {checkoutFlowLoading ? (
-                <CircularProgress size={18} color="inherit" />
-              ) : (
-                <CheckoutDialogIcon fontSize="small" />
-              )}
-            </span>
-            <div className="course-details__payment-status-copy">
-              <strong>{getCheckoutStatusLabel(checkoutDialogStatus)}</strong>
-              <p>
-                {getCheckoutDialogHint(
-                  checkoutDialogStatus,
-                  checkoutFlowStatus?.payment.requiresConfirmation
-                )}
-              </p>
-            </div>
-          </div>
-          {checkoutPaymentUrl && !checkoutDialogIsSuccess && !checkoutDialogIsRetryable ? (
-            <Alert severity="info" className="ui-alert">
-              Если переход не открылся автоматически, нажмите «Перейти к оплате».
-            </Alert>
-          ) : null}
-          {!checkoutDialogIsSuccess && sbpPaymentView?.qrUrl ? (
-            <Alert severity="info" className="ui-alert">
-              Оплата через СБП готова.
-              {sbpPaymentView.expiresAt
-                ? ` Ссылка действует до ${new Date(
-                    sbpPaymentView.expiresAt
-                  ).toLocaleTimeString("ru-RU", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}.`
-                : ""}
-            </Alert>
-          ) : null}
-          {checkoutFlowError && <Alert severity="warning">{checkoutFlowError}</Alert>}
-          {!user && (
-            <Alert severity="info">
-              После оплаты войдите по email, чтобы система автоматически привязала курс к
-              вашему профилю.
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setCheckoutFlowOpen(false)}
-            color="inherit"
-            sx={mobileDialogActionSx}
-            aria-label={isMobile ? "Закрыть" : undefined}
-          >
-            {isMobile ? <CloseRounded fontSize="small" /> : "Закрыть"}
-          </Button>
-          {checkoutDialogCanRetry ? (
-            <Button
-              variant="contained"
-              onClick={() => void handleCheckoutRetry()}
-              disabled={!activeCheckoutId || checkoutFlowLoading || user?.role !== "student"}
-              sx={mobileDialogActionSx}
-              aria-label={isMobile ? "Попробовать оплатить снова" : undefined}
-            >
-              {isMobile ? <PaymentsRounded fontSize="small" /> : "Попробовать снова"}
-            </Button>
-          ) : checkoutPaymentUrl && !checkoutDialogIsSuccess ? (
-            <Button
-              variant="contained"
-              onClick={openCheckoutPayment}
-              sx={mobileDialogActionSx}
-              aria-label={isMobile ? "Перейти к оплате" : undefined}
-            >
-              {isMobile ? <PaymentsRounded fontSize="small" /> : "Перейти к оплате"}
-            </Button>
-          ) : null}
-        </DialogActions>
-      </Dialog>
     </section>
   );
 }

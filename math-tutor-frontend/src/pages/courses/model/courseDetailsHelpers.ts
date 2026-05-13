@@ -36,13 +36,13 @@ export const RESUMABLE_CHECKOUT_STATES = new Set<string>([
 ]);
 
 export const getCheckoutStatusLabel = (status?: string) => {
-  if (status === "created") return "Готово к оплате";
+  if (status === "created") return "Ожидает оплаты";
   if (status === "pending_provider") return "Ожидает оплаты";
   if (status === "provider_confirmed") return "Оплачен";
   if (status === "paid") return "Оплачен";
-  if (status === "failed") return "Ошибка оплаты";
-  if (status === "canceled") return "Платеж отменен";
-  if (status === "expired") return "Время истекло";
+  if (status === "failed") return "Оплата не завершена";
+  if (status === "canceled") return "Оплата не завершена";
+  if (status === "expired") return "Ссылка устарела";
   if (status === "provision_pending") return "Активируем доступ";
   if (status === "provision_failed_retryable") return "Проверяем доступ";
   if (status === "provisioned") return "Доступ активирован";
@@ -53,9 +53,9 @@ export const getCheckoutStatusLabel = (status?: string) => {
 export const getCheckoutDialogTitle = (status?: string) => {
   if (status === "paid") return "Оплата принята";
   if (status === "provider_confirmed") return "Оплата подтверждена";
-  if (status === "failed") return "Оплата не прошла";
-  if (status === "canceled") return "Платеж отменен";
-  if (status === "expired") return "Срок оплаты истек";
+  if (status === "failed") return "Оплата не завершена";
+  if (status === "canceled") return "Оплата не завершена";
+  if (status === "expired") return "Ссылка на оплату устарела";
   if (status === "provision_pending") return "Активируем доступ к курсу";
   if (status === "provisioned") return "Доступ к курсу активирован";
   if (status === "email_verification_pending") return "Нужно подтвердить email";
@@ -82,12 +82,48 @@ export const getCheckoutDialogHint = (
     return "Оплата подтверждена. Для полного доступа подтвердите email.";
   }
   if (status === "failed" || status === "canceled" || status === "expired") {
-    return "Платеж не завершился. Можно попробовать оплатить еще раз.";
+    return "Оплата не была завершена. Деньги не списаны, можно открыть платежную страницу заново.";
   }
   if (requiresConfirmation) {
     return "Если страница оплаты не открылась автоматически, перейдите к оплате еще раз.";
   }
   return "Проверяем оплату. Обычно это занимает несколько секунд.";
+};
+
+export const getResumeCheckoutCopy = (status?: string) => {
+  if (status === "expired") {
+    return {
+      title: "Ссылка на оплату устарела",
+      body: "Создадим новую платежную ссылку и откроем оплату в отдельной вкладке.",
+      action: "Открыть оплату",
+    };
+  }
+  if (status === "failed") {
+    return {
+      title: "Оплата не завершена",
+      body: "Банк или платежный сервис не подтвердил операцию. Можно попробовать снова или выбрать другой способ оплаты.",
+      action: "Попробовать снова",
+    };
+  }
+  if (status === "canceled") {
+    return {
+      title: "Оплата не завершена",
+      body: "Платежная страница была закрыта до завершения. Деньги не списаны.",
+      action: "Продолжить",
+    };
+  }
+  if (status === "provision_failed_retryable") {
+    return {
+      title: "Доступ обновляется",
+      body: "Оплата найдена. Проверим доступ и синхронизируем материалы курса.",
+      action: "Проверить",
+    };
+  }
+  return {
+    title: "Оплата ожидает завершения",
+    body: "Откроем защищенную страницу оплаты в отдельной вкладке. После успешной оплаты она закроется автоматически.",
+    action: "Продолжить",
+  };
 };
 
 export const getPaymentProviderLabel = (
