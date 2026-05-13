@@ -36,17 +36,22 @@ export const RESUMABLE_CHECKOUT_STATES = new Set<string>([
 ]);
 
 export const getCheckoutStatusLabel = (status?: string) => {
+  if (status === "created") return "Готово к оплате";
+  if (status === "pending_provider") return "Ожидает оплаты";
   if (status === "provider_confirmed") return "Оплачен";
+  if (status === "paid") return "Оплачен";
   if (status === "failed") return "Ошибка оплаты";
   if (status === "canceled") return "Платеж отменен";
   if (status === "expired") return "Время истекло";
   if (status === "provision_pending") return "Активируем доступ";
+  if (status === "provision_failed_retryable") return "Проверяем доступ";
   if (status === "provisioned") return "Доступ активирован";
   if (status === "email_verification_pending") return "Ожидается подтверждение email";
-  return "Ожидает подтверждения";
+  return "Проверяем оплату";
 };
 
 export const getCheckoutDialogTitle = (status?: string) => {
+  if (status === "paid") return "Оплата принята";
   if (status === "provider_confirmed") return "Оплата подтверждена";
   if (status === "failed") return "Оплата не прошла";
   if (status === "canceled") return "Платеж отменен";
@@ -54,15 +59,18 @@ export const getCheckoutDialogTitle = (status?: string) => {
   if (status === "provision_pending") return "Активируем доступ к курсу";
   if (status === "provisioned") return "Доступ к курсу активирован";
   if (status === "email_verification_pending") return "Нужно подтвердить email";
-  return "Подтверждаем оплату";
+  return "Переход к оплате";
 };
 
 export const getCheckoutDialogHint = (
   status?: string,
   requiresConfirmation?: boolean
 ) => {
+  if (status === "paid") {
+    return "Платеж принят. Доступ к курсу активируется автоматически.";
+  }
   if (status === "provider_confirmed") {
-    return "Платеж зарегистрирован. Проверяем активацию доступа к материалам курса.";
+    return "Платеж подтвержден. Доступ к материалам курса появится автоматически.";
   }
   if (status === "provision_pending") {
     return "Оплата подтверждена. Активируем доступ к курсу.";
@@ -74,12 +82,12 @@ export const getCheckoutDialogHint = (
     return "Оплата подтверждена. Для полного доступа подтвердите email.";
   }
   if (status === "failed" || status === "canceled" || status === "expired") {
-    return "Платеж не завершен. Повторите попытку или откройте страницу оплаты повторно.";
+    return "Платеж не завершился. Можно попробовать оплатить еще раз.";
   }
   if (requiresConfirmation) {
-    return "Откройте страницу банка и завершите оплату. Затем обновите статус, чтобы синхронизировать доступ.";
+    return "Если страница оплаты не открылась автоматически, перейдите к оплате еще раз.";
   }
-  return "Подтверждаем данные по оплате. Обновите статус через несколько секунд.";
+  return "Проверяем оплату. Обычно это занимает несколько секунд.";
 };
 
 export const getPaymentProviderLabel = (

@@ -263,7 +263,7 @@ export const useCourseDetailsData = ({
 
   const refreshCheckoutFlow = useCallback(
     async (checkoutId: string, options?: { silent?: boolean }) => {
-      if (!checkoutId) return;
+      if (!checkoutId) return null;
       const silent = options?.silent === true;
       if (!silent) {
         setCheckoutFlowLoading(true);
@@ -307,12 +307,14 @@ export const useCourseDetailsData = ({
         ) {
           await syncStudentCourseState(user.id);
         }
+        return status;
       } catch (error) {
         setCheckoutFlowError(
           error instanceof Error
             ? error.message
             : "Не удалось обновить статус оплаты."
         );
+        return null;
       } finally {
         if (!silent) {
           setCheckoutFlowLoading(false);

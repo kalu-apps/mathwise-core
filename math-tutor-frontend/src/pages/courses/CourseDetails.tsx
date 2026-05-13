@@ -35,8 +35,6 @@ import {
   CreditCardRounded,
   QrCode2Rounded,
   AccountBalanceWalletRounded,
-  OpenInNewRounded,
-  RefreshRounded,
   CheckCircleRounded,
   HourglassTopRounded,
   AssignmentTurnedInRounded,
@@ -76,7 +74,6 @@ import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { PageLoader } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { BackNavButton } from "@/shared/ui/BackNavButton";
-import { OnboardingFlowPanel } from "@/shared/ui/OnboardingFlowPanel";
 import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
 import {
   selectBnplMarketingInfo,
@@ -108,8 +105,6 @@ import {
   normalizeIdentityIntentCode,
 } from "@/pages/courses/model/identityIntentBridge";
 import {
-  cancelCourseCheckout,
-  confirmStageCheckoutPayment,
   resolveCheckoutPaymentUrl,
   resolvePendingAttachCheckoutId,
   resolveVerifiedCheckoutIntent,
@@ -119,7 +114,6 @@ import {
   submitCourseCheckout,
   verifyCourseCheckoutIdentityIntent,
 } from "@/pages/courses/model/coursePurchaseFlowController";
-import { isStagePaymentConfirmEnabled } from "@/app/runtime/stageRuntime";
 import { resolveCourseDetailsEmptyState } from "@/pages/courses/model/errorMapping";
 
 type CourseDetailsLocationState = {
@@ -152,21 +146,41 @@ const mapPurchaseFlowErrorMessage = (error: unknown): string => {
   const details = (error.details ?? {}) as { code?: string };
   switch (details.code) {
     case "identity_intent_required":
-      return "Перед оплатой нужно подтвердить identity. Войдите в аккаунт или используйте социальный вход.";
+      return "Перед оплатой нужно подтвердить email. Войдите в аккаунт или получите код подтверждения.";
     case "identity_intent_expired":
-      return "Сессия верификации истекла. Повторите вход и запустите оплату снова.";
+      return "Код подтверждения истек. Запросите новый код и повторите оплату.";
     case "identity_intent_consumed":
-      return "Эта сессия верификации уже использована. Запустите новый checkout.";
+      return "Этот код уже использован. Запросите новый код и повторите оплату.";
     case "identity_intent_context_mismatch":
-      return "Контекст подтверждения не совпадает с оформлением покупки. Начните checkout заново.";
+      return "Подтвержденный email не совпадает с оформлением покупки. Начните оплату заново.";
     case "identity_intent_context_invalid":
-      return "Контекст подтверждения identity больше невалиден. Запросите новый код и повторите checkout.";
+      return "Подтверждение email устарело. Запросите новый код и повторите оплату.";
     case "identity_intent_invalid":
-      return "Не удалось подтвердить identity для оплаты. Повторите попытку через окно входа.";
+      return "Не удалось подтвердить email для оплаты. Повторите попытку через окно входа.";
     default:
       return error.message || "Не удалось оформить покупку. Попробуйте позже.";
   }
 };
+
+const CHECKOUT_SUCCESS_STATUSES = new Set([
+  "paid",
+  "provider_confirmed",
+  "provision_pending",
+  "provisioned",
+  "email_verification_pending",
+]);
+
+const CHECKOUT_RETRYABLE_STATUSES = new Set([
+  "failed",
+  "canceled",
+  "expired",
+]);
+
+const isCheckoutSuccessStatus = (status?: string | null) =>
+  Boolean(status && CHECKOUT_SUCCESS_STATUSES.has(status));
+
+const isCheckoutRetryableStatus = (status?: string | null) =>
+  Boolean(status && CHECKOUT_RETRYABLE_STATUSES.has(status));
 
 type ProgressSineCardProps = {
   label: string;
@@ -432,8 +446,6 @@ function ProgressSineCard({ label, subtitle, percent }: ProgressSineCardProps) {
   );
 }
 
-const STAGE_PAYMENT_CONFIRM_ENABLED = isStagePaymentConfirmEnabled();
-
 export default function CourseDetails() {
   const { courseId: courseIdParam } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
@@ -484,7 +496,6 @@ export default function CourseDetails() {
     setCheckoutFlowStatus,
     checkoutPaymentUrl,
     setCheckoutPaymentUrl,
-    checkoutProviderLabel,
     setCheckoutProviderLabel,
     resumeCheckout,
     setResumeCheckout,
@@ -753,6 +764,17 @@ export default function CourseDetails() {
     user?.role,
   ]);
 
+  const redirectToCheckoutPayment = useCallback((paymentUrl: string | null) => {
+    const normalizedUrl = paymentUrl?.trim();
+    if (!normalizedUrl) return false;
+    try {
+      window.location.assign(normalizedUrl);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
   const handleRepairAndRecheck = useCallback(async () => {
     if (user?.role !== "student") return;
     if (!course?.id) return;
@@ -764,17 +786,31 @@ export default function CourseDetails() {
     handlePageNoticeRecheck();
   }, [course?.id, handlePageNoticeRecheck, user?.role]);
 
-  const handleResumeCheckout = useCallback(() => {
+  const handleResumeCheckout = useCallback(async () => {
     if (!resumeCheckout?.id) return;
-    setActiveCheckoutId(resumeCheckout.id);
+    const checkoutId = resumeCheckout.id;
+    setActiveCheckoutId(checkoutId);
     setCheckoutProviderLabel(getPaymentProviderLabel(resumeCheckout.method));
     setCheckoutFlowError(null);
-    setCheckoutFlowOpen(true);
     if (user?.role === "student") {
-      void refreshCheckoutFlow(resumeCheckout.id);
+      const status = await refreshCheckoutFlow(checkoutId);
+      const nextPaymentUrl = status ? resolveCheckoutPaymentUrl(status.payment) : null;
+      if (
+        nextPaymentUrl &&
+        status?.isTerminal !== true &&
+        !isCheckoutSuccessStatus(status?.payment.status)
+      ) {
+        setCheckoutFlowOpen(false);
+        if (redirectToCheckoutPayment(nextPaymentUrl)) {
+          return;
+        }
+        setCheckoutFlowError("Не удалось открыть страницу оплаты. Попробуйте еще раз.");
+      }
     }
+    setCheckoutFlowOpen(true);
   }, [
     refreshCheckoutFlow,
+    redirectToCheckoutPayment,
     resumeCheckout,
     setActiveCheckoutId,
     setCheckoutFlowError,
@@ -924,77 +960,33 @@ export default function CourseDetails() {
     isTeacher,
   });
   const pageNoticeState = checkoutNoticeState ?? courseNoticeState;
-  const onboardingStates: AccessUiState[] = [
-    "awaiting_profile",
-    "awaiting_verification",
-    "paid_but_restricted",
-  ];
-  const showOnboardingPanel =
-    !isTeacher && Boolean(pageNoticeState && onboardingStates.includes(pageNoticeState));
-  const isAwaitingCheckoutPayment =
-    checkoutFlowStatus?.payment.status === "awaiting_provider";
-  const shouldShowAwaitingProviderHint =
-    isAwaitingCheckoutPayment &&
-    (checkoutFlowStatus?.method === "card" || checkoutFlowStatus?.method === "sbp");
   const sbpPaymentView =
     checkoutFlowStatus?.method === "sbp"
       ? checkoutFlowStatus.payment.sbp
       : undefined;
-  const showStagePaymentConfirmAction =
-    STAGE_PAYMENT_CONFIRM_ENABLED &&
-    Boolean(activeCheckoutId) &&
-    user?.role === "student" &&
-    isAwaitingCheckoutPayment;
   const isPurchaseIdentityVerified = Boolean(user) || Boolean(purchaseIntentId);
-  const checkoutIdentityMarker = checkoutFlowStatus?.access?.identityState ?? "";
-  const firstPasswordPending =
-    checkoutFlowStatus?.identityCompletionState === "pending_first_password";
-  const checkoutIdentityState =
-    checkoutIdentityMarker === "verified" ||
-    firstPasswordPending ||
-    Boolean(user)
-      ? "done"
-      : "current";
-  const checkoutPaymentState =
-    checkoutFlowStatus?.payment.status === "provider_confirmed" ||
-    checkoutFlowStatus?.payment.status === "paid" ||
-    checkoutFlowStatus?.state === "provisioned"
-      ? "done"
-      : isAwaitingCheckoutPayment
-      ? "current"
-      : "pending";
-  const checkoutFinalizeState =
-    firstPasswordPending
-      ? "blocked"
-      : checkoutFlowStatus?.state === "provisioned" ||
-        checkoutFlowStatus?.access?.accessState === "active"
-      ? "done"
-      : checkoutFlowStatus?.state === "email_verification_pending"
-      ? "current"
-      : "pending";
-  const checkoutDialogFlowSteps = [
-    {
-      key: "verify",
-      title: "1. Identity",
-      description: "Контекст identity привязан к checkout и защищен от дублей.",
-      state: checkoutIdentityState as "done" | "current",
-    },
-    {
-      key: "payment",
-      title: "2. Оплата",
-      description: "Завершите платеж у провайдера и вернитесь в кабинет.",
-      state: checkoutPaymentState as "done" | "current" | "pending",
-    },
-    {
-      key: "finalize",
-      title: "3. Активация аккаунта",
-      description:
-        firstPasswordPending
-          ? "Требуется создать первый пароль для завершения lifecycle."
-          : "Система синхронизирует права и открывает доступ к курсу.",
-      state: checkoutFinalizeState as "done" | "current" | "pending" | "blocked",
-    },
-  ];
+  const checkoutDialogStatus =
+    checkoutFlowStatus?.payment.status ?? checkoutFlowStatus?.state;
+  const checkoutDialogIsSuccess =
+    isCheckoutSuccessStatus(checkoutDialogStatus) ||
+    checkoutFlowStatus?.access?.accessState === "active";
+  const checkoutDialogIsRetryable = isCheckoutRetryableStatus(checkoutDialogStatus);
+  const checkoutDialogCanRetry =
+    checkoutDialogIsRetryable ||
+    Boolean(
+      checkoutFlowError &&
+        activeCheckoutId &&
+        !checkoutPaymentUrl &&
+        !checkoutDialogIsSuccess
+    );
+  const checkoutDialogTone = checkoutDialogIsSuccess
+    ? "success"
+    : checkoutDialogCanRetry
+    ? "warning"
+    : "pending";
+  const CheckoutDialogIcon = checkoutDialogIsSuccess
+    ? CheckCircleRounded
+    : HourglassTopRounded;
 
   const mobileDialogActionSx = isMobile
     ? {
@@ -1081,7 +1073,7 @@ export default function CourseDetails() {
       setPurchaseIntentMessage(started.message);
       if (!started.intentId?.trim()) {
         setPurchaseIntentError(
-          "Не удалось запустить верификацию identity. Проверьте email и повторите попытку."
+          "Не удалось отправить код подтверждения. Проверьте email и повторите попытку."
         );
       }
     } catch (error) {
@@ -1156,7 +1148,7 @@ export default function CourseDetails() {
     if (!user) {
       if (!purchaseIntentId) {
         setPurchaseIntentError(
-          "Перед оплатой подтвердите identity через код на email."
+          "Перед оплатой подтвердите email кодом из письма."
         );
         return;
       }
@@ -1165,7 +1157,7 @@ export default function CourseDetails() {
         if (!intentStatus.ok) {
           setPurchaseIntentMessage(intentStatus.message);
           setPurchaseIntentError(
-            "Identity intent не готов к checkout. Запросите и подтвердите код повторно."
+            "Email еще не подтвержден. Запросите и введите код повторно."
           );
           if (intentStatus.state !== "pending") {
             setPurchaseIntentId(null);
@@ -1210,8 +1202,9 @@ export default function CourseDetails() {
             updateUser(result.user);
           }
 
+          const paymentUrl = resolveCheckoutPaymentUrl(result.payment);
           setActiveCheckoutId(result.checkoutId);
-          setCheckoutPaymentUrl(resolveCheckoutPaymentUrl(result.payment));
+          setCheckoutPaymentUrl(paymentUrl);
           setCheckoutProviderLabel(
             getPaymentProviderLabel(result.payment?.provider ?? purchaseMethod)
           );
@@ -1228,10 +1221,37 @@ export default function CourseDetails() {
           });
           setCheckoutFlowStatus(null);
           setCheckoutFlowError(null);
-          setCheckoutFlowOpen(true);
-          if (user?.role === "student") {
-            await refreshCheckoutFlow(result.checkoutId);
+          setCheckoutFlowOpen(false);
+          if (
+            paymentUrl &&
+            !isCheckoutSuccessStatus(result.payment?.status) &&
+            result.checkoutState !== "provisioned"
+          ) {
+            if (!redirectToCheckoutPayment(paymentUrl)) {
+              setCheckoutFlowError(
+                "Не удалось открыть страницу оплаты. Попробуйте еще раз."
+              );
+              setCheckoutFlowOpen(true);
+            }
+            return;
           }
+          if (user?.role === "student") {
+            const status = await refreshCheckoutFlow(result.checkoutId);
+            const isReady =
+              status?.access?.accessState === "active" ||
+              status?.state === "provisioned" ||
+              isCheckoutSuccessStatus(status?.payment.status);
+            if (isReady) {
+              setCheckoutFlowOpen(false);
+              return;
+            }
+          }
+          setCheckoutFlowError(
+            paymentUrl
+              ? null
+              : "Не удалось получить ссылку на оплату. Попробуйте еще раз."
+          );
+          setCheckoutFlowOpen(true);
           return;
         } catch (error) {
           const pendingAttachId = resolvePendingAttachCheckoutId(error);
@@ -1239,7 +1259,7 @@ export default function CourseDetails() {
             setPendingAttachCheckoutId(pendingAttachId);
             setShowLoginAction(true);
             setPurchaseOpen(false);
-            setModalMessage(error instanceof Error ? error.message : "Авторизуйтесь для продолжения checkout.");
+            setModalMessage(error instanceof Error ? error.message : "Авторизуйтесь для продолжения оплаты.");
             shouldOpenAttentionModal = true;
             return;
           }
@@ -1263,8 +1283,11 @@ export default function CourseDetails() {
   };
 
   const openCheckoutPayment = () => {
-    if (!checkoutPaymentUrl) return;
-    window.open(checkoutPaymentUrl, "_blank", "noopener,noreferrer");
+    if (redirectToCheckoutPayment(checkoutPaymentUrl)) {
+      setCheckoutFlowOpen(false);
+      return;
+    }
+    setCheckoutFlowError("Не удалось получить ссылку на оплату. Попробуйте еще раз.");
   };
 
   const handleCheckoutRetry = async () => {
@@ -1274,8 +1297,20 @@ export default function CourseDetails() {
         try {
           setCheckoutFlowLoading(true);
           setCheckoutFlowError(null);
-          setCheckoutPaymentUrl(await retryCheckoutPayment(activeCheckoutId));
+          const paymentUrl = await retryCheckoutPayment(activeCheckoutId);
+          setCheckoutPaymentUrl(paymentUrl);
           await refreshCheckoutFlow(activeCheckoutId, { silent: true });
+          if (paymentUrl) {
+            setCheckoutFlowOpen(false);
+            if (!redirectToCheckoutPayment(paymentUrl)) {
+              setCheckoutFlowError(
+                "Не удалось открыть страницу оплаты. Попробуйте еще раз."
+              );
+              setCheckoutFlowOpen(true);
+            }
+            return;
+          }
+          setCheckoutFlowError("Не удалось получить новую ссылку на оплату.");
         } catch (error) {
           setCheckoutFlowError(
             error instanceof Error
@@ -1288,66 +1323,6 @@ export default function CourseDetails() {
       },
       {
         lockKey: `checkout-action:retry:${activeCheckoutId}`,
-        retry: { label: t("common.retryCheckoutAction") },
-      }
-    );
-    if (executed === undefined) return;
-  };
-
-  const handleStageCheckoutConfirm = async () => {
-    if (!activeCheckoutId) return;
-    const executed = await checkoutActionGuard.run(
-      async () => {
-        try {
-          setCheckoutFlowLoading(true);
-          setCheckoutFlowError(null);
-          setCheckoutPaymentUrl(
-            await confirmStageCheckoutPayment(activeCheckoutId)
-          );
-          await refreshCheckoutFlow(activeCheckoutId, { silent: true });
-        } catch (error) {
-          setCheckoutFlowError(
-            error instanceof Error
-              ? error.message
-              : "Не удалось подтвердить тестовую оплату в stage runtime."
-          );
-        } finally {
-          setCheckoutFlowLoading(false);
-        }
-      },
-      {
-        lockKey: `checkout-action:stage-confirm:${activeCheckoutId}`,
-        retry: { label: t("common.retryCheckoutAction") },
-      }
-    );
-    if (executed === undefined) return;
-  };
-
-  const handleCheckoutCancel = async () => {
-    if (!activeCheckoutId) return;
-    const executed = await checkoutActionGuard.run(
-      async () => {
-        try {
-          setCheckoutFlowLoading(true);
-          setCheckoutFlowError(null);
-          await cancelCourseCheckout(activeCheckoutId);
-          await refreshCheckoutFlow(activeCheckoutId, { silent: true });
-          setCheckoutFlowOpen(false);
-          setModalMessage(
-            "Платеж отменен. Вы можете оформить покупку заново в любое время."
-          );
-          setShowLoginAction(false);
-          setModalOpen(true);
-        } catch (error) {
-          setCheckoutFlowError(
-            error instanceof Error ? error.message : "Не удалось отменить платеж."
-          );
-        } finally {
-          setCheckoutFlowLoading(false);
-        }
-      },
-      {
-        lockKey: `checkout-action:cancel:${activeCheckoutId}`,
         retry: { label: t("common.retryCheckoutAction") },
       }
     );
@@ -1675,8 +1650,7 @@ export default function CourseDetails() {
             </Button>
           }
         >
-          Найдена незавершенная покупка по этому курсу. Текущий статус:{" "}
-          {getCheckoutStatusLabel(resumeCheckout.state)}.
+          Оплата курса не завершена. Можно продолжить с последнего шага.
         </Alert>
       )}
       <div className="course-details__offer course-details__offer--premium">
@@ -2239,45 +2213,6 @@ export default function CourseDetails() {
           {bnplStatusBanner.text}
         </Alert>
       )}
-      {showOnboardingPanel && (
-        <section className="course-details__onboarding">
-          <header className="course-details__onboarding-head">
-            <h2>Активация доступа</h2>
-            <span>Путь после оплаты</span>
-          </header>
-          <div className="course-details__onboarding-steps">
-            <article className="course-details__onboarding-step is-done">
-              <strong>1. Оплата подтверждена</strong>
-              <p>Система зафиксировала успешный checkout и подготовила доступ к курсу.</p>
-            </article>
-            <article
-              className={`course-details__onboarding-step ${
-                pageNoticeState === "awaiting_profile" ? "is-current" : "is-done"
-              }`}
-            >
-              <strong>2. Профиль</strong>
-              <p>Заполните имя, фамилию и телефон в личном кабинете.</p>
-            </article>
-            <article
-              className={`course-details__onboarding-step ${
-                pageNoticeState === "awaiting_verification" ? "is-current" : ""
-              }`}
-            >
-              <strong>3. Подтверждение email</strong>
-              <p>Выполните вход по email, чтобы подтвердить владение адресом.</p>
-            </article>
-            <article
-              className={`course-details__onboarding-step ${
-                pageNoticeState === "paid_but_restricted" ? "is-current" : ""
-              }`}
-            >
-              <strong>4. Активация прав</strong>
-              <p>Проверьте статус, чтобы включить курс в полном объеме.</p>
-            </article>
-          </div>
-        </section>
-      )}
-
       {showPurchaseSection ? (
         <div className="course-details__layout">
           <div className="course-details__layout-main">{lessonsSection()}</div>
@@ -2371,7 +2306,7 @@ export default function CourseDetails() {
         className="ui-dialog ui-dialog--compact course-details-dialog"
       >
         <DialogTitleWithClose
-          title="Оформление покупки"
+          title="Покупка курса"
           onClose={() => {
             setPurchaseOpen(false);
             setPendingType(null);
@@ -2382,7 +2317,7 @@ export default function CourseDetails() {
           {!user && (
             <>
               <Typography color="text.secondary">
-                Укажите email, который будет подтвержден и использован как источник identity для checkout.
+                Укажите email, на который будет оформлена покупка.
               </Typography>
               <TextField
                 label="Email"
@@ -2445,7 +2380,7 @@ export default function CourseDetails() {
                         purchaseIntentCode.trim().length < 4
                       }
                     >
-                      {purchaseIntentVerifyLoading ? "Проверяем..." : "Подтвердить identity"}
+                      {purchaseIntentVerifyLoading ? "Проверяем..." : "Подтвердить email"}
                     </Button>
                   </div>
                 </>
@@ -2539,7 +2474,7 @@ export default function CourseDetails() {
                           <span>
                             {typeof plan.fromAmount === "number"
                               ? `от ${plan.fromAmount.toLocaleString("ru-RU")} ₽`
-                              : "Расчет на checkout"}
+                              : "Расчет при оплате"}
                           </span>
                         </button>
                       );
@@ -2587,9 +2522,9 @@ export default function CourseDetails() {
             onClick={() => void handlePurchaseSubmit()}
             disabled={purchaseLoading || (!user && !isPurchaseIdentityVerified)}
             sx={mobileDialogActionSx}
-            aria-label={isMobile ? "Продолжить" : undefined}
+            aria-label={isMobile ? "Перейти к оплате" : undefined}
           >
-            {isMobile ? <PaymentsRounded fontSize="small" /> : "Продолжить"}
+            {isMobile ? <PaymentsRounded fontSize="small" /> : "Перейти к оплате"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -2597,64 +2532,49 @@ export default function CourseDetails() {
       <Dialog
         open={checkoutFlowOpen}
         onClose={() => setCheckoutFlowOpen(false)}
-        maxWidth="sm"
+        maxWidth="xs"
         fullWidth
         className="ui-dialog ui-dialog--compact course-details-dialog"
       >
         <DialogTitleWithClose
           title={
             <span className="course-details__checkout-title">
-              {checkoutFlowStatus?.payment.status === "provider_confirmed" ||
-              checkoutFlowStatus?.state === "provisioned" ||
-              checkoutFlowStatus?.state === "email_verification_pending" ? (
-                <CheckCircleRounded fontSize="small" />
-              ) : (
-                <HourglassTopRounded fontSize="small" />
-              )}
-              {getCheckoutDialogTitle(checkoutFlowStatus?.payment.status)}
+              <CheckoutDialogIcon fontSize="small" />
+              {getCheckoutDialogTitle(checkoutDialogStatus)}
             </span>
           }
           onClose={() => setCheckoutFlowOpen(false)}
-          closeAriaLabel="Закрыть окно статуса оплаты"
+          closeAriaLabel="Закрыть окно оплаты"
         />
         <DialogContent sx={stackedDialogContentSx}>
-          <OnboardingFlowPanel
-            kicker="Course lifecycle"
-            title="Состояние активации после checkout"
-            description="Панель показывает progression от верификации identity до финального доступа."
-            steps={checkoutDialogFlowSteps}
-            compact
-          />
-          <div className="course-details__checkout-summary">
-            <div>
-              <span>Checkout ID</span>
-              <strong>{activeCheckoutId ?? "—"}</strong>
-            </div>
-            <div>
-              <span>Метод</span>
-              <strong>{checkoutProviderLabel || "—"}</strong>
-            </div>
-            <div>
-              <span>Статус</span>
-              <strong>{getCheckoutStatusLabel(checkoutFlowStatus?.payment.status)}</strong>
+          <div
+            className={`course-details__payment-status-card course-details__payment-status-card--${checkoutDialogTone}`}
+          >
+            <span className="course-details__payment-status-icon">
+              {checkoutFlowLoading ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : (
+                <CheckoutDialogIcon fontSize="small" />
+              )}
+            </span>
+            <div className="course-details__payment-status-copy">
+              <strong>{getCheckoutStatusLabel(checkoutDialogStatus)}</strong>
+              <p>
+                {getCheckoutDialogHint(
+                  checkoutDialogStatus,
+                  checkoutFlowStatus?.payment.requiresConfirmation
+                )}
+              </p>
             </div>
           </div>
-          <Typography color="text.secondary">
-            {getCheckoutDialogHint(
-              checkoutFlowStatus?.payment.status,
-              checkoutFlowStatus?.payment.requiresConfirmation
-            )}
-          </Typography>
-          {checkoutFlowStatus?.method === "card" &&
-          checkoutFlowStatus?.payment.requiresConfirmation ? (
+          {checkoutPaymentUrl && !checkoutDialogIsSuccess && !checkoutDialogIsRetryable ? (
             <Alert severity="info" className="ui-alert">
-              Для карточной оплаты может потребоваться 3DS-подтверждение. Нажмите
-              «Открыть оплату», завершите проверку в банке и вернитесь в кабинет.
+              Если переход не открылся автоматически, нажмите «Перейти к оплате».
             </Alert>
           ) : null}
-          {sbpPaymentView?.qrUrl ? (
+          {!checkoutDialogIsSuccess && sbpPaymentView?.qrUrl ? (
             <Alert severity="info" className="ui-alert">
-              Оплата через СБП активна.
+              Оплата через СБП готова.
               {sbpPaymentView.expiresAt
                 ? ` Ссылка действует до ${new Date(
                     sbpPaymentView.expiresAt
@@ -2662,8 +2582,7 @@ export default function CourseDetails() {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}.`
-                : ""}{" "}
-              Используйте кнопку «Открыть оплату» или deeplink банка.
+                : ""}
             </Alert>
           ) : null}
           {checkoutFlowError && <Alert severity="warning">{checkoutFlowError}</Alert>}
@@ -2673,64 +2592,36 @@ export default function CourseDetails() {
               вашему профилю.
             </Alert>
           )}
-          {shouldShowAwaitingProviderHint && (
-            <Alert severity="info">
-              Статус оплаты обновляется только после подтверждения от платежного провайдера.
-            </Alert>
-          )}
         </DialogContent>
         <DialogActions>
           <Button
-            onClick={() => void refreshCheckoutFlow(activeCheckoutId ?? "")}
-            disabled={!activeCheckoutId || checkoutFlowLoading || user?.role !== "student"}
+            onClick={() => setCheckoutFlowOpen(false)}
+            color="inherit"
             sx={mobileDialogActionSx}
-            aria-label={isMobile ? "Проверить статус оплаты" : undefined}
+            aria-label={isMobile ? "Закрыть" : undefined}
           >
-            {isMobile ? <RefreshRounded fontSize="small" /> : "Проверить статус"}
+            {isMobile ? <CloseRounded fontSize="small" /> : "Закрыть"}
           </Button>
-          {checkoutPaymentUrl && (
+          {checkoutDialogCanRetry ? (
             <Button
-              variant="outlined"
-              onClick={openCheckoutPayment}
-              sx={mobileDialogActionSx}
-              aria-label={isMobile ? "Открыть страницу оплаты" : undefined}
-            >
-              {isMobile ? <OpenInNewRounded fontSize="small" /> : "Открыть оплату"}
-            </Button>
-          )}
-          {showStagePaymentConfirmAction && (
-            <Button
-              variant="outlined"
-              color="warning"
-              onClick={() => void handleStageCheckoutConfirm()}
+              variant="contained"
+              onClick={() => void handleCheckoutRetry()}
               disabled={!activeCheckoutId || checkoutFlowLoading || user?.role !== "student"}
               sx={mobileDialogActionSx}
-              aria-label={isMobile ? "Stage test confirm" : undefined}
+              aria-label={isMobile ? "Попробовать оплатить снова" : undefined}
             >
-              {isMobile ? (
-                <CheckCircleRounded fontSize="small" />
-              ) : (
-                "Подтвердить тестовую оплату (stage)"
-              )}
+              {isMobile ? <PaymentsRounded fontSize="small" /> : "Попробовать снова"}
             </Button>
-          )}
-          <Button
-            variant="contained"
-            onClick={() => void handleCheckoutRetry()}
-            disabled={!activeCheckoutId || checkoutFlowLoading || user?.role !== "student"}
-            sx={mobileDialogActionSx}
-            aria-label={isMobile ? "Повторить оплату" : undefined}
-          >
-            {isMobile ? <PaymentsRounded fontSize="small" /> : "Повторить"}
-          </Button>
-          <Button
-            onClick={() => void handleCheckoutCancel()}
-            disabled={!activeCheckoutId || checkoutFlowLoading || user?.role !== "student"}
-            sx={mobileDialogActionSx}
-            aria-label={isMobile ? "Отменить оплату" : undefined}
-          >
-            {isMobile ? <CloseRounded fontSize="small" /> : "Отменить"}
-          </Button>
+          ) : checkoutPaymentUrl && !checkoutDialogIsSuccess ? (
+            <Button
+              variant="contained"
+              onClick={openCheckoutPayment}
+              sx={mobileDialogActionSx}
+              aria-label={isMobile ? "Перейти к оплате" : undefined}
+            >
+              {isMobile ? <PaymentsRounded fontSize="small" /> : "Перейти к оплате"}
+            </Button>
+          ) : null}
         </DialogActions>
       </Dialog>
     </section>
