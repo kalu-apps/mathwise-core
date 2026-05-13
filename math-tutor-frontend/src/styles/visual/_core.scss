@@ -795,6 +795,9 @@ select,
 
 /* Immersive fullscreen media viewer (without modal-paper container). */
 .immersive-media-overlay {
+  --immersive-overlay-block-gap: 10px;
+  --immersive-overlay-topbar-size: clamp(38px, 4vw, 48px);
+  --immersive-overlay-nav-rail: 0px;
   position: fixed;
   inset: 0;
   z-index: 1400;
@@ -815,24 +818,74 @@ select,
 
 .immersive-media-overlay__frame {
   position: relative;
-  width: fit-content;
-  max-width: min(96vw, 1400px);
+  width: 100%;
+  max-width: min(96vw, 1440px);
   max-height: calc(100dvh - 44px);
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   place-items: center;
+  gap: var(--immersive-overlay-block-gap);
+}
+
+.immersive-media-overlay__frame.is-navigable {
+  --immersive-overlay-nav-rail: clamp(42px, 5vw, 66px);
+}
+
+.immersive-media-overlay__topbar {
+  width: min(
+    100%,
+    calc(100vw - 28px - (var(--immersive-overlay-nav-rail) * 2))
+  );
+  min-height: var(--immersive-overlay-topbar-size);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  justify-self: center;
+}
+
+.immersive-media-overlay__actions,
+.immersive-media-overlay__custom-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.immersive-media-overlay__stage {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns:
+    var(--immersive-overlay-nav-rail)
+    minmax(0, max-content)
+    var(--immersive-overlay-nav-rail);
+  align-items: center;
+  justify-content: center;
 }
 
 .immersive-media-overlay__content {
+  grid-column: 2;
+  min-width: 0;
+  min-height: 0;
   display: grid;
   place-items: center;
+  max-width: calc(100vw - 28px - (var(--immersive-overlay-nav-rail) * 2));
+  max-height: calc(
+    100dvh - 44px - var(--immersive-overlay-topbar-size) -
+      var(--immersive-overlay-block-gap)
+  );
 }
 
 .immersive-media-overlay__media {
   display: block;
   width: auto;
   height: auto;
-  max-width: min(96vw, 1400px);
-  max-height: calc(100dvh - 44px);
+  max-width: min(100%, 1400px);
+  max-height: calc(
+    100dvh - 44px - var(--immersive-overlay-topbar-size) -
+      var(--immersive-overlay-block-gap)
+  );
   object-fit: contain;
   border: 0;
   border-radius: 0;
@@ -841,7 +894,7 @@ select,
 }
 
 video.immersive-media-overlay__media {
-  width: min(96vw, 1400px);
+  width: min(100%, 1400px);
 }
 
 .immersive-media-overlay__fallback {
@@ -854,7 +907,7 @@ video.immersive-media-overlay__media {
 }
 
 .immersive-media-overlay__action {
-  position: absolute;
+  position: relative;
   display: grid;
   place-items: center;
   width: clamp(34px, 4vw, 46px);
@@ -868,7 +921,6 @@ video.immersive-media-overlay__media {
   cursor: pointer;
   z-index: 2;
   transition: opacity 160ms ease, transform 160ms ease, color 160ms ease;
-  mix-blend-mode: difference;
   filter: drop-shadow(0 1px 2px rgba(8, 14, 34, 0.48));
 }
 
@@ -886,47 +938,52 @@ video.immersive-media-overlay__media {
 }
 
 .immersive-media-overlay__action--close {
-  top: 4px;
-  right: 4px;
+  flex: 0 0 auto;
 }
 
 .immersive-media-overlay__action--prev {
-  top: 50%;
-  left: 4px;
-  transform: translateY(-50%);
+  grid-column: 1;
+  justify-self: end;
+  margin-right: 8px;
 }
 
 .immersive-media-overlay__action--next {
-  top: 50%;
-  right: 4px;
-  transform: translateY(-50%);
+  grid-column: 3;
+  justify-self: start;
+  margin-left: 8px;
 }
 
 @media (max-width: 900px) {
+  .immersive-media-overlay {
+    --immersive-overlay-block-gap: 8px;
+  }
+
+  .immersive-media-overlay__frame.is-navigable {
+    --immersive-overlay-nav-rail: 38px;
+  }
+
   .immersive-media-overlay {
     padding: 10px;
   }
 
   .immersive-media-overlay__media {
-    max-width: calc(100vw - 20px);
-    max-height: calc(100dvh - 24px);
+    max-width: 100%;
+    max-height: calc(
+      100dvh - 24px - var(--immersive-overlay-topbar-size) -
+        var(--immersive-overlay-block-gap)
+    );
   }
 
   video.immersive-media-overlay__media {
-    width: calc(100vw - 20px);
-  }
-
-  .immersive-media-overlay__action--close {
-    top: 0;
-    right: 0;
+    width: 100%;
   }
 
   .immersive-media-overlay__action--prev {
-    left: 0;
+    margin-right: 4px;
   }
 
   .immersive-media-overlay__action--next {
-    right: 0;
+    margin-left: 4px;
   }
 }
 

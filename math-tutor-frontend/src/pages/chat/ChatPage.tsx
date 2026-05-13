@@ -236,6 +236,7 @@ export default function ChatPage() {
   const recorderTimerRef = useRef<number | null>(null);
   const recorderSecondsRef = useRef(0);
   const activeAudioDockSeekingRef = useRef(false);
+  const audioRecoveryThrottleRef = useRef<number | null>(null);
   const listenedVoicePendingRef = useRef(new Set<string>());
 
   const goBack = useCallback(() => {
@@ -315,6 +316,14 @@ export default function ChatPage() {
     },
     []
   );
+
+  const handleAudioPlaybackError = useCallback(() => {
+    if (!selectedThreadId || audioRecoveryThrottleRef.current !== null) return;
+    audioRecoveryThrottleRef.current = window.setTimeout(() => {
+      audioRecoveryThrottleRef.current = null;
+      void loadMessages(selectedThreadId, { silent: true }).catch(() => undefined);
+    }, 450);
+  }, [loadMessages, selectedThreadId]);
 
   const requestMarkRead = useCallback(() => {
     if (!selectedThreadId || !user) return;
@@ -984,6 +993,9 @@ export default function ChatPage() {
     return () => {
       if (recorderTimerRef.current !== null) {
         window.clearInterval(recorderTimerRef.current);
+      }
+      if (audioRecoveryThrottleRef.current !== null) {
+        window.clearTimeout(audioRecoveryThrottleRef.current);
       }
       recorderSecondsRef.current = 0;
       if (recorderRef.current && recorderRef.current.state !== "inactive") {
@@ -1728,6 +1740,7 @@ export default function ChatPage() {
                                 onPlaybackStateChange={
                                   handleAudioPlaybackStateChange
                                 }
+                                onPlaybackError={handleAudioPlaybackError}
                                 messageTimestamp={
                                   showVoiceInlineMeta ? messageTimestampLabel : undefined
                                 }
@@ -1818,6 +1831,7 @@ export default function ChatPage() {
                                       onPlaybackStateChange={
                                         handleAudioPlaybackStateChange
                                       }
+                                      onPlaybackError={handleAudioPlaybackError}
                                       messageTimestamp={
                                         showAttachmentInlineMeta
                                           ? messageTimestampLabel
@@ -2217,6 +2231,31 @@ export default function ChatPage() {
         closeLabel="Закрыть просмотр вложения"
         prevLabel="Предыдущее вложение"
         nextLabel="Следующее вложение"
+        actions={
+          previewCurrentMedia ? (
+            <a
+              className="chat-page__preview-download"
+              href={previewCurrentMedia.url}
+              download={previewCurrentMedia.downloadName}
+              title={
+                previewCurrentMedia.kind === "video"
+                  ? "Скачать видео"
+                  : previewCurrentMedia.kind === "image"
+                    ? "Скачать изображение"
+                    : "Скачать файл"
+              }
+              aria-label={
+                previewCurrentMedia.kind === "video"
+                  ? "Скачать видео"
+                  : previewCurrentMedia.kind === "image"
+                    ? "Скачать изображение"
+                    : "Скачать файл"
+              }
+            >
+              <DownloadRoundedIcon fontSize="inherit" />
+            </a>
+          ) : null
+        }
       >
         {previewCurrentMedia ? (
           <div
@@ -2253,27 +2292,6 @@ export default function ChatPage() {
                 className="immersive-media-overlay__media chat-page__preview-media"
               />
             )}
-            <a
-              className="chat-page__preview-download"
-              href={previewCurrentMedia.url}
-              download={previewCurrentMedia.downloadName}
-              title={
-                previewCurrentMedia.kind === "video"
-                  ? "Скачать видео"
-                  : previewCurrentMedia.kind === "image"
-                    ? "Скачать изображение"
-                    : "Скачать файл"
-              }
-              aria-label={
-                previewCurrentMedia.kind === "video"
-                  ? "Скачать видео"
-                  : previewCurrentMedia.kind === "image"
-                    ? "Скачать изображение"
-                    : "Скачать файл"
-              }
-            >
-              <DownloadRoundedIcon fontSize="inherit" />
-            </a>
           </div>
         ) : (
           <div className="immersive-media-overlay__fallback">

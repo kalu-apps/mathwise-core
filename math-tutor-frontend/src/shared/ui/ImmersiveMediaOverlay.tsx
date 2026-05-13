@@ -13,6 +13,7 @@ type ImmersiveMediaOverlayProps = {
   closeLabel?: string;
   prevLabel?: string;
   nextLabel?: string;
+  actions?: ReactNode;
   children: ReactNode;
 };
 
@@ -25,6 +26,7 @@ export function ImmersiveMediaOverlay({
   closeLabel = "Закрыть просмотр",
   prevLabel = "Предыдущее",
   nextLabel = "Следующее",
+  actions,
   children,
 }: ImmersiveMediaOverlayProps) {
   const canNavigate = Boolean(onPrev && onNext);
@@ -87,39 +89,54 @@ export function ImmersiveMediaOverlay({
       onClick={handleBackdropClick}
     >
       <div className="immersive-media-overlay__viewport">
-        <div className="immersive-media-overlay__frame">
-          <div className="immersive-media-overlay__content">{children}</div>
+        <div
+          className={`immersive-media-overlay__frame ${
+            canNavigate ? "is-navigable" : ""
+          }`}
+        >
+          <div className="immersive-media-overlay__topbar">
+            <div className="immersive-media-overlay__actions">
+              {actions ? (
+                <div className="immersive-media-overlay__custom-actions">
+                  {actions}
+                </div>
+              ) : null}
+              <button
+                type="button"
+                className="immersive-media-overlay__action immersive-media-overlay__action--close"
+                aria-label={closeLabel}
+                onClick={onClose}
+              >
+                <CloseRoundedIcon />
+              </button>
+            </div>
+          </div>
 
-          {canNavigate ? (
-            <button
-              type="button"
-              className="immersive-media-overlay__action immersive-media-overlay__action--prev"
-              aria-label={prevLabel}
-              onClick={() => onPrev?.()}
-            >
-              <ChevronLeftRoundedIcon />
-            </button>
-          ) : null}
+          <div className="immersive-media-overlay__stage">
+            {canNavigate ? (
+              <button
+                type="button"
+                className="immersive-media-overlay__action immersive-media-overlay__action--prev"
+                aria-label={prevLabel}
+                onClick={() => onPrev?.()}
+              >
+                <ChevronLeftRoundedIcon />
+              </button>
+            ) : null}
 
-          {canNavigate ? (
-            <button
-              type="button"
-              className="immersive-media-overlay__action immersive-media-overlay__action--next"
-              aria-label={nextLabel}
-              onClick={() => onNext?.()}
-            >
-              <ChevronRightRoundedIcon />
-            </button>
-          ) : null}
+            <div className="immersive-media-overlay__content">{children}</div>
 
-          <button
-            type="button"
-            className="immersive-media-overlay__action immersive-media-overlay__action--close"
-            aria-label={closeLabel}
-            onClick={onClose}
-          >
-            <CloseRoundedIcon />
-          </button>
+            {canNavigate ? (
+              <button
+                type="button"
+                className="immersive-media-overlay__action immersive-media-overlay__action--next"
+                aria-label={nextLabel}
+                onClick={() => onNext?.()}
+              >
+                <ChevronRightRoundedIcon />
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>,
