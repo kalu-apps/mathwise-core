@@ -10,7 +10,6 @@ import {
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { LessonItem } from "@/entities/lesson/ui/LessonItem";
 import { useAuth } from "@/features/auth/model/AuthContext";
-import { selfHealAccess } from "@/features/auth/model/api";
 import type { Purchase } from "@/entities/purchase/model/types";
 import {
   Alert,
@@ -946,17 +945,6 @@ p{margin:0;color:#61708f}
     user?.role,
   ]);
 
-  const handleRepairAndRecheck = useCallback(async () => {
-    if (user?.role !== "student") return;
-    if (!course?.id) return;
-    try {
-      await selfHealAccess({ courseId: course.id });
-    } catch {
-      // No-op: fallback to recheck to surface current authoritative state.
-    }
-    handlePageNoticeRecheck();
-  }, [course?.id, handlePageNoticeRecheck, user?.role]);
-
   const handleResumeCheckout = useCallback(async () => {
     if (!resumeCheckout?.id) return;
     const checkoutId = resumeCheckout.id;
@@ -1183,6 +1171,8 @@ p{margin:0;color:#61708f}
     isTeacher,
   });
   const pageNoticeState = checkoutNoticeState ?? courseNoticeState;
+  const visiblePageNoticeState =
+    pageNoticeState === "paid_but_restricted" ? null : pageNoticeState;
   const isPurchaseIdentityVerified = Boolean(user) || Boolean(purchaseIntentId);
 
   const mobileDialogActionSx = isMobile
@@ -2342,30 +2332,24 @@ p{margin:0;color:#61708f}
           className="course-details__back-button"
         />
       </div>
-      {pageNoticeState && (
+      {visiblePageNoticeState && (
         <AccessStateBanner
-          state={pageNoticeState}
+          state={visiblePageNoticeState}
           onLogin={
-            pageNoticeState !== "entitlement_missing"
+            visiblePageNoticeState === "anonymous_preview"
               ? () => openAuthModal("course")
               : undefined
           }
-          onRecover={
-            pageNoticeState !== "entitlement_missing"
-              ? () => openRecoverModal(user?.email, "course")
+          onRecover={undefined}
+          onCompleteProfile={
+            visiblePageNoticeState === "awaiting_profile"
+              ? handleCompleteProfile
               : undefined
           }
-          onCompleteProfile={
-            pageNoticeState === "awaiting_profile" ? handleCompleteProfile : undefined
-          }
           onRecheck={
-            user?.role === "student" && pageNoticeState === "paid_but_restricted"
-              ? () => {
-                  void handleRepairAndRecheck();
-                }
-              : user?.role === "student" &&
-                (pageNoticeState === "awaiting_profile" ||
-                  pageNoticeState === "awaiting_verification")
+            user?.role === "student" &&
+            (visiblePageNoticeState === "awaiting_profile" ||
+              visiblePageNoticeState === "awaiting_verification")
               ? handlePageNoticeRecheck
               : undefined
           }
