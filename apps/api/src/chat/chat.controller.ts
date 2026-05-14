@@ -22,7 +22,9 @@ import type {
   MarkTeacherChatVoiceListenedPayloadDto,
   SendTeacherChatMessagePayloadDto,
   TeacherChatEligibilityDto,
+  TeacherChatMediaAccessDto,
   TeacherChatMessageDto,
+  TeacherChatRealtimeEventDto,
   TeacherChatThreadDto,
   UpdateTeacherChatMessagePayloadDto,
 } from "./chat.types";
@@ -30,11 +32,28 @@ import type {
 type RequestWithCookie = {
   headers?: {
     cookie?: string;
+    "last-event-id"?: string;
   };
+};
+
+type EventStreamRequest = RequestWithCookie & {
+  on: (event: "close", listener: () => void) => void;
 };
 
 type HttpResponseWithHeaders = {
   setHeader: (name: string, value: string) => void;
+};
+
+type EventStreamResponse = HttpResponseWithHeaders & {
+  write: (chunk: string) => void;
+  end: () => void;
+  flushHeaders?: () => void;
+};
+
+const parseLastEventId = (value: string | undefined): number | undefined => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
+  return Math.floor(parsed);
 };
 
 @Controller("api/chat")
@@ -95,6 +114,61 @@ export class ChatController {
     return this.chatService.getMessages({
       actorUser,
       threadId: threadId?.trim() || "",
+    });
+  }
+
+  @Get("events")
+  async streamEvents(
+    @Query("threadId") threadId: string | undefined,
+    @Query("lastEventId") lastEventId: string | undefined,
+    @Req() req: EventStreamRequest,
+    @Res() res: EventStreamResponse
+  ): Promise<void> {
+    const actorUser = await this.requireUser(req, res);
+    const normalizedThreadId = threadId?.trim() || undefined;
+    if (normalizedThreadId) {
+      await this.chatService.assertEventStreamAccess(actorUser, normalizedThreadId);
+    }
+
+    res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+
+    const writeEvent = (event: TeacherChatRealtimeEventDto) => {
+      res.write("event: chat\n");
+      if (event.type !== "connected" && event.type !== "ping" && event.version > 0) {
+        res.write(`id: ${event.version}\n`);
+      }
+      res.write(`data: ${JSON.stringify(event)}\n\n`);
+    };
+    const unsubscribe = this.chatService.subscribeToEvents({
+      actorUser,
+      threadId: normalizedThreadId,
+      lastEventId: parseLastEventId(lastEventId ?? req.headers?.["last-event-id"]),
+      emit: writeEvent,
+    });
+    req.on("close", () => {
+      unsubscribe();
+      res.end();
+    });
+  }
+
+  @Get("messages/:messageId/media/:mediaObjectId/access")
+  async getMessageMediaAccess(
+    @Param("messageId") messageId: string,
+    @Param("mediaObjectId") mediaObjectId: string,
+    @Query("threadId") threadId: string | undefined,
+    @Req() req: RequestWithCookie,
+    @Res({ passthrough: true }) res: HttpResponseWithHeaders
+  ): Promise<TeacherChatMediaAccessDto> {
+    const actorUser = await this.requireUser(req, res);
+    return this.chatService.getMessageMediaAccess({
+      actorUser,
+      threadId: threadId?.trim() || "",
+      messageId: messageId.trim(),
+      mediaObjectId: mediaObjectId.trim(),
     });
   }
 

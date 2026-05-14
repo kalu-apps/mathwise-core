@@ -68,6 +68,35 @@ export type TeacherChatMessage = {
   readByPeer?: boolean;
 };
 
+export type TeacherChatMediaAccess = {
+  messageId: string;
+  threadId: string;
+  mediaObjectId: string;
+  downloadUrl: string;
+  expiresAt: string;
+  contentType?: string;
+  sizeBytes?: number;
+};
+
+export type TeacherChatRealtimeEventType =
+  | "connected"
+  | "ping"
+  | "message.created"
+  | "message.updated"
+  | "message.deleted"
+  | "thread.cleared"
+  | "thread.read"
+  | "voice.listened";
+
+export type TeacherChatRealtimeEvent = {
+  type: TeacherChatRealtimeEventType;
+  version: number;
+  at: string;
+  threadId?: string;
+  messageId?: string;
+  message?: TeacherChatMessage;
+};
+
 export type SendTeacherChatMessagePayload = {
   threadId?: string;
   text: string;

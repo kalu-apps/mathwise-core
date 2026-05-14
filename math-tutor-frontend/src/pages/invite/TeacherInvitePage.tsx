@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   CircularProgress,
@@ -15,6 +14,7 @@ import {
   inspectTeacherInvite,
 } from "@/entities/profile/model/storage";
 import { formatRuPhoneInput } from "@/shared/lib/phone";
+import { Notice } from "@/shared/ui/Notice";
 
 type InviteState = "active" | "expired" | "consumed" | "revoked" | "invalid";
 
@@ -130,15 +130,17 @@ export default function TeacherInvitePage() {
             </Box>
           ) : null}
 
-          {!loading && error ? <Alert severity="error">{error}</Alert> : null}
+          {!loading && error ? (
+            <Notice tone="critical" density="compact">{error}</Notice>
+          ) : null}
 
           {!loading && !error && status?.state === "active" ? (
             <>
               {user ? (
                 <>
-                  <Alert severity="success">
+                  <Notice tone="success" density="compact">
                     Вы вошли как <strong>{user.email}</strong>. Подтвердите принятие приглашения.
-                  </Alert>
+                  </Notice>
                   <Button
                     variant="contained"
                     onClick={() => {

@@ -221,3 +221,88 @@ test("chat: hydrates voice url by voice id when mediaObjectId is missing", async
   );
   assert.equal(messages[0]?.voice?.mediaObjectId, "media_voice_1");
 });
+
+test("chat: issues media access for participant voice message", async () => {
+  const service = new ChatService(
+    {
+      ensureSchema: async () => undefined,
+      findThreadById: async () => ({
+        id: "thread_voice_access_1",
+        studentId: "student_voice_access",
+        teacherId: "teacher_voice_access",
+      }),
+      findMessageById: async () => ({
+        id: "msg_voice_access_1",
+        threadId: "thread_voice_access_1",
+        senderId: "teacher_voice_access",
+        senderRole: "teacher",
+        senderName: "Teacher Voice",
+        senderPhoto: null,
+        text: "",
+        attachments: [],
+        voice: {
+          id: "media_voice_access_1",
+          mediaObjectId: "media_voice_access_1",
+          mimeType: "audio/webm",
+          size: 1024,
+          url: "https://expired.example.test/voice.webm",
+        },
+        createdAt: new Date().toISOString(),
+      }),
+    } as never,
+    {} as never,
+    {
+      getCapabilitiesForUser: async () => ({
+        role: "student",
+        userId: "student_voice_access",
+        isIdentityVerified: true,
+        hasActiveCourseEntitlement: false,
+        canAccessCourse: false,
+        canAccessAllLessons: false,
+        canChatWithTeacher: true,
+        canAccessWorkbook: true,
+        isPremiumStudent: false,
+        hasPremiumInteractionAccess: false,
+        hasBookingInteractionAccess: true,
+        grantedCapabilities: ["teacher_chat_access", "whiteboard_access"],
+        activeCapabilityGrants: [],
+        entitledCourseIds: [],
+        premiumCourseIds: [],
+        teacherIdsForPremiumInteractions: ["teacher_voice_access"],
+        primaryTeacherId: "teacher_voice_access",
+        resolvedAt: new Date().toISOString(),
+      }),
+    } as never,
+    {
+      getRuntimeDownloadUrlByObjectId: async (objectId: string) => ({
+        objectId,
+        objectKey: `stage/chat/${objectId}.webm`,
+        downloadUrl: `https://signed.example.test/${objectId}.webm`,
+        expiresAt: "2026-05-14T20:00:00.000Z",
+        contentType: "audio/webm",
+        sizeBytes: 1024,
+      }),
+    } as never
+  );
+
+  const access = await service.getMessageMediaAccess({
+    actorUser: {
+      id: "student_voice_access",
+      email: "student.voice@example.test",
+      firstName: "Student",
+      lastName: "Voice",
+      role: "student",
+    },
+    threadId: "thread_voice_access_1",
+    messageId: "msg_voice_access_1",
+    mediaObjectId: "media_voice_access_1",
+  });
+
+  assert.equal(access.threadId, "thread_voice_access_1");
+  assert.equal(access.messageId, "msg_voice_access_1");
+  assert.equal(access.mediaObjectId, "media_voice_access_1");
+  assert.equal(
+    access.downloadUrl,
+    "https://signed.example.test/media_voice_access_1.webm"
+  );
+});

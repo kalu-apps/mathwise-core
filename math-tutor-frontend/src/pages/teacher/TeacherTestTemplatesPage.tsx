@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Alert,
   Button,
   Chip,
   IconButton,
@@ -28,6 +27,7 @@ import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { ListSkeleton } from "@/shared/ui/loading";
 import { ListPagination } from "@/shared/ui/ListPagination";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { Notice } from "@/shared/ui/Notice";
 
 const formatTemplateUpdatedAt = (iso: string) => {
   const value = new Date(iso);
@@ -228,12 +228,14 @@ export default function TeacherTestTemplatesPage() {
             Черновики
           </button>
         </div>
-        {error ? <Alert severity="error">{error}</Alert> : null}
+        {error ? <Notice tone="critical" density="compact">{error}</Notice> : null}
 
         {loading ? (
           <ListSkeleton count={3} itemHeight={108} />
         ) : filtered.length === 0 ? (
-          <Alert severity="info">Нет шаблонов по текущему фильтру.</Alert>
+          <Notice tone="neutral" density="compact">
+            Нет шаблонов по текущему фильтру.
+          </Notice>
         ) : (
           <div className="assessment-templates-page__list">
             {pagedTemplates.map((template) => (

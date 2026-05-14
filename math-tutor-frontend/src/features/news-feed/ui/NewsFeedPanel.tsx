@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   Button,
   CircularProgress,
   Dialog,
@@ -38,6 +37,7 @@ import type {
   NewsTone,
 } from "@/entities/news/model/types";
 import { cn } from "@/shared/lib/cn";
+import { Notice } from "@/shared/ui/Notice";
 import { ListPagination } from "@/shared/ui/ListPagination";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
@@ -785,9 +785,9 @@ export function NewsFeedPanel({ user }: Props) {
       ) : null}
 
       {error && (
-        <Alert severity="error" onClose={() => setError(null)}>
+        <Notice tone="critical" density="compact" onClose={() => setError(null)}>
           {error}
-        </Alert>
+        </Notice>
       )}
 
       <div className="news-feed__list">
@@ -1525,19 +1525,25 @@ export function NewsFeedPanel({ user }: Props) {
         nextLabel="Следующее вложение"
       >
         {previewCurrentAttachment?.kind === "video" ? (
-          <video
-            controls
-            playsInline
-            preload="metadata"
-            src={previewCurrentAttachment.url}
-            className="immersive-media-overlay__media news-feed__preview-media"
-          />
+          <div className="news-feed__preview-stage news-feed__preview-stage--video">
+            <video
+              key={previewCurrentAttachment.url}
+              controls
+              playsInline
+              preload="metadata"
+              src={previewCurrentAttachment.url}
+              className="immersive-media-overlay__media news-feed__preview-media"
+            />
+          </div>
         ) : previewCurrentAttachment ? (
-          <img
-            src={previewCurrentAttachment.url}
-            alt={previewCurrentAttachment.title}
-            className="immersive-media-overlay__media news-feed__preview-media"
-          />
+          <div className="news-feed__preview-stage news-feed__preview-stage--image">
+            <img
+              key={previewCurrentAttachment.url}
+              src={previewCurrentAttachment.url}
+              alt={previewCurrentAttachment.title}
+              className="immersive-media-overlay__media news-feed__preview-media"
+            />
+          </div>
         ) : (
           <div className="immersive-media-overlay__fallback">
             Не удалось загрузить вложение.

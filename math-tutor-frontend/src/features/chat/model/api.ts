@@ -1,10 +1,12 @@
-import { api } from "@/shared/api/client";
+import { api, buildApiUrl } from "@/shared/api/client";
 import type {
   DeleteTeacherChatMessagePayload,
   MarkTeacherChatVoiceListenedPayload,
   SendTeacherChatMessagePayload,
   TeacherChatEligibility,
+  TeacherChatMediaAccess,
   TeacherChatMessage,
+  TeacherChatRealtimeEvent,
   TeacherChatThread,
   UpdateTeacherChatMessagePayload,
 } from "./types";
@@ -28,6 +30,69 @@ export async function getTeacherChatMessages(
   return api.get<TeacherChatMessage[]>(`/chat/messages?${query}`, {
     cacheTtlMs: 500,
   });
+}
+
+export async function getTeacherChatMessageMediaAccess(params: {
+  threadId: string;
+  messageId: string;
+  mediaObjectId: string;
+}): Promise<TeacherChatMediaAccess> {
+  const query = new URLSearchParams({ threadId: params.threadId }).toString();
+  return api.get<TeacherChatMediaAccess>(
+    `/chat/messages/${encodeURIComponent(params.messageId)}/media/${encodeURIComponent(
+      params.mediaObjectId
+    )}/access?${query}`,
+    {
+      cacheTtlMs: 0,
+      dedupe: false,
+      timeoutMs: 8_000,
+    }
+  );
+}
+
+export function subscribeTeacherChatEvents(params: {
+  threadId?: string | null;
+  lastEventId?: number;
+  onEvent: (event: TeacherChatRealtimeEvent) => void;
+  onOpen?: () => void;
+  onError?: () => void;
+}): () => void {
+  if (typeof window === "undefined" || typeof EventSource === "undefined") {
+    return () => undefined;
+  }
+
+  const query = new URLSearchParams();
+  if (params.threadId) {
+    query.set("threadId", params.threadId);
+  }
+  if (params.lastEventId && params.lastEventId > 0) {
+    query.set("lastEventId", String(Math.floor(params.lastEventId)));
+  }
+  const suffix = query.toString();
+  const source = new EventSource(
+    `${buildApiUrl("/chat/events")}${suffix ? `?${suffix}` : ""}`,
+    {
+      withCredentials: true,
+    }
+  );
+
+  source.onopen = () => {
+    params.onOpen?.();
+  };
+  source.onerror = () => {
+    params.onError?.();
+  };
+  source.addEventListener("chat", (event) => {
+    try {
+      params.onEvent(JSON.parse(event.data) as TeacherChatRealtimeEvent);
+    } catch {
+      // Ignore malformed realtime frames; the polling fallback will recover state.
+    }
+  });
+
+  return () => {
+    source.close();
+  };
 }
 
 export async function sendTeacherChatMessage(

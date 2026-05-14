@@ -1,7 +1,8 @@
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Alert, Button, CircularProgress } from "@mui/material";
+import { Button, CircularProgress } from "@mui/material";
 import { shouldShowVideoPlayerLoading } from "@/entities/lesson/model/videoPlayerUi";
+import { Notice } from "@/shared/ui/Notice";
 
 interface Props {
   src?: string;
@@ -224,13 +225,14 @@ function VideoPlayerContent({
   return (
     <div className="video-player">
       {showSecurityHint && (
-        <Alert
-          severity="warning"
+        <Notice
+          tone="warning"
+          density="compact"
           className="video-player__security-hint ui-alert"
           onClose={() => setShowSecurityHint(false)}
         >
           Скриншоты и запись экрана запрещены правилами платформы. Это best-effort защита браузера.
-        </Alert>
+        </Notice>
       )}
       <div className="video-player__ratio" ref={ratioRef}>
         {!isActivated ? (

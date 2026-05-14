@@ -61,6 +61,7 @@ export function AudioMessagePlayer({
   activeAudioId,
   onPlaybackStateChange,
   onPlaybackError,
+  onResolvePlaybackSource,
   messageTimestamp,
   showEdited,
   showReadState,
@@ -79,6 +80,9 @@ export function AudioMessagePlayer({
   activeAudioId?: string | null;
   onPlaybackStateChange?: (state: AudioMessagePlaybackState) => void;
   onPlaybackError?: () => void;
+  onResolvePlaybackSource?: (
+    audioId: string
+  ) => Promise<string | null | undefined>;
   messageTimestamp?: string;
   showEdited?: boolean;
   showReadState?: boolean;
@@ -96,7 +100,9 @@ export function AudioMessagePlayer({
   const listenedReportedRef = useRef(Boolean(listenedByPeer));
   const onListenedRef = useRef(onListened);
   const onPlaybackErrorRef = useRef(onPlaybackError);
+  const onResolvePlaybackSourceRef = useRef(onResolvePlaybackSource);
   const playbackErrorReportedRef = useRef(false);
+  const currentTimeRef = useRef(0);
   const resumeTimeRef = useRef(
     typeof resumeTime === "number" && Number.isFinite(resumeTime)
       ? Math.max(0, resumeTime)
@@ -119,7 +125,7 @@ export function AudioMessagePlayer({
       : 0
   );
   const [currentTime, setCurrentTime] = useState(0);
-  const [playbackSrc, setPlaybackSrc] = useState(src);
+  const [playbackSrc, setPlaybackSrc] = useState(src.trim());
   const [loadState, setLoadState] = useState<AudioLoadState>("idle");
   const audioSrc = playbackSrc;
   const audioIdentity = mediaIdentity?.trim() || src;
@@ -173,10 +179,61 @@ export function AudioMessagePlayer({
   }, [onPlaybackError]);
 
   useEffect(() => {
+    onResolvePlaybackSourceRef.current = onResolvePlaybackSource;
+  }, [onResolvePlaybackSource]);
+
+  useEffect(() => {
     preloadRequestedRef.current = false;
     playbackErrorReportedRef.current = false;
     loadStateRef.current = "idle";
   }, [audioSrc]);
+
+  useEffect(() => {
+    currentTimeRef.current = currentTime;
+  }, [currentTime]);
+
+  useEffect(() => {
+    const nextSrc = src.trim();
+    if (!nextSrc || nextSrc === playbackSrc) return;
+
+    const audio = audioRef.current;
+    const preservedTime =
+      audio && Number.isFinite(audio.currentTime) && audio.currentTime > 0
+        ? audio.currentTime
+        : currentTimeRef.current;
+    const wasPlaying = Boolean(audio && !audio.paused);
+
+    if (audio && wasPlaying) {
+      audio.pause();
+    }
+    preloadRequestedRef.current = false;
+    playbackErrorReportedRef.current = false;
+    loadStateRef.current = "idle";
+    const syncTimeoutId = window.setTimeout(() => {
+      setPlaybackSrc(nextSrc);
+      updateLoadState("idle");
+      if (preservedTime > 0.05) {
+        setCurrentTime(preservedTime);
+      }
+
+      if (wasPlaying) {
+        const nextAudio = audioRef.current;
+        if (!nextAudio) return;
+        if (preservedTime > 0.05) {
+          try {
+            nextAudio.currentTime = preservedTime;
+          } catch {
+            // The refreshed signed URL may still be resolving metadata.
+          }
+        }
+        void togglePlaybackRef.current?.();
+      }
+    }, 0);
+
+    return () => {
+      window.clearTimeout(syncTimeoutId);
+    };
+  }, [playbackSrc, src, updateLoadState]);
 
   const emitPlaybackState = useCallback(
     ({
@@ -304,11 +361,11 @@ export function AudioMessagePlayer({
         Number.isFinite(currentTime) && currentTime > 0.05
           ? currentTime
           : resumeTimeRef.current;
-      const shouldUseLatestSrc =
-        playbackSrc !== src && (knownCurrentTime <= 0.05 || shouldForceRetry);
+      const shouldUseLatestSrc = playbackSrc !== src.trim();
       if (shouldUseLatestSrc) {
-        audio.src = src;
-        setPlaybackSrc(src);
+        const nextSrc = src.trim();
+        audio.src = nextSrc;
+        setPlaybackSrc(nextSrc);
         preloadRequestedRef.current = false;
         playbackErrorReportedRef.current = false;
       }
@@ -344,6 +401,38 @@ export function AudioMessagePlayer({
         setIsPlaying(true);
         updateLoadState("ready");
       } catch {
+        const freshSrc = await onResolvePlaybackSourceRef.current?.(audioIdentity);
+        const normalizedFreshSrc = freshSrc?.trim();
+        if (normalizedFreshSrc) {
+          try {
+            updateLoadState("loading");
+            audio.src = normalizedFreshSrc;
+            setPlaybackSrc(normalizedFreshSrc);
+            preloadRequestedRef.current = true;
+            playbackErrorReportedRef.current = false;
+            audio.load();
+            if (knownCurrentTime > 0.05) {
+              try {
+                audio.currentTime = knownCurrentTime;
+                setCurrentTime(knownCurrentTime);
+              } catch {
+                // The fresh media URL may need metadata before seeking.
+              }
+            }
+            audio.playbackRate = safePlaybackRate;
+            await audio.play();
+            setIsPlaying(true);
+            updateLoadState("ready");
+            emitPlaybackState({
+              isPlaying: true,
+              currentTime: audio.currentTime,
+              duration: audio.duration,
+            });
+            return;
+          } catch {
+            // Fall through to the visible error state below.
+          }
+        }
         setIsPlaying(false);
         updateLoadState("error");
         reportPlaybackError();
@@ -358,6 +447,7 @@ export function AudioMessagePlayer({
     audio.pause();
     setIsPlaying(false);
   }, [
+    audioIdentity,
     currentTime,
     emitPlaybackState,
     playbackSrc,

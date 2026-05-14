@@ -9,7 +9,6 @@ import {
   Box,
   Checkbox,
   FormControlLabel,
-  Alert,
   CircularProgress,
   IconButton,
   LinearProgress,
@@ -37,6 +36,7 @@ import { t } from "@/shared/i18n";
 import { useActionGuard } from "@/shared/lib/useActionGuard";
 import { ApiError } from "@/shared/api/client";
 import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
+import { Notice } from "@/shared/ui/Notice";
 import {
   AnalyticalSurfaceLoader,
   ButtonPending,
@@ -721,10 +721,12 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
 
             <Stack spacing={1}>
               {mediaStatusAlert ? (
-                <Alert severity={mediaStatusAlert.severity}>{mediaStatusAlert.message}</Alert>
+                <Notice tone={mediaStatusAlert.severity} density="compact">
+                  {mediaStatusAlert.message}
+                </Notice>
               ) : null}
               {videoPreflightNote ? (
-                <Alert severity="info">{videoPreflightNote}</Alert>
+                <Notice tone="info" density="compact">{videoPreflightNote}</Notice>
               ) : null}
               {hasVideoAttached ? (
                 <Box className="lesson-editor__video-card">
@@ -990,7 +992,9 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
                   <Typography>Подготавливаем предпросмотр...</Typography>
                 </Stack>
               ) : null}
-              {previewError ? <Alert severity="warning">{previewError}</Alert> : null}
+              {previewError ? (
+                <Notice tone="warning" density="compact">{previewError}</Notice>
+              ) : null}
               {!previewLoading && !previewError && previewKind === "video" && previewUrl ? (
                 <video
                   key={previewUrl}
@@ -1013,9 +1017,9 @@ export function LessonEditor({ initialLesson, onSave, onCancel }: Props) {
               !previewError &&
               previewKind === "unsupported" ? (
                 <Stack spacing={1.5} alignItems="flex-start">
-                  <Alert severity="info">
+                  <Notice tone="neutral" density="compact">
                     Для этого типа файла встроенный просмотр недоступен. Откройте файл в новой вкладке.
-                  </Alert>
+                  </Notice>
                   {previewExternalHref ? (
                     <Button
                       variant="outlined"

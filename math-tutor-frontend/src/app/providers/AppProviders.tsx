@@ -5,6 +5,7 @@ import { ConnectivityProvider } from "./ConnectivityProvider";
 import { ReconciliationRunner } from "./ReconciliationRunner";
 import { PerformanceMonitoringProvider } from "./PerformanceMonitoringProvider";
 import { PerformanceModeProvider } from "./PerformanceModeProvider";
+import { ToastProvider } from "@/shared/ui/ToastProvider";
 import { runStorageMaintenanceSweep } from "./storageMaintenance";
 import { RumReporterProvider } from "./RumReporterProvider";
 import { StageAccessGateProvider } from "./StageAccessGateProvider";
@@ -22,8 +23,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
             <ConnectivityProvider>
               <StageAccessGateProvider>
                 <AuthProvider>
-                  <ReconciliationRunner />
-                  {children}
+                  <ToastProvider>
+                    <ReconciliationRunner />
+                    {children}
+                  </ToastProvider>
                 </AuthProvider>
               </StageAccessGateProvider>
             </ConnectivityProvider>

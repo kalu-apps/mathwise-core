@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  Alert,
   Button,
   CircularProgress,
   Container,
@@ -26,6 +25,7 @@ import { getLessonAccessUiState } from "@/domain/auth-payments/model/ui";
 import { AccessStateBanner } from "@/shared/ui/AccessStateBanner";
 import { PageLoader } from "@/shared/ui/loading";
 import { BackNavButton } from "@/shared/ui/BackNavButton";
+import { Notice } from "@/shared/ui/Notice";
 import {
   getLessonMaterialAccess,
   getLessonPlaybackAccess,
@@ -384,7 +384,7 @@ export default function LessonDetails() {
   if (!lesson) {
     return (
       <div className="lesson-details__not-found">
-        {error && <Alert severity="error">{error}</Alert>}
+        {error && <Notice tone="critical">{error}</Notice>}
         Урок не найден
       </div>
     );
@@ -533,9 +533,11 @@ export default function LessonDetails() {
   return (
     <section className="lesson-details">
       <Container maxWidth="lg" className="lesson-details__container">
-        {error && <Alert severity="error">{error}</Alert>}
+        {error && <Notice tone="critical" density="compact">{error}</Notice>}
         {mediaStatusBanner ? (
-          <Alert severity={mediaStatusBanner.severity}>{mediaStatusBanner.message}</Alert>
+          <Notice tone={mediaStatusBanner.severity} density="compact">
+            {mediaStatusBanner.message}
+          </Notice>
         ) : null}
         {hasVideoBinding && playbackError ? (
           <div className="lesson-details__playback-actions">
@@ -615,9 +617,9 @@ export default function LessonDetails() {
               <p>Файлы и документы для закрепления темы.</p>
             </div>
             {lesson.settings?.disablePrintableDownloads && (
-              <Alert severity="info" className="ui-alert">
+              <Notice tone="neutral" density="compact">
                 Скачивание печатных материалов отключено преподавателем для этого урока.
-              </Alert>
+              </Notice>
             )}
             <div className="lesson-details__materials-grid">
               {lesson.materials.map((m) => (

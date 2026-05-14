@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
-  Alert,
   Box,
   Button,
   CircularProgress,
@@ -10,6 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { ApiError, api } from "@/shared/api/client";
+import { Notice } from "@/shared/ui/Notice";
 
 type StageAccessStatus = {
   enabled: boolean;
@@ -184,7 +184,7 @@ export function StageAccessGateProvider({ children }: { children: ReactNode }) {
               }
             }}
           />
-          {error ? <Alert severity="warning">{error}</Alert> : null}
+          {error ? <Notice tone="warning" density="compact">{error}</Notice> : null}
           <Stack direction="row" spacing={1}>
             <Button
               variant="contained"

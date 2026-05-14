@@ -8,6 +8,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly client: RedisClientType = createClient({
     url: this.runtimeConfig.redisUrl,
   });
+  private readonly subscriberClients = new Set<RedisClientType>();
 
   async onModuleInit() {
     await this.client.connect();
@@ -15,6 +16,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
+    await Promise.all(
+      Array.from(this.subscriberClients).map(async (subscriber) => {
+        if (subscriber.isOpen) {
+          await subscriber.quit();
+        }
+      })
+    );
+    this.subscriberClients.clear();
     if (this.client.isOpen) {
       await this.client.quit();
     }
@@ -72,5 +81,46 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       await this.client.expire(key, Math.max(1, Math.floor(ttlSec)));
     }
     return next;
+  }
+
+  async increment(key: string): Promise<number> {
+    return this.client.incr(key);
+  }
+
+  async publish(channel: string, message: string): Promise<number> {
+    return this.client.publish(channel, message);
+  }
+
+  async pushCappedList(
+    key: string,
+    value: string,
+    limit: number,
+    ttlSec: number
+  ): Promise<void> {
+    const normalizedLimit = Math.max(1, Math.floor(limit));
+    await this.client.lPush(key, value);
+    await this.client.lTrim(key, 0, normalizedLimit - 1);
+    await this.client.expire(key, Math.max(1, Math.floor(ttlSec)));
+  }
+
+  async listRange(key: string, start: number, stop: number): Promise<string[]> {
+    return this.client.lRange(key, start, stop);
+  }
+
+  async subscribe(
+    channel: string,
+    handler: (message: string) => void
+  ): Promise<() => Promise<void>> {
+    const subscriber = this.client.duplicate();
+    await subscriber.connect();
+    this.subscriberClients.add(subscriber);
+    await subscriber.subscribe(channel, handler);
+
+    return async () => {
+      this.subscriberClients.delete(subscriber);
+      if (!subscriber.isOpen) return;
+      await subscriber.unsubscribe(channel);
+      await subscriber.quit();
+    };
   }
 }

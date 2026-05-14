@@ -9,7 +9,6 @@ import {
   type PointerEvent,
 } from "react";
 import {
-  Alert,
   Avatar,
   Button,
   CircularProgress,
@@ -47,11 +46,13 @@ import {
   clearTeacherChatThread,
   deleteTeacherChatMessage,
   getTeacherChatEligibility,
+  getTeacherChatMessageMediaAccess,
   getTeacherChatMessages,
   getTeacherChatThreads,
   markTeacherChatVoiceListened,
   markTeacherChatThreadRead,
   sendTeacherChatMessage,
+  subscribeTeacherChatEvents,
   updateTeacherChatMessage,
 } from "@/features/chat/model/api";
 import type {
@@ -64,6 +65,7 @@ import type {
 import { generateId } from "@/shared/lib/id";
 import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
 import { ImmersiveMediaOverlay } from "@/shared/ui/ImmersiveMediaOverlay";
+import { Notice } from "@/shared/ui/Notice";
 import {
   createAttachmentFromFile,
   createVoiceMessageFromFile,
@@ -143,6 +145,30 @@ const isSupportedChatAudioRate = (value: number) =>
 const formatChatAudioRateLabel = (value: number) =>
   value === 1 ? "1x" : `${Number.isInteger(value) ? value : value.toFixed(1)}x`;
 
+const sortChatMessages = (messages: TeacherChatMessage[]) =>
+  [...messages].sort((left, right) => {
+    const leftTs = Date.parse(left.createdAt);
+    const rightTs = Date.parse(right.createdAt);
+    const leftSafeTs = Number.isFinite(leftTs) ? leftTs : 0;
+    const rightSafeTs = Number.isFinite(rightTs) ? rightTs : 0;
+    if (leftSafeTs !== rightSafeTs) return leftSafeTs - rightSafeTs;
+    return left.id.localeCompare(right.id);
+  });
+
+const mergeChatMessage = (
+  messages: TeacherChatMessage[],
+  nextMessage: TeacherChatMessage
+) => {
+  const next = normalizeChatMessage(nextMessage);
+  const index = messages.findIndex((message) => message.id === next.id);
+  if (index < 0) {
+    return sortChatMessages([...messages, next]);
+  }
+  const updated = [...messages];
+  updated[index] = next;
+  return sortChatMessages(updated);
+};
+
 const readStoredChatAudioRate = (threadId: string) => {
   try {
     const stored = window.localStorage.getItem(
@@ -212,6 +238,7 @@ export default function ChatPage() {
     useState<Record<string, number>>({});
   const [audioPlaybackRateByThreadId, setAudioPlaybackRateByThreadId] =
     useState<Record<string, number>>({});
+  const [realtimeConnected, setRealtimeConnected] = useState(false);
 
   const isTeacher = user?.role === "teacher";
   const pathname = location.pathname.toLowerCase();
@@ -237,6 +264,9 @@ export default function ChatPage() {
   const recorderSecondsRef = useRef(0);
   const activeAudioDockSeekingRef = useRef(false);
   const audioRecoveryThrottleRef = useRef<number | null>(null);
+  const threadRefreshThrottleRef = useRef<number | null>(null);
+  const lastRealtimeEventVersionRef = useRef(0);
+  const messagesRef = useRef<TeacherChatMessage[]>([]);
   const listenedVoicePendingRef = useRef(new Set<string>());
 
   const goBack = useCallback(() => {
@@ -325,6 +355,93 @@ export default function ChatPage() {
     }, 450);
   }, [loadMessages, selectedThreadId]);
 
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  const resolveAudioPlaybackSource = useCallback(
+    async (audioId: string): Promise<string | null> => {
+      const normalizedAudioId = audioId.trim();
+      if (!selectedThreadId || !normalizedAudioId) return null;
+
+      const sourceMessage = messagesRef.current.find((message) => {
+        const voiceId = message.voice
+          ? message.voice.mediaObjectId || message.voice.id
+          : "";
+        if (voiceId === normalizedAudioId) return true;
+        return (message.attachments ?? []).some(
+          (attachment) =>
+            (attachment.mediaObjectId || attachment.id) === normalizedAudioId
+        );
+      });
+      if (sourceMessage) {
+        try {
+          const access = await getTeacherChatMessageMediaAccess({
+            threadId: selectedThreadId,
+            messageId: sourceMessage.id,
+            mediaObjectId: normalizedAudioId,
+          });
+          setMessages((current) =>
+            current.map((message) => {
+              if (message.id !== sourceMessage.id) return message;
+              return {
+                ...message,
+                voice:
+                  message.voice &&
+                  (message.voice.mediaObjectId || message.voice.id) ===
+                    normalizedAudioId
+                    ? {
+                        ...message.voice,
+                        url: access.downloadUrl,
+                      }
+                    : message.voice,
+                attachments: (message.attachments ?? []).map((attachment) =>
+                  (attachment.mediaObjectId || attachment.id) === normalizedAudioId
+                    ? {
+                        ...attachment,
+                        url: access.downloadUrl,
+                      }
+                    : attachment
+                ),
+              };
+            })
+          );
+          return access.downloadUrl;
+        } catch {
+          // Fallback below reloads the current timeline in case the message changed.
+        }
+      }
+
+      try {
+        const nextMessages = await getTeacherChatMessages(selectedThreadId);
+        const normalizedMessages = nextMessages.map(normalizeChatMessage);
+        setMessages(normalizedMessages);
+
+        for (const message of normalizedMessages) {
+          const voiceId = message.voice
+            ? message.voice.mediaObjectId || message.voice.id
+            : "";
+          if (voiceId === normalizedAudioId && message.voice?.url) {
+            return message.voice.url;
+          }
+
+          const matchingAttachment = (message.attachments ?? []).find(
+            (attachment) =>
+              (attachment.mediaObjectId || attachment.id) === normalizedAudioId
+          );
+          if (matchingAttachment?.url) {
+            return matchingAttachment.url;
+          }
+        }
+      } catch {
+        return null;
+      }
+
+      return null;
+    },
+    [selectedThreadId]
+  );
+
   const requestMarkRead = useCallback(() => {
     if (!selectedThreadId || !user) return;
     if (markReadThrottleRef.current !== null) return;
@@ -339,6 +456,14 @@ export default function ChatPage() {
     }, 320);
   }, [loadMessages, loadThreads, selectedThreadId, user]);
 
+  const scheduleThreadRefresh = useCallback(() => {
+    if (threadRefreshThrottleRef.current !== null) return;
+    threadRefreshThrottleRef.current = window.setTimeout(() => {
+      threadRefreshThrottleRef.current = null;
+      void loadThreads({ keepSpinner: true }).catch(() => undefined);
+    }, 180);
+  }, [loadThreads]);
+
   useEffect(() => {
     const syncFullscreenState = () => {
       setIsFullscreen(document.fullscreenElement === shellRef.current);
@@ -351,11 +476,14 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    if (markReadThrottleRef.current === null) return;
     return () => {
       if (markReadThrottleRef.current !== null) {
         window.clearTimeout(markReadThrottleRef.current);
         markReadThrottleRef.current = null;
+      }
+      if (threadRefreshThrottleRef.current !== null) {
+        window.clearTimeout(threadRefreshThrottleRef.current);
+        threadRefreshThrottleRef.current = null;
       }
     };
   }, []);
@@ -438,14 +566,65 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!selectedThreadId) return;
+    const resetRealtimeState = window.setTimeout(() => {
+      setRealtimeConnected(false);
+    }, 0);
+    const unsubscribe = subscribeTeacherChatEvents({
+      threadId: null,
+      lastEventId: lastRealtimeEventVersionRef.current,
+      onOpen: () => setRealtimeConnected(true),
+      onError: () => setRealtimeConnected(false),
+      onEvent: (event) => {
+        if (event.type === "connected" || event.type === "ping") {
+          setRealtimeConnected(true);
+          return;
+        }
+        if (event.version > lastRealtimeEventVersionRef.current) {
+          lastRealtimeEventVersionRef.current = event.version;
+        }
+        if (event.threadId && event.threadId !== selectedThreadId) {
+          scheduleThreadRefresh();
+          return;
+        }
+
+        if (event.type === "thread.cleared") {
+          setMessages([]);
+          setActiveAudio(null);
+          scheduleThreadRefresh();
+          return;
+        }
+
+        const realtimeMessage = event.message;
+        if (realtimeMessage) {
+          setMessages((current) => mergeChatMessage(current, realtimeMessage));
+          scheduleThreadRefresh();
+          return;
+        }
+
+        if (event.type === "message.deleted" && event.messageId) {
+          setMessages((current) =>
+            current.filter((message) => message.id !== event.messageId)
+          );
+          scheduleThreadRefresh();
+        }
+      },
+    });
+    return () => {
+      window.clearTimeout(resetRealtimeState);
+      unsubscribe();
+    };
+  }, [scheduleThreadRefresh, selectedThreadId]);
+
+  useEffect(() => {
+    if (!selectedThreadId) return;
     const pollId = window.setInterval(() => {
       void loadMessages(selectedThreadId, { silent: true });
       void loadThreads({ keepSpinner: true });
-    }, 8_000);
+    }, realtimeConnected ? 45_000 : 8_000);
     return () => {
       window.clearInterval(pollId);
     };
-  }, [loadMessages, loadThreads, selectedThreadId]);
+  }, [loadMessages, loadThreads, realtimeConnected, selectedThreadId]);
 
   useEffect(() => {
     if (previousThreadIdRef.current !== selectedThreadId) {
@@ -1501,22 +1680,33 @@ export default function ChatPage() {
             ) : null}
           </header>
 
-          {threadsError ? <Alert severity="error">{threadsError}</Alert> : null}
+          {threadsError ? (
+            <Notice tone="critical" density="compact">
+              {threadsError}
+            </Notice>
+          ) : null}
 
           {chatUnavailable ? (
             <div className="chat-page__empty-gate">
-              <Alert severity="warning">
+              <Notice
+                tone="warning"
+                density="compact"
+                title="Чат пока недоступен"
+                actions={[
+                  {
+                    label: "Курсы",
+                    onClick: () => navigate("/courses"),
+                  },
+                  {
+                    label: "Занятие",
+                    onClick: () => navigate("/booking"),
+                    variant: "secondary",
+                  },
+                ]}
+              >
                 Чат доступен после покупки курса по премиум тарифу
                 или записи на индивидуальное занятие.
-              </Alert>
-              <div className="chat-page__empty-actions">
-                <Button variant="contained" onClick={() => navigate("/courses")}>
-                  Перейти к курсам
-                </Button>
-                <Button variant="outlined" onClick={() => navigate("/booking")}>
-                  Записаться на занятие
-                </Button>
-              </div>
+              </Notice>
             </div>
           ) : !selectedThread ? (
             <div className="chat-page__state chat-page__state--large">
@@ -1741,6 +1931,7 @@ export default function ChatPage() {
                                   handleAudioPlaybackStateChange
                                 }
                                 onPlaybackError={handleAudioPlaybackError}
+                                onResolvePlaybackSource={resolveAudioPlaybackSource}
                                 messageTimestamp={
                                   showVoiceInlineMeta ? messageTimestampLabel : undefined
                                 }
@@ -1832,6 +2023,7 @@ export default function ChatPage() {
                                         handleAudioPlaybackStateChange
                                       }
                                       onPlaybackError={handleAudioPlaybackError}
+                                      onResolvePlaybackSource={resolveAudioPlaybackSource}
                                       messageTimestamp={
                                         showAttachmentInlineMeta
                                           ? messageTimestampLabel
@@ -1910,7 +2102,11 @@ export default function ChatPage() {
                 <div ref={endOfMessagesRef} />
               </div>
 
-              {messagesError ? <Alert severity="error">{messagesError}</Alert> : null}
+              {messagesError ? (
+                <Notice tone="critical" density="compact">
+                  {messagesError}
+                </Notice>
+              ) : null}
 
               {composerVoice ? (
                 <div className="chat-page__composer-voice">

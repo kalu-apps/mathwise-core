@@ -34,18 +34,10 @@
 
 .student-profile__reminder {
   margin-bottom: 12px;
-  padding: 11px 14px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--feedback-warning) 34%, var(--border-subtle));
-  background: color-mix(in srgb, var(--feedback-warning) 12%, var(--background-elevated));
-  color: var(--text-primary);
-  font-size: 13px;
-  line-height: 1.4;
 }
 
 .student-profile__reminder--priority {
-  border-color: color-mix(in srgb, var(--feedback-danger) 34%, var(--border-subtle));
-  background: color-mix(in srgb, var(--feedback-danger) 11%, var(--background-elevated));
+  margin-bottom: 12px;
 }
 
 .bnpl-reminder-feed {
@@ -81,59 +73,7 @@
 }
 
 .bnpl-reminder-feed__item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border-subtle);
-  background: var(--background-elevated);
-}
-
-.bnpl-reminder-feed__item.is-info {
-  border-color: color-mix(in srgb, var(--feedback-info) 34%, var(--border-subtle));
-}
-
-.bnpl-reminder-feed__item.is-warning {
-  border-color: color-mix(in srgb, var(--feedback-warning) 36%, var(--border-subtle));
-}
-
-.bnpl-reminder-feed__item.is-danger {
-  border-color: color-mix(in srgb, var(--feedback-danger) 34%, var(--border-subtle));
-}
-
-.bnpl-reminder-feed__copy {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.bnpl-reminder-feed__copy strong {
-  font-size: 13px;
-  line-height: 1.2;
-}
-
-.bnpl-reminder-feed__copy p {
   margin: 0;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.bnpl-reminder-feed__actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.bnpl-reminder-feed__actions .MuiButton-root {
-  min-height: 30px;
-  border-radius: 10px;
-  text-transform: none;
-  font-size: 12px;
-  font-weight: 650;
 }
 
 .student-profile__workspace {
@@ -1493,16 +1433,6 @@
 }
 
 @media (max-width: 720px) {
-  .bnpl-reminder-feed__item {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .bnpl-reminder-feed__actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
   .student-profile__title {
     font-size: 25px;
   }

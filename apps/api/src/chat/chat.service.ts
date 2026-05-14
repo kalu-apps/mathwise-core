@@ -11,11 +11,14 @@ import type {
   SendTeacherChatMessagePayloadDto,
   TeacherChatAttachmentDto,
   TeacherChatEligibilityDto,
+  TeacherChatMediaAccessDto,
   TeacherChatMessageDto,
+  TeacherChatRealtimeEventDto,
   TeacherChatThreadDto,
   TeacherChatVoiceMessageDto,
   UpdateTeacherChatMessagePayloadDto,
 } from "./chat.types";
+import { ChatRealtimeService } from "./chat.realtime";
 
 const nowIso = () => new Date().toISOString();
 
@@ -191,7 +194,8 @@ export class ChatService implements OnModuleInit {
     private readonly chatRepository: ChatRepository,
     private readonly authRepository: AuthRepository,
     private readonly capabilitiesService: CapabilitiesService,
-    private readonly mediaService: MediaService
+    private readonly mediaService: MediaService,
+    private readonly realtimeService?: ChatRealtimeService
   ) {}
 
   async onModuleInit() {
@@ -302,7 +306,14 @@ export class ChatService implements OnModuleInit {
       createdAt,
     });
     const [hydrated] = await this.hydrateMessageAttachments([created]);
-    return hydrated ?? created;
+    const response = hydrated ?? created;
+    this.realtimeService?.publishThread(thread, {
+      type: "message.created",
+      threadId: thread.id,
+      messageId: response.id,
+      message: response,
+    });
+    return response;
   }
 
   async updateMessage(params: {
@@ -366,7 +377,14 @@ export class ChatService implements OnModuleInit {
     );
     await this.releaseMediaObjectIds(detachedObjectIds);
     const [hydrated] = await this.hydrateMessageAttachments([updated]);
-    return hydrated ?? updated;
+    const response = hydrated ?? updated;
+    this.realtimeService?.publishThread(thread, {
+      type: "message.updated",
+      threadId: thread.id,
+      messageId: response.id,
+      message: response,
+    });
+    return response;
   }
 
   async deleteMessage(params: {
@@ -404,6 +422,12 @@ export class ChatService implements OnModuleInit {
       throw new HttpException({ error: "Сообщение не найдено." }, 404);
     }
     await this.releaseMediaObjectIds(attachedObjectIds);
+    this.realtimeService?.publishThread(thread, {
+      type: "message.deleted",
+      threadId: thread.id,
+      messageId: deleted.id,
+      message: deleted,
+    });
     return { ok: true };
   }
 
@@ -424,6 +448,10 @@ export class ChatService implements OnModuleInit {
     );
     await this.chatRepository.clearThreadMessages(params.threadId, nowIso());
     await this.releaseMediaObjectIds(objectIds);
+    this.realtimeService?.publishThread(thread, {
+      type: "thread.cleared",
+      threadId: thread.id,
+    });
     return { ok: true };
   }
 
@@ -435,6 +463,10 @@ export class ChatService implements OnModuleInit {
     if (params.actorUser.role === "student") {
       await this.assertStudentPremiumAccess(params.actorUser, thread.teacherId);
     }
+    this.realtimeService?.publishThread(thread, {
+      type: "thread.read",
+      threadId: thread.id,
+    });
     return { ok: true };
   }
 
@@ -467,8 +499,100 @@ export class ChatService implements OnModuleInit {
     if (!message.voice) {
       return { ok: true };
     }
-    await this.chatRepository.markVoiceListenedByPeer({ id: message.id });
+    const updated = await this.chatRepository.markVoiceListenedByPeer({ id: message.id });
+    if (updated) {
+      const [hydrated] = await this.hydrateMessageAttachments([updated]);
+      const response = hydrated ?? updated;
+      this.realtimeService?.publishThread(thread, {
+        type: "voice.listened",
+        threadId: thread.id,
+        messageId: response.id,
+        message: response,
+      });
+    }
     return { ok: true };
+  }
+
+  async getMessageMediaAccess(params: {
+    actorUser: AuthUserDto;
+    threadId: string;
+    messageId: string;
+    mediaObjectId: string;
+  }): Promise<TeacherChatMediaAccessDto> {
+    const thread = await this.assertThreadAccess(params.actorUser, params.threadId);
+    if (params.actorUser.role === "student") {
+      await this.assertStudentPremiumAccess(params.actorUser, thread.teacherId);
+    }
+
+    const messageId = params.messageId.trim();
+    const mediaObjectId = params.mediaObjectId.trim();
+    if (!messageId || !mediaObjectId) {
+      throw new HttpException(
+        { error: "messageId и mediaObjectId обязательны." },
+        400
+      );
+    }
+
+    const message = await this.chatRepository.findMessageById(messageId);
+    if (!message || message.deletedForAll) {
+      throw new HttpException({ error: "Сообщение не найдено." }, 404);
+    }
+    if (message.threadId !== thread.id) {
+      throw new HttpException({ error: "Недопустимый threadId." }, 409);
+    }
+
+    const allowedObjectIds = this.collectMediaObjectIds({
+      attachments: message.attachments,
+      voice: message.voice,
+    });
+    if (!allowedObjectIds.includes(mediaObjectId)) {
+      throw new HttpException({ error: "Медиа не найдено в сообщении." }, 404);
+    }
+
+    const access =
+      await this.mediaService.getRuntimeDownloadUrlByObjectId(mediaObjectId);
+    return {
+      messageId: message.id,
+      threadId: thread.id,
+      mediaObjectId,
+      downloadUrl: access.downloadUrl,
+      expiresAt: access.expiresAt,
+      contentType: access.contentType,
+      sizeBytes: access.sizeBytes,
+    };
+  }
+
+  async assertEventStreamAccess(
+    actorUser: AuthUserDto,
+    threadId: string
+  ): Promise<void> {
+    const thread = await this.assertThreadAccess(actorUser, threadId);
+    if (actorUser.role === "student") {
+      await this.assertStudentPremiumAccess(actorUser, thread.teacherId);
+    }
+  }
+
+  subscribeToEvents(params: {
+    actorUser: AuthUserDto;
+    threadId?: string;
+    lastEventId?: number;
+    emit: (event: TeacherChatRealtimeEventDto) => void;
+  }): () => void {
+    if (!this.realtimeService) {
+      params.emit({
+        type: "connected",
+        version: 0,
+        at: nowIso(),
+        threadId: params.threadId,
+      });
+      return () => undefined;
+    }
+    return this.realtimeService.subscribe({
+      userId: params.actorUser.id,
+      threadId: params.threadId,
+      lastEventId: params.lastEventId,
+      emit: params.emit,
+    });
   }
 
   private async resolveThreadForMessage(params: {

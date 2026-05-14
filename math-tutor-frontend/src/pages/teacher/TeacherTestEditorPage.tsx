@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Alert } from "@mui/material";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { getAssessmentTemplateById } from "@/features/assessments/model/storage";
 import type { TestTemplate } from "@/features/assessments/model/types";
 import { TestTemplateEditor } from "@/features/assessments/ui/TestTemplateEditor";
 import { PageLoader } from "@/shared/ui/loading";
+import { Notice } from "@/shared/ui/Notice";
 
 export default function TeacherTestEditorPage() {
   const { user } = useAuth();
@@ -70,7 +70,7 @@ export default function TeacherTestEditorPage() {
   return (
     <section className="assessment-editor-page">
       <div className="assessment-editor-page__panel">
-        {error ? <Alert severity="error">{error}</Alert> : null}
+        {error ? <Notice tone="critical" density="compact">{error}</Notice> : null}
         <TestTemplateEditor
           teacherId={user.id}
           initialTemplate={template}

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Button,
   Dialog,
   DialogActions,
@@ -13,6 +12,7 @@ import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import { completeFirstPassword } from "@/features/auth/model/api";
 import { ButtonPending } from "@/shared/ui/loading";
+import { Notice } from "@/shared/ui/Notice";
 
 const validateStrongPassword = (password: string): string | null => {
   if (password.length < 10) {
@@ -147,8 +147,10 @@ export function FirstPasswordDialog({
           </p>
         </header>
 
-        {statusError ? <Alert severity="warning">{statusError}</Alert> : null}
-        {error ? <Alert severity="error">{error}</Alert> : null}
+        {statusError ? (
+          <Notice tone="warning" density="compact">{statusError}</Notice>
+        ) : null}
+        {error ? <Notice tone="critical" density="compact">{error}</Notice> : null}
 
         <div className="first-password-dialog__fields">
           <TextField

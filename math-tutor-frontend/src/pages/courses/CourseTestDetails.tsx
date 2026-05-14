@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  Alert,
   Button,
   Chip,
   Container,
@@ -50,6 +49,7 @@ import type {
 import { PageLoader } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { BackNavButton } from "@/shared/ui/BackNavButton";
+import { Notice } from "@/shared/ui/Notice";
 
 type CourseTestLocationState = {
   fromCoursePath?: string;
@@ -449,7 +449,7 @@ export default function CourseTestDetails() {
   if (!courseId || !testItemId) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="error">Некорректный адрес теста.</Alert>
+        <Notice tone="critical">Некорректный адрес теста.</Notice>
       </Container>
     );
   }
@@ -469,7 +469,7 @@ export default function CourseTestDetails() {
   if (!template || !testItem) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="error">{error ?? "Тест не найден."}</Alert>
+        <Notice tone="critical">{error ?? "Тест не найден."}</Notice>
         <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
           {!user ? (
             <Button variant="contained" onClick={() => openAuthModal()}>
@@ -499,7 +499,7 @@ export default function CourseTestDetails() {
               </div>
             </div>
           </header>
-          <Alert severity="warning">{lockedReason}</Alert>
+          <Notice tone="warning">{lockedReason}</Notice>
           <Button sx={{ mt: 2 }} variant="contained" onClick={handleGoBackToCourse}>
             Вернуться к материалам курса
           </Button>
@@ -546,7 +546,7 @@ export default function CourseTestDetails() {
           </div>
         </header>
 
-        {error ? <Alert severity="error">{error}</Alert> : null}
+        {error ? <Notice tone="critical" density="compact">{error}</Notice> : null}
         <div className="course-test-page__nav">
           {template.questions.map((question, index) => {
             const hasAnswer = Boolean(String(answers[question.id] ?? "").trim());
@@ -608,16 +608,14 @@ export default function CourseTestDetails() {
               />
             ) : (
               <Stack spacing={1.2} sx={{ mt: 2 }}>
-                <Alert severity="info">
-                  <strong>Правильный ответ:</strong>{" "}
+                <Notice tone="info" density="compact" title="Правильный ответ">
                   {Array.isArray(activeQuestion.answerSpec.expected)
                     ? activeQuestion.answerSpec.expected.join(", ")
                     : String(activeQuestion.answerSpec.expected ?? "—")}
-                </Alert>
-                <Alert severity="success">
-                  <strong>Пояснение:</strong>{" "}
+                </Notice>
+                <Notice tone="success" density="compact" title="Пояснение">
                   {activeQuestion.feedback.explanation || "Пояснение не задано."}
-                </Alert>
+                </Notice>
               </Stack>
             )}
 

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   Badge,
   Tabs,
   Tab,
@@ -51,6 +50,7 @@ import {
 import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { StudyCabinetPanel } from "@/shared/ui/StudyCabinetPanel";
 import { ListSkeleton } from "@/shared/ui/loading";
+import { Notice } from "@/shared/ui/Notice";
 import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
 import {
   createStudyCabinetNote,
@@ -1297,15 +1297,20 @@ export default function TeacherDashboard() {
               </Button>
               </div>
           {inviteStatusMessage ? (
-            <Alert
-              severity={inviteStatusSeverity ?? "success"}
-              sx={{ mb: 2 }}
+            <Notice
+              tone={inviteStatusSeverity === "error" ? "critical" : "success"}
+              density="compact"
+              onClose={() => {
+                setInviteStatusMessage(null);
+                setInviteStatusSeverity(null);
+                setInviteLink(null);
+              }}
             >
               {inviteStatusMessage}
               {inviteLink ? (
                 <div className="teacher-dashboard__invite-link">{inviteLink}</div>
               ) : null}
-            </Alert>
+            </Notice>
           ) : null}
           {dashboardError ? (
             <RecoverableErrorAlert
@@ -1730,9 +1735,13 @@ export default function TeacherDashboard() {
             {availabilityOpen && (
               <div className="teacher-dashboard__slot-body teacher-dashboard__slot-body--inline">
                 {slotError && (
-                  <Alert severity="warning" onClose={() => setSlotError(null)}>
+                  <Notice
+                    tone="warning"
+                    density="compact"
+                    onClose={() => setSlotError(null)}
+                  >
                     {slotError}
-                  </Alert>
+                  </Notice>
                 )}
                 <div className="teacher-dashboard__availability-form">
                   <div className="teacher-dashboard__slot-date-field">
@@ -1990,7 +1999,9 @@ export default function TeacherDashboard() {
           closeAriaLabel="Закрыть окно редактирования профиля"
         />
         <DialogContent className="teacher-dashboard__profile-edit-content">
-          {profileError ? <Alert severity="error">{profileError}</Alert> : null}
+          {profileError ? (
+            <Notice tone="critical" density="compact">{profileError}</Notice>
+          ) : null}
           <div className="teacher-dashboard__profile-edit-avatar-row">
             <button
               type="button"

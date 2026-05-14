@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAboutTeacherContent } from "./model/useAboutTeacherContent";
 import { useReveal } from "./model/useReveal";
@@ -7,6 +6,7 @@ import { AboutTeacherHero } from "./ui/AboutTeacherHero";
 import { AboutTeacherProof } from "./ui/AboutTeacherProof";
 import { AboutTeacherReviews } from "./ui/AboutTeacherReviews";
 import { DiplomaLightbox } from "./ui/DiplomaLightbox";
+import { Notice } from "@/shared/ui/Notice";
 
 export default function AboutTeacher() {
   const navigate = useNavigate();
@@ -37,9 +37,9 @@ export default function AboutTeacher() {
   return (
     <section className={`about-teacher-page ${pageStateClass}`}>
       {error ? (
-        <Alert severity="warning" className="about-teacher-page__alert">
+        <Notice tone="warning" density="compact" className="about-teacher-page__alert">
           {error}
-        </Alert>
+        </Notice>
       ) : null}
 
       <div

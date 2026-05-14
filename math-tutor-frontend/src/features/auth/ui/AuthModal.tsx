@@ -1,5 +1,4 @@
 import {
-  Alert,
   Button,
   Dialog,
   DialogContent,
@@ -17,6 +16,7 @@ import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import { t } from "@/shared/i18n";
 import { ButtonPending } from "@/shared/ui/loading";
+import { Notice, type NoticeTone } from "@/shared/ui/Notice";
 import type { AuthModalContext } from "@/features/auth/model/authUiStore";
 import {
   buildSocialLoginStartUrl,
@@ -39,6 +39,7 @@ interface AuthModalProps {
 
 type ViewMode = "login" | "recover";
 type RecoveryStep = 1 | 2 | 3;
+type AuthNoticeSeverity = "success" | "info" | "warning" | "error";
 
 type FlowMeta = {
   loginTitle: string;
@@ -55,6 +56,13 @@ const blurActiveElement = () => {
 };
 
 const normalizeEmailInput = (value: string) => value.trim().toLowerCase();
+
+const authNoticeToneMap: Record<AuthNoticeSeverity, NoticeTone> = {
+  success: "success",
+  info: "info",
+  warning: "warning",
+  error: "critical",
+};
 
 const validatePasswordPolicy = (password: string): string | null => {
   if (password.length < 10) {
@@ -240,9 +248,7 @@ export function AuthModal({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [recoverError, setRecoverError] = useState<string | null>(null);
   const [recoverMessage, setRecoverMessage] = useState<string | null>(null);
-  const [recoverSeverity, setRecoverSeverity] = useState<
-    "success" | "info" | "warning" | "error"
-  >("info");
+  const [recoverSeverity, setRecoverSeverity] = useState<AuthNoticeSeverity>("info");
   const [recoverDebugCode, setRecoverDebugCode] = useState<string | null>(null);
 
   const normalizedEmail = normalizeEmailInput(email);
@@ -614,8 +620,10 @@ export function AuthModal({
         {viewMode === "login" ? (
           <>
             <div className="auth-modal__alerts">
-              {error ? <Alert severity="error">{error}</Alert> : null}
-              {infoMessage ? <Alert severity="success">{infoMessage}</Alert> : null}
+              {error ? <Notice tone="critical" density="compact">{error}</Notice> : null}
+              {infoMessage ? (
+                <Notice tone="success" density="compact">{infoMessage}</Notice>
+              ) : null}
             </div>
 
             <div className="auth-modal__field-stack">
@@ -697,10 +705,18 @@ export function AuthModal({
             </div>
 
             <div className="auth-modal__alerts">
-              {recoverError ? <Alert severity="error">{recoverError}</Alert> : null}
-              {recoverMessage ? <Alert severity={recoverSeverity}>{recoverMessage}</Alert> : null}
+              {recoverError ? (
+                <Notice tone="critical" density="compact">{recoverError}</Notice>
+              ) : null}
+              {recoverMessage ? (
+                <Notice tone={authNoticeToneMap[recoverSeverity]} density="compact">
+                  {recoverMessage}
+                </Notice>
+              ) : null}
               {recoverDebugCode ? (
-                <Alert severity="info">{t("auth.passwordResetDebug", { token: recoverDebugCode })}</Alert>
+                <Notice tone="neutral" density="compact">
+                  {t("auth.passwordResetDebug", { token: recoverDebugCode })}
+                </Notice>
               ) : null}
             </div>
 

@@ -786,8 +786,52 @@
   display: block;
   width: 100%;
   height: 100%;
+  max-width: 100%;
   min-height: 112px;
   object-fit: cover;
+}
+
+.news-feed__attachments-grid--feed .news-feed__attachment-card {
+  min-width: 0;
+  min-height: 0 !important;
+  aspect-ratio: 16 / 10;
+}
+
+.news-feed__attachments-grid--feed .news-feed__attachment-preview,
+.news-feed__attachments-grid--feed .news-feed__attachment-preview img,
+.news-feed__attachments-grid--feed .news-feed__attachment-preview video {
+  height: 100%;
+  min-height: 0 !important;
+  max-height: 100%;
+}
+
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--count-1
+  .news-feed__attachment-card {
+  aspect-ratio: 16 / 9;
+  max-height: 420px;
+}
+
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--count-2
+  .news-feed__attachment-card,
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--count-4
+  .news-feed__attachment-card,
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--count-6
+  .news-feed__attachment-card {
+  aspect-ratio: 4 / 3;
+}
+
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--count-3
+  .news-feed__attachment-card:first-child,
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--count-5
+  .news-feed__attachment-card:nth-child(-n + 2) {
+  aspect-ratio: 16 / 9;
+}
+
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--count-3
+  .news-feed__attachment-card:nth-child(n + 2),
+.news-feed__attachments-grid--feed.news-feed__attachments-grid--count-5
+  .news-feed__attachment-card:nth-child(n + 3) {
+  aspect-ratio: 4 / 3;
 }
 
 .news-feed__attachment-preview--video::after {
@@ -844,13 +888,45 @@
   background: color-mix(in srgb, #0d1630 84%, transparent) !important;
 }
 
+.news-feed__preview-stage {
+  width: min(96vw, 1400px);
+  height: calc(100dvh - 118px);
+  max-height: calc(100dvh - 118px);
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+.news-feed__preview-stage--video {
+  width: min(92vw, 1120px);
+  height: auto;
+  aspect-ratio: 16 / 9;
+  max-height: calc(100dvh - 118px);
+  overflow: hidden;
+  border-radius: 18px;
+  background: #030712;
+}
+
+.news-feed__preview-stage--image {
+  overflow: hidden;
+}
+
 .news-feed__preview-media {
   display: block;
   width: auto;
-  max-width: min(96vw, 1400px);
-  max-height: calc(100dvh - 44px);
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
   background: transparent;
+}
+
+.news-feed__preview-stage--video .news-feed__preview-media {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .news-feed__image-wrap {

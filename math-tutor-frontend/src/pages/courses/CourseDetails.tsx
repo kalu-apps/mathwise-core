@@ -12,7 +12,6 @@ import { LessonItem } from "@/entities/lesson/ui/LessonItem";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import type { Purchase } from "@/entities/purchase/model/types";
 import {
-  Alert,
   Button,
   Checkbox,
   CircularProgress,
@@ -73,6 +72,7 @@ import { RecoverableErrorAlert } from "@/shared/ui/RecoverableErrorAlert";
 import { PageLoader } from "@/shared/ui/loading";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { BackNavButton } from "@/shared/ui/BackNavButton";
+import { Notice } from "@/shared/ui/Notice";
 import { logCollectionPressure, usePerfScreenTag } from "@/shared/lib/perfScreen";
 import {
   selectBnplMarketingInfo,
@@ -1120,6 +1120,8 @@ p{margin:0;color:#61708f}
           overdueDays: purchaseFinancialView.overdueDays,
         })
       : null;
+  const visibleBnplStatusBanner =
+    bnplStatusBanner?.severity === "info" ? null : bnplStatusBanner;
   const guidedBnplMarketing = selectBnplMarketingInfo(course.priceGuided);
   const selfBnplMarketing = selectBnplMarketingInfo(course.priceSelf);
   const guidedBnplLine = formatApproxMonthlyBnplLine({
@@ -1791,16 +1793,25 @@ p{margin:0;color:#61708f}
   const purchaseSection = (
     <div className="course-details__purchase">
       {user?.role === "student" && resumeCheckout && resumeCheckoutCopy && (
-        <div
+        <Notice
+          tone={checkoutFlowError ? "warning" : "info"}
+          density="compact"
           className={`course-details__payment-resume-card ${
             checkoutFlowError ? "course-details__payment-resume-card--error" : ""
           }`}
+          icon={<InfoOutlined fontSize="small" />}
+          title={resumeCheckoutCopy.title}
+          actions={[
+            {
+              label: resumeCheckoutCopy.action,
+              onClick: () => void handleResumeCheckout(),
+              disabled: checkoutFlowLoading,
+              loading: checkoutFlowLoading,
+              icon: <PaymentsRounded fontSize="small" />,
+            },
+          ]}
         >
-          <span className="course-details__payment-resume-icon">
-            <InfoOutlined fontSize="small" />
-          </span>
           <div className="course-details__payment-resume-copy">
-            <strong>{resumeCheckoutCopy.title}</strong>
             <p>{resumeCheckoutCopy.body}</p>
             {checkoutFlowError ? (
               <span className="course-details__payment-resume-error">
@@ -1808,23 +1819,7 @@ p{margin:0;color:#61708f}
               </span>
             ) : null}
           </div>
-          <Button
-            type="button"
-            variant="contained"
-            className="course-details__payment-resume-action"
-            onClick={() => void handleResumeCheckout()}
-            disabled={checkoutFlowLoading}
-            startIcon={
-              checkoutFlowLoading ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : (
-                <PaymentsRounded fontSize="small" />
-              )
-            }
-          >
-            {resumeCheckoutCopy.action}
-          </Button>
-        </div>
+        </Notice>
       )}
       <div className="course-details__offer course-details__offer--premium">
         <div className="course-details__card course-details__card--premium">
@@ -2355,14 +2350,18 @@ p{margin:0;color:#61708f}
           }
         />
       )}
-      {bnplStatusBanner && (
-        <Alert
-          severity={bnplStatusBanner.severity}
-          className="ui-alert course-details__bnpl-alert"
-          action={
-            <Button
-              size="small"
-              onClick={() =>
+      {visibleBnplStatusBanner && (
+        <Notice
+          tone={
+            visibleBnplStatusBanner.severity === "error" ? "critical" : "warning"
+          }
+          density="compact"
+          className="course-details__bnpl-alert"
+          title="Оплата частями"
+          actions={[
+            {
+              label: "Детали оплаты",
+              onClick: () =>
                 navigate(
                   coursePurchase?.id
                     ? `/profile/purchases/${coursePurchase.id}`
@@ -2370,15 +2369,13 @@ p{margin:0;color:#61708f}
                   {
                     state: { from: `${location.pathname}${location.search}` },
                   }
-                )
-              }
-            >
-              Детали оплаты
-            </Button>
-          }
+                ),
+              icon: <PaymentsRounded fontSize="small" />,
+            },
+          ]}
         >
-          {bnplStatusBanner.text}
-        </Alert>
+          {visibleBnplStatusBanner.text}
+        </Notice>
       )}
       {showPurchaseSection ? (
         <div className="course-details__layout">
@@ -2502,7 +2499,10 @@ p{margin:0;color:#61708f}
                 InputLabelProps={{ shrink: true }}
               />
               {purchaseIntentMessage ? (
-                <Alert severity={isPurchaseIdentityVerified ? "success" : "info"}>
+                <Notice
+                  tone={isPurchaseIdentityVerified ? "success" : "info"}
+                  density="compact"
+                >
                   {purchaseIntentMessage}
                   {purchaseIntentExpiresAt
                     ? ` Код действует до ${new Date(
@@ -2512,10 +2512,12 @@ p{margin:0;color:#61708f}
                         minute: "2-digit",
                       })}.`
                     : ""}
-                </Alert>
+                </Notice>
               ) : null}
               {purchaseIntentError ? (
-                <Alert severity="warning">{purchaseIntentError}</Alert>
+                <Notice tone="warning" density="compact">
+                  {purchaseIntentError}
+                </Notice>
               ) : null}
               {!isPurchaseIdentityVerified ? (
                 <>
@@ -2649,12 +2651,6 @@ p{margin:0;color:#61708f}
                   </div>
                 </div>
               )}
-            {bnplCheckoutDisabled && (
-              <Alert severity="info" className="ui-alert">
-                Оплата частями недоступна для выбранного тарифа. Выберите банковскую
-                карту или СБП.
-              </Alert>
-            )}
           </div>
           <FormControlLabel
             control={

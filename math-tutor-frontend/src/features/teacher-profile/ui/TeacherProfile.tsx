@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
-import { Alert, Avatar, IconButton, Skeleton, Tooltip } from "@mui/material";
+import { Avatar, IconButton, Skeleton, Tooltip } from "@mui/material";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -26,6 +26,7 @@ import {
   toRuPhoneStorage,
 } from "@/shared/lib/phone";
 import { PasswordSecurityCard } from "@/features/auth/ui/PasswordSecurityCard";
+import { Notice } from "@/shared/ui/Notice";
 
 type ProfileData = TeacherProfileData;
 
@@ -421,7 +422,9 @@ export function TeacherProfile({ user, readOnly = false }: Props) {
                   )}
                 </div>
               )}
-              {saveError ? <Alert severity="error">{saveError}</Alert> : null}
+              {saveError ? (
+                <Notice tone="critical" density="compact">{saveError}</Notice>
+              ) : null}
               <div className="tp2-profile-main">
                 <div className="tp2-avatar">
                   <Avatar

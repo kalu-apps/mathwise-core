@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import {
-  Alert,
   Button,
   Dialog,
   DialogActions,
@@ -28,6 +27,7 @@ import { saveAssessmentTemplate } from "@/features/assessments/model/storage";
 import { fileToDataUrl } from "@/shared/lib/files";
 import { ListPagination } from "@/shared/ui/ListPagination";
 import { ConfirmDialog } from "@/shared/ui/ConfirmDialog";
+import { Notice } from "@/shared/ui/Notice";
 
 type Props = {
   teacherId: string;
@@ -577,7 +577,7 @@ export function TestTemplateEditor({
         )}
       </div>
 
-      {error ? <Alert severity="error">{error}</Alert> : null}
+      {error ? <Notice tone="critical" density="compact">{error}</Notice> : null}
 
       <div className="assessment-editor__grid">
         <aside className="assessment-editor__panel assessment-editor__panel--list">
@@ -741,9 +741,9 @@ export function TestTemplateEditor({
         <section className="assessment-editor__panel assessment-editor__panel--rules">
           <Typography variant="h6">Редактор вопроса</Typography>
           {!activeQuestion ? (
-            <Alert severity="info" sx={{ mt: 1.5 }}>
+            <Notice tone="neutral" density="compact">
               Выберите вопрос из списка слева, чтобы заполнить поля.
-            </Alert>
+            </Notice>
           ) : (
             <Stack spacing={2} sx={{ mt: 1.5 }}>
               <TextField

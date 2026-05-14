@@ -12,7 +12,7 @@
   pointer-events: auto;
 }
 
-.connectivity-banner.MuiAlert-root {
+.connectivity-banner {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
   box-shadow: var(--shadow-sm);
@@ -22,7 +22,7 @@
   align-items: flex-start;
 }
 
-.connectivity-banner--offline.MuiAlert-root {
+.connectivity-banner--offline {
   border-color: color-mix(in srgb, var(--feedback-danger) 52%, var(--border-strong));
   background: linear-gradient(
     145deg,
@@ -31,7 +31,7 @@
   );
 }
 
-.connectivity-banner--degraded.MuiAlert-root {
+.connectivity-banner--degraded {
   border-color: color-mix(in srgb, var(--feedback-warning) 52%, var(--border-strong));
   background: linear-gradient(
     145deg,
@@ -40,7 +40,7 @@
   );
 }
 
-.connectivity-banner--online.MuiAlert-root {
+.connectivity-banner--online {
   border-color: color-mix(in srgb, var(--feedback-info) 48%, var(--border-strong));
   background: linear-gradient(
     145deg,
@@ -55,13 +55,6 @@
   gap: 4px;
 }
 
-.connectivity-banner__content strong {
-  font-size: var(--font-size-sm);
-  line-height: 1.25;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
 .connectivity-banner__content span {
   font-size: var(--font-size-xs);
   line-height: 1.4;
@@ -74,71 +67,18 @@
   color: var(--text-muted);
 }
 
-.connectivity-banner .MuiAlert-action {
-  margin-top: 0;
-  margin-left: 8px;
-  padding-top: 0;
-  align-self: center;
-}
-
-.connectivity-banner__actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.connectivity-banner .MuiButton-root {
-  min-height: clamp(32px, 0.32vw + 31px, 38px);
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--surface-elevated) 65%, transparent);
-  color: var(--text-primary);
-  text-transform: none;
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  padding: clamp(5px, 0.2vw + 4px, 7px) clamp(8px, 0.3vw + 7px, 11px);
-}
-
-.connectivity-banner .MuiButton-root:hover {
-  background: color-mix(in srgb, var(--surface-elevated) 82%, transparent);
-  border-color: var(--border-strong);
-}
-
 @media (max-width: 1024px) {
   .connectivity-banner-wrap {
     top: clamp(56px, 0.64vw + 52px, 66px);
     padding: clamp(6px, 0.2vw + 5px, 10px) var(--layout-gutter) 0;
   }
 
-  .connectivity-banner.MuiAlert-root {
+  .connectivity-banner {
     padding: 8px 10px;
     gap: 6px;
   }
 
-  .connectivity-banner .MuiAlert-icon {
-    margin-right: 8px;
-    padding: 2px 0;
-  }
-
-  .connectivity-banner .MuiAlert-message {
-    min-width: 0;
-  }
-
-  .connectivity-banner__content strong {
-    font-size: var(--font-size-xs);
-  }
-
   .connectivity-banner__content span {
     font-size: clamp(0.62rem, 0.12vw + 0.6rem, 0.72rem);
-  }
-
-  .connectivity-banner .MuiButton-root {
-    min-width: auto;
-    padding: 6px 8px;
-    font-size: clamp(0.62rem, 0.12vw + 0.6rem, 0.72rem);
-  }
-
-  .connectivity-banner__actions {
-    gap: 6px;
   }
 }

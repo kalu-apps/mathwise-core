@@ -1,0 +1,359 @@
+.notice {
+  --notice-accent: var(--feedback-info);
+  --notice-bg: color-mix(in srgb, var(--info-bg) 48%, var(--surface-elevated));
+  --notice-border: color-mix(in srgb, var(--feedback-info) 28%, var(--border-subtle));
+  --notice-icon-bg: color-mix(in srgb, var(--feedback-info) 14%, var(--surface-elevated));
+
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid var(--notice-border);
+  border-radius: 16px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--notice-bg) 94%, transparent),
+    color-mix(in srgb, var(--surface-elevated) 94%, transparent)
+  );
+  color: var(--text-primary);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--notice-accent) 7%, transparent);
+}
+
+.notice--neutral {
+  --notice-accent: var(--text-muted);
+  --notice-bg: color-mix(in srgb, var(--surface-soft) 78%, var(--surface-elevated));
+  --notice-border: color-mix(in srgb, var(--text-muted) 18%, var(--border-subtle));
+  --notice-icon-bg: color-mix(in srgb, var(--surface-soft) 72%, var(--surface-elevated));
+}
+
+.notice--success {
+  --notice-accent: var(--feedback-success);
+  --notice-bg: color-mix(in srgb, var(--success-bg) 58%, var(--surface-elevated));
+  --notice-border: color-mix(in srgb, var(--feedback-success) 28%, var(--border-subtle));
+  --notice-icon-bg: color-mix(in srgb, var(--feedback-success) 14%, var(--surface-elevated));
+}
+
+.notice--warning {
+  --notice-accent: var(--feedback-warning);
+  --notice-bg: color-mix(in srgb, var(--warning-bg) 54%, var(--surface-elevated));
+  --notice-border: color-mix(in srgb, var(--feedback-warning) 34%, var(--border-subtle));
+  --notice-icon-bg: color-mix(in srgb, var(--feedback-warning) 14%, var(--surface-elevated));
+}
+
+.notice--critical {
+  --notice-accent: var(--feedback-danger);
+  --notice-bg: color-mix(in srgb, var(--danger-bg) 54%, var(--surface-elevated));
+  --notice-border: color-mix(in srgb, var(--feedback-danger) 34%, var(--border-subtle));
+  --notice-icon-bg: color-mix(in srgb, var(--feedback-danger) 14%, var(--surface-elevated));
+}
+
+.notice--compact {
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.notice--global {
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--notice-accent) 8%, transparent);
+  backdrop-filter: blur(var(--blur-xs));
+}
+
+.notice--dashboard {
+  box-shadow: none;
+}
+
+.notice--toast {
+  min-width: min(360px, calc(100vw - 32px));
+  box-shadow: 0 18px 44px color-mix(in srgb, #25345f 18%, transparent);
+}
+
+.notice__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--notice-accent);
+  background: var(--notice-icon-bg);
+  flex: 0 0 auto;
+}
+
+.notice__body {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.notice__title {
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 750;
+}
+
+.notice__content {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+}
+
+.notice__content p {
+  margin: 0;
+}
+
+.notice__actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.notice__action,
+.notice__close {
+  appearance: none;
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.notice__action {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--notice-accent) 22%, transparent);
+  background: color-mix(in srgb, var(--notice-accent) 10%, var(--surface-elevated));
+  color: color-mix(in srgb, var(--notice-accent) 64%, var(--text-primary));
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 750;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.notice__action:hover {
+  background: color-mix(in srgb, var(--notice-accent) 15%, var(--surface-elevated));
+  border-color: color-mix(in srgb, var(--notice-accent) 34%, transparent);
+  transform: translateY(-1px);
+}
+
+.notice__action:disabled {
+  cursor: wait;
+  opacity: 0.64;
+  transform: none;
+}
+
+.notice__action--secondary,
+.notice__action--ghost {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--surface-elevated) 72%, transparent);
+  border-color: color-mix(in srgb, var(--border-strong) 72%, transparent);
+}
+
+.notice__action--ghost {
+  background: transparent;
+}
+
+.notice__action svg {
+  font-size: 17px;
+}
+
+.notice__action-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: notice-action-spin 0.7s linear infinite;
+}
+
+.notice__close {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: color-mix(in srgb, var(--text-secondary) 72%, var(--notice-accent));
+  background: transparent;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.notice__close:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--surface-soft) 78%, transparent);
+}
+
+.notice-toast-viewport {
+  position: fixed;
+  right: clamp(14px, 2vw, 28px);
+  bottom: clamp(14px, 2vw, 28px);
+  z-index: 1800;
+  display: grid;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.notice-toast-viewport .notice {
+  pointer-events: auto;
+}
+
+.MuiAlert-root {
+  --notice-accent: var(--feedback-info);
+  --notice-bg: color-mix(in srgb, var(--info-bg) 48%, var(--surface-elevated));
+  --notice-border: color-mix(in srgb, var(--feedback-info) 28%, var(--border-subtle));
+  --notice-icon-bg: color-mix(in srgb, var(--feedback-info) 14%, var(--surface-elevated));
+
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 12px !important;
+  border: 1px solid var(--notice-border) !important;
+  border-radius: 16px !important;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--notice-bg) 94%, transparent),
+    color-mix(in srgb, var(--surface-elevated) 94%, transparent)
+  ) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--notice-accent) 7%, transparent) !important;
+}
+
+.MuiAlert-standardSuccess,
+.MuiAlert-filledSuccess,
+.MuiAlert-outlinedSuccess {
+  --notice-accent: var(--feedback-success);
+  --notice-bg: color-mix(in srgb, var(--success-bg) 58%, var(--surface-elevated));
+  --notice-border: color-mix(in srgb, var(--feedback-success) 28%, var(--border-subtle));
+  --notice-icon-bg: color-mix(in srgb, var(--feedback-success) 14%, var(--surface-elevated));
+}
+
+.MuiAlert-standardWarning,
+.MuiAlert-filledWarning,
+.MuiAlert-outlinedWarning {
+  --notice-accent: var(--feedback-warning);
+  --notice-bg: color-mix(in srgb, var(--warning-bg) 54%, var(--surface-elevated));
+  --notice-border: color-mix(in srgb, var(--feedback-warning) 34%, var(--border-subtle));
+  --notice-icon-bg: color-mix(in srgb, var(--feedback-warning) 14%, var(--surface-elevated));
+}
+
+.MuiAlert-standardError,
+.MuiAlert-filledError,
+.MuiAlert-outlinedError {
+  --notice-accent: var(--feedback-danger);
+  --notice-bg: color-mix(in srgb, var(--danger-bg) 54%, var(--surface-elevated));
+  --notice-border: color-mix(in srgb, var(--feedback-danger) 34%, var(--border-subtle));
+  --notice-icon-bg: color-mix(in srgb, var(--feedback-danger) 14%, var(--surface-elevated));
+}
+
+.MuiAlert-icon {
+  width: 32px !important;
+  height: 32px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--notice-accent) !important;
+  background: var(--notice-icon-bg) !important;
+  opacity: 1 !important;
+}
+
+.MuiAlert-message {
+  padding: 0 !important;
+  color: var(--text-secondary) !important;
+  font-size: 13px !important;
+  line-height: 1.42 !important;
+}
+
+.MuiAlert-action {
+  margin: 0 0 0 auto !important;
+  padding: 0 !important;
+  align-self: center !important;
+}
+
+.MuiAlert-action .MuiButton-root {
+  min-height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 0 12px !important;
+  border-radius: 12px !important;
+  border: 1px solid color-mix(in srgb, var(--notice-accent) 22%, transparent) !important;
+  background: color-mix(in srgb, var(--notice-accent) 10%, var(--surface-elevated)) !important;
+  color: color-mix(in srgb, var(--notice-accent) 64%, var(--text-primary)) !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+  line-height: 1 !important;
+  text-transform: none !important;
+}
+
+.MuiAlert-action .MuiButton-root:hover {
+  background: color-mix(in srgb, var(--notice-accent) 15%, var(--surface-elevated)) !important;
+  border-color: color-mix(in srgb, var(--notice-accent) 34%, transparent) !important;
+}
+
+.MuiAlert-action .MuiIconButton-root {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 10px !important;
+  color: color-mix(in srgb, var(--text-secondary) 72%, var(--notice-accent)) !important;
+  background: transparent !important;
+}
+
+.MuiAlert-action .MuiIconButton-root:hover {
+  color: var(--text-primary) !important;
+  background: color-mix(in srgb, var(--surface-soft) 78%, transparent) !important;
+}
+
+@keyframes notice-action-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 720px) {
+  .notice {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .notice__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .notice__action {
+    min-height: 34px;
+  }
+
+  .notice-toast-viewport {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice__action,
+  .notice__close,
+  .notice__action-spinner {
+    transition: none;
+    animation: none;
+  }
+}

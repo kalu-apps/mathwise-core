@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Button,
   CircularProgress,
   Dialog,
@@ -24,6 +23,7 @@ import {
   getPasswordStatus,
   setPassword,
 } from "@/features/auth/model/api";
+import { Notice } from "@/shared/ui/Notice";
 
 type PasswordSecurityCardProps = {
   className?: string;
@@ -331,8 +331,8 @@ export function PasswordSecurityCard({
         </div>
       ) : (
         <>
-          {error && <Alert severity="error">{error}</Alert>}
-          {success && <Alert severity="success">{success}</Alert>}
+          {error && <Notice tone="critical" density="compact">{error}</Notice>}
+          {success && <Notice tone="success" density="compact">{success}</Notice>}
 
           <div className="password-security__quick-actions">
             <button

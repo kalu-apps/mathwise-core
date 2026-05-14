@@ -1,10 +1,10 @@
 import { useState } from "react";
 import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
-import { Alert, Button } from "@mui/material";
 import { ApiError, isRecoverableApiError } from "@/shared/api/client";
 import { useConnectivity } from "@/app/providers/connectivityContext";
 import { t } from "@/shared/i18n";
+import { Notice, type NoticeAction } from "./Notice";
 
 type Props = {
   error: unknown;
@@ -52,43 +52,34 @@ export function RecoverableErrorAlert({
   const classes = ["ui-alert", "ui-alert--recoverable"];
   if (className) classes.push(className);
 
+  const action: NoticeAction | null = canRetry
+    ? {
+        label: retrying
+          ? t("connectivity.retryingAction")
+          : retryLabel ?? t("connectivity.retryLastAction"),
+        onClick: () => void handleRetry(),
+        disabled: retrying,
+        loading: retrying,
+        icon: <ReplayRoundedIcon fontSize="small" />,
+      }
+    : canRecheck
+    ? {
+        label: checking ? t("connectivity.rechecking") : t("connectivity.recheck"),
+        onClick: () => void recheck(),
+        disabled: checking,
+        loading: checking,
+        icon: <RefreshRoundedIcon fontSize="small" />,
+      }
+    : null;
+
   return (
-    <Alert
-      severity={isRecoverable ? "warning" : "error"}
+    <Notice
+      tone={isRecoverable ? "warning" : "critical"}
       className={classes.join(" ")}
       onClose={onClose}
-      action={
-        canRetry || canRecheck ? (
-          <div className="ui-alert__actions">
-            {canRetry && (
-              <Button
-                color="inherit"
-                size="small"
-                startIcon={<ReplayRoundedIcon fontSize="small" />}
-                onClick={() => void handleRetry()}
-                disabled={retrying}
-              >
-                {retrying
-                  ? t("connectivity.retryingAction")
-                  : retryLabel ?? t("connectivity.retryLastAction")}
-              </Button>
-            )}
-            {canRecheck && (
-              <Button
-                color="inherit"
-                size="small"
-                startIcon={<RefreshRoundedIcon fontSize="small" />}
-                onClick={() => void recheck()}
-                disabled={checking}
-              >
-                {checking ? t("connectivity.rechecking") : t("connectivity.recheck")}
-              </Button>
-            )}
-          </div>
-        ) : undefined
-      }
+      actions={action ? [action] : undefined}
     >
       {message}
-    </Alert>
+    </Notice>
   );
 }

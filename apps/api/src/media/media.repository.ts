@@ -447,11 +447,14 @@ export class MediaRepository {
           (
             SELECT COUNT(*)::text
             FROM chat_messages cm
-            WHERE EXISTS (
-              SELECT 1
-              FROM jsonb_array_elements(COALESCE(cm.attachments_json, '[]'::jsonb)) AS attachment
-              WHERE attachment->>'mediaObjectId' = $1
-            )
+            WHERE COALESCE(cm.voice_message_json->>'mediaObjectId', '') = $1
+               OR COALESCE(cm.voice_message_json->>'id', '') = $1
+               OR EXISTS (
+                 SELECT 1
+                 FROM jsonb_array_elements(COALESCE(cm.attachments_json, '[]'::jsonb)) AS attachment
+                 WHERE attachment->>'mediaObjectId' = $1
+                    OR attachment->>'id' = $1
+               )
           ) AS "chatRefs"
       `,
       [objectId]

@@ -60,7 +60,7 @@ const getApiBase = () => {
   return `${normalized}/api`;
 };
 
-const buildApiUrl = (path: string) => `${getApiBase()}${path}`;
+export const buildApiUrl = (path: string) => `${getApiBase()}${path}`;
 const DEFAULT_TIMEOUT_MS = 12_000;
 const CIRCUIT_WINDOW_MS = 30_000;
 const CIRCUIT_FAILURE_THRESHOLD = 4;

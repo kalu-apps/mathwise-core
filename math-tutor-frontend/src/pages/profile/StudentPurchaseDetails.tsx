@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  Alert,
   Button,
   Chip,
   CircularProgress,
@@ -35,6 +34,7 @@ import { PageLoader } from "@/shared/ui/loading";
 import { useRecoverAccessNotice } from "@/features/auth/model/useRecoverAccessNotice";
 import { AccessStateBanner } from "@/shared/ui/AccessStateBanner";
 import { BackNavButton } from "@/shared/ui/BackNavButton";
+import { Notice, type NoticeTone } from "@/shared/ui/Notice";
 
 const statusLabelMap: Record<string, string> = {
   ok: "Платежи в норме",
@@ -68,6 +68,15 @@ const attemptStatusClassMap: Record<string, string> = {
   failed: "ui-status-chip--danger",
   canceled: "ui-status-chip--warning",
   expired: "ui-status-chip--warning",
+};
+
+const attemptNoticeToneMap: Record<string, NoticeTone> = {
+  succeeded: "success",
+  failed: "warning",
+  canceled: "warning",
+  expired: "warning",
+  pending: "info",
+  initiated: "info",
 };
 
 export default function StudentPurchaseDetails() {
@@ -424,9 +433,12 @@ export default function StudentPurchaseDetails() {
               </Button>
             </div>
             {latestPaymentAttemptView ? (
-              <Alert severity="info" className="ui-alert">
+              <Notice
+                tone={attemptNoticeToneMap[latestPaymentAttemptView.status] ?? "info"}
+                density="compact"
+              >
                 {latestPaymentAttemptView.actionableMessage}
-              </Alert>
+              </Notice>
             ) : null}
             {attemptsLoading ? (
               <div className="purchase-details-page__attempts-loading">
@@ -575,10 +587,10 @@ export default function StudentPurchaseDetails() {
                 </h2>
               </div>
               {financialView.schedule.length === 0 ? (
-                <Alert severity="info" className="ui-alert">
+                <p className="purchase-details-page__muted">
                   Точный график пока недоступен. Детали синхронизируются с
                   провайдером оплаты.
-                </Alert>
+                </p>
               ) : (
                 <div className="purchase-details-page__schedule">
                   {financialView.schedule.map((item, index) => (
@@ -639,11 +651,6 @@ export default function StudentPurchaseDetails() {
                   {remainingPaymentLoading ? "Фиксируем..." : "Весь остаток"}
                 </Button>
               </div>
-              <Alert severity="info" className="ui-alert">
-                Логика оплаты как у сплит-провайдеров (Подели/Долями): можно оплатить
-                ближайший взнос либо погасить весь остаток. Доступ обновляется сразу после
-                подтверждения платежа.
-              </Alert>
               <Button
                 variant="outlined"
                 startIcon={<SupportAgentRoundedIcon />}

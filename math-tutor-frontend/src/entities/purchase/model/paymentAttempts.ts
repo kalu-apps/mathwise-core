@@ -185,7 +185,7 @@ export const selectCheckoutPaymentView = (
   } else if (latest.status === "expired") {
     actionableMessage = "Срок попытки оплаты истек. Создайте новую попытку.";
   } else if (latest.status === "canceled") {
-    actionableMessage = "Оплата отменена. Вы можете начать новую попытку.";
+    actionableMessage = "Оплата не завершена. Можно открыть платежную страницу заново.";
   } else if (latest.status === "succeeded") {
     actionableMessage = "Оплата подтверждена.";
   }

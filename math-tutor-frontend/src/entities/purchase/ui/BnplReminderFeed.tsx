@@ -1,7 +1,7 @@
-import { Button } from "@mui/material";
 import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import type { PurchaseFinancialStatus } from "../model/policy";
+import { Notice, type NoticeTone } from "@/shared/ui/Notice";
 
 export type BnplReminderEntry = {
   purchaseId: string;
@@ -42,11 +42,11 @@ const getDescription = (item: BnplReminderEntry) => {
   return `Проверьте состояние оплаты по курсу «${item.courseTitle}».`;
 };
 
-const getClassName = (status: PurchaseFinancialStatus) => {
-  if (status === "suspended") return "is-danger";
-  if (status === "restricted") return "is-warning";
-  if (status === "grace") return "is-warning";
-  return "is-info";
+const getTone = (status: PurchaseFinancialStatus): NoticeTone => {
+  if (status === "suspended") return "critical";
+  if (status === "restricted") return "warning";
+  if (status === "grace") return "warning";
+  return "info";
 };
 
 export function BnplReminderFeed({
@@ -54,36 +54,41 @@ export function BnplReminderFeed({
   onOpenPurchase,
 }: Props) {
   if (items.length === 0) return null;
+  const urgentItems = items.filter((item) => item.financialStatus !== "upcoming");
+  const visibleItems = urgentItems.length > 0 ? urgentItems : items.slice(0, 1);
+  const hasUrgentItems = urgentItems.length > 0;
 
   return (
     <section className="bnpl-reminder-feed">
       <header className="bnpl-reminder-feed__head">
         <h2>
           <NotificationsActiveRoundedIcon fontSize="small" />
-          Лента платежных напоминаний
+          {hasUrgentItems ? "Требует внимания" : "Платежи"}
         </h2>
-        <span>Актуальный статус оплаты по курсам со сплитом</span>
+        <span>Только актуальные напоминания по оплате частями</span>
       </header>
       <div className="bnpl-reminder-feed__list">
-        {items.map((item) => (
-          <article
+        {visibleItems.map((item) => (
+          <Notice
             key={item.purchaseId}
-            className={`bnpl-reminder-feed__item ${getClassName(item.financialStatus)}`}
+            tone={getTone(item.financialStatus)}
+            placement="dashboard"
+            density="compact"
+            className="bnpl-reminder-feed__item"
+            title={getTitle(item)}
+            actions={[
+              {
+                label:
+                  item.financialStatus === "upcoming"
+                    ? "Детали"
+                    : "Открыть оплату",
+                onClick: () => onOpenPurchase(item.purchaseId),
+                icon: <ArrowForwardRoundedIcon fontSize="small" />,
+              },
+            ]}
           >
-            <div className="bnpl-reminder-feed__copy">
-              <strong>{getTitle(item)}</strong>
-              <p>{getDescription(item)}</p>
-            </div>
-            <div className="bnpl-reminder-feed__actions">
-              <Button
-                variant="contained"
-                endIcon={<ArrowForwardRoundedIcon />}
-                onClick={() => onOpenPurchase(item.purchaseId)}
-              >
-                Перейти к оплате
-              </Button>
-            </div>
-          </article>
+            <p>{getDescription(item)}</p>
+          </Notice>
         ))}
       </div>
     </section>

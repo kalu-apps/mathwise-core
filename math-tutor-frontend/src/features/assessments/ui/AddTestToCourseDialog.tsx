@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Button,
   Dialog,
   DialogContent,
@@ -17,6 +16,7 @@ import { getAssessmentTemplatesByTeacher } from "@/features/assessments/model/st
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
 import { TestTemplatePreviewDialog } from "@/features/assessments/ui/TestTemplatePreviewDialog";
 import { subscribeAppDataUpdates } from "@/shared/lib/subscribeAppDataUpdates";
+import { Notice } from "@/shared/ui/Notice";
 
 type Props = {
   open: boolean;
@@ -98,9 +98,6 @@ export function AddTestToCourseDialog({
         />
         <DialogContent>
           <Stack spacing={2}>
-            <Alert severity="info">
-              В курс можно добавить только опубликованные шаблоны тестов.
-            </Alert>
             <div className="assessment-template-select__search">
               <TextField
                 placeholder="Поиск по названию шаблона"
@@ -123,13 +120,13 @@ export function AddTestToCourseDialog({
               />
             </div>
 
-            {error ? <Alert severity="error">{error}</Alert> : null}
+            {error ? <Notice tone="critical" density="compact">{error}</Notice> : null}
             {loading ? (
               <Typography color="text.secondary">Загрузка шаблонов...</Typography>
             ) : filtered.length === 0 ? (
-              <Alert severity="info">
+              <Notice tone="neutral" density="compact">
                 Подходящие шаблоны не найдены. Создайте шаблон на странице "База тестов".
-              </Alert>
+              </Notice>
             ) : (
               <div className="assessment-template-select__list">
                 {filtered.map((template) => (

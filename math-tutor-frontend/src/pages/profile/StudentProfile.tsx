@@ -6,7 +6,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  Alert,
   Avatar,
   Badge,
   Button,
@@ -19,7 +18,6 @@ import {
   FormControlLabel,
   IconButton,
   InputAdornment,
-  Snackbar,
   Tab,
   Tabs,
   TextField,
@@ -76,6 +74,8 @@ import {
 } from "@/pages/profile/model/selectors";
 import { useStudentProfileUiState } from "@/pages/profile/hooks/useStudentProfileUiState";
 import { DialogTitleWithClose } from "@/shared/ui/DialogTitleWithClose";
+import { Notice } from "@/shared/ui/Notice";
+import { useToast } from "@/shared/ui/toastContext";
 import { BnplReminderFeed } from "@/entities/purchase/ui/BnplReminderFeed";
 import {
   getTeacherChatEligibility,
@@ -114,6 +114,7 @@ export default function StudentProfile() {
   const WORKBOOK_TAB_INDEX = 4;
   const CHAT_TAB_INDEX = 5;
   const { user, updateUser, openAuthModal, openRecoverModal } = useAuth();
+  const { notify } = useToast();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isNonDesktop = useMediaQuery(theme.breakpoints.down("lg"));
@@ -402,6 +403,29 @@ export default function StudentProfile() {
   }, [availability.length, bookings.length, items.length]);
 
   const bnplReminderItems = useMemo(() => buildBnplReminderItems(items), [items]);
+
+  useEffect(() => {
+    if (!chatNotice) return;
+    notify({
+      tone:
+        chatNotice.severity === "error"
+          ? "critical"
+          : chatNotice.severity === "warning"
+            ? "warning"
+            : "success",
+      message: chatNotice.message,
+    });
+    setChatNotice(null);
+  }, [chatNotice, notify]);
+
+  useEffect(() => {
+    if (!bookingSuccess) return;
+    notify({
+      tone: "success",
+      message: bookingSuccess,
+    });
+    setBookingSuccess(null);
+  }, [bookingSuccess, notify]);
 
   const studyActivityDays = useMemo(() => {
     const recalcSeed = studyActivityVersion;
@@ -838,21 +862,6 @@ export default function StudentProfile() {
 
   return (
     <div className="student-profile">
-      <Snackbar
-        open={Boolean(chatNotice)}
-        autoHideDuration={4200}
-        onClose={() => setChatNotice(null)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          severity={chatNotice?.severity ?? "info"}
-          onClose={() => setChatNotice(null)}
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
-          {chatNotice?.message}
-        </Alert>
-      </Snackbar>
       <Dialog
         open={lockedToolsModal !== null}
         onClose={() => setLockedToolsModal(null)}
@@ -888,14 +897,27 @@ export default function StudentProfile() {
         </DialogActions>
       </Dialog>
       {unpaidCompletedBooking && (
-        <div className="student-profile__reminder student-profile__reminder--priority">
+        <Notice
+          tone="warning"
+          placement="dashboard"
+          density="compact"
+          className="student-profile__reminder student-profile__reminder--priority"
+          title="Занятие ожидает оплаты"
+        >
           {`Оплата занятия ${formatBookingReminderDate(unpaidCompletedBooking)} не подтверждена.`}
-        </div>
+        </Notice>
       )}
       {upcomingBooking && (
-        <div className="student-profile__reminder">
-          {`Ближайшее занятие: ${formatBookingReminderDate(upcomingBooking)}`}
-        </div>
+        <Notice
+          tone="info"
+          placement="dashboard"
+          density="compact"
+          className="student-profile__reminder"
+          icon={<EventAvailableRoundedIcon fontSize="small" />}
+          title="Ближайшее занятие"
+        >
+          {formatBookingReminderDate(upcomingBooking)}
+        </Notice>
       )}
       {accessNoticeState && (
         <AccessStateBanner
@@ -1294,14 +1316,6 @@ export default function StudentProfile() {
               forceRetry
             />
           ) : null}
-          {bookingSuccess && (
-            <Alert
-              severity="success"
-              onClose={() => setBookingSuccess(null)}
-            >
-              {bookingSuccess}
-            </Alert>
-          )}
           {bookingsLoading && bookings.length === 0 ? (
             <ListSkeleton
               className="student-profile__skeletons"
@@ -1549,10 +1563,10 @@ export default function StudentProfile() {
           closeAriaLabel="Закрыть окно отмены занятия"
         />
         <DialogContent className="student-profile__dialog-content">
-          <Alert severity="warning">
+          <Notice tone="warning" density="compact">
             Вы уверены, что хотите отменить запись? Вместо отмены можно выбрать
             другое свободное время через кнопку ниже.
-          </Alert>
+          </Notice>
         </DialogContent>
         <DialogActions>
           <Button
@@ -1612,7 +1626,11 @@ export default function StudentProfile() {
           closeAriaLabel="Закрыть окно редактирования профиля"
         />
         <DialogContent className="student-profile__profile-edit-content">
-          {profileError ? <Alert severity="error">{profileError}</Alert> : null}
+          {profileError ? (
+            <Notice tone="critical" density="compact">
+              {profileError}
+            </Notice>
+          ) : null}
           <div className="student-profile__profile-edit-avatar-row">
             <button
               type="button"

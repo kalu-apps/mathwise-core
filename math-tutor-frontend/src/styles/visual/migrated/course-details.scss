@@ -1320,9 +1320,9 @@
 
   .course-details__payment-resume-card {
     display: grid;
-    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-columns: 34px minmax(0, 1fr) auto;
     gap: 8px 12px;
-    align-items: start;
+    align-items: center;
     padding: 14px 16px;
     border: 1px solid color-mix(in srgb, var(--brand-soft) 34%, var(--card-border));
     border-radius: 18px;
@@ -1381,15 +1381,18 @@
     line-height: 1.4;
   }
 
-  .course-details__payment-resume-action {
-    grid-column: 2;
-    justify-self: start;
-    min-height: 36px;
-    margin-top: 2px !important;
-    padding: 6px 14px !important;
-    border-radius: 13px !important;
-    white-space: nowrap;
-    box-shadow: none !important;
+  .course-details__payment-resume-card .notice__icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+  }
+
+  .course-details__payment-resume-card .notice__actions {
+    align-self: center;
+  }
+
+  .course-details__payment-resume-card .notice__action {
+    min-height: 34px;
   }
 
   .course-details__card {
@@ -2432,14 +2435,18 @@
     padding: 12px;
   }
 
-  .course-details__payment-resume-icon {
+  .course-details__payment-resume-card .notice__icon {
     width: 32px;
     height: 32px;
     border-radius: 12px;
   }
 
-  .course-details__payment-resume-action {
+  .course-details__payment-resume-card .notice__actions {
     grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .course-details__payment-resume-card .notice__action {
     width: 100%;
   }
 

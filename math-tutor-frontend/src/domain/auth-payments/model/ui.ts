@@ -68,13 +68,14 @@ export const getAccessGateActions = (params: {
     hasRecheck = false,
     hasProfile = false,
   } = params;
-  return ACCESS_STATE_META[state].actions.filter((action) => {
+  const availableActions = ACCESS_STATE_META[state].actions.filter((action) => {
     if (action === "login") return hasLogin;
     if (action === "recover") return hasRecover;
     if (action === "recheck") return hasRecheck;
     if (action === "profile") return hasProfile;
     return false;
   });
+  return availableActions.slice(0, 1);
 };
 
 export const getCourseAccessUiState = (params: {
