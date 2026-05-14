@@ -889,17 +889,21 @@
 }
 
 .news-feed__preview-stage {
-  width: min(96vw, 1400px);
+  width: min(100%, 1400px);
+  max-width: 100%;
   height: calc(100dvh - 118px);
   max-height: calc(100dvh - 118px);
+  box-sizing: border-box;
   min-width: 0;
   min-height: 0;
   display: grid;
   place-items: center;
+  overflow: hidden;
 }
 
 .news-feed__preview-stage--video {
-  width: min(92vw, 1120px);
+  width: min(100%, 1120px);
+  max-width: 100%;
   height: auto;
   aspect-ratio: 16 / 9;
   max-height: calc(100dvh - 118px);
@@ -918,6 +922,8 @@
   height: auto;
   max-width: 100%;
   max-height: 100%;
+  min-width: 0;
+  min-height: 0;
   object-fit: contain;
   background: transparent;
 }

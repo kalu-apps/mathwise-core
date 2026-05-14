@@ -804,6 +804,7 @@ select,
   display: grid;
   place-items: center;
   padding: 14px;
+  overflow: hidden;
   background: color-mix(in srgb, #060d21 62%, transparent);
   backdrop-filter: blur(2px);
 }
@@ -811,6 +812,7 @@ select,
 .immersive-media-overlay__viewport {
   position: relative;
   width: min(96vw, 1440px);
+  min-width: 0;
   max-height: calc(100dvh - 28px);
   display: grid;
   place-items: center;
@@ -819,6 +821,7 @@ select,
 .immersive-media-overlay__frame {
   position: relative;
   width: 100%;
+  min-width: 0;
   max-width: min(96vw, 1440px);
   max-height: calc(100dvh - 44px);
   display: grid;
@@ -858,7 +861,7 @@ select,
   display: grid;
   grid-template-columns:
     var(--immersive-overlay-nav-rail)
-    minmax(0, max-content)
+    minmax(0, 1fr)
     var(--immersive-overlay-nav-rail);
   align-items: center;
   justify-content: center;
@@ -866,10 +869,12 @@ select,
 
 .immersive-media-overlay__content {
   grid-column: 2;
+  width: 100%;
   min-width: 0;
   min-height: 0;
   display: grid;
   place-items: center;
+  overflow: hidden;
   max-width: calc(100vw - 28px - (var(--immersive-overlay-nav-rail) * 2));
   max-height: calc(
     100dvh - 44px - var(--immersive-overlay-topbar-size) -
