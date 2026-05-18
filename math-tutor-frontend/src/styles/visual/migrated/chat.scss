@@ -426,6 +426,48 @@
   }
 }
 
+.chat-page__main-name-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+
+  h2 {
+    min-width: 0;
+  }
+}
+
+.chat-page__student-profile-link.MuiIconButton-root {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  border: 0;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--chat-accent) 8%, transparent);
+  color: color-mix(in srgb, var(--chat-accent) 78%, var(--chat-text-strong));
+  padding: 0;
+  box-shadow: none;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    transform 0.12s ease;
+}
+
+.chat-page__student-profile-link.MuiIconButton-root:hover,
+.chat-page__student-profile-link.MuiIconButton-root:focus-visible {
+  background: color-mix(in srgb, var(--chat-accent) 13%, var(--control-bg-hover));
+  color: var(--chat-text-strong);
+}
+
+.chat-page__student-profile-link.MuiIconButton-root:active {
+  transform: scale(0.95);
+}
+
+.chat-page__student-profile-link.MuiIconButton-root .MuiSvgIcon-root {
+  font-size: 16px;
+}
+
 .chat-page__main-avatar {
   width: 40px;
   height: 40px;

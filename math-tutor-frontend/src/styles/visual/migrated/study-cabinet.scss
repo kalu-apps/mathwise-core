@@ -3150,8 +3150,8 @@
   z-index: 3;
   display: grid;
   grid-template-columns: 3px minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 4px 8px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 4px 7px;
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--teacher-daily-event-color) 34%, var(--card-border));
   border-radius: 6px;
@@ -3198,6 +3198,8 @@
   display: grid;
   gap: 2px;
   min-width: 0;
+  min-height: 0;
+  align-content: center;
 
   strong,
   span {
@@ -3225,6 +3227,7 @@
   align-items: center;
   gap: 5px;
   min-width: 0;
+  overflow: hidden;
 
   i {
     width: 18px;
@@ -3256,6 +3259,10 @@
 
   small {
     flex: 0 0 auto;
+    max-width: 48%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     border-radius: 3px;
     border-left: 2px solid color-mix(in srgb, var(--teacher-daily-event-color) 70%, transparent);
     background: transparent;
@@ -3265,6 +3272,60 @@
     font-weight: 760;
     line-height: 1.2;
   }
+}
+
+.teacher-daily-event--booking {
+  grid-template-columns: 4px minmax(0, 1fr);
+  border-radius: 10px;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--teacher-daily-event-color) 13%, transparent),
+      transparent 56%
+    ),
+    color-mix(in srgb, var(--background-elevated) 94%, transparent);
+  padding: 6px 10px 6px 7px;
+}
+
+.teacher-daily-event--booking .teacher-daily-event__rail {
+  width: 4px;
+  min-width: 4px;
+  border-radius: 999px;
+}
+
+.teacher-daily-event--booking .teacher-daily-event__body {
+  gap: 4px;
+}
+
+.teacher-daily-event--booking .teacher-daily-event__body strong {
+  font-size: 13px;
+  line-height: 1.14;
+}
+
+.teacher-daily-event--booking .teacher-daily-event__meta {
+  gap: 6px;
+}
+
+.teacher-daily-event--booking .teacher-daily-event__meta i {
+  width: 20px;
+  height: 20px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--teacher-daily-event-color) 13%, var(--background-elevated));
+}
+
+.teacher-daily-event--booking .teacher-daily-event__meta small {
+  max-width: 82px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--teacher-daily-event-color) 12%, var(--background-elevated));
+  padding: 3px 7px;
+  font-size: 9.5px;
+  line-height: 1;
+}
+
+.teacher-daily-event--booking.is-event-tiny .teacher-daily-event__meta i,
+.teacher-daily-event--booking.is-event-tiny .teacher-daily-event__meta small {
+  display: none;
 }
 
 .teacher-daily-event__badges {
@@ -3568,6 +3629,58 @@
   color: var(--feedback-danger);
 }
 
+.teacher-daily-detail__head-actions {
+  justify-self: end;
+  align-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.teacher-daily-detail__head-actions .teacher-daily-icon-button,
+.teacher-daily-detail__icon-link {
+  justify-self: end;
+  align-self: start;
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  background: color-mix(in srgb, var(--accent-primary) 9%, var(--background-elevated));
+  box-shadow: none;
+  color: color-mix(in srgb, var(--accent-primary) 82%, var(--text-primary));
+  border-radius: 11px;
+  padding: 0;
+  text-decoration: none;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    transform 0.12s ease;
+}
+
+.teacher-daily-detail__head-actions .teacher-daily-icon-button:not(:disabled):hover,
+.teacher-daily-detail__icon-link:hover {
+  border: 0;
+  background: color-mix(in srgb, var(--accent-primary) 14%, var(--background-elevated));
+  color: var(--accent-text);
+  transform: translateY(-1px);
+}
+
+.teacher-daily-detail__icon-link:active {
+  transform: scale(0.95);
+}
+
+.teacher-daily-detail__icon-link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-primary) 62%, transparent);
+  outline-offset: 2px;
+}
+
+.teacher-daily-detail__icon-link svg {
+  width: 16px;
+  height: 16px;
+}
+
 .teacher-daily-detail__eyebrow {
   color: var(--text-secondary);
   font-size: 11px;
@@ -3657,6 +3770,7 @@
 .teacher-daily-detail__actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
 }
 

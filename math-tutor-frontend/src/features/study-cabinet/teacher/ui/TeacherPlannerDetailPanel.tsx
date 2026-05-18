@@ -7,7 +7,10 @@ import {
   getPlannerEventTimeLabel,
 } from "@/features/study-cabinet/teacher/model/plannerEvents";
 import { TeacherPlannerIcon } from "@/features/study-cabinet/teacher/ui/TeacherPlannerIcons";
-import { TeacherPlannerButton } from "@/features/study-cabinet/teacher/ui/TeacherPlannerPrimitives";
+import {
+  TeacherPlannerButton,
+  TeacherPlannerIconButton,
+} from "@/features/study-cabinet/teacher/ui/TeacherPlannerPrimitives";
 
 type TeacherPlannerDetailPanelProps = {
   event: TeacherPlannerEvent | null;
@@ -50,6 +53,12 @@ export function TeacherPlannerDetailPanel({
   const booking = event.booking;
   const note = event.note;
   const availability = event.availability;
+  const isBooking = Boolean(booking);
+  const eyebrow = booking
+    ? event.kind === "trial-booking"
+      ? "Пробная запись"
+      : "Запись ученика"
+    : event.badge;
   const detailStyle = {
     "--teacher-daily-event-color": event.color,
   } as CSSProperties;
@@ -64,7 +73,7 @@ export function TeacherPlannerDetailPanel({
       <header className="teacher-daily-detail__head">
         <span className="teacher-daily-detail__icon">{getDetailIcon(event)}</span>
         <div>
-          <span className="teacher-daily-detail__eyebrow">{event.badge}</span>
+          <span className="teacher-daily-detail__eyebrow">{eyebrow}</span>
           <h3>{event.title}</h3>
         </div>
         {note ? (
@@ -88,6 +97,38 @@ export function TeacherPlannerDetailPanel({
               </button>
             ) : null}
           </div>
+        ) : booking ? (
+          <div className="teacher-daily-detail__head-actions" aria-label="Действия с занятием">
+            <TeacherPlannerIconButton label="Открыть занятие" onClick={onOpenSchedule}>
+              <TeacherPlannerIcon name="event" />
+            </TeacherPlannerIconButton>
+            <TeacherPlannerIconButton
+              label="Подготовка к занятию"
+              onClick={() => onCreatePrepNote(booking)}
+            >
+              <TeacherPlannerIcon name="book" />
+            </TeacherPlannerIconButton>
+            {booking.studentId ? (
+              <TeacherPlannerIconButton
+                label="Открыть чат с учеником"
+                onClick={() => onOpenStudentChat?.(booking.studentId)}
+              >
+                <TeacherPlannerIcon name="chat" />
+              </TeacherPlannerIconButton>
+            ) : null}
+            {booking.meetingUrl ? (
+              <a
+                className="teacher-daily-detail__icon-link"
+                href={booking.meetingUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Открыть ссылку на занятие"
+                title="Открыть ссылку на занятие"
+              >
+                <TeacherPlannerIcon name="link" />
+              </a>
+            ) : null}
+          </div>
         ) : null}
       </header>
 
@@ -106,34 +147,13 @@ export function TeacherPlannerDetailPanel({
             {event.paymentLabel}
           </span>
         ) : null}
-        {event.secondaryBadge ? <span>{event.secondaryBadge}</span> : null}
       </div>
 
-      <section className="teacher-daily-detail__section teacher-daily-detail__section--main">
-        <strong>{event.subtitle}</strong>
-        <p>{event.description}</p>
-        {event.statusLabel ? <em>{event.statusLabel}</em> : null}
-      </section>
-
-      {booking ? (
-        <section className="teacher-daily-detail__section">
-          <span className="study-cabinet-panel__kicker">Ученик и материалы</span>
-          <div className="teacher-daily-detail__facts">
-            <span>{booking.studentEmail}</span>
-            {booking.studentPhone ? <span>{booking.studentPhone}</span> : null}
-            <span>Материалы: {booking.materials.length}</span>
-          </div>
-          {booking.meetingUrl ? (
-            <a
-              className="teacher-daily-detail__link"
-              href={booking.meetingUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <TeacherPlannerIcon name="link" />
-              Открыть ссылку на занятие
-            </a>
-          ) : null}
+      {!isBooking ? (
+        <section className="teacher-daily-detail__section teacher-daily-detail__section--main">
+          <strong>{event.subtitle}</strong>
+          <p>{event.description}</p>
+          {event.statusLabel ? <em>{event.statusLabel}</em> : null}
         </section>
       ) : null}
 
@@ -147,37 +167,11 @@ export function TeacherPlannerDetailPanel({
         </section>
       ) : null}
 
-      {booking || availability ? (
+      {availability ? (
         <div className="teacher-daily-detail__actions">
-          {booking ? (
-            <>
-              <TeacherPlannerButton variant="primary" onClick={onOpenSchedule}>
-                Открыть занятие
-              </TeacherPlannerButton>
-              <TeacherPlannerButton
-                variant="secondary"
-                icon={<TeacherPlannerIcon name="book" />}
-                onClick={() => onCreatePrepNote(booking)}
-              >
-                Подготовка
-              </TeacherPlannerButton>
-              {booking.studentId ? (
-                <TeacherPlannerButton
-                  variant="ghost"
-                  icon={<TeacherPlannerIcon name="chat" />}
-                  onClick={() => onOpenStudentChat?.(booking.studentId)}
-                >
-                  Чат
-                </TeacherPlannerButton>
-              ) : null}
-            </>
-          ) : null}
-
-          {availability ? (
-            <TeacherPlannerButton variant="primary" onClick={onOpenSchedule}>
-              Открыть слоты
-            </TeacherPlannerButton>
-          ) : null}
+          <TeacherPlannerButton variant="primary" onClick={onOpenSchedule}>
+            Открыть слоты
+          </TeacherPlannerButton>
         </div>
       ) : null}
     </aside>

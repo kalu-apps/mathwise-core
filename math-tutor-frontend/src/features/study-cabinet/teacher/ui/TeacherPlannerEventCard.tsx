@@ -51,6 +51,13 @@ export function TeacherPlannerEventCard({
           }
       : {}),
   } as CSSProperties;
+  const isBooking = event.kind === "regular-booking" || event.kind === "trial-booking";
+  const eventTypeLabel = isBooking
+    ? event.kind === "trial-booking"
+      ? "Пробное"
+      : "Занятие"
+    : event.badge;
+  const densityClass = height <= 58 ? "is-event-tiny" : height <= 78 ? "is-event-compact" : "";
 
   if (isNote) {
     const noteDensityClass =
@@ -106,7 +113,7 @@ export function TeacherPlannerEventCard({
       type="button"
       className={`teacher-daily-event teacher-daily-event--${event.kind} ${
         selected ? "is-selected" : ""
-      }`}
+      } ${isBooking ? "teacher-daily-event--booking" : ""} ${densityClass}`}
       style={style}
       onClick={() => onSelect(event)}
       aria-pressed={selected}
@@ -117,12 +124,12 @@ export function TeacherPlannerEventCard({
         <span className="teacher-daily-event__meta">
           <i>{getEventIcon(event)}</i>
           <em>{timeLabel}</em>
-          <small>{event.badge}</small>
+          <small>{eventTypeLabel}</small>
         </span>
         <strong>{event.title}</strong>
-        <span>{event.subtitle}</span>
+        {!isBooking ? <span>{event.subtitle}</span> : null}
       </span>
-      {event.secondaryBadge ? (
+      {!isBooking && event.secondaryBadge ? (
         <span className="teacher-daily-event__badges">
           <small>{event.secondaryBadge}</small>
         </span>

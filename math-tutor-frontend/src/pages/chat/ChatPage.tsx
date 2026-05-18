@@ -40,6 +40,7 @@ import OpenInFullRoundedIcon from "@mui/icons-material/OpenInFullRounded";
 import CloseFullscreenRoundedIcon from "@mui/icons-material/CloseFullscreenRounded";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import {
@@ -1638,11 +1639,23 @@ export default function ChatPage() {
                 {isTeacherView ? <PersonRoundedIcon /> : <SchoolRoundedIcon />}
               </Avatar>
               <div>
-                <h2>
-                  {isTeacherView
-                    ? selectedThread?.studentName ?? "Выберите диалог"
-                    : selectedThread?.teacherName ?? "Чат"}
-                </h2>
+                <div className="chat-page__main-name-row">
+                  <h2>
+                    {isTeacherView
+                      ? selectedThread?.studentName ?? "Выберите диалог"
+                      : selectedThread?.teacherName ?? "Чат"}
+                  </h2>
+                  {isTeacherView && selectedThread?.studentId ? (
+                    <IconButton
+                      className="chat-page__student-profile-link"
+                      onClick={() => navigate(`/teacher/students/${selectedThread.studentId}`)}
+                      aria-label="Открыть профиль студента"
+                      title="Профиль студента"
+                    >
+                      <OpenInNewRoundedIcon fontSize="small" />
+                    </IconButton>
+                  ) : null}
+                </div>
                 <p>
                   {isTeacherView
                     ? selectedThread?.studentEmail ?? "Сообщения и обратная связь"

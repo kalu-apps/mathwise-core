@@ -386,6 +386,9 @@ export const ru = {
     clearDateSlotsAction: "Очистить день",
     clearDateSlotsTitle: "Очистить слоты за {date}?",
     clearDateSlotsDescription: "Будут удалены все слоты выбранного дня.",
+    deleteSlotTitle: "Удалить слот?",
+    deleteSlotDescription:
+      "Слот {date}, {time} исчезнет из расписания для записи студентов.",
     scheduledTitle: "Запланированные занятия",
     scheduledDescription: "Будущие записи студентов на занятия.",
     noScheduled: "Пока нет запланированных занятий",

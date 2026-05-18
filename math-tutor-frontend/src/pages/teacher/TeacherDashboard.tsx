@@ -222,6 +222,10 @@ export default function TeacherDashboard() {
   });
   const slotDateInputRef = useRef<HTMLInputElement | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const pendingBookingPaymentStatusRef = useRef<Record<string, Booking["paymentStatus"]>>(
+    {}
+  );
+  const pendingBookingPaymentTimersRef = useRef<Record<string, number>>({});
 
   const userId = user?.id;
   const isTeacher = user?.role === "teacher";
@@ -307,6 +311,118 @@ export default function TeacherDashboard() {
     user,
   ]);
 
+  const clearPendingBookingPaymentStatus = useCallback((bookingId: string) => {
+    const timer = pendingBookingPaymentTimersRef.current[bookingId];
+    if (timer !== undefined) {
+      window.clearTimeout(timer);
+      delete pendingBookingPaymentTimersRef.current[bookingId];
+    }
+    if (pendingBookingPaymentStatusRef.current[bookingId]) {
+      const next = { ...pendingBookingPaymentStatusRef.current };
+      delete next[bookingId];
+      pendingBookingPaymentStatusRef.current = next;
+    }
+  }, []);
+
+  const holdBookingPaymentStatus = useCallback(
+    (bookingId: string, paymentStatus: Booking["paymentStatus"]) => {
+      const timer = pendingBookingPaymentTimersRef.current[bookingId];
+      if (timer !== undefined) {
+        window.clearTimeout(timer);
+        delete pendingBookingPaymentTimersRef.current[bookingId];
+      }
+      pendingBookingPaymentStatusRef.current = {
+        ...pendingBookingPaymentStatusRef.current,
+        [bookingId]: paymentStatus,
+      };
+    },
+    []
+  );
+
+  const releaseBookingPaymentStatusEventually = useCallback(
+    (bookingId: string, paymentStatus: Booking["paymentStatus"]) => {
+      const timer = pendingBookingPaymentTimersRef.current[bookingId];
+      if (timer !== undefined) {
+        window.clearTimeout(timer);
+      }
+      pendingBookingPaymentTimersRef.current[bookingId] = window.setTimeout(() => {
+        if (pendingBookingPaymentStatusRef.current[bookingId] === paymentStatus) {
+          const next = { ...pendingBookingPaymentStatusRef.current };
+          delete next[bookingId];
+          pendingBookingPaymentStatusRef.current = next;
+        }
+        delete pendingBookingPaymentTimersRef.current[bookingId];
+      }, 30_000);
+    },
+    []
+  );
+
+  const mergePendingBookingPaymentStatuses = useCallback(
+    (nextBookings: Booking[], options?: { confirmServerSnapshot?: boolean }) => {
+      const pending = pendingBookingPaymentStatusRef.current;
+      if (Object.keys(pending).length === 0) return nextBookings;
+
+      let changed = false;
+      let pendingChanged = false;
+      const nextPending = options?.confirmServerSnapshot ? { ...pending } : pending;
+      const merged = nextBookings.map((booking) => {
+        const paymentStatus = pending[booking.id];
+        if (!paymentStatus) return booking;
+        if (options?.confirmServerSnapshot && booking.paymentStatus === paymentStatus) {
+          const timer = pendingBookingPaymentTimersRef.current[booking.id];
+          if (timer !== undefined) {
+            window.clearTimeout(timer);
+            delete pendingBookingPaymentTimersRef.current[booking.id];
+          }
+          delete nextPending[booking.id];
+          pendingChanged = true;
+          return booking;
+        }
+        if (booking.paymentStatus === paymentStatus) return booking;
+        changed = true;
+        return { ...booking, paymentStatus };
+      });
+
+      if (pendingChanged) {
+        pendingBookingPaymentStatusRef.current = nextPending;
+      }
+      return changed ? merged : nextBookings;
+    },
+    []
+  );
+
+  const setBookingsFromDashboardData = useCallback(
+    (action: Booking[] | ((prev: Booking[]) => Booking[])) => {
+      setBookings((prev) => {
+        const next = typeof action === "function" ? action(prev) : action;
+        return mergePendingBookingPaymentStatuses(next, {
+          confirmServerSnapshot: true,
+        });
+      });
+    },
+    [mergePendingBookingPaymentStatuses]
+  );
+
+  const setBookingsWithStablePayments = useCallback(
+    (action: Booking[] | ((prev: Booking[]) => Booking[])) => {
+      setBookings((prev) => {
+        const next = typeof action === "function" ? action(prev) : action;
+        return mergePendingBookingPaymentStatuses(next);
+      });
+    },
+    [mergePendingBookingPaymentStatuses]
+  );
+
+  useEffect(() => {
+    return () => {
+      Object.values(pendingBookingPaymentTimersRef.current).forEach((timer) => {
+        window.clearTimeout(timer);
+      });
+      pendingBookingPaymentTimersRef.current = {};
+      pendingBookingPaymentStatusRef.current = {};
+    };
+  }, []);
+
   const { refreshAll, retryDashboardData } = useTeacherDashboardData({
     userId,
     isTeacher,
@@ -322,7 +438,7 @@ export default function TeacherDashboard() {
     setAvailability,
     setAvailabilityLoading,
     setAvailabilityError,
-    setBookings,
+    setBookings: setBookingsFromDashboardData,
     setBookingLoading,
     setBookingError,
   });
@@ -835,6 +951,28 @@ export default function TeacherDashboard() {
     await saveAvailability(availability.filter((slot) => slot.id !== id));
   };
 
+  const openRemoveSlotConfirm = (slot: AvailabilitySlot) => {
+    const dateLabel = new Date(`${slot.date}T00:00:00`).toLocaleDateString(
+      "ru-RU",
+      {
+        day: "numeric",
+        month: "long",
+      }
+    );
+    setConfirm({
+      title: t("teacherDashboard.deleteSlotTitle"),
+      description: t("teacherDashboard.deleteSlotDescription", {
+        date: dateLabel,
+        time: `${slot.startTime} – ${slot.endTime}`,
+      }),
+      danger: true,
+      onConfirm: () => {
+        void removeSlot(slot.id);
+        setConfirm(null);
+      },
+    });
+  };
+
   const openSlotDatePicker = () => {
     const input = slotDateInputRef.current;
     if (!input) return;
@@ -889,10 +1027,17 @@ export default function TeacherDashboard() {
   ) => {
     const booking = bookings.find((item) => item.id === bookingId);
     if (!booking || booking.paymentStatus === paymentStatus) return;
+    const previousPaymentStatus = booking.paymentStatus;
+    holdBookingPaymentStatus(bookingId, paymentStatus);
+    setBookingsWithStablePayments((prev) =>
+      prev.map((item) =>
+        item.id === bookingId ? { ...item, paymentStatus } : item
+      )
+    );
     setBookingSavingId(bookingId);
     try {
       const updated = await updateBooking(bookingId, { paymentStatus });
-      setBookings((prev) =>
+      setBookingsWithStablePayments((prev) =>
         prev.map((item) =>
           item.id === bookingId
             ? {
@@ -905,7 +1050,16 @@ export default function TeacherDashboard() {
             : item
         )
       );
+      releaseBookingPaymentStatusEventually(bookingId, paymentStatus);
     } catch {
+      clearPendingBookingPaymentStatus(bookingId);
+      setBookingsWithStablePayments((prev) =>
+        prev.map((item) =>
+          item.id === bookingId
+            ? { ...item, paymentStatus: previousPaymentStatus }
+            : item
+        )
+      );
       setBookingError(t("teacherDashboard.updatePaymentStatusError"));
     } finally {
       setBookingSavingId(null);
@@ -1723,7 +1877,7 @@ export default function TeacherDashboard() {
                     </span>
                     <IconButton
                       className="teacher-dashboard__slot-remove"
-                      onClick={() => void removeSlot(slot.id)}
+                      onClick={() => openRemoveSlotConfirm(slot)}
                       aria-label="Удалить слот"
                     >
                       <CloseRoundedIcon fontSize="inherit" />
