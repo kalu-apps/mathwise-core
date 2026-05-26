@@ -122,6 +122,19 @@ const formatDuration = (seconds: number) => {
   return parts.join(" ");
 };
 
+const formatCompactDuration = (seconds: number) => {
+  const safe = Math.max(0, Math.round(seconds));
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const secs = safe % 60;
+  const parts: string[] = [];
+  if (hours > 0) parts.push(`${hours}ч`);
+  if (minutes > 0) parts.push(`${minutes}м`);
+  if (secs > 0 && hours === 0) parts.push(`${secs}с`);
+  if (!parts.length) return "0с";
+  return parts.join(" ");
+};
+
 const formatEstimate = (seconds?: number | null) => {
   if (!seconds || !Number.isFinite(seconds) || seconds <= 0) return null;
   return formatDuration(seconds);
@@ -867,6 +880,22 @@ export function StudentStudyCabinetPanel({
     rhythmSummary.activeDays > 0
       ? `${rhythmSummary.activeDays} из 7 учебных дней`
       : "Неделя ещё без активности";
+  const routeChartBars = useMemo(() => {
+    const progress = Math.max(0, Math.min(100, courseProgress.percent));
+    const targets = [16, 24, 36, 50, 66, 82, 98];
+    const colors = ["#7c6df2", "#3f8cff", "#28c9d4", "#42d392", "#ffd166", "#ff8fab", "#a78bfa"];
+
+    return targets.map((target, index) => {
+      const progressWeight = 0.18 + index * 0.1;
+      const height = Math.max(12, Math.min(100, Math.round(target * 0.48 + progress * progressWeight)));
+
+      return {
+        "--student-route-bar-height": `${height}%`,
+        "--student-route-bar-color": colors[index],
+        "--student-route-bar-delay": `${index * 80}ms`,
+      } as CSSProperties;
+    });
+  }, [courseProgress.percent]);
 
   if (!courses.length) {
     return (
@@ -879,36 +908,39 @@ export function StudentStudyCabinetPanel({
               </div>
               <h2>Здесь появится ваш маршрут обучения</h2>
               <p>После покупки курса здесь появятся следующие шаги и задачи.</p>
-              <div className="study-cabinet-panel__hero-nav">
-                {onBrowseCourses ? (
-                  <Button
-                    className="study-cabinet-panel__hero-btn"
-                    variant="contained"
-                    onClick={onBrowseCourses}
-                  >
-                    Выбрать курс
-                  </Button>
-                ) : null}
-                {onWorkbookClick ? (
-                  <Button
-                    className="study-cabinet-panel__hero-btn study-cabinet-panel__hero-btn--chat"
-                    variant="outlined"
-                    onClick={onWorkbookClick}
-                  >
-                    Рабочая тетрадь
-                  </Button>
-                ) : null}
-                {onChatClick ? (
-                  <Button
-                    className="study-cabinet-panel__hero-btn"
-                    variant="outlined"
-                    onClick={onChatClick}
-                    disabled={chatDisabled || chatLocked}
-                  >
-                    Чат
-                  </Button>
-                ) : null}
-              </div>
+                <div className="study-cabinet-panel__hero-nav">
+                  {onBrowseCourses ? (
+                    <Button
+                      className="study-cabinet-panel__hero-btn"
+                      variant="contained"
+                      onClick={onBrowseCourses}
+                      startIcon={<AutoStoriesRoundedIcon fontSize="small" />}
+                    >
+                      Выбрать курс
+                    </Button>
+                  ) : null}
+                  {onWorkbookClick ? (
+                    <Button
+                      className="study-cabinet-panel__hero-btn study-cabinet-panel__hero-btn--chat"
+                      variant="outlined"
+                      onClick={onWorkbookClick}
+                      startIcon={<AutoStoriesRoundedIcon fontSize="small" />}
+                    >
+                      Рабочая тетрадь
+                    </Button>
+                  ) : null}
+                  {onChatClick ? (
+                    <Button
+                      className="study-cabinet-panel__hero-btn"
+                      variant="outlined"
+                      onClick={onChatClick}
+                      disabled={chatDisabled || chatLocked}
+                      startIcon={<ForumRoundedIcon fontSize="small" />}
+                    >
+                      Чат
+                    </Button>
+                  ) : null}
+                </div>
             </div>
           </div>
         </div>
@@ -928,35 +960,38 @@ export function StudentStudyCabinetPanel({
               <p>Личный маршрут: следующий шаг, прогресс, занятия и учебный ритм.</p>
             </div>
             <div className="study-cabinet-panel__student-command-side">
-              <div className="study-cabinet-panel__hero-nav study-cabinet-panel__student-hero-nav">
-                {onWorkbookClick ? (
-                  <Button
-                    className="study-cabinet-panel__hero-btn study-cabinet-panel__hero-btn--chat"
-                    variant="contained"
-                    onClick={onWorkbookClick}
-                  >
-                    Рабочая тетрадь
-                  </Button>
-                ) : null}
-                {onChatClick ? (
-                  <Button
-                    className="study-cabinet-panel__hero-btn"
-                    variant="outlined"
-                    onClick={onChatClick}
-                    disabled={chatDisabled || chatLocked}
-                  >
-                    Чат{chatLocked ? " (закрыт)" : ""}
-                  </Button>
-                ) : null}
-                {onBrowseCourses ? (
-                  <Button
-                    className="study-cabinet-panel__hero-btn"
-                    variant="outlined"
-                    onClick={onBrowseCourses}
-                  >
-                    Каталог курсов
-                  </Button>
-                ) : null}
+                <div className="study-cabinet-panel__hero-nav study-cabinet-panel__student-hero-nav">
+                  {onWorkbookClick ? (
+                    <Button
+                      className="study-cabinet-panel__hero-btn study-cabinet-panel__hero-btn--chat"
+                      variant="contained"
+                      onClick={onWorkbookClick}
+                      startIcon={<AutoStoriesRoundedIcon fontSize="small" />}
+                    >
+                      Рабочая тетрадь
+                    </Button>
+                  ) : null}
+                  {onChatClick ? (
+                    <Button
+                      className="study-cabinet-panel__hero-btn"
+                      variant="outlined"
+                      onClick={onChatClick}
+                      disabled={chatDisabled || chatLocked}
+                      startIcon={<ForumRoundedIcon fontSize="small" />}
+                    >
+                      Чат{chatLocked ? " (закрыт)" : ""}
+                    </Button>
+                  ) : null}
+                  {onBrowseCourses ? (
+                    <Button
+                      className="study-cabinet-panel__hero-btn"
+                      variant="outlined"
+                      onClick={onBrowseCourses}
+                      startIcon={<AutoStoriesRoundedIcon fontSize="small" />}
+                    >
+                      Каталог курсов
+                    </Button>
+                  ) : null}
                 <Tooltip title="Скачать краткий PDF-отчёт">
                   <IconButton
                     className="study-cabinet-panel__student-icon-action"
@@ -1000,23 +1035,41 @@ export function StudentStudyCabinetPanel({
                       </span>
                     ) : null}
                   </div>
-                  <strong>{nextStep.title}</strong>
-                  <p>{nextStep.subtitle}</p>
-                  <div className="study-cabinet-panel__student-next-actions">
-                    <Button variant="contained" onClick={nextStep.onContinue}>Продолжить</Button>
-                    <Button variant="outlined" onClick={() => setChooseAnotherOpen(true)}>Выбрать другое</Button>
-                  </div>
+                    <strong>{nextStep.title}</strong>
+                    <p>{nextStep.subtitle}</p>
+                    <div className="study-cabinet-panel__student-next-actions">
+                      <Button
+                        variant="contained"
+                        onClick={nextStep.onContinue}
+                        startIcon={<TipsAndUpdatesRoundedIcon fontSize="small" />}
+                      >
+                        Продолжить
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        onClick={() => setChooseAnotherOpen(true)}
+                        startIcon={<AutoStoriesRoundedIcon fontSize="small" />}
+                      >
+                        Выбрать другое
+                      </Button>
+                    </div>
                 </>
               ) : (
                 <>
                   <div className="study-cabinet-panel__student-next-topline">
                     <span className="study-cabinet-panel__student-next-badge">Свободный темп</span>
                   </div>
-                  <strong>Выберите комфортный шаг</strong>
-                  <p>Откройте урок, тест или занятие в удобный момент.</p>
-                  <div className="study-cabinet-panel__student-next-actions">
-                    <Button variant="contained" onClick={() => setChooseAnotherOpen(true)}>Выбрать действие</Button>
-                  </div>
+                    <strong>Выберите комфортный шаг</strong>
+                    <p>Откройте урок, тест или занятие в удобный момент.</p>
+                    <div className="study-cabinet-panel__student-next-actions">
+                      <Button
+                        variant="contained"
+                        onClick={() => setChooseAnotherOpen(true)}
+                        startIcon={<TipsAndUpdatesRoundedIcon fontSize="small" />}
+                      >
+                        Выбрать действие
+                      </Button>
+                    </div>
                 </>
               )}
               <div className="study-cabinet-panel__student-assist-strip">
@@ -1035,31 +1088,65 @@ export function StudentStudyCabinetPanel({
               </div>
             </section>
 
-            <aside className="study-cabinet-panel__student-insights-panel" aria-label="Сводка обучения">
-              <article
-                className="study-cabinet-panel__student-insight-card study-cabinet-panel__student-insight-card--progress"
-                style={progressCardStyle}
-              >
+            <article
+              className="study-cabinet-panel__student-insight-card study-cabinet-panel__student-insight-card--progress"
+              style={progressCardStyle}
+              aria-label="Диаграмма маршрута обучения"
+            >
+              <div className="study-cabinet-panel__student-route-head">
                 <span className="study-cabinet-panel__student-insight-label">
                   <AutoGraphRoundedIcon fontSize="inherit" />
                   Маршрут
                 </span>
-                <div className="study-cabinet-panel__student-insight-main">
-                  <span className="study-cabinet-panel__student-progress-orb">
-                    <strong>{courseProgress.percent}%</strong>
-                    <small>готово</small>
-                  </span>
-                  <div className="study-cabinet-panel__student-insight-copy">
-                    <strong>
-                      {completedCourseUnits}/{totalCourseUnits || 0}
-                    </strong>
-                    <small>шагов завершено</small>
+                <span className="study-cabinet-panel__student-route-count">
+                  {completedCourseUnits}/{totalCourseUnits || 0} шагов
+                </span>
+              </div>
+              <div className="study-cabinet-panel__student-route-visual" aria-hidden="true">
+                <div className="study-cabinet-panel__student-progress-orb">
+                  <strong>{courseProgress.percent}%</strong>
+                  <small>готово</small>
+                </div>
+                <div className="study-cabinet-panel__student-route-chart">
+                  <svg className="study-cabinet-panel__student-route-curve" viewBox="0 0 260 132" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="student-route-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#7c6df2" />
+                        <stop offset="34%" stopColor="#27c5e5" />
+                        <stop offset="68%" stopColor="#40d391" />
+                        <stop offset="100%" stopColor="#ffd166" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      className="study-cabinet-panel__student-route-curve-glow"
+                      d="M6 118 C48 114 68 98 99 82 C130 66 151 54 178 38 C203 24 226 15 254 10"
+                    />
+                    <path
+                      className="study-cabinet-panel__student-route-curve-line"
+                      d="M6 118 C48 114 68 98 99 82 C130 66 151 54 178 38 C203 24 226 15 254 10"
+                    />
+                  </svg>
+                  <div className="study-cabinet-panel__student-route-bars">
+                    {routeChartBars.map((barStyle, index) => (
+                      <span
+                        key={`route-bar-${index}`}
+                        className="study-cabinet-panel__student-route-bar"
+                        style={barStyle}
+                      />
+                    ))}
                   </div>
                 </div>
-                <span className="study-cabinet-panel__student-insight-track">
-                  <i style={{ width: `${courseProgress.percent}%` }} />
-                </span>
-              </article>
+              </div>
+              <div className="study-cabinet-panel__student-route-footer">
+                <span className="study-cabinet-panel__student-route-chip">Текущий курс</span>
+                <span>{courseProgress.percent < 100 ? "Рост маршрута продолжается" : "Маршрут завершён"}</span>
+              </div>
+              <span className="study-cabinet-panel__student-insight-track">
+                <i style={{ width: `${courseProgress.percent}%` }} />
+              </span>
+            </article>
+
+            <aside className="study-cabinet-panel__student-insights-panel" aria-label="Сводка обучения">
               <article className="study-cabinet-panel__student-insight-card study-cabinet-panel__student-insight-card--practice">
                 <span className="study-cabinet-panel__student-insight-label">
                   <WorkspacePremiumRoundedIcon fontSize="inherit" />
@@ -1073,11 +1160,12 @@ export function StudentStudyCabinetPanel({
                       ? "Повторение сейчас не требуется"
                       : "Тесты появятся в маршруте"}
                 </small>
-                {reviewLead ? (
-                  <button type="button" onClick={reviewLead.onReview}>
-                    Повторить
-                  </button>
-                ) : null}
+                  {reviewLead ? (
+                    <button type="button" onClick={reviewLead.onReview}>
+                      <WorkspacePremiumRoundedIcon fontSize="inherit" />
+                      Повторить
+                    </button>
+                  ) : null}
               </article>
               <article className="study-cabinet-panel__student-insight-card study-cabinet-panel__student-insight-card--booking">
                 <span className="study-cabinet-panel__student-insight-label">
@@ -1097,11 +1185,12 @@ export function StudentStudyCabinetPanel({
                     ? nearestBooking.teacherName
                     : bookingCta?.title ?? "Индивидуальный слот можно выбрать позже"}
                 </small>
-                {bookingCta ? (
-                  <button type="button" onClick={bookingCta.onAction}>
-                    {bookingCta.actionLabel}
-                  </button>
-                ) : null}
+                  {bookingCta ? (
+                    <button type="button" onClick={bookingCta.onAction}>
+                      <EventAvailableRoundedIcon fontSize="inherit" />
+                      {bookingCta.actionLabel}
+                    </button>
+                  ) : null}
               </article>
             </aside>
           </div>
@@ -1113,13 +1202,16 @@ export function StudentStudyCabinetPanel({
           <div className="study-cabinet-panel__student-focus-head">
             <div>
               <span className="study-cabinet-panel__kicker">Следующие шаги</span>
-              <h3>Очередь маршрута</h3>
-            </div>
-            {activeCourseSummary ? (
-              <Button size="small" onClick={() => onOpenCourse?.(activeCourseSummary.course.id, { source: "block-map" })}>
-                Открыть курс
-              </Button>
-            ) : null}
+              </div>
+              {activeCourseSummary ? (
+                <Button
+                  size="small"
+                  onClick={() => onOpenCourse?.(activeCourseSummary.course.id, { source: "block-map" })}
+                  startIcon={<AutoStoriesRoundedIcon fontSize="small" />}
+                >
+                  Открыть курс
+                </Button>
+              ) : null}
           </div>
           {courseDetailsLoading ? (
             <div className="study-cabinet-panel__student-loading-inline">
@@ -1198,11 +1290,18 @@ export function StudentStudyCabinetPanel({
                       ) : (
                         <span />
                       )}
-                      {item.actionLabel ? (
-                        <span className="study-cabinet-panel__student-focus-cta">
-                          {item.actionLabel}
-                        </span>
-                      ) : null}
+                        {item.actionLabel ? (
+                          <span className="study-cabinet-panel__student-focus-cta">
+                            {item.kind === "lesson" ? (
+                              <AutoStoriesRoundedIcon fontSize="inherit" />
+                            ) : item.kind === "test" ? (
+                              <WorkspacePremiumRoundedIcon fontSize="inherit" />
+                            ) : (
+                              <TipsAndUpdatesRoundedIcon fontSize="inherit" />
+                            )}
+                            {item.actionLabel}
+                          </span>
+                        ) : null}
                     </div>
                   </div>
                 </button>
@@ -1216,8 +1315,7 @@ export function StudentStudyCabinetPanel({
         <section className="study-cabinet-panel__smart-card study-cabinet-panel__student-smart-card study-cabinet-panel__student-rhythm-card">
           <div className="study-cabinet-panel__student-rhythm-head">
             <div className="study-cabinet-panel__student-rhythm-title">
-              <span className="study-cabinet-panel__kicker">Ритм обучения</span>
-              <h3>Последние 7 дней</h3>
+              <span className="study-cabinet-panel__kicker">Ритм за неделю</span>
             </div>
             <div className="study-cabinet-panel__student-rhythm-stats">
               <span>{rhythmHeadline}</span>
@@ -1227,16 +1325,16 @@ export function StudentStudyCabinetPanel({
           <div className="study-cabinet-panel__student-rhythm-stage">
             <div className="study-cabinet-panel__student-rhythm-overview" role="list" aria-label="Итоги недели">
               <div className="study-cabinet-panel__student-rhythm-overview-card" role="listitem">
-                <small>Всего за неделю</small>
-                <strong>{cabinetTimeSeconds > 0 ? formatDuration(cabinetTimeSeconds) : "0 сек"}</strong>
+                <small>Всего</small>
+                <strong>{cabinetTimeSeconds > 0 ? formatCompactDuration(cabinetTimeSeconds) : "0с"}</strong>
               </div>
               <div className="study-cabinet-panel__student-rhythm-overview-card" role="listitem">
-                <small>Среднее за день</small>
-                <strong>{averageRhythmDaySeconds > 0 ? formatDuration(averageRhythmDaySeconds) : "Нет данных"}</strong>
+                <small>Среднее</small>
+                <strong>{averageRhythmDaySeconds > 0 ? formatCompactDuration(averageRhythmDaySeconds) : "Нет данных"}</strong>
               </div>
               <div className="study-cabinet-panel__student-rhythm-overview-card" role="listitem">
-                <small>Видеоуроки</small>
-                <strong>{viewedVideoSeconds > 0 ? formatDuration(viewedVideoSeconds) : "Нет данных"}</strong>
+                <small>Видео</small>
+                <strong>{viewedVideoSeconds > 0 ? formatCompactDuration(viewedVideoSeconds) : "Нет данных"}</strong>
               </div>
             </div>
             <div className="study-cabinet-panel__student-activity-strip" role="list" aria-label="Активность по дням недели">
@@ -1270,7 +1368,7 @@ export function StudentStudyCabinetPanel({
                     }
                   >
                     <span className="study-cabinet-panel__student-activity-value">
-                      {day.minutes > 0 ? formatDuration(day.minutes * 60) : "—"}
+                      {day.minutes > 0 ? formatCompactDuration(day.minutes * 60) : "—"}
                     </span>
                     <span className="study-cabinet-panel__student-activity-capsule">
                       <i style={barStyle} />
