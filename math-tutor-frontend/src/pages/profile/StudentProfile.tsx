@@ -209,6 +209,7 @@ export default function StudentProfile() {
   const hasScheduleLoadedRef = useRef(false);
 
   const chatAccessAvailable = chatEligibility?.available === true;
+  const premiumToolsLocked = chatEligibility?.available === false;
 
   useEffect(() => {
     resetStudentProfileUiState();
@@ -257,18 +258,16 @@ export default function StudentProfile() {
   }, [isNonDesktop, setTabMenuOpen, tabMenuOpen]);
 
   useEffect(() => {
-    if (chatAccessAvailable) return;
+    if (!premiumToolsLocked) return;
     if (tab === WORKBOOK_TAB_INDEX) {
-      setLockedToolsModal("workbook");
       setTabWithQuery(3, { replace: true });
       return;
     }
     if (tab === CHAT_TAB_INDEX) {
-      setLockedToolsModal("chat");
       setTabWithQuery(3, { replace: true });
     }
   }, [
-    chatAccessAvailable,
+    premiumToolsLocked,
     tab,
     WORKBOOK_TAB_INDEX,
     CHAT_TAB_INDEX,
@@ -715,21 +714,42 @@ export default function StudentProfile() {
     }
   };
 
-  const handleStudentTabSelect = (nextTab: number) => {
+  const resolvePremiumToolsAccess = async () => {
+    if (chatEligibility) return chatEligibility.available;
+    try {
+      const eligibility = await getTeacherChatEligibility();
+      setChatEligibility(eligibility);
+      return eligibility.available;
+    } catch {
+      setChatNotice({
+        severity: "error",
+        message: "Не удалось проверить доступ к премиум-инструментам.",
+      });
+      return null;
+    }
+  };
+
+  const handleStudentTabSelect = async (nextTab: number) => {
     if (nextTab === WORKBOOK_TAB_INDEX) {
-      if (!chatAccessAvailable) {
-        setLockedToolsModal("workbook");
+      const hasAccess = await resolvePremiumToolsAccess();
+      if (hasAccess === true) {
+        setTabWithQuery(WORKBOOK_TAB_INDEX, { replace: true });
         return;
       }
-      setTabWithQuery(WORKBOOK_TAB_INDEX, { replace: true });
+      if (hasAccess === false) {
+        setLockedToolsModal("workbook");
+      }
       return;
     }
     if (nextTab === CHAT_TAB_INDEX) {
-      if (!chatAccessAvailable) {
-        setLockedToolsModal("chat");
+      const hasAccess = await resolvePremiumToolsAccess();
+      if (hasAccess === true) {
+        setTabWithQuery(CHAT_TAB_INDEX, { replace: true });
         return;
       }
-      setTabWithQuery(CHAT_TAB_INDEX, { replace: true });
+      if (hasAccess === false) {
+        setLockedToolsModal("chat");
+      }
       return;
     }
     setTabWithQuery(nextTab, { replace: true });
@@ -985,7 +1005,9 @@ export default function StudentProfile() {
             <Tabs
               orientation="vertical"
               value={tab}
-              onChange={(_, next) => handleStudentTabSelect(next)}
+              onChange={(_, next) => {
+                void handleStudentTabSelect(next);
+              }}
               className="student-profile__tabs"
             >
               {studentTabItems.map((item) => (
@@ -1795,7 +1817,7 @@ export default function StudentProfile() {
         />
       </div>
 
-      {tab === WORKBOOK_TAB_INDEX && (
+      {tab === WORKBOOK_TAB_INDEX && chatAccessAvailable && (
         <section className="student-profile__tool-panel">
           <div className="student-profile__page-head">
             <div>
@@ -1843,7 +1865,7 @@ export default function StudentProfile() {
                   tab === item.index ? "is-active" : ""
                 }`}
                 onClick={() => {
-                  handleStudentTabSelect(item.index);
+                  void handleStudentTabSelect(item.index);
                   setTabMenuOpen(false);
                 }}
               >

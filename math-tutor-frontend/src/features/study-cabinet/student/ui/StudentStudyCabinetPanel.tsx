@@ -15,7 +15,6 @@ import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
 import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
-import LocalFireDepartmentRoundedIcon from "@mui/icons-material/LocalFireDepartmentRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import TipsAndUpdatesRoundedIcon from "@mui/icons-material/TipsAndUpdatesRounded";
 import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
@@ -595,7 +594,7 @@ export function StudentStudyCabinetPanel({
         .slice()
         .sort((a, b) => a.order - b.order)
         .forEach((item) => {
-          if (items.length >= 6) return;
+          if (items.length >= 4) return;
           if (item.type === "lesson") {
             const lesson = lessonsById.get(item.lessonId);
             if (!lesson || viewedSet.has(lesson.id)) return;
@@ -645,9 +644,13 @@ export function StudentStudyCabinetPanel({
     }
 
     courses
-      .filter((item) => item.progress < 100)
+      .filter(
+        (item) =>
+          item.progress < 100 &&
+          (item.course.id !== selectedCourseId || items.length === 0)
+      )
       .forEach((item) => {
-        if (items.length >= 8) return;
+        if (items.length >= 4) return;
         const summaryParts: string[] = [];
         if (item.remainingLessons > 0) {
           summaryParts.push(`Осталось уроков: ${item.remainingLessons}`);
@@ -678,7 +681,7 @@ export function StudentStudyCabinetPanel({
       seen.add(item.id);
       return true;
     });
-  }, [activeCourseData, activeCourseSummary, courses, onOpenCourse, onOpenLesson, onOpenTest]);
+  }, [activeCourseData, activeCourseSummary, courses, onOpenCourse, onOpenLesson, onOpenTest, selectedCourseId]);
 
   const qualitySummary = useMemo(() => {
     const bestScores = courses
@@ -857,6 +860,13 @@ export function StudentStudyCabinetPanel({
   const completedCourseUnits = courseProgress.completedVideos + courseProgress.completedTests;
   const totalCourseUnits = courseProgress.totalVideos + courseProgress.totalTests;
   const selectedCourseTitle = activeCourseSummary?.course.title ?? "Маршрут обучения";
+  const progressCardStyle = {
+    "--student-course-progress": `${courseProgress.percent}%`,
+  } as CSSProperties;
+  const rhythmHeadline =
+    rhythmSummary.activeDays > 0
+      ? `${rhythmSummary.activeDays} из 7 учебных дней`
+      : "Неделя ещё без активности";
 
   if (!courses.length) {
     return (
@@ -918,30 +928,6 @@ export function StudentStudyCabinetPanel({
               <p>Личный маршрут: следующий шаг, прогресс, занятия и учебный ритм.</p>
             </div>
             <div className="study-cabinet-panel__student-command-side">
-              <div className="study-cabinet-panel__student-indicators">
-                <span className="study-cabinet-panel__student-pill">
-                  <AutoGraphRoundedIcon fontSize="inherit" /> {courseProgress.percent}%
-                </span>
-                <span className="study-cabinet-panel__student-pill">
-                  <LocalFireDepartmentRoundedIcon fontSize="inherit" /> {formatDuration(cabinetTimeSeconds)}
-                </span>
-                <Tooltip title="Скачать краткий PDF-отчёт">
-                  <IconButton
-                    className="study-cabinet-panel__student-icon-action"
-                    onClick={() => {
-                      void downloadReport();
-                    }}
-                    aria-label="Скачать PDF-отчёт"
-                    disabled={reportExporting}
-                  >
-                    {reportExporting ? (
-                      <CircularProgress size={16} thickness={5} />
-                    ) : (
-                      <DownloadRoundedIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </Tooltip>
-              </div>
               <div className="study-cabinet-panel__hero-nav study-cabinet-panel__student-hero-nav">
                 {onWorkbookClick ? (
                   <Button
@@ -971,6 +957,22 @@ export function StudentStudyCabinetPanel({
                     Каталог курсов
                   </Button>
                 ) : null}
+                <Tooltip title="Скачать краткий PDF-отчёт">
+                  <IconButton
+                    className="study-cabinet-panel__student-icon-action"
+                    onClick={() => {
+                      void downloadReport();
+                    }}
+                    aria-label="Скачать PDF-отчёт"
+                    disabled={reportExporting}
+                  >
+                    {reportExporting ? (
+                      <CircularProgress size={16} thickness={5} />
+                    ) : (
+                      <DownloadRoundedIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </Tooltip>
               </div>
             </div>
           </div>
@@ -1034,42 +1036,53 @@ export function StudentStudyCabinetPanel({
             </section>
 
             <aside className="study-cabinet-panel__student-insights-panel" aria-label="Сводка обучения">
-              <article className="study-cabinet-panel__student-insight-card study-cabinet-panel__student-insight-card--progress">
+              <article
+                className="study-cabinet-panel__student-insight-card study-cabinet-panel__student-insight-card--progress"
+                style={progressCardStyle}
+              >
                 <span className="study-cabinet-panel__student-insight-label">
                   <AutoGraphRoundedIcon fontSize="inherit" />
-                  Прогресс
+                  Маршрут
                 </span>
-                <strong>{courseProgress.percent}%</strong>
-                <small>{completedCourseUnits}/{totalCourseUnits || 0} шагов завершено</small>
+                <div className="study-cabinet-panel__student-insight-main">
+                  <span className="study-cabinet-panel__student-progress-orb">
+                    <strong>{courseProgress.percent}%</strong>
+                    <small>готово</small>
+                  </span>
+                  <div className="study-cabinet-panel__student-insight-copy">
+                    <strong>
+                      {completedCourseUnits}/{totalCourseUnits || 0}
+                    </strong>
+                    <small>шагов завершено</small>
+                  </div>
+                </div>
                 <span className="study-cabinet-panel__student-insight-track">
                   <i style={{ width: `${courseProgress.percent}%` }} />
                 </span>
               </article>
-              <article className="study-cabinet-panel__student-insight-card">
+              <article className="study-cabinet-panel__student-insight-card study-cabinet-panel__student-insight-card--practice">
                 <span className="study-cabinet-panel__student-insight-label">
                   <WorkspacePremiumRoundedIcon fontSize="inherit" />
                   Практика
                 </span>
-                <strong>{qualitySummary.bestRecent}%</strong>
-                <small>{reviewLead ? reviewLead.label : "Повторение не требуется"}</small>
+                <strong>{reviewLead ? "Повторить" : "В норме"}</strong>
+                <small>
+                  {reviewLead
+                    ? `${reviewLead.title} · ${reviewLead.label}`
+                    : qualitySummary.bestRecent > 0
+                      ? "Повторение сейчас не требуется"
+                      : "Тесты появятся в маршруте"}
+                </small>
                 {reviewLead ? (
                   <button type="button" onClick={reviewLead.onReview}>
                     Повторить
                   </button>
                 ) : null}
               </article>
-              <article className="study-cabinet-panel__student-insight-card">
-                <span className="study-cabinet-panel__student-insight-label">
-                  <LocalFireDepartmentRoundedIcon fontSize="inherit" />
-                  Ритм
-                </span>
-                <strong>{formatDuration(cabinetTimeSeconds)}</strong>
-                <small>{momentum.learningDays} учебн. дн. за неделю</small>
-              </article>
-              <article className="study-cabinet-panel__student-insight-card">
+              <article className="study-cabinet-panel__student-insight-card study-cabinet-panel__student-insight-card--booking">
                 <span className="study-cabinet-panel__student-insight-label">
                   <EventAvailableRoundedIcon fontSize="inherit" />
-                  Занятия
+                  Поддержка
                 </span>
                 <strong>
                   {nearestBooking
@@ -1079,7 +1092,11 @@ export function StudentStudyCabinetPanel({
                       )
                     : "Нет записи"}
                 </strong>
-                <small>{bookingCta?.subtitle ?? "Индивидуальный слот можно выбрать позже"}</small>
+                <small>
+                  {nearestBooking
+                    ? nearestBooking.teacherName
+                    : bookingCta?.title ?? "Индивидуальный слот можно выбрать позже"}
+                </small>
                 {bookingCta ? (
                   <button type="button" onClick={bookingCta.onAction}>
                     {bookingCta.actionLabel}
@@ -1095,8 +1112,8 @@ export function StudentStudyCabinetPanel({
         <section className="study-cabinet-panel__smart-card study-cabinet-panel__student-smart-card">
           <div className="study-cabinet-panel__student-focus-head">
             <div>
-              <span className="study-cabinet-panel__kicker">Фокус обучения</span>
-              <h3>Ближайшие действия</h3>
+              <span className="study-cabinet-panel__kicker">Следующие шаги</span>
+              <h3>Очередь маршрута</h3>
             </div>
             {activeCourseSummary ? (
               <Button size="small" onClick={() => onOpenCourse?.(activeCourseSummary.course.id, { source: "block-map" })}>
@@ -1203,19 +1220,23 @@ export function StudentStudyCabinetPanel({
               <h3>Последние 7 дней</h3>
             </div>
             <div className="study-cabinet-panel__student-rhythm-stats">
-              <span>{formatDuration(cabinetTimeSeconds)}</span>
+              <span>{rhythmHeadline}</span>
               {bestRhythmDayLabel ? <span>Пик: {bestRhythmDayLabel}</span> : null}
             </div>
           </div>
           <div className="study-cabinet-panel__student-rhythm-stage">
             <div className="study-cabinet-panel__student-rhythm-overview" role="list" aria-label="Итоги недели">
               <div className="study-cabinet-panel__student-rhythm-overview-card" role="listitem">
-                <small>Видеоуроки</small>
-                <strong>{viewedVideoSeconds > 0 ? formatDuration(viewedVideoSeconds) : "Нет данных"}</strong>
+                <small>Всего за неделю</small>
+                <strong>{cabinetTimeSeconds > 0 ? formatDuration(cabinetTimeSeconds) : "0 сек"}</strong>
               </div>
               <div className="study-cabinet-panel__student-rhythm-overview-card" role="listitem">
                 <small>Среднее за день</small>
                 <strong>{averageRhythmDaySeconds > 0 ? formatDuration(averageRhythmDaySeconds) : "Нет данных"}</strong>
+              </div>
+              <div className="study-cabinet-panel__student-rhythm-overview-card" role="listitem">
+                <small>Видеоуроки</small>
+                <strong>{viewedVideoSeconds > 0 ? formatDuration(viewedVideoSeconds) : "Нет данных"}</strong>
               </div>
             </div>
             <div className="study-cabinet-panel__student-activity-strip" role="list" aria-label="Активность по дням недели">
@@ -1249,7 +1270,7 @@ export function StudentStudyCabinetPanel({
                     }
                   >
                     <span className="study-cabinet-panel__student-activity-value">
-                      {day.minutes > 0 ? formatDuration(day.minutes * 60) : "0"}
+                      {day.minutes > 0 ? formatDuration(day.minutes * 60) : "—"}
                     </span>
                     <span className="study-cabinet-panel__student-activity-capsule">
                       <i style={barStyle} />

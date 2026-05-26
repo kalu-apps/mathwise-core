@@ -46,6 +46,12 @@
     min-height: 36px;
   }
 
+  > .access-notice {
+    position: relative;
+    z-index: 5;
+    margin: 0 0 clamp(24px, 2.8vw, 36px);
+  }
+
   &__hero-main {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -1648,30 +1654,29 @@
 
   .course-details__promo-sticker {
     position: absolute;
-    top: -28px;
-    right: -10px;
+    top: 18px;
+    right: 18px;
     z-index: 3;
-    display: inline-grid;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 102px;
-    height: 102px;
-    padding: 16px 14px;
-    border-radius: 50%;
-    font-size: 9px;
+    min-height: 30px;
+    max-width: calc(100% - 36px);
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 10px;
     font-weight: 850;
     letter-spacing: 0.025em;
     text-transform: none;
     color: #fff7f7;
     background: #db2538;
     border: 2px solid rgba(255, 232, 232, 0.9);
-    box-shadow: 0 10px 18px rgba(116, 11, 32, 0.28);
-    transform: rotate(13deg);
+    box-shadow: 0 8px 16px rgba(116, 11, 32, 0.2);
     pointer-events: none;
     text-align: center;
-    line-height: 1.12;
-    text-wrap: balance;
-}
+    line-height: 1;
+    white-space: nowrap;
+  }
 
   .course-details__promo-sticker::before,
   .course-details__promo-sticker::after {
