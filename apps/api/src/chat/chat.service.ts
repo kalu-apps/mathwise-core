@@ -749,18 +749,27 @@ export class ChatService implements OnModuleInit {
   private async hydrateMessageAttachments(
     messages: TeacherChatMessageDto[]
   ): Promise<TeacherChatMessageDto[]> {
-    const mediaCache = new Map<string, string>();
-    const hydrateUrl = async (mediaObjectId: string): Promise<string | null> => {
+    const mediaCache = new Map<
+      string,
+      { downloadUrl: string; expiresAt: string }
+    >();
+    const hydrateAccess = async (
+      mediaObjectId: string
+    ): Promise<{ downloadUrl: string; expiresAt: string } | null> => {
       const normalizedMediaObjectId = mediaObjectId.trim();
       if (!normalizedMediaObjectId) return null;
-      const cachedUrl = mediaCache.get(normalizedMediaObjectId);
-      if (cachedUrl) return cachedUrl;
+      const cachedAccess = mediaCache.get(normalizedMediaObjectId);
+      if (cachedAccess) return cachedAccess;
       try {
         const access = await this.mediaService.getRuntimeDownloadUrlByObjectId(
           normalizedMediaObjectId
         );
-        mediaCache.set(normalizedMediaObjectId, access.downloadUrl);
-        return access.downloadUrl;
+        const cached = {
+          downloadUrl: access.downloadUrl,
+          expiresAt: access.expiresAt,
+        };
+        mediaCache.set(normalizedMediaObjectId, cached);
+        return cached;
       } catch {
         return null;
       }
@@ -780,11 +789,12 @@ export class ChatService implements OnModuleInit {
               fallbackId: attachment.id,
             });
             if (!mediaObjectId) return attachment;
-            const hydratedUrl = await hydrateUrl(mediaObjectId);
-            if (hydratedUrl) {
+            const access = await hydrateAccess(mediaObjectId);
+            if (access) {
               return {
                 ...attachment,
-                url: hydratedUrl,
+                url: access.downloadUrl,
+                urlExpiresAt: access.expiresAt,
               };
             }
             return attachment;
@@ -802,11 +812,12 @@ export class ChatService implements OnModuleInit {
               mediaObjectId: sourceVoiceMediaObjectId,
             };
           }
-          const hydratedUrl = await hydrateUrl(sourceVoiceMediaObjectId);
-          if (hydratedUrl) {
+          const access = await hydrateAccess(sourceVoiceMediaObjectId);
+          if (access) {
             hydratedVoice = {
               ...sourceVoice,
-              url: hydratedUrl,
+              url: access.downloadUrl,
+              urlExpiresAt: access.expiresAt,
               mediaObjectId: sourceVoiceMediaObjectId,
             };
           }

@@ -38,6 +38,7 @@ export type TeacherChatAttachment = {
   mimeType: string;
   size: number;
   url: string;
+  urlExpiresAt?: string;
   mediaObjectId?: string;
 };
 
@@ -46,6 +47,7 @@ export type TeacherChatVoiceMessage = {
   mimeType: string;
   size: number;
   url: string;
+  urlExpiresAt?: string;
   mediaObjectId?: string;
   durationSeconds?: number;
   waveform?: number[];

@@ -6236,3 +6236,326 @@
     width: 100%;
   }
 }
+
+/* Student cabinet: mature math analytics pass */
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-command-copy .study-cabinet-panel__kicker,
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__hero .study-cabinet-panel__kicker {
+  width: fit-content;
+  min-height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--text-secondary) 82%, var(--accent-primary));
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-command-copy .study-cabinet-panel__kicker::before,
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__hero .study-cabinet-panel__kicker::before {
+  content: "";
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1d4ed8, #0f9f86);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-insight-card--progress {
+  border-color: color-mix(in srgb, #1d4ed8 28%, var(--border-subtle));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, #1d4ed8 6%, transparent) 1px, transparent 1px),
+    linear-gradient(180deg, color-mix(in srgb, #1d4ed8 5%, transparent) 1px, transparent 1px),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--background-elevated) 98%, transparent),
+      color-mix(in srgb, var(--background-soft) 82%, transparent)
+    );
+  background-size: 28px 28px, 28px 28px, 100% 100%;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-metrics {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-count,
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-chip {
+  min-height: 30px;
+  border-radius: 8px;
+  border-color: color-mix(in srgb, #1d4ed8 24%, var(--border-subtle));
+  background: color-mix(in srgb, var(--background-elevated) 92%, transparent);
+  color: color-mix(in srgb, var(--text-primary) 90%, #0f488f);
+  font-size: 12px;
+  font-weight: 780;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 55%, transparent);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-count:first-child {
+  min-width: 66px;
+  justify-content: center;
+  background: linear-gradient(135deg, #1d4ed8, #0891b2);
+  color: #ffffff;
+  box-shadow:
+    0 10px 18px color-mix(in srgb, #1d4ed8 18%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 30%, transparent);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-visual {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 204px;
+  padding: 14px 16px 12px;
+  border-color: color-mix(in srgb, #1d4ed8 22%, var(--border-subtle));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, #64748b 12%, transparent) 1px, transparent 1px),
+    linear-gradient(180deg, color-mix(in srgb, #64748b 10%, transparent) 1px, transparent 1px),
+    radial-gradient(circle at 78% 18%, color-mix(in srgb, #0f9f86 10%, transparent), transparent 24%),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--background-elevated) 94%, transparent),
+      color-mix(in srgb, var(--background-soft) 76%, transparent)
+    );
+  background-size: 24px 24px, 24px 24px, 100% 100%, 100% 100%;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-visual::before {
+  inset: auto 12px 20px 12px;
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, #1d4ed8 44%, transparent), color-mix(in srgb, #0f9f86 40%, transparent));
+  opacity: 1;
+  animation: none;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-visual::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  bottom: 20px;
+  width: 1px;
+  background: linear-gradient(180deg, color-mix(in srgb, #1d4ed8 36%, transparent), transparent);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-chart {
+  height: 178px;
+  padding-top: 20px;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-formula {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, #1d4ed8 18%, var(--border-subtle));
+  background: color-mix(in srgb, var(--background-elevated) 88%, transparent);
+  color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary));
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  box-shadow: 0 6px 14px color-mix(in srgb, #0f172a 6%, transparent);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-curve-glow {
+  stroke: color-mix(in srgb, #1d4ed8 14%, transparent);
+  stroke-width: 10;
+  filter: blur(4px);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-curve-line {
+  stroke-width: 4;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-bars {
+  inset: 38px 12px 10px 28px;
+  gap: 10px;
+  opacity: 0.92;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-bar {
+  min-height: 10px;
+  border-radius: 6px 6px 3px 3px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #ffffff 18%, var(--student-route-bar-color)), var(--student-route-bar-color));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 34%, transparent),
+    0 8px 16px color-mix(in srgb, var(--student-route-bar-color) 14%, transparent);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-footer {
+  color: color-mix(in srgb, var(--text-secondary) 86%, var(--text-primary));
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-card {
+  border-color: color-mix(in srgb, #1d4ed8 20%, var(--border-subtle));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, #1d4ed8 5%, transparent) 1px, transparent 1px),
+    linear-gradient(180deg, color-mix(in srgb, #1d4ed8 4%, transparent) 1px, transparent 1px),
+    color-mix(in srgb, var(--background-elevated) 96%, transparent);
+  background-size: 28px 28px, 28px 28px, 100% 100%;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-stage {
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 82%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--background-elevated) 88%, transparent), color-mix(in srgb, var(--background-soft) 64%, transparent));
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview-card {
+  min-height: 58px;
+  padding: 10px;
+  border-radius: 8px;
+  border-color: color-mix(in srgb, var(--border-subtle) 86%, transparent);
+  background: color-mix(in srgb, var(--background-elevated) 92%, transparent);
+  box-shadow: none;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview-card small {
+  color: color-mix(in srgb, var(--text-secondary) 84%, var(--text-primary));
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview-card strong {
+  color: var(--text-primary);
+  font-size: clamp(13px, 0.95vw, 15px);
+  font-weight: 800;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-strip {
+  gap: 6px;
+  align-items: end;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-day {
+  grid-template-rows: 16px 62px 16px;
+  gap: 5px;
+  padding: 7px 5px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-day.is-active,
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-day.is-hovered {
+  border-color: color-mix(in srgb, #0891b2 28%, var(--border-subtle));
+  background: color-mix(in srgb, var(--background-elevated) 68%, transparent);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-value {
+  min-height: 16px;
+  color: color-mix(in srgb, var(--text-secondary) 86%, var(--text-primary));
+  font-size: 9px;
+  font-weight: 780;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-capsule {
+  height: 62px;
+  padding: 4px;
+  border-radius: 7px;
+  border-color: color-mix(in srgb, var(--border-subtle) 80%, transparent);
+  background: color-mix(in srgb, var(--background-soft) 84%, transparent);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-capsule i {
+  border-radius: 5px;
+  background: linear-gradient(180deg, var(--bar-top), var(--bar-mid) 58%, var(--bar-bottom));
+  box-shadow: 0 6px 12px color-mix(in srgb, var(--bar-bottom) 18%, transparent);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-label {
+  color: color-mix(in srgb, var(--text-secondary) 86%, var(--text-primary));
+  font-size: 10px;
+  font-weight: 780;
+}
+
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign {
+  --student-action-gradient: linear-gradient(135deg, #7c8cff 0%, #1fb6d1 48%, #28c08f 100%);
+  --student-action-gradient-strong: linear-gradient(135deg, #8b7dff 0%, #45a8ff 48%, #20c997 100%);
+  --student-action-soft: linear-gradient(135deg, rgba(21, 31, 58, 0.98), rgba(18, 55, 66, 0.94));
+}
+
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__hero-btn.MuiButton-outlined,
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-next-actions .MuiButton-outlined,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__hero-btn.MuiButton-outlined,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-next-actions .MuiButton-outlined {
+  border-color: color-mix(in srgb, #7c8cff 42%, var(--border-subtle)) !important;
+  background: var(--student-action-soft) !important;
+  color: #f8fbff !important;
+}
+
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-assist-strip button,
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-insight-card button,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-assist-strip button,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-insight-card button {
+  border-color: color-mix(in srgb, #7c8cff 34%, var(--border-subtle));
+  background: linear-gradient(135deg, rgba(22, 31, 56, 0.98), rgba(18, 62, 68, 0.92));
+  color: #f8fbff;
+}
+
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-assist-strip button svg,
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-insight-card button svg,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-assist-strip button svg,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-insight-card button svg {
+  background: rgba(124, 140, 255, 0.18);
+  color: #c8d4ff;
+}
+
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-insight-card--progress,
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-card,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-insight-card--progress,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-card {
+  border-color: rgba(124, 140, 255, 0.34);
+  background:
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(148, 163, 184, 0.07) 1px, transparent 1px),
+    rgba(9, 14, 28, 0.86);
+  background-size: 28px 28px, 28px 28px, 100% 100%;
+}
+
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-visual,
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-stage,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-visual,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-stage {
+  border-color: rgba(124, 140, 255, 0.28);
+  background:
+    linear-gradient(90deg, rgba(148, 163, 184, 0.11) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(148, 163, 184, 0.09) 1px, transparent 1px),
+    rgba(11, 18, 35, 0.92);
+  background-size: 24px 24px, 24px 24px, 100% 100%;
+}
+
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-count:not(:first-child),
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-chip,
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-formula,
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview-card,
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-capsule,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-count:not(:first-child),
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-chip,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-formula,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview-card,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-capsule {
+  border-color: rgba(148, 163, 184, 0.26);
+  background: rgba(15, 23, 42, 0.74);
+  color: #e5edff;
+}
+
+@media (max-width: 760px) {
+  .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-chart {
+    height: 150px;
+  }
+}

@@ -15,6 +15,7 @@ import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
 import ForumRoundedIcon from "@mui/icons-material/ForumRounded";
+import PlayCircleRoundedIcon from "@mui/icons-material/PlayCircleRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import TipsAndUpdatesRoundedIcon from "@mui/icons-material/TipsAndUpdatesRounded";
 import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
@@ -166,21 +167,6 @@ const formatFullWeekday = (dateKey: string, fallback: string) => {
   const parsed = new Date(`${dateKey}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return fallback;
   return parsed.toLocaleDateString("ru-RU", { weekday: "long" });
-};
-
-const getNextStepBadgeLabel = (kind: NextStepKind) => {
-  switch (kind) {
-    case "lesson":
-      return "Урок";
-    case "test":
-      return "Тест";
-    case "review":
-      return "Повтор";
-    case "booking":
-      return "Занятие";
-    default:
-      return "Шаг";
-  }
 };
 
 const getProgressTone = (percent: number) => {
@@ -883,7 +869,7 @@ export function StudentStudyCabinetPanel({
   const routeChartBars = useMemo(() => {
     const progress = Math.max(0, Math.min(100, courseProgress.percent));
     const targets = [16, 24, 36, 50, 66, 82, 98];
-    const colors = ["#7c6df2", "#3f8cff", "#28c9d4", "#42d392", "#ffd166", "#ff8fab", "#a78bfa"];
+    const colors = ["#1d4ed8", "#2563eb", "#0f78b8", "#0891b2", "#0f9f86", "#16a169", "#22a15f"];
 
     return targets.map((target, index) => {
       const progressWeight = 0.18 + index * 0.1;
@@ -904,7 +890,7 @@ export function StudentStudyCabinetPanel({
           <div className="study-cabinet-panel__cover-content">
             <div className="study-cabinet-panel__hero">
               <div className="study-cabinet-panel__hero-bar">
-                <span className="study-cabinet-panel__kicker">Учебный кабинет</span>
+                <span className="study-cabinet-panel__kicker">Маршрут обучения</span>
               </div>
               <h2>Здесь появится ваш маршрут обучения</h2>
               <p>После покупки курса здесь появятся следующие шаги и задачи.</p>
@@ -955,7 +941,7 @@ export function StudentStudyCabinetPanel({
         <div className="study-cabinet-panel__cover-content">
           <div className="study-cabinet-panel__student-command">
             <div className="study-cabinet-panel__student-command-copy">
-              <span className="study-cabinet-panel__kicker">Учебный кабинет</span>
+              <span className="study-cabinet-panel__kicker">Курс в работе</span>
               <h2>{selectedCourseTitle}</h2>
               <p>Личный маршрут: следующий шаг, прогресс, занятия и учебный ритм.</p>
             </div>
@@ -1025,51 +1011,45 @@ export function StudentStudyCabinetPanel({
                 <div className="study-cabinet-panel__student-inline-error">{courseDetailsError}</div>
               ) : nextStep ? (
                 <>
-                  <div className="study-cabinet-panel__student-next-topline">
-                    <span className={`study-cabinet-panel__student-next-badge study-cabinet-panel__student-next-badge--${nextStep.kind}`}>
-                      {getNextStepBadgeLabel(nextStep.kind)}
-                    </span>
-                    {formatEstimate(nextStep.estimateSeconds) ? (
+                  {formatEstimate(nextStep.estimateSeconds) ? (
+                    <div className="study-cabinet-panel__student-next-topline">
                       <span className="study-cabinet-panel__student-next-time">
                         <ScheduleRoundedIcon fontSize="inherit" /> {formatEstimate(nextStep.estimateSeconds)}
                       </span>
-                    ) : null}
-                  </div>
-                    <strong>{nextStep.title}</strong>
-                    <p>{nextStep.subtitle}</p>
-                    <div className="study-cabinet-panel__student-next-actions">
-                      <Button
-                        variant="contained"
-                        onClick={nextStep.onContinue}
-                        startIcon={<TipsAndUpdatesRoundedIcon fontSize="small" />}
-                      >
-                        Продолжить
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        onClick={() => setChooseAnotherOpen(true)}
-                        startIcon={<AutoStoriesRoundedIcon fontSize="small" />}
-                      >
-                        Выбрать другое
-                      </Button>
                     </div>
+                  ) : null}
+                  <strong>{nextStep.title}</strong>
+                  <p>{nextStep.subtitle}</p>
+                  <div className="study-cabinet-panel__student-next-actions">
+                    <Button
+                      variant="contained"
+                      onClick={nextStep.onContinue}
+                      startIcon={<TipsAndUpdatesRoundedIcon fontSize="small" />}
+                    >
+                      Продолжить
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      onClick={() => setChooseAnotherOpen(true)}
+                      startIcon={<AutoStoriesRoundedIcon fontSize="small" />}
+                    >
+                      Выбрать другое
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <>
-                  <div className="study-cabinet-panel__student-next-topline">
-                    <span className="study-cabinet-panel__student-next-badge">Свободный темп</span>
+                  <strong>Выберите комфортный шаг</strong>
+                  <p>Откройте урок, тест или занятие в удобный момент.</p>
+                  <div className="study-cabinet-panel__student-next-actions">
+                    <Button
+                      variant="contained"
+                      onClick={() => setChooseAnotherOpen(true)}
+                      startIcon={<TipsAndUpdatesRoundedIcon fontSize="small" />}
+                    >
+                      Выбрать действие
+                    </Button>
                   </div>
-                    <strong>Выберите комфортный шаг</strong>
-                    <p>Откройте урок, тест или занятие в удобный момент.</p>
-                    <div className="study-cabinet-panel__student-next-actions">
-                      <Button
-                        variant="contained"
-                        onClick={() => setChooseAnotherOpen(true)}
-                        startIcon={<TipsAndUpdatesRoundedIcon fontSize="small" />}
-                      >
-                        Выбрать действие
-                      </Button>
-                    </div>
                 </>
               )}
               <div className="study-cabinet-panel__student-assist-strip">
@@ -1096,25 +1076,26 @@ export function StudentStudyCabinetPanel({
               <div className="study-cabinet-panel__student-route-head">
                 <span className="study-cabinet-panel__student-insight-label">
                   <AutoGraphRoundedIcon fontSize="inherit" />
-                  Маршрут
+                  Модель прогресса
                 </span>
-                <span className="study-cabinet-panel__student-route-count">
-                  {completedCourseUnits}/{totalCourseUnits || 0} шагов
-                </span>
+                <div className="study-cabinet-panel__student-route-metrics">
+                  <span className="study-cabinet-panel__student-route-count">
+                    {courseProgress.percent}%
+                  </span>
+                  <span className="study-cabinet-panel__student-route-count">
+                    {completedCourseUnits}/{totalCourseUnits || 0} шагов
+                  </span>
+                </div>
               </div>
               <div className="study-cabinet-panel__student-route-visual" aria-hidden="true">
-                <div className="study-cabinet-panel__student-progress-orb">
-                  <strong>{courseProgress.percent}%</strong>
-                  <small>готово</small>
-                </div>
                 <div className="study-cabinet-panel__student-route-chart">
+                  <span className="study-cabinet-panel__student-route-formula">f(t)=1-e<sup>-kt</sup></span>
                   <svg className="study-cabinet-panel__student-route-curve" viewBox="0 0 260 132" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="student-route-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#7c6df2" />
-                        <stop offset="34%" stopColor="#27c5e5" />
-                        <stop offset="68%" stopColor="#40d391" />
-                        <stop offset="100%" stopColor="#ffd166" />
+                        <stop offset="0%" stopColor="#1d4ed8" />
+                        <stop offset="42%" stopColor="#0891b2" />
+                        <stop offset="100%" stopColor="#16a34a" />
                       </linearGradient>
                     </defs>
                     <path
@@ -1139,7 +1120,7 @@ export function StudentStudyCabinetPanel({
               </div>
               <div className="study-cabinet-panel__student-route-footer">
                 <span className="study-cabinet-panel__student-route-chip">Текущий курс</span>
-                <span>{courseProgress.percent < 100 ? "Рост маршрута продолжается" : "Маршрут завершён"}</span>
+                <span>{courseProgress.percent < 100 ? "Траектория построена по завершённым шагам" : "Курс полностью освоен"}</span>
               </div>
               <span className="study-cabinet-panel__student-insight-track">
                 <i style={{ width: `${courseProgress.percent}%` }} />
@@ -1290,11 +1271,11 @@ export function StudentStudyCabinetPanel({
                       ) : (
                         <span />
                       )}
-                        {item.actionLabel ? (
-                          <span className="study-cabinet-panel__student-focus-cta">
-                            {item.kind === "lesson" ? (
-                              <AutoStoriesRoundedIcon fontSize="inherit" />
-                            ) : item.kind === "test" ? (
+                      {item.actionLabel ? (
+                        <span className="study-cabinet-panel__student-focus-cta">
+                          {item.kind === "lesson" ? (
+                            <PlayCircleRoundedIcon fontSize="inherit" />
+                          ) : item.kind === "test" ? (
                               <WorkspacePremiumRoundedIcon fontSize="inherit" />
                             ) : (
                               <TipsAndUpdatesRoundedIcon fontSize="inherit" />

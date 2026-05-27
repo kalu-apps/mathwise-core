@@ -139,12 +139,211 @@ type TimelineItem =
 
 const CHAT_AUDIO_PLAYBACK_RATES = [1, 1.5, 2] as const;
 const CHAT_AUDIO_RATE_STORAGE_PREFIX = "mathwise.chat.audioRate.";
+const CHAT_AUDIO_CACHE_SKEW_MS = 30_000;
+const CHAT_AUDIO_LEGACY_URL_TTL_MS = 90_000;
+
+type ChatAudioSourceCacheEntry = {
+  downloadUrl: string;
+  expiresAtMs: number;
+  urlExpiresAt?: string;
+  ready: boolean;
+  duration?: number;
+  cachedAtMs: number;
+};
+
+type ChatAudioPositionCacheEntry = {
+  currentTime: number;
+  duration?: number;
+  updatedAtMs: number;
+};
+
+const chatAudioSourceCache = new Map<string, ChatAudioSourceCacheEntry>();
+const chatAudioPositionCache = new Map<string, ChatAudioPositionCacheEntry>();
 
 const isSupportedChatAudioRate = (value: number) =>
   CHAT_AUDIO_PLAYBACK_RATES.some((rate) => rate === value);
 
 const formatChatAudioRateLabel = (value: number) =>
   value === 1 ? "1x" : `${Number.isInteger(value) ? value : value.toFixed(1)}x`;
+
+const getChatAudioCacheKey = (threadId: string, mediaObjectId: string) =>
+  `${threadId.trim()}:${mediaObjectId.trim()}`;
+
+const parseChatAudioExpiresAt = (value: string | undefined) => {
+  const parsed = Date.parse(value ?? "");
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const getFreshChatAudioSource = (
+  threadId: string,
+  mediaObjectId: string
+): ChatAudioSourceCacheEntry | null => {
+  const key = getChatAudioCacheKey(threadId, mediaObjectId);
+  const cached = chatAudioSourceCache.get(key);
+  if (!cached) return null;
+  if (cached.expiresAtMs > Date.now() + CHAT_AUDIO_CACHE_SKEW_MS) {
+    return cached;
+  }
+  chatAudioSourceCache.delete(key);
+  return null;
+};
+
+const rememberChatAudioSource = (params: {
+  threadId: string;
+  mediaObjectId: string;
+  downloadUrl: string;
+  expiresAt?: string;
+  ready?: boolean;
+  duration?: number;
+}) => {
+  const threadId = params.threadId.trim();
+  const mediaObjectId = params.mediaObjectId.trim();
+  const downloadUrl = params.downloadUrl.trim();
+  if (!threadId || !mediaObjectId || !downloadUrl) return;
+  const explicitExpiresAtMs = parseChatAudioExpiresAt(params.expiresAt);
+  const fallbackExpiresAtMs = Date.now() + CHAT_AUDIO_LEGACY_URL_TTL_MS;
+  const expiresAtMs = explicitExpiresAtMs ?? fallbackExpiresAtMs;
+  if (expiresAtMs <= Date.now() + CHAT_AUDIO_CACHE_SKEW_MS) return;
+  const key = getChatAudioCacheKey(threadId, mediaObjectId);
+  const previous = chatAudioSourceCache.get(key);
+  chatAudioSourceCache.set(key, {
+    downloadUrl,
+    expiresAtMs,
+    urlExpiresAt: params.expiresAt,
+    ready: Boolean(params.ready ?? previous?.ready),
+    duration:
+      typeof params.duration === "number" && Number.isFinite(params.duration)
+        ? Math.max(0, params.duration)
+        : previous?.duration,
+    cachedAtMs: Date.now(),
+  });
+};
+
+const rememberChatAudioPlayback = (
+  threadId: string | null,
+  state: AudioMessagePlaybackState
+) => {
+  if (!threadId) return;
+  const audioId = state.id.trim();
+  if (!audioId) return;
+  const key = getChatAudioCacheKey(threadId, audioId);
+  if (state.ended) {
+    chatAudioPositionCache.delete(key);
+  } else {
+    const currentTime =
+      Number.isFinite(state.currentTime) && state.currentTime > 0
+        ? state.currentTime
+        : 0;
+    chatAudioPositionCache.set(key, {
+      currentTime,
+      duration:
+        Number.isFinite(state.duration) && state.duration > 0
+          ? state.duration
+          : undefined,
+      updatedAtMs: Date.now(),
+    });
+  }
+  if (state.src.trim()) {
+    rememberChatAudioSource({
+      threadId,
+      mediaObjectId: audioId,
+      downloadUrl: state.src,
+      ready: state.isPlaying || state.duration > 0,
+      duration: state.duration,
+    });
+  }
+};
+
+const getCachedChatAudioPosition = (
+  threadId: string,
+  mediaObjectId: string
+) => {
+  const cached = chatAudioPositionCache.get(
+    getChatAudioCacheKey(threadId, mediaObjectId)
+  );
+  if (!cached) return 0;
+  return Number.isFinite(cached.currentTime) && cached.currentTime > 0
+    ? cached.currentTime
+    : 0;
+};
+
+const isCachedChatAudioReady = (threadId: string, mediaObjectId: string) =>
+  Boolean(getFreshChatAudioSource(threadId, mediaObjectId)?.ready);
+
+const mergeChatAudioCacheIntoMessages = (
+  threadId: string,
+  messages: TeacherChatMessage[]
+) =>
+  messages.map((message) => {
+    let nextVoice = message.voice;
+    if (nextVoice) {
+      const voiceMediaObjectId = nextVoice.mediaObjectId || nextVoice.id;
+      const cached = getFreshChatAudioSource(threadId, voiceMediaObjectId);
+      if (cached) {
+        nextVoice = {
+          ...nextVoice,
+          url: cached.downloadUrl,
+          urlExpiresAt: cached.urlExpiresAt ?? nextVoice.urlExpiresAt,
+        };
+      } else {
+        rememberChatAudioSource({
+          threadId,
+          mediaObjectId: voiceMediaObjectId,
+          downloadUrl: nextVoice.url,
+          expiresAt: nextVoice.urlExpiresAt,
+        });
+      }
+    }
+
+    const nextAttachments = (message.attachments ?? []).map((attachment) => {
+      if (!attachment.mimeType.toLowerCase().startsWith("audio/")) {
+        return attachment;
+      }
+      const mediaObjectId = attachment.mediaObjectId || attachment.id;
+      const cached = getFreshChatAudioSource(threadId, mediaObjectId);
+      if (cached) {
+        return {
+          ...attachment,
+          url: cached.downloadUrl,
+          urlExpiresAt: cached.urlExpiresAt ?? attachment.urlExpiresAt,
+        };
+      }
+      rememberChatAudioSource({
+        threadId,
+        mediaObjectId,
+        downloadUrl: attachment.url,
+        expiresAt: attachment.urlExpiresAt,
+      });
+      return attachment;
+    });
+
+    return {
+      ...message,
+      attachments: nextAttachments,
+      voice: nextVoice,
+    };
+  });
+
+const collectCachedChatAudioPositions = (
+  threadId: string,
+  messages: TeacherChatMessage[]
+) => {
+  const positions: Record<string, number> = {};
+  messages.forEach((message) => {
+    if (message.voice) {
+      const audioId = message.voice.mediaObjectId || message.voice.id;
+      const cachedTime = getCachedChatAudioPosition(threadId, audioId);
+      if (cachedTime > 0) positions[audioId] = cachedTime;
+    }
+    (message.attachments ?? []).forEach((attachment) => {
+      if (!attachment.mimeType.toLowerCase().startsWith("audio/")) return;
+      const audioId = attachment.mediaObjectId || attachment.id;
+      const cachedTime = getCachedChatAudioPosition(threadId, audioId);
+      if (cachedTime > 0) positions[audioId] = cachedTime;
+    });
+  });
+  return positions;
+};
 
 const sortChatMessages = (messages: TeacherChatMessage[]) =>
   [...messages].sort((left, right) => {
@@ -335,8 +534,21 @@ export default function ChatPage() {
       setMessagesError(null);
       try {
         const nextMessages = await getTeacherChatMessages(threadId);
-        const normalizedMessages = nextMessages.map(normalizeChatMessage);
+        const normalizedMessages = mergeChatAudioCacheIntoMessages(
+          threadId,
+          nextMessages.map(normalizeChatMessage)
+        );
         setMessages(normalizedMessages);
+        const cachedPositions = collectCachedChatAudioPositions(
+          threadId,
+          normalizedMessages
+        );
+        if (Object.keys(cachedPositions).length > 0) {
+          setAudioPlaybackPositionById((current) => ({
+            ...cachedPositions,
+            ...current,
+          }));
+        }
       } catch (error) {
         setMessagesError(
           error instanceof Error ? error.message : "Не удалось загрузить сообщения."
@@ -361,9 +573,18 @@ export default function ChatPage() {
   }, [messages]);
 
   const resolveAudioPlaybackSource = useCallback(
-    async (audioId: string): Promise<string | null> => {
+    async (
+      audioId: string,
+      options?: { forceRefresh?: boolean }
+    ): Promise<string | null> => {
       const normalizedAudioId = audioId.trim();
       if (!selectedThreadId || !normalizedAudioId) return null;
+      const cachedSource = options?.forceRefresh
+        ? null
+        : getFreshChatAudioSource(selectedThreadId, normalizedAudioId);
+      if (cachedSource) {
+        return cachedSource.downloadUrl;
+      }
 
       const sourceMessage = messagesRef.current.find((message) => {
         const voiceId = message.voice
@@ -382,6 +603,12 @@ export default function ChatPage() {
             messageId: sourceMessage.id,
             mediaObjectId: normalizedAudioId,
           });
+          rememberChatAudioSource({
+            threadId: selectedThreadId,
+            mediaObjectId: normalizedAudioId,
+            downloadUrl: access.downloadUrl,
+            expiresAt: access.expiresAt,
+          });
           setMessages((current) =>
             current.map((message) => {
               if (message.id !== sourceMessage.id) return message;
@@ -394,6 +621,7 @@ export default function ChatPage() {
                     ? {
                         ...message.voice,
                         url: access.downloadUrl,
+                        urlExpiresAt: access.expiresAt,
                       }
                     : message.voice,
                 attachments: (message.attachments ?? []).map((attachment) =>
@@ -401,6 +629,7 @@ export default function ChatPage() {
                     ? {
                         ...attachment,
                         url: access.downloadUrl,
+                        urlExpiresAt: access.expiresAt,
                       }
                     : attachment
                 ),
@@ -415,7 +644,10 @@ export default function ChatPage() {
 
       try {
         const nextMessages = await getTeacherChatMessages(selectedThreadId);
-        const normalizedMessages = nextMessages.map(normalizeChatMessage);
+        const normalizedMessages = mergeChatAudioCacheIntoMessages(
+          selectedThreadId,
+          nextMessages.map(normalizeChatMessage)
+        );
         setMessages(normalizedMessages);
 
         for (const message of normalizedMessages) {
@@ -423,6 +655,12 @@ export default function ChatPage() {
             ? message.voice.mediaObjectId || message.voice.id
             : "";
           if (voiceId === normalizedAudioId && message.voice?.url) {
+            rememberChatAudioSource({
+              threadId: selectedThreadId,
+              mediaObjectId: normalizedAudioId,
+              downloadUrl: message.voice.url,
+              expiresAt: message.voice.urlExpiresAt,
+            });
             return message.voice.url;
           }
 
@@ -431,6 +669,12 @@ export default function ChatPage() {
               (attachment.mediaObjectId || attachment.id) === normalizedAudioId
           );
           if (matchingAttachment?.url) {
+            rememberChatAudioSource({
+              threadId: selectedThreadId,
+              mediaObjectId: normalizedAudioId,
+              downloadUrl: matchingAttachment.url,
+              expiresAt: matchingAttachment.urlExpiresAt,
+            });
             return matchingAttachment.url;
           }
         }
@@ -597,7 +841,15 @@ export default function ChatPage() {
 
         const realtimeMessage = event.message;
         if (realtimeMessage) {
-          setMessages((current) => mergeChatMessage(current, realtimeMessage));
+          const [cachedRealtimeMessage] = mergeChatAudioCacheIntoMessages(
+            selectedThreadId,
+            [normalizeChatMessage(realtimeMessage)]
+          );
+          if (cachedRealtimeMessage) {
+            setMessages((current) =>
+              mergeChatMessage(current, cachedRealtimeMessage)
+            );
+          }
           scheduleThreadRefresh();
           return;
         }
@@ -757,6 +1009,7 @@ export default function ChatPage() {
 
   const handleAudioPlaybackStateChange = useCallback(
     (state: AudioMessagePlaybackState) => {
+      rememberChatAudioPlayback(selectedThreadId, state);
       setAudioPlaybackPositionById((current) => {
         if (state.ended) {
           if (!Object.prototype.hasOwnProperty.call(current, state.id)) {
@@ -794,7 +1047,7 @@ export default function ChatPage() {
         };
       });
     },
-    []
+    [selectedThreadId]
   );
 
   const handleToggleActiveAudioDock = useCallback(() => {
@@ -1937,7 +2190,21 @@ export default function ChatPage() {
                                 resumeTime={
                                   audioPlaybackPositionById[
                                     message.voice.mediaObjectId || message.voice.id
-                                  ] ?? 0
+                                  ] ??
+                                  (selectedThreadId
+                                    ? getCachedChatAudioPosition(
+                                        selectedThreadId,
+                                        message.voice.mediaObjectId || message.voice.id
+                                      )
+                                    : 0)
+                                }
+                                knownReady={
+                                  selectedThreadId
+                                    ? isCachedChatAudioReady(
+                                        selectedThreadId,
+                                        message.voice.mediaObjectId || message.voice.id
+                                      )
+                                    : false
                                 }
                                 activeAudioId={activeAudio?.id ?? null}
                                 onPlaybackStateChange={
@@ -2029,7 +2296,23 @@ export default function ChatPage() {
                                       resumeTime={
                                         audioPlaybackPositionById[
                                           attachment.mediaObjectId || attachment.id
-                                        ] ?? 0
+                                        ] ??
+                                        (selectedThreadId
+                                          ? getCachedChatAudioPosition(
+                                              selectedThreadId,
+                                              attachment.mediaObjectId ||
+                                                attachment.id
+                                            )
+                                          : 0)
+                                      }
+                                      knownReady={
+                                        selectedThreadId
+                                          ? isCachedChatAudioReady(
+                                              selectedThreadId,
+                                              attachment.mediaObjectId ||
+                                                attachment.id
+                                            )
+                                          : false
                                       }
                                       activeAudioId={activeAudio?.id ?? null}
                                       onPlaybackStateChange={

@@ -10,6 +10,7 @@ import {
 } from "react";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
@@ -21,6 +22,7 @@ import { buildAudioMessageWaveformBars } from "./chatAudioWaveform";
 const AUDIO_LISTENED_THRESHOLD_RATIO = 0.45;
 const AUDIO_LISTENED_THRESHOLD_MIN_SECONDS = 0.8;
 const AUDIO_LISTENED_THRESHOLD_MAX_SECONDS = 5;
+const AUDIO_LOAD_WATCHDOG_MS = 12_000;
 type AudioLoadState = "idle" | "loading" | "ready" | "error";
 
 export type AudioMessagePlaybackState = {
@@ -58,6 +60,7 @@ export function AudioMessagePlayer({
   playbackRate = 1,
   playbackCommand,
   resumeTime,
+  knownReady,
   activeAudioId,
   onPlaybackStateChange,
   onPlaybackError,
@@ -77,11 +80,13 @@ export function AudioMessagePlayer({
   playbackRate?: number;
   playbackCommand?: AudioMessagePlaybackCommand | null;
   resumeTime?: number;
+  knownReady?: boolean;
   activeAudioId?: string | null;
   onPlaybackStateChange?: (state: AudioMessagePlaybackState) => void;
   onPlaybackError?: () => void;
   onResolvePlaybackSource?: (
-    audioId: string
+    audioId: string,
+    options?: { forceRefresh?: boolean }
   ) => Promise<string | null | undefined>;
   messageTimestamp?: string;
   showEdited?: boolean;
@@ -92,9 +97,11 @@ export function AudioMessagePlayer({
   const playerRef = useRef<HTMLDivElement | null>(null);
   const waveSeekRef = useRef<HTMLDivElement | null>(null);
   const progressRafRef = useRef<number | null>(null);
+  const loadWatchdogTimerRef = useRef<number | null>(null);
   const isSeekingRef = useRef(false);
   const preloadRequestedRef = useRef(false);
-  const loadStateRef = useRef<AudioLoadState>("idle");
+  const initialLoadState: AudioLoadState = knownReady ? "ready" : "idle";
+  const loadStateRef = useRef<AudioLoadState>(initialLoadState);
   const handledPlaybackCommandTokenRef = useRef<number | null>(null);
   const togglePlaybackRef = useRef<(() => Promise<void>) | null>(null);
   const listenedReportedRef = useRef(Boolean(listenedByPeer));
@@ -126,17 +133,12 @@ export function AudioMessagePlayer({
   );
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackSrc, setPlaybackSrc] = useState(src.trim());
-  const [loadState, setLoadState] = useState<AudioLoadState>("idle");
+  const [loadState, setLoadState] = useState<AudioLoadState>(initialLoadState);
   const audioSrc = playbackSrc;
   const audioIdentity = mediaIdentity?.trim() || src;
   const audioTitle = title?.trim() || "Голосовое сообщение";
   const safePlaybackRate =
     Number.isFinite(playbackRate) && playbackRate > 0 ? playbackRate : 1;
-
-  const updateLoadState = useCallback((nextState: AudioLoadState) => {
-    loadStateRef.current = nextState;
-    setLoadState((current) => (current === nextState ? current : nextState));
-  }, []);
 
   const reportPlaybackError = useCallback(() => {
     if (playbackErrorReportedRef.current) return;
@@ -144,11 +146,56 @@ export function AudioMessagePlayer({
     onPlaybackErrorRef.current?.();
   }, []);
 
+  const clearLoadWatchdog = useCallback(() => {
+    if (loadWatchdogTimerRef.current !== null) {
+      window.clearTimeout(loadWatchdogTimerRef.current);
+      loadWatchdogTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleLoadWatchdog = useCallback(() => {
+    clearLoadWatchdog();
+    loadWatchdogTimerRef.current = window.setTimeout(() => {
+      loadWatchdogTimerRef.current = null;
+      if (loadStateRef.current !== "loading") return;
+      const audio = audioRef.current;
+      if (audio && !audio.error && audio.readyState >= audio.HAVE_FUTURE_DATA) {
+        loadStateRef.current = "ready";
+        setLoadState((current) => (current === "ready" ? current : "ready"));
+        return;
+      }
+      preloadRequestedRef.current = false;
+      setIsPlaying(false);
+      loadStateRef.current = "error";
+      setLoadState((current) => (current === "error" ? current : "error"));
+      reportPlaybackError();
+    }, AUDIO_LOAD_WATCHDOG_MS);
+  }, [clearLoadWatchdog, reportPlaybackError]);
+
+  const updateLoadState = useCallback(
+    (nextState: AudioLoadState) => {
+      loadStateRef.current = nextState;
+      setLoadState((current) => (current === nextState ? current : nextState));
+      if (nextState === "loading") {
+        scheduleLoadWatchdog();
+      } else {
+        clearLoadWatchdog();
+      }
+    },
+    [clearLoadWatchdog, scheduleLoadWatchdog]
+  );
+
   const requestAudioPreload = useCallback(
     (options?: { force?: boolean }) => {
       const audio = audioRef.current;
       if (!audio) return;
       const forceRetry = Boolean(options?.force);
+      if (!forceRetry && loadStateRef.current === "error") {
+        return;
+      }
+      if (!forceRetry && loadStateRef.current === "ready") {
+        return;
+      }
       if (
         !forceRetry &&
         preloadRequestedRef.current &&
@@ -185,8 +232,8 @@ export function AudioMessagePlayer({
   useEffect(() => {
     preloadRequestedRef.current = false;
     playbackErrorReportedRef.current = false;
-    loadStateRef.current = "idle";
-  }, [audioSrc]);
+    updateLoadState(knownReady ? "ready" : "idle");
+  }, [audioSrc, knownReady, updateLoadState]);
 
   useEffect(() => {
     currentTimeRef.current = currentTime;
@@ -211,7 +258,7 @@ export function AudioMessagePlayer({
     loadStateRef.current = "idle";
     const syncTimeoutId = window.setTimeout(() => {
       setPlaybackSrc(nextSrc);
-      updateLoadState("idle");
+      updateLoadState(knownReady ? "ready" : "idle");
       if (preservedTime > 0.05) {
         setCurrentTime(preservedTime);
       }
@@ -233,7 +280,7 @@ export function AudioMessagePlayer({
     return () => {
       window.clearTimeout(syncTimeoutId);
     };
-  }, [playbackSrc, src, updateLoadState]);
+  }, [knownReady, playbackSrc, src, updateLoadState]);
 
   const emitPlaybackState = useCallback(
     ({
@@ -258,7 +305,7 @@ export function AudioMessagePlayer({
             : durationSecondsRef.current;
       onPlaybackStateChange({
         id: audioIdentity,
-        src,
+        src: audioSrc,
         title: audioTitle,
         isPlaying: nextIsPlaying,
         currentTime:
@@ -273,7 +320,7 @@ export function AudioMessagePlayer({
         ended,
       });
     },
-    [audioIdentity, audioTitle, onPlaybackStateChange, src, waveform]
+    [audioIdentity, audioSrc, audioTitle, onPlaybackStateChange, waveform]
   );
 
   const tryReportListened = useCallback(
@@ -352,11 +399,51 @@ export function AudioMessagePlayer({
     [seekToAudioTime]
   );
 
+  const retryAudioLoad = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    setIsPlaying(false);
+    preloadRequestedRef.current = true;
+    playbackErrorReportedRef.current = false;
+    updateLoadState("loading");
+
+    const freshSrc = await onResolvePlaybackSourceRef.current?.(audioIdentity, {
+      forceRefresh: true,
+    });
+    const normalizedFreshSrc = freshSrc?.trim();
+    const nextSrc = normalizedFreshSrc || playbackSrc || src.trim();
+    if (!nextSrc) {
+      preloadRequestedRef.current = false;
+      updateLoadState("error");
+      reportPlaybackError();
+      return;
+    }
+
+    try {
+      if (playbackSrc !== nextSrc) {
+        setPlaybackSrc(nextSrc);
+      }
+      if (audio.src !== nextSrc) {
+        audio.src = nextSrc;
+      }
+      audio.preload = "auto";
+      audio.load();
+    } catch {
+      preloadRequestedRef.current = false;
+      updateLoadState("error");
+      reportPlaybackError();
+    }
+  }, [audioIdentity, playbackSrc, reportPlaybackError, src, updateLoadState]);
+
   const togglePlayback = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio) return;
+    if (loadStateRef.current === "error") {
+      await retryAudioLoad();
+      return;
+    }
     if (audio.paused) {
-      const shouldForceRetry = loadStateRef.current === "error";
       const knownCurrentTime =
         Number.isFinite(currentTime) && currentTime > 0.05
           ? currentTime
@@ -369,7 +456,7 @@ export function AudioMessagePlayer({
         preloadRequestedRef.current = false;
         playbackErrorReportedRef.current = false;
       }
-      requestAudioPreload({ force: shouldForceRetry || shouldUseLatestSrc });
+      requestAudioPreload({ force: shouldUseLatestSrc });
       if (
         Number.isFinite(audio.duration) &&
         audio.duration > 0 &&
@@ -401,7 +488,9 @@ export function AudioMessagePlayer({
         setIsPlaying(true);
         updateLoadState("ready");
       } catch {
-        const freshSrc = await onResolvePlaybackSourceRef.current?.(audioIdentity);
+        const freshSrc = await onResolvePlaybackSourceRef.current?.(audioIdentity, {
+          forceRefresh: true,
+        });
         const normalizedFreshSrc = freshSrc?.trim();
         if (normalizedFreshSrc) {
           try {
@@ -453,6 +542,7 @@ export function AudioMessagePlayer({
     playbackSrc,
     reportPlaybackError,
     requestAudioPreload,
+    retryAudioLoad,
     safePlaybackRate,
     src,
     updateLoadState,
@@ -760,9 +850,10 @@ export function AudioMessagePlayer({
         window.cancelAnimationFrame(progressRafRef.current);
         progressRafRef.current = null;
       }
+      clearLoadWatchdog();
       audioRef.current?.pause();
     },
-    []
+    [clearLoadWatchdog]
   );
 
   useEffect(() => {
@@ -821,7 +912,11 @@ export function AudioMessagePlayer({
       } ${hasAudioError ? "is-error" : ""}`}
       onFocusCapture={() => requestAudioPreload()}
       onPointerEnter={() => requestAudioPreload()}
-      onPointerDownCapture={() => requestAudioPreload({ force: hasAudioError })}
+      onPointerDownCapture={() => {
+        if (!hasAudioError) {
+          requestAudioPreload();
+        }
+      }}
     >
       <audio ref={audioRef} preload="metadata" src={audioSrc} />
       <button
@@ -833,6 +928,8 @@ export function AudioMessagePlayer({
       >
         {isAudioLoading ? (
           <span className="chat-page__audio-toggle-spinner" aria-hidden="true" />
+        ) : hasAudioError ? (
+          <RefreshRoundedIcon fontSize="inherit" />
         ) : isPlaying ? (
           <PauseRoundedIcon fontSize="inherit" />
         ) : (
