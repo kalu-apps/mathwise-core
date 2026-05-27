@@ -101,7 +101,7 @@ const emptyDraft: NewsDraft = {
 const NEWS_ATTACHMENT_MAX_BYTES = 80 * 1024 * 1024;
 const NEWS_ATTACHMENTS_MAX_COUNT = 8;
 const NEWS_ATTACHMENTS_MAX_VIDEO_COUNT = 1;
-const NEWS_ATTACHMENTS_VISIBLE_LIMIT = 6;
+const NEWS_ATTACHMENTS_VISIBLE_LIMIT = NEWS_ATTACHMENTS_MAX_COUNT;
 const NEWS_VIDEO_AUTOPLAY_VISIBLE_RATIO = 0.58;
 const NEWS_VIDEO_PLAY_RETRY_DELAY_MS = 3500;
 
@@ -171,8 +171,6 @@ const getAttachmentGridVariant = (count: number) => {
   if (count === 3) return "triple";
   return "quad";
 };
-
-const hasOddAttachmentTail = (count: number) => count > 1 && count % 2 === 1;
 
 export function NewsFeedPanel({ user }: Props) {
   const navigate = useNavigate();
@@ -1157,9 +1155,7 @@ export function NewsFeedPanel({ user }: Props) {
                               `news-feed__attachments-grid--${getAttachmentGridVariant(
                                 visibleCount
                               )}`,
-                              `news-feed__attachments-grid--count-${visibleCount}`,
-                              hasOddAttachmentTail(visibleCount) &&
-                                "news-feed__attachments-grid--odd-count"
+                              `news-feed__attachments-grid--count-${visibleCount}`
                             )}
                           >
                             {visibleAttachments.map((attachment, index) => {

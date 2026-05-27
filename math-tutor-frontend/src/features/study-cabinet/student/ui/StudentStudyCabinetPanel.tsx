@@ -195,17 +195,17 @@ const mixRgb = (
 
 const getRhythmTonePalette = (percent: number) => {
   const safe = Math.max(0, Math.min(100, percent));
-  const low: [number, number, number] = [232, 112, 128];
-  const medium: [number, number, number] = [235, 182, 124];
-  const high: [number, number, number] = [96, 201, 160];
-  const white: [number, number, number] = [247, 250, 255];
-  const deep: [number, number, number] = [26, 40, 76];
+  const low: [number, number, number] = [87, 110, 227];
+  const medium: [number, number, number] = [26, 151, 196];
+  const high: [number, number, number] = [35, 176, 136];
+  const white: [number, number, number] = [241, 248, 255];
+  const deep: [number, number, number] = [16, 30, 62];
   const base =
     safe <= 50 ? mixRgb(low, medium, safe / 50) : mixRgb(medium, high, (safe - 50) / 50);
   return {
     top: toRgb(mixRgb(base, white, 0.34)),
     mid: toRgb(mixRgb(base, white, 0.12)),
-    bottom: toRgb(mixRgb(base, deep, 0.26)),
+    bottom: toRgb(mixRgb(base, deep, 0.32)),
   };
 };
 
@@ -868,8 +868,8 @@ export function StudentStudyCabinetPanel({
       : "Неделя ещё без активности";
   const routeChartBars = useMemo(() => {
     const progress = Math.max(0, Math.min(100, courseProgress.percent));
-    const targets = [16, 24, 36, 50, 66, 82, 98];
-    const colors = ["#1d4ed8", "#2563eb", "#0f78b8", "#0891b2", "#0f9f86", "#16a169", "#22a15f"];
+    const targets = [14, 23, 35, 49, 64, 80, 96];
+    const colors = ["#4f63e6", "#3f75dc", "#2e87cd", "#1896bd", "#16a6a2", "#1daf8d", "#29b578"];
 
     return targets.map((target, index) => {
       const progressWeight = 0.18 + index * 0.1;
@@ -1053,12 +1053,6 @@ export function StudentStudyCabinetPanel({
                 </>
               )}
               <div className="study-cabinet-panel__student-assist-strip">
-                {bookingCta ? (
-                  <button type="button" onClick={bookingCta.onAction}>
-                    <EventAvailableRoundedIcon fontSize="inherit" />
-                    <span>{bookingCta.actionLabel}</span>
-                  </button>
-                ) : null}
                 {onChatClick ? (
                   <button type="button" onClick={onChatClick} disabled={chatDisabled || chatLocked}>
                     <ForumRoundedIcon fontSize="inherit" />
@@ -1089,13 +1083,12 @@ export function StudentStudyCabinetPanel({
               </div>
               <div className="study-cabinet-panel__student-route-visual" aria-hidden="true">
                 <div className="study-cabinet-panel__student-route-chart">
-                  <span className="study-cabinet-panel__student-route-formula">f(t)=1-e<sup>-kt</sup></span>
                   <svg className="study-cabinet-panel__student-route-curve" viewBox="0 0 260 132" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="student-route-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#1d4ed8" />
-                        <stop offset="42%" stopColor="#0891b2" />
-                        <stop offset="100%" stopColor="#16a34a" />
+                        <stop offset="0%" stopColor="#4f63e6" />
+                        <stop offset="48%" stopColor="#168ec7" />
+                        <stop offset="100%" stopColor="#22a676" />
                       </linearGradient>
                     </defs>
                     <path
@@ -1120,7 +1113,7 @@ export function StudentStudyCabinetPanel({
               </div>
               <div className="study-cabinet-panel__student-route-footer">
                 <span className="study-cabinet-panel__student-route-chip">Текущий курс</span>
-                <span>{courseProgress.percent < 100 ? "Траектория построена по завершённым шагам" : "Курс полностью освоен"}</span>
+                <span>{courseProgress.percent < 100 ? "Основано на завершённых уроках и тестах" : "Курс полностью освоен"}</span>
               </div>
               <span className="study-cabinet-panel__student-insight-track">
                 <i style={{ width: `${courseProgress.percent}%` }} />
@@ -1296,7 +1289,7 @@ export function StudentStudyCabinetPanel({
         <section className="study-cabinet-panel__smart-card study-cabinet-panel__student-smart-card study-cabinet-panel__student-rhythm-card">
           <div className="study-cabinet-panel__student-rhythm-head">
             <div className="study-cabinet-panel__student-rhythm-title">
-              <span className="study-cabinet-panel__kicker">Ритм за неделю</span>
+              <span className="study-cabinet-panel__kicker">Учебный ритм</span>
             </div>
             <div className="study-cabinet-panel__student-rhythm-stats">
               <span>{rhythmHeadline}</span>
@@ -1314,7 +1307,7 @@ export function StudentStudyCabinetPanel({
                 <strong>{averageRhythmDaySeconds > 0 ? formatCompactDuration(averageRhythmDaySeconds) : "Нет данных"}</strong>
               </div>
               <div className="study-cabinet-panel__student-rhythm-overview-card" role="listitem">
-                <small>Видео</small>
+                <small>Видеоуроки</small>
                 <strong>{viewedVideoSeconds > 0 ? formatCompactDuration(viewedVideoSeconds) : "Нет данных"}</strong>
               </div>
             </div>

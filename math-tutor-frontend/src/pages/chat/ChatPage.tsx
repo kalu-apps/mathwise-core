@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
   type PointerEvent,
 } from "react";
@@ -165,6 +166,26 @@ const isSupportedChatAudioRate = (value: number) =>
 
 const formatChatAudioRateLabel = (value: number) =>
   value === 1 ? "1x" : `${Number.isInteger(value) ? value : value.toFixed(1)}x`;
+
+const getChatAudioDockCopy = (title: string | undefined) => {
+  const normalized = title?.trim() || "";
+  const match = normalized.match(
+    /^(.*?)\s*[-–—]\s*(голосовое сообщение|аудиофайл)$/i
+  );
+  if (!match) {
+    return {
+      title: normalized || "Аудио",
+      peer: "",
+    };
+  }
+  return {
+    title:
+      match[2].toLowerCase() === "аудиофайл"
+        ? "Аудиофайл"
+        : "Голосовое сообщение",
+    peer: match[1].trim(),
+  };
+};
 
 const getChatAudioCacheKey = (threadId: string, mediaObjectId: string) =>
   `${threadId.trim()}:${mediaObjectId.trim()}`;
@@ -990,6 +1011,10 @@ export default function ChatPage() {
         )
       : 0;
   const activeAudioDockWaveform = activeAudioDock?.waveform;
+  const activeAudioDockCopy = useMemo(
+    () => getChatAudioDockCopy(activeAudioDock?.title),
+    [activeAudioDock?.title]
+  );
   const activeAudioDockWaveBars = useMemo(
     () => buildAudioMessageWaveformBars(activeAudioDockWaveform, 42),
     [activeAudioDockWaveform]
@@ -1057,6 +1082,18 @@ export default function ChatPage() {
       action: "toggle",
       token: window.performance.now(),
     });
+  }, [activeAudioDock]);
+
+  const handleDismissActiveAudioDock = useCallback(() => {
+    if (!activeAudioDock) return;
+    if (activeAudioDock.isPlaying) {
+      setAudioPlaybackCommand({
+        id: activeAudioDock.id,
+        action: "toggle",
+        token: window.performance.now(),
+      });
+    }
+    setActiveAudio(null);
   }, [activeAudioDock]);
 
   const handleSeekActiveAudioDock = useCallback((nextTime: number) => {
@@ -2006,10 +2043,18 @@ export default function ChatPage() {
                     )}
                   </button>
                   <div className="chat-page__audio-dock-body">
-                    <div className="chat-page__audio-dock-topline">
-                      <span className="chat-page__audio-dock-title">
-                        {activeAudioDock.title}
+                    <div className="chat-page__audio-dock-copy">
+                      <span className="chat-page__audio-dock-eyebrow">
+                        Сейчас играет
                       </span>
+                      <span className="chat-page__audio-dock-title">
+                        {activeAudioDockCopy.title}
+                      </span>
+                      {activeAudioDockCopy.peer ? (
+                        <span className="chat-page__audio-dock-peer">
+                          {activeAudioDockCopy.peer}
+                        </span>
+                      ) : null}
                       <span className="chat-page__audio-dock-time">
                         {formatPlaybackTime(activeAudioDock.currentTime)}
                         {activeAudioDock.duration > 0
@@ -2032,6 +2077,13 @@ export default function ChatPage() {
                       aria-valuetext={`${formatPlaybackTime(
                         activeAudioDock.currentTime
                       )} из ${formatPlaybackTime(activeAudioDock.duration)}`}
+                      style={
+                        {
+                          "--audio-dock-progress": `${
+                            Math.round(activeAudioProgressRatio * 1000) / 10
+                          }%`,
+                        } as CSSProperties
+                      }
                       onPointerDown={handleActiveAudioDockPointerDown}
                       onPointerMove={handleActiveAudioDockPointerMove}
                       onPointerUp={handleActiveAudioDockPointerUp}
@@ -2051,16 +2103,26 @@ export default function ChatPage() {
                       </div>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="chat-page__audio-rate-control"
-                    onClick={handleCycleThreadAudioRate}
-                    aria-label={`Скорость аудио ${formatChatAudioRateLabel(
-                      selectedThreadAudioRate
-                    )}. Нажмите, чтобы переключить`}
-                  >
-                    {formatChatAudioRateLabel(selectedThreadAudioRate)}
-                  </button>
+                  <div className="chat-page__audio-dock-actions">
+                    <button
+                      type="button"
+                      className="chat-page__audio-rate-control"
+                      onClick={handleCycleThreadAudioRate}
+                      aria-label={`Скорость аудио ${formatChatAudioRateLabel(
+                        selectedThreadAudioRate
+                      )}. Нажмите, чтобы переключить`}
+                    >
+                      {formatChatAudioRateLabel(selectedThreadAudioRate)}
+                    </button>
+                    <button
+                      type="button"
+                      className="chat-page__audio-dock-close"
+                      onClick={handleDismissActiveAudioDock}
+                      aria-label="Остановить и скрыть аудиоплеер"
+                    >
+                      <CloseRoundedIcon fontSize="inherit" />
+                    </button>
+                  </div>
                 </div>
               ) : null}
               <div

@@ -550,40 +550,56 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  min-height: 54px;
-  padding: 8px 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 84%, transparent);
+  gap: clamp(10px, 1.2vw, 14px);
+  min-height: 68px;
+  padding: 10px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--chat-accent) 16%, var(--border-subtle));
   background:
+    radial-gradient(
+      80% 160% at 10% 0%,
+      color-mix(in srgb, var(--chat-accent) 12%, transparent) 0%,
+      transparent 64%
+    ),
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--background-elevated) 82%, transparent),
-      color-mix(in srgb, var(--chat-glass-violet) 30%, transparent)
+      color-mix(in srgb, var(--background-elevated) 90%, transparent),
+      color-mix(in srgb, var(--surface-soft) 72%, transparent)
     ),
-    color-mix(in srgb, var(--background-elevated) 72%, transparent);
+    color-mix(in srgb, var(--background-elevated) 82%, transparent);
+  box-shadow: 0 14px 34px color-mix(in srgb, #13204a 8%, transparent);
+  backdrop-filter: blur(18px) saturate(118%);
 }
 
 .chat-page__audio-dock-toggle {
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: color-mix(in srgb, var(--chat-accent) 82%, var(--text-primary));
-  background: color-mix(in srgb, var(--background-elevated) 70%, var(--chat-glass-violet));
-  box-shadow: none;
+  color: #ffffff;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--chat-accent) 84%, #ffffff 6%),
+      color-mix(in srgb, var(--chat-accent-strong) 74%, var(--chat-accent) 26%)
+    );
+  box-shadow:
+    0 10px 24px color-mix(in srgb, var(--chat-accent) 24%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 34%, transparent);
   cursor: pointer;
   transition:
-    background 0.16s ease,
-    color 0.16s ease,
+    box-shadow 0.16s ease,
+    filter 0.16s ease,
     transform 0.12s ease;
 }
 
 .chat-page__audio-dock-toggle:hover {
-  color: var(--chat-text-strong);
-  background: color-mix(in srgb, var(--control-bg-hover) 72%, transparent);
+  filter: saturate(1.05) brightness(1.02);
+  box-shadow:
+    0 12px 28px color-mix(in srgb, var(--chat-accent) 30%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 38%, transparent);
 }
 
 .chat-page__audio-dock-toggle:focus-visible {
@@ -596,51 +612,101 @@
 }
 
 .chat-page__audio-dock-toggle .MuiSvgIcon-root {
-  font-size: 19px;
+  font-size: 23px;
 }
 
 .chat-page__audio-dock-body {
   min-width: 0;
   display: grid;
-  gap: 6px;
+  gap: 7px;
 }
 
-.chat-page__audio-dock-topline {
+.chat-page__audio-dock-copy {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   min-width: 0;
-  gap: 12px;
+  gap: 8px;
 }
 
-.chat-page__audio-dock-title {
-  min-width: 0;
+.chat-page__audio-dock-eyebrow {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--chat-accent) 10%, var(--background-elevated));
+  color: color-mix(in srgb, var(--chat-accent) 76%, var(--chat-text-strong));
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.chat-page__audio-dock-title,
+.chat-page__audio-dock-peer {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
-  font-weight: 700;
+}
+
+.chat-page__audio-dock-title {
+  min-width: max-content;
+  font-size: 13.5px;
+  font-weight: 760;
   color: var(--chat-text-strong);
 }
 
-.chat-page__audio-dock-time {
-  flex-shrink: 0;
-  font-size: 11px;
+.chat-page__audio-dock-peer {
+  min-width: 0;
+  font-size: 12.5px;
   font-weight: 620;
+  color: var(--chat-text-muted);
+}
+
+.chat-page__audio-dock-time {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--background-elevated) 64%, transparent);
+  font-size: 11.5px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--chat-text-muted);
 }
 
 .chat-page__audio-dock-track {
-  height: 24px;
-  padding: 2px 0;
+  position: relative;
+  height: 28px;
+  padding: 4px 0;
   border-radius: 999px;
-  overflow: visible;
+  overflow: hidden;
   display: flex;
   align-items: center;
   cursor: pointer;
   touch-action: none;
   user-select: none;
+}
+
+.chat-page__audio-dock-track::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--chat-audio-wave-active) 74%, var(--chat-accent) 26%) 0%,
+      color-mix(in srgb, var(--chat-audio-wave-active) 74%, var(--chat-accent) 26%)
+        var(--audio-dock-progress, 0%),
+      color-mix(in srgb, var(--chat-audio-wave-idle) 34%, transparent)
+        var(--audio-dock-progress, 0%),
+      color-mix(in srgb, var(--chat-audio-wave-idle) 34%, transparent) 100%
+    );
+  opacity: 0.62;
 }
 
 .chat-page__audio-dock-track:focus-visible {
@@ -653,11 +719,13 @@
 }
 
 .chat-page__audio-dock-wave {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  height: 20px;
+  height: 22px;
   display: flex;
   align-items: center;
-  gap: 2.2px;
+  gap: 2.4px;
 }
 
 .chat-page__audio-dock-wave span {
@@ -693,21 +761,36 @@
   animation: chatAudioWavePulse 1.05s ease-in-out infinite;
 }
 
+.chat-page__audio-dock-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
 .chat-page__audio-rate-control {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 38px;
-  height: 32px;
-  padding: 0 10px;
+  min-width: 42px;
+  height: 34px;
+  padding: 0 11px;
   border: 0;
   border-radius: 999px;
-  color: var(--chat-text-muted);
-  background: color-mix(in srgb, var(--background-elevated) 62%, transparent);
-  box-shadow: none;
+  color: color-mix(in srgb, var(--chat-accent) 72%, var(--chat-text-strong));
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--background-elevated) 84%, transparent),
+      color-mix(in srgb, var(--chat-accent) 9%, var(--background-elevated))
+    );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--chat-accent) 14%, transparent),
+    0 8px 18px color-mix(in srgb, #13204a 7%, transparent);
   font: inherit;
   font-size: 12px;
-  font-weight: 620;
+  font-weight: 760;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition:
@@ -718,7 +801,7 @@
 
 .chat-page__audio-rate-control:hover {
   color: var(--chat-text-strong);
-  background: color-mix(in srgb, var(--control-bg-hover) 72%, transparent);
+  background: color-mix(in srgb, var(--chat-accent) 13%, var(--background-elevated));
 }
 
 .chat-page__audio-rate-control:focus-visible {
@@ -727,6 +810,38 @@
 }
 
 .chat-page__audio-rate-control:active {
+  transform: scale(0.96);
+}
+
+.chat-page__audio-dock-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--chat-text-muted);
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+  transition:
+    color 0.16s ease,
+    background 0.16s ease,
+    transform 0.12s ease;
+}
+
+.chat-page__audio-dock-close:hover {
+  color: var(--chat-text-strong);
+  background: color-mix(in srgb, var(--control-bg-hover) 66%, transparent);
+}
+
+.chat-page__audio-dock-close:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.chat-page__audio-dock-close:active {
   transform: scale(0.96);
 }
 
@@ -2213,12 +2328,30 @@
   }
 
   .chat-page__audio-dock {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 8px;
+    min-height: 76px;
+    padding: 9px 10px;
   }
 
-  .chat-page__audio-rate-control {
-    width: auto;
+  .chat-page__audio-dock-actions {
+    grid-column: 2;
+    justify-self: end;
+    margin-top: -2px;
+  }
+
+  .chat-page__audio-dock-copy {
+    flex-wrap: wrap;
+    row-gap: 5px;
+  }
+
+  .chat-page__audio-dock-time {
+    margin-left: 0;
+  }
+
+  .chat-page__audio-rate-control,
+  .chat-page__audio-dock-close {
+    height: 30px;
   }
 
   .chat-page__main-title h2 {
