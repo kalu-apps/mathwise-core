@@ -232,7 +232,14 @@ export function AudioMessagePlayer({
   useEffect(() => {
     preloadRequestedRef.current = false;
     playbackErrorReportedRef.current = false;
-    updateLoadState(knownReady ? "ready" : "idle");
+    const nextLoadState = knownReady ? "ready" : "idle";
+    loadStateRef.current = nextLoadState;
+    const timeoutId = window.setTimeout(() => {
+      updateLoadState(nextLoadState);
+    }, 0);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [audioSrc, knownReady, updateLoadState]);
 
   useEffect(() => {
