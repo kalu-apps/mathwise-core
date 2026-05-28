@@ -1392,3 +1392,195 @@
 .news-feed.news-feed .news-feed__item {
   border-radius: 0 !important;
 }
+
+/* Final feed media contract: every attachment count owns a bounded, non-overlapping grid. */
+.news-feed.news-feed .news-feed__attachments-grid--feed {
+  display: grid;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  gap: clamp(8px, 0.8vw, 12px);
+  overflow: hidden;
+  grid-template-areas: none;
+  align-items: stretch;
+}
+
+.news-feed.news-feed
+  .news-feed__attachments-grid--feed
+  > .news-feed__attachment-card {
+  grid-area: auto;
+  grid-column: auto;
+  grid-row: auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0 !important;
+  aspect-ratio: auto !important;
+  overflow: hidden;
+}
+
+.news-feed.news-feed
+  .news-feed__attachments-grid--feed
+  .news-feed__attachment-preview {
+  width: 100%;
+  height: 100%;
+  min-height: 0 !important;
+  aspect-ratio: auto !important;
+  overflow: hidden;
+}
+
+.news-feed.news-feed
+  .news-feed__attachments-grid--feed
+  .news-feed__attachment-preview
+  img,
+.news-feed.news-feed
+  .news-feed__attachments-grid--feed
+  .news-feed__attachment-preview
+  video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0 !important;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+}
+
+.news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-1 {
+  height: clamp(260px, 34vw, 480px);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-2 {
+  height: clamp(220px, 25vw, 360px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-3 {
+  height: clamp(300px, 34vw, 440px);
+  grid-template-columns: minmax(0, 1.28fr) minmax(180px, 0.72fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.news-feed.news-feed
+  .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-3
+  > .news-feed__attachment-card:first-child {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.news-feed.news-feed
+  .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-3
+  > .news-feed__attachment-card:nth-child(2) {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.news-feed.news-feed
+  .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-3
+  > .news-feed__attachment-card:nth-child(3) {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-4 {
+  height: clamp(300px, 32vw, 440px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-5 {
+  height: clamp(360px, 39vw, 520px);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.news-feed.news-feed
+  .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-5
+  > .news-feed__attachment-card:nth-child(1) {
+  grid-column: 1 / span 3;
+  grid-row: 1;
+}
+
+.news-feed.news-feed
+  .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-5
+  > .news-feed__attachment-card:nth-child(2) {
+  grid-column: 4 / span 3;
+  grid-row: 1;
+}
+
+.news-feed.news-feed
+  .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-5
+  > .news-feed__attachment-card:nth-child(3) {
+  grid-column: 1 / span 2;
+  grid-row: 2;
+}
+
+.news-feed.news-feed
+  .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-5
+  > .news-feed__attachment-card:nth-child(4) {
+  grid-column: 3 / span 2;
+  grid-row: 2;
+}
+
+.news-feed.news-feed
+  .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-5
+  > .news-feed__attachment-card:nth-child(5) {
+  grid-column: 5 / span 2;
+  grid-row: 2;
+}
+
+.news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-6 {
+  height: clamp(320px, 35vw, 480px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-7,
+.news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-8 {
+  height: clamp(360px, 38vw, 520px);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 720px) {
+  .news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-1 {
+    height: clamp(220px, 62vw, 360px);
+  }
+
+  .news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-2,
+  .news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-3,
+  .news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-4,
+  .news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-5,
+  .news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-6,
+  .news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-7,
+  .news-feed.news-feed .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-8 {
+    height: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+    grid-auto-rows: clamp(132px, 36vw, 196px);
+  }
+
+  .news-feed.news-feed
+    .news-feed__attachments-grid--feed
+    > .news-feed__attachment-card {
+    grid-column: auto;
+    grid-row: auto;
+    height: 100%;
+  }
+
+  .news-feed.news-feed
+    .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-3
+    > .news-feed__attachment-card:first-child,
+  .news-feed.news-feed
+    .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-5
+    > .news-feed__attachment-card:first-child,
+  .news-feed.news-feed
+    .news-feed__attachments-grid--feed.news-feed__attachments-grid--count-7
+    > .news-feed__attachment-card:first-child {
+    grid-column: 1 / -1;
+  }
+}

@@ -1016,7 +1016,7 @@ export default function ChatPage() {
     [activeAudioDock?.title]
   );
   const activeAudioDockWaveBars = useMemo(
-    () => buildAudioMessageWaveformBars(activeAudioDockWaveform, 42),
+    () => buildAudioMessageWaveformBars(activeAudioDockWaveform, 64),
     [activeAudioDockWaveform]
   );
   const activeAudioDockActiveBars =

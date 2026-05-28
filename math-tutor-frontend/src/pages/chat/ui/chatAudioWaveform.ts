@@ -4,7 +4,7 @@ const AUDIO_WAVE_BARS = [
   37, 53, 46, 57,
 ];
 
-const AUDIO_WAVE_DISPLAY_BARS = 46;
+const AUDIO_WAVE_DISPLAY_BARS = 52;
 
 const resizeWaveform = (input: number[], targetBars: number): number[] => {
   if (input.length === 0) return [];
