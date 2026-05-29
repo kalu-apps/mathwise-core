@@ -868,17 +868,19 @@ export function StudentStudyCabinetPanel({
       : "Неделя ещё без активности";
   const routeChartBars = useMemo(() => {
     const progress = Math.max(0, Math.min(100, courseProgress.percent));
-    const targets = [14, 23, 35, 49, 64, 80, 96];
-    const colors = ["#4f63e6", "#3f75dc", "#2e87cd", "#1896bd", "#16a6a2", "#1daf8d", "#29b578"];
+    const targets = [12, 20, 31, 45, 61, 78, 94];
+    const colors = ["#294dd8", "#2468ce", "#1f7fc1", "#1995b0", "#16a187", "#22a66f", "#35a853"];
 
     return targets.map((target, index) => {
-      const progressWeight = 0.18 + index * 0.1;
-      const height = Math.max(12, Math.min(100, Math.round(target * 0.48 + progress * progressWeight)));
+      const progressWeight = 0.1 + index * 0.085;
+      const height = Math.max(8, Math.min(100, Math.round(target * 0.54 + progress * progressWeight)));
+      const isReached = progress >= target - 6;
 
       return {
         "--student-route-bar-height": `${height}%`,
         "--student-route-bar-color": colors[index],
         "--student-route-bar-delay": `${index * 80}ms`,
+        "--student-route-bar-opacity": isReached ? "1" : "0.42",
       } as CSSProperties;
     });
   }, [courseProgress.percent]);
@@ -1083,6 +1085,12 @@ export function StudentStudyCabinetPanel({
               </div>
               <div className="study-cabinet-panel__student-route-visual" aria-hidden="true">
                 <div className="study-cabinet-panel__student-route-chart">
+                  <span className="study-cabinet-panel__student-route-axis study-cabinet-panel__student-route-axis--y">
+                    Освоение
+                  </span>
+                  <span className="study-cabinet-panel__student-route-axis study-cabinet-panel__student-route-axis--x">
+                    Шаги маршрута
+                  </span>
                   <svg className="study-cabinet-panel__student-route-curve" viewBox="0 0 260 132" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="student-route-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -1109,6 +1117,14 @@ export function StudentStudyCabinetPanel({
                       />
                     ))}
                   </div>
+                  <span
+                    className="study-cabinet-panel__student-route-marker"
+                    style={{
+                      left: `${Math.max(8, Math.min(92, courseProgress.percent))}%`,
+                    }}
+                  >
+                    текущая точка
+                  </span>
                 </div>
               </div>
               <div className="study-cabinet-panel__student-route-footer">
