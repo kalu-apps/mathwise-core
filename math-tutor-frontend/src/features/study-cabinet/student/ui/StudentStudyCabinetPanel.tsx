@@ -195,11 +195,11 @@ const mixRgb = (
 
 const getRhythmTonePalette = (percent: number) => {
   const safe = Math.max(0, Math.min(100, percent));
-  const low: [number, number, number] = [87, 110, 227];
-  const medium: [number, number, number] = [26, 151, 196];
-  const high: [number, number, number] = [35, 176, 136];
-  const white: [number, number, number] = [241, 248, 255];
-  const deep: [number, number, number] = [16, 30, 62];
+  const low: [number, number, number] = [101, 116, 139];
+  const medium: [number, number, number] = [16, 141, 171];
+  const high: [number, number, number] = [31, 160, 110];
+  const white: [number, number, number] = [247, 250, 252];
+  const deep: [number, number, number] = [18, 30, 50];
   const base =
     safe <= 50 ? mixRgb(low, medium, safe / 50) : mixRgb(medium, high, (safe - 50) / 50);
   return {
@@ -869,7 +869,7 @@ export function StudentStudyCabinetPanel({
   const routeChartBars = useMemo(() => {
     const progress = Math.max(0, Math.min(100, courseProgress.percent));
     const targets = [12, 20, 31, 45, 61, 78, 94];
-    const colors = ["#294dd8", "#2468ce", "#1f7fc1", "#1995b0", "#16a187", "#22a66f", "#35a853"];
+    const colors = ["#dc3f3f", "#e86b34", "#f3a12b", "#d4b533", "#8dbc3f", "#45a95c", "#15966d"];
 
     return targets.map((target, index) => {
       const progressWeight = 0.1 + index * 0.085;
@@ -884,6 +884,35 @@ export function StudentStudyCabinetPanel({
       } as CSSProperties;
     });
   }, [courseProgress.percent]);
+
+  const rhythmChartModel = useMemo(() => {
+    const width = 560;
+    const paddingX = 26;
+    const topY = 20;
+    const bottomY = 132;
+    const points = activityDays.map((day, index) => {
+      const step = activityDays.length > 1 ? (width - paddingX * 2) / (activityDays.length - 1) : 0;
+      const ratio = day.minutes > 0 ? Math.min(1, day.minutes / maxRhythmMinutes) : 0;
+      return {
+        x: paddingX + index * step,
+        y: bottomY - ratio * (bottomY - topY),
+      };
+    });
+    const linePath = points.length
+      ? points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ")
+      : `M ${paddingX} ${bottomY} L ${width - paddingX} ${bottomY}`;
+    const areaPath = points.length
+      ? `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${bottomY} L ${points[0].x.toFixed(1)} ${bottomY} Z`
+      : `M ${paddingX} ${bottomY} L ${width - paddingX} ${bottomY} L ${width - paddingX} ${bottomY} L ${paddingX} ${bottomY} Z`;
+    const averageMinutes = rhythmSummary.activeDays > 0 ? rhythmSummary.totalMinutes / rhythmSummary.activeDays : 0;
+    const averageY = bottomY - Math.min(1, averageMinutes / maxRhythmMinutes) * (bottomY - topY);
+
+    return {
+      linePath,
+      areaPath,
+      averageY: averageY.toFixed(1),
+    };
+  }, [activityDays, maxRhythmMinutes, rhythmSummary.activeDays, rhythmSummary.totalMinutes]);
 
   if (!courses.length) {
     return (
@@ -1094,9 +1123,9 @@ export function StudentStudyCabinetPanel({
                   <svg className="study-cabinet-panel__student-route-curve" viewBox="0 0 260 132" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="student-route-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#4f63e6" />
-                        <stop offset="48%" stopColor="#168ec7" />
-                        <stop offset="100%" stopColor="#22a676" />
+                        <stop offset="0%" stopColor="#dc3f3f" />
+                        <stop offset="42%" stopColor="#f3a12b" />
+                        <stop offset="100%" stopColor="#15966d" />
                       </linearGradient>
                     </defs>
                     <path
@@ -1119,17 +1148,16 @@ export function StudentStudyCabinetPanel({
                   </div>
                   <span
                     className="study-cabinet-panel__student-route-marker"
+                    aria-hidden="true"
                     style={{
                       left: `${Math.max(8, Math.min(92, courseProgress.percent))}%`,
                     }}
-                  >
-                    текущая точка
-                  </span>
+                  />
                 </div>
               </div>
               <div className="study-cabinet-panel__student-route-footer">
-                <span className="study-cabinet-panel__student-route-chip">Текущий курс</span>
-                <span>{courseProgress.percent < 100 ? "Основано на завершённых уроках и тестах" : "Курс полностью освоен"}</span>
+                <span className="study-cabinet-panel__student-route-chip">Шкала освоения</span>
+                <span>{courseProgress.percent < 100 ? "От зоны риска к устойчивому уровню" : "Устойчивое освоение подтверждено"}</span>
               </div>
               <span className="study-cabinet-panel__student-insight-track">
                 <i style={{ width: `${courseProgress.percent}%` }} />
@@ -1327,46 +1355,72 @@ export function StudentStudyCabinetPanel({
                 <strong>{viewedVideoSeconds > 0 ? formatCompactDuration(viewedVideoSeconds) : "Нет данных"}</strong>
               </div>
             </div>
-            <div className="study-cabinet-panel__student-activity-strip" role="list" aria-label="Активность по дням недели">
-              {activityDays.map((day) => {
-                const heightRatio =
-                  day.minutes > 0
-                    ? Math.min(100, (day.minutes / maxRhythmMinutes) * 100)
-                    : 0;
-                const palette = getRhythmTonePalette(heightRatio);
-                const barStyle = {
-                  "--bar-height": `${heightRatio.toFixed(2)}%`,
-                  "--bar-top": palette.top,
-                  "--bar-mid": palette.mid,
-                  "--bar-bottom": palette.bottom,
-                } as CSSProperties;
-                return (
-                  <button
-                    key={day.key}
-                    type="button"
-                    role="listitem"
-                    aria-label={`${day.label}: ${day.minutes > 0 ? formatDuration(day.minutes * 60) : "0 сек"}`}
-                    className={`study-cabinet-panel__student-activity-day ${day.minutes > 0 ? "is-active" : ""} ${
-                      activeRhythmDayKey === day.key ? "is-hovered" : ""
-                    }`}
-                    onMouseEnter={() => setActiveRhythmDayKey(day.key)}
-                    onMouseLeave={() => setActiveRhythmDayKey(null)}
-                    onFocus={() => setActiveRhythmDayKey(day.key)}
-                    onBlur={() => setActiveRhythmDayKey(null)}
-                    onClick={() =>
-                      setActiveRhythmDayKey((current) => (current === day.key ? null : day.key))
-                    }
-                  >
-                    <span className="study-cabinet-panel__student-activity-value">
-                      {day.minutes > 0 ? formatCompactDuration(day.minutes * 60) : "—"}
-                    </span>
-                    <span className="study-cabinet-panel__student-activity-capsule">
-                      <i style={barStyle} />
-                    </span>
-                    <span className="study-cabinet-panel__student-activity-label">{day.label}</span>
-                  </button>
-                );
-              })}
+            <div className="study-cabinet-panel__student-rhythm-chart">
+              <svg
+                className="study-cabinet-panel__student-rhythm-trend"
+                viewBox="0 0 560 156"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <defs>
+                  <linearGradient id="student-rhythm-line-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#65758e" />
+                    <stop offset="48%" stopColor="#128dab" />
+                    <stop offset="100%" stopColor="#1fa06e" />
+                  </linearGradient>
+                  <linearGradient id="student-rhythm-area-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#1fa06e" stopOpacity="0.2" />
+                    <stop offset="100%" stopColor="#128dab" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path className="study-cabinet-panel__student-rhythm-area-fill" d={rhythmChartModel.areaPath} />
+                <path
+                  className="study-cabinet-panel__student-rhythm-average-line"
+                  d={`M 26 ${rhythmChartModel.averageY} L 534 ${rhythmChartModel.averageY}`}
+                />
+                <path className="study-cabinet-panel__student-rhythm-line" d={rhythmChartModel.linePath} />
+              </svg>
+              <div className="study-cabinet-panel__student-activity-strip" role="list" aria-label="Активность по дням недели">
+                {activityDays.map((day) => {
+                  const heightRatio =
+                    day.minutes > 0
+                      ? Math.min(100, (day.minutes / maxRhythmMinutes) * 100)
+                      : 0;
+                  const palette = getRhythmTonePalette(heightRatio);
+                  const barStyle = {
+                    "--bar-height": `${heightRatio.toFixed(2)}%`,
+                    "--bar-top": palette.top,
+                    "--bar-mid": palette.mid,
+                    "--bar-bottom": palette.bottom,
+                  } as CSSProperties;
+                  return (
+                    <button
+                      key={day.key}
+                      type="button"
+                      role="listitem"
+                      aria-label={`${day.label}: ${day.minutes > 0 ? formatDuration(day.minutes * 60) : "0 сек"}`}
+                      className={`study-cabinet-panel__student-activity-day ${day.minutes > 0 ? "is-active" : ""} ${
+                        activeRhythmDayKey === day.key ? "is-hovered" : ""
+                      }`}
+                      onMouseEnter={() => setActiveRhythmDayKey(day.key)}
+                      onMouseLeave={() => setActiveRhythmDayKey(null)}
+                      onFocus={() => setActiveRhythmDayKey(day.key)}
+                      onBlur={() => setActiveRhythmDayKey(null)}
+                      onClick={() =>
+                        setActiveRhythmDayKey((current) => (current === day.key ? null : day.key))
+                      }
+                    >
+                      <span className="study-cabinet-panel__student-activity-value">
+                        {day.minutes > 0 ? formatCompactDuration(day.minutes * 60) : "—"}
+                      </span>
+                      <span className="study-cabinet-panel__student-activity-capsule">
+                        <i style={barStyle} />
+                      </span>
+                      <span className="study-cabinet-panel__student-activity-label">{day.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </section>
