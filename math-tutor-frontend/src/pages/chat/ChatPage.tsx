@@ -42,6 +42,7 @@ import CloseFullscreenRoundedIcon from "@mui/icons-material/CloseFullscreenRound
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/features/auth/model/AuthContext";
 import {
@@ -119,6 +120,12 @@ type ChatMediaPreviewItem = {
   title: string;
   downloadName: string;
   mimeType?: string;
+  threadId?: string;
+  messageId?: string;
+  mediaObjectId?: string;
+  urlExpiresAt?: string;
+  loading?: boolean;
+  error?: boolean;
 };
 
 type ChatMediaPreviewState = {
@@ -158,8 +165,15 @@ type ChatAudioPositionCacheEntry = {
   updatedAtMs: number;
 };
 
+type ChatMediaSourceCacheEntry = {
+  downloadUrl: string;
+  expiresAtMs: number;
+  urlExpiresAt?: string;
+};
+
 const chatAudioSourceCache = new Map<string, ChatAudioSourceCacheEntry>();
 const chatAudioPositionCache = new Map<string, ChatAudioPositionCacheEntry>();
+const chatMediaSourceCache = new Map<string, ChatMediaSourceCacheEntry>();
 
 const isSupportedChatAudioRate = (value: number) =>
   CHAT_AUDIO_PLAYBACK_RATES.some((rate) => rate === value);
@@ -207,6 +221,48 @@ const getFreshChatAudioSource = (
   }
   chatAudioSourceCache.delete(key);
   return null;
+};
+
+const getFreshChatMediaSource = (
+  threadId: string,
+  mediaObjectId: string
+): ChatMediaSourceCacheEntry | null => {
+  const key = getChatAudioCacheKey(threadId, mediaObjectId);
+  const cached = chatMediaSourceCache.get(key);
+  if (!cached) return null;
+  if (cached.expiresAtMs > Date.now() + CHAT_AUDIO_CACHE_SKEW_MS) {
+    return cached;
+  }
+  chatMediaSourceCache.delete(key);
+  return null;
+};
+
+const rememberChatMediaSource = (params: {
+  threadId: string;
+  mediaObjectId: string;
+  downloadUrl: string;
+  expiresAt?: string;
+}) => {
+  const threadId = params.threadId.trim();
+  const mediaObjectId = params.mediaObjectId.trim();
+  const downloadUrl = params.downloadUrl.trim();
+  if (!threadId || !mediaObjectId || !downloadUrl) return;
+  const explicitExpiresAtMs = parseChatAudioExpiresAt(params.expiresAt);
+  const fallbackExpiresAtMs = Date.now() + CHAT_AUDIO_LEGACY_URL_TTL_MS;
+  const expiresAtMs = explicitExpiresAtMs ?? fallbackExpiresAtMs;
+  if (expiresAtMs <= Date.now() + CHAT_AUDIO_CACHE_SKEW_MS) return;
+  chatMediaSourceCache.set(getChatAudioCacheKey(threadId, mediaObjectId), {
+    downloadUrl,
+    expiresAtMs,
+    urlExpiresAt: params.expiresAt,
+  });
+};
+
+const isChatMediaUrlExpiring = (value: string | undefined) => {
+  const expiresAtMs = parseChatAudioExpiresAt(value);
+  return Boolean(
+    expiresAtMs && expiresAtMs <= Date.now() + CHAT_AUDIO_CACHE_SKEW_MS
+  );
 };
 
 const rememberChatAudioSource = (params: {
@@ -1729,8 +1785,10 @@ export default function ChatPage() {
     (
       attachments: TeacherChatAttachment[],
       attachmentId?: string,
-      options?: { includeFiles?: boolean }
+      options?: { includeFiles?: boolean; threadId?: string; messageId?: string }
     ) => {
+      const accessThreadId = options?.threadId?.trim() || selectedThreadId || "";
+      const accessMessageId = options?.messageId?.trim() || "";
       const previewItems = attachments.reduce<ChatMediaPreviewItem[]>(
         (acc, attachment, index) => {
           const url = (attachment.url ?? "").trim();
@@ -1738,16 +1796,25 @@ export default function ChatPage() {
           const kind = getAttachmentKind(attachment.mimeType);
           if (kind !== "image" && kind !== "video" && kind !== "file") return acc;
           if (kind === "file" && !options?.includeFiles) return acc;
+          const mediaObjectId = (attachment.mediaObjectId || attachment.id).trim();
+          const cached =
+            accessThreadId && mediaObjectId
+              ? getFreshChatMediaSource(accessThreadId, mediaObjectId)
+              : null;
           const fallbackExtension =
             kind === "video" ? "mp4" : kind === "image" ? "jpg" : "file";
           const normalizedName = attachment.name?.trim() || "";
           acc.push({
             id: attachment.id || `${kind}-${index}`,
             kind,
-            url,
+            url: cached?.downloadUrl ?? url,
             title: normalizedName || "Вложение",
             downloadName: normalizedName || `chat-media-${index + 1}.${fallbackExtension}`,
             mimeType: attachment.mimeType,
+            threadId: accessThreadId || undefined,
+            messageId: accessMessageId || undefined,
+            mediaObjectId: mediaObjectId || undefined,
+            urlExpiresAt: cached?.urlExpiresAt ?? attachment.urlExpiresAt,
           });
           return acc;
         },
@@ -1762,7 +1829,7 @@ export default function ChatPage() {
         index: initialIndex >= 0 ? initialIndex : 0,
       });
     },
-    []
+    [selectedThreadId]
   );
 
   const shiftMediaPreview = useCallback((direction: 1 | -1) => {
@@ -1776,6 +1843,134 @@ export default function ChatPage() {
       };
     });
   }, []);
+
+  const refreshPreviewMediaItem = useCallback(
+    async (
+      item: ChatMediaPreviewItem,
+      options?: { forceRefresh?: boolean }
+    ): Promise<string | null> => {
+      const threadId = item.threadId?.trim() || selectedThreadId || "";
+      const messageId = item.messageId?.trim() || "";
+      const mediaObjectId = item.mediaObjectId?.trim() || "";
+      if (!threadId || !messageId || !mediaObjectId) return null;
+
+      const cached = options?.forceRefresh
+        ? null
+        : getFreshChatMediaSource(threadId, mediaObjectId);
+      if (cached) {
+        setMediaPreview((current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            items: current.items.map((previewItem) =>
+              previewItem.mediaObjectId === mediaObjectId &&
+              previewItem.messageId === messageId
+                ? {
+                    ...previewItem,
+                    url: cached.downloadUrl,
+                    urlExpiresAt: cached.urlExpiresAt ?? previewItem.urlExpiresAt,
+                    loading: false,
+                    error: false,
+                  }
+                : previewItem
+            ),
+          };
+        });
+        return cached.downloadUrl;
+      }
+
+      setMediaPreview((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          items: current.items.map((previewItem) =>
+            previewItem.mediaObjectId === mediaObjectId &&
+            previewItem.messageId === messageId
+              ? { ...previewItem, loading: true, error: false }
+              : previewItem
+          ),
+        };
+      });
+
+      try {
+        const access = await getTeacherChatMessageMediaAccess({
+          threadId,
+          messageId,
+          mediaObjectId,
+        });
+        rememberChatMediaSource({
+          threadId,
+          mediaObjectId,
+          downloadUrl: access.downloadUrl,
+          expiresAt: access.expiresAt,
+        });
+        setMessages((current) =>
+          current.map((message) => {
+            if (message.id !== messageId) return message;
+            return {
+              ...message,
+              attachments: (message.attachments ?? []).map((attachment) =>
+                (attachment.mediaObjectId || attachment.id) === mediaObjectId
+                  ? {
+                      ...attachment,
+                      url: access.downloadUrl,
+                      urlExpiresAt: access.expiresAt,
+                    }
+                  : attachment
+              ),
+            };
+          })
+        );
+        setMediaPreview((current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            items: current.items.map((previewItem) =>
+              previewItem.mediaObjectId === mediaObjectId &&
+              previewItem.messageId === messageId
+                ? {
+                    ...previewItem,
+                    url: access.downloadUrl,
+                    urlExpiresAt: access.expiresAt,
+                    loading: false,
+                    error: false,
+                  }
+                : previewItem
+            ),
+          };
+        });
+        return access.downloadUrl;
+      } catch {
+        setMediaPreview((current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            items: current.items.map((previewItem) =>
+              previewItem.mediaObjectId === mediaObjectId &&
+              previewItem.messageId === messageId
+                ? { ...previewItem, loading: false, error: true }
+                : previewItem
+            ),
+          };
+        });
+        return null;
+      }
+    },
+    [selectedThreadId]
+  );
+
+  useEffect(() => {
+    if (!previewCurrentMedia || previewCurrentMedia.loading) return;
+    if (!isChatMediaUrlExpiring(previewCurrentMedia.urlExpiresAt)) return;
+    void refreshPreviewMediaItem(previewCurrentMedia, { forceRefresh: true });
+  }, [
+    previewCurrentMedia?.id,
+    previewCurrentMedia?.messageId,
+    previewCurrentMedia?.mediaObjectId,
+    previewCurrentMedia?.urlExpiresAt,
+    previewCurrentMedia?.loading,
+    refreshPreviewMediaItem,
+  ]);
 
   const handleComposerAudioAction = useCallback(() => {
     if (sending) return;
@@ -2312,7 +2507,11 @@ export default function ChatPage() {
                                       onClick={() =>
                                         openMediaPreview(
                                           message.attachments ?? [],
-                                          attachment.id
+                                          attachment.id,
+                                          {
+                                            threadId: message.threadId,
+                                            messageId: message.id,
+                                          }
                                         )
                                       }
                                       aria-label={
@@ -2815,12 +3014,40 @@ export default function ChatPage() {
           <div
             className={`chat-page__preview-shell chat-page__preview-shell--${previewCurrentMedia.kind}`}
           >
-            {previewCurrentMedia.kind === "video" ? (
+            {previewCurrentMedia.loading ? (
+              <div className="chat-page__preview-status" role="status">
+                <CircularProgress size={24} thickness={4} />
+                <span>Открываем вложение...</span>
+              </div>
+            ) : null}
+            {previewCurrentMedia.error ? (
+              <div className="chat-page__preview-status chat-page__preview-status--error">
+                <span>Не удалось открыть вложение. Ссылка могла устареть.</span>
+                <button
+                  type="button"
+                  className="chat-page__preview-retry"
+                  onClick={() =>
+                    void refreshPreviewMediaItem(previewCurrentMedia, {
+                      forceRefresh: true,
+                    })
+                  }
+                >
+                  <RefreshRoundedIcon fontSize="small" />
+                  Обновить
+                </button>
+              </div>
+            ) : previewCurrentMedia.kind === "video" ? (
               <video
+                key={previewCurrentMedia.url}
                 controls
                 playsInline
                 preload="metadata"
                 src={previewCurrentMedia.url}
+                onError={() =>
+                  void refreshPreviewMediaItem(previewCurrentMedia, {
+                    forceRefresh: true,
+                  })
+                }
                 className="immersive-media-overlay__media chat-page__preview-media"
               />
             ) : previewCurrentMedia.kind === "file" ? (
@@ -2841,8 +3068,14 @@ export default function ChatPage() {
               </div>
             ) : (
               <img
+                key={previewCurrentMedia.url}
                 src={previewCurrentMedia.url}
                 alt={previewCurrentMedia.title}
+                onError={() =>
+                  void refreshPreviewMediaItem(previewCurrentMedia, {
+                    forceRefresh: true,
+                  })
+                }
                 className="immersive-media-overlay__media chat-page__preview-media"
               />
             )}

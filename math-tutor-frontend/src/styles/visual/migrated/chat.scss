@@ -2109,14 +2109,28 @@
 
 .chat-page__preview-shell {
   position: relative;
-  display: inline-grid;
+  width: min(100%, 1400px);
+  height: min(
+    100%,
+    calc(100dvh - 44px - var(--immersive-overlay-topbar-size, 46px) - 10px)
+  );
+  min-height: min(420px, calc(100dvh - 132px));
+  display: grid;
   place-items: center;
+  overflow: hidden;
   max-width: 100%;
   max-height: 100%;
 }
 
+.chat-page__preview-shell--image,
+.chat-page__preview-shell--video {
+  border-radius: 18px;
+}
+
 .chat-page__preview-shell--file {
   width: min(92vw, 1120px);
+  height: auto;
+  min-height: 0;
 }
 
 .chat-page__preview-file {
@@ -2180,6 +2194,64 @@
 .chat-page__preview-download:hover {
   opacity: 0.92;
   transform: scale(1.04);
+}
+
+.chat-page__preview-status {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  align-content: center;
+  padding: 24px;
+  text-align: center;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+  background: color-mix(in srgb, #07101f 48%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.chat-page__preview-status .MuiCircularProgress-root {
+  color: #ffffff;
+}
+
+.chat-page__preview-status--error {
+  position: relative;
+  min-width: min(88vw, 420px);
+  min-height: 180px;
+  border: 1px solid color-mix(in srgb, #ffffff 24%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, #111827 72%, transparent);
+  box-shadow: 0 24px 70px color-mix(in srgb, #07101f 34%, transparent);
+}
+
+.chat-page__preview-retry {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, #ffffff 28%, transparent);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  background: color-mix(in srgb, #ffffff 16%, transparent);
+  transition:
+    transform 0.16s ease,
+    background 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.chat-page__preview-retry:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, #ffffff 42%, transparent);
+  background: color-mix(in srgb, #ffffff 22%, transparent);
 }
 
 @keyframes chatMessagesSpin {
