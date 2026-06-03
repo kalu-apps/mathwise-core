@@ -1114,12 +1114,6 @@ export function StudentStudyCabinetPanel({
               </div>
               <div className="study-cabinet-panel__student-route-visual" aria-hidden="true">
                 <div className="study-cabinet-panel__student-route-chart">
-                  <span className="study-cabinet-panel__student-route-axis study-cabinet-panel__student-route-axis--y">
-                    Освоение
-                  </span>
-                  <span className="study-cabinet-panel__student-route-axis study-cabinet-panel__student-route-axis--x">
-                    Шаги маршрута
-                  </span>
                   <svg className="study-cabinet-panel__student-route-curve" viewBox="0 0 260 132" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="student-route-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -1152,16 +1146,16 @@ export function StudentStudyCabinetPanel({
                     style={{
                       left: `${Math.max(8, Math.min(92, courseProgress.percent))}%`,
                     }}
-                  />
+                  >
+                    <span>{courseProgress.percent}% сейчас</span>
+                  </span>
+                  <div className="study-cabinet-panel__student-route-zones">
+                    <span>Риск</span>
+                    <span>Темп</span>
+                    <span>Устойчиво</span>
+                  </div>
                 </div>
               </div>
-              <div className="study-cabinet-panel__student-route-footer">
-                <span className="study-cabinet-panel__student-route-chip">Шкала освоения</span>
-                <span>{courseProgress.percent < 100 ? "От зоны риска к устойчивому уровню" : "Устойчивое освоение подтверждено"}</span>
-              </div>
-              <span className="study-cabinet-panel__student-insight-track">
-                <i style={{ width: `${courseProgress.percent}%` }} />
-              </span>
             </article>
 
             <aside className="study-cabinet-panel__student-insights-panel" aria-label="Сводка обучения">

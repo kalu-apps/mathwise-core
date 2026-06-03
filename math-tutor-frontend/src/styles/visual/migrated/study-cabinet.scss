@@ -7699,3 +7699,378 @@
 [data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-label {
   color: rgba(237, 244, 255, 0.78) !important;
 }
+
+/* Analytics cards simplification: one metric, one chart, no decorative nesting. */
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-insight-card--progress,
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-card {
+  border-radius: 18px !important;
+  border-color: rgba(116, 130, 163, 0.22) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 252, 255, 0.94)) !important;
+  box-shadow:
+    0 18px 40px rgba(22, 34, 66, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-head,
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-head {
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-count,
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-stats span {
+  min-height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(151, 164, 196, 0.3) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  color: #17213d !important;
+  box-shadow: none !important;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-count:first-child {
+  border-color: transparent !important;
+  background: linear-gradient(135deg, #dd3f3f 0%, #f39a2f 48%, #149465 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(222, 91, 47, 0.16) !important;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-visual {
+  min-height: 224px;
+  margin-top: 6px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(118, 132, 166, 0.18) !important;
+  background:
+    linear-gradient(90deg, rgba(221, 63, 63, 0.08) 0 35%, rgba(243, 154, 47, 0.08) 35% 70%, rgba(20, 148, 101, 0.09) 70%),
+    linear-gradient(90deg, rgba(54, 69, 103, 0.055) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(54, 69, 103, 0.045) 1px, transparent 1px),
+    #fbfcff !important;
+  background-size: 100% 100%, 48px 48px, 48px 48px, 100% 100% !important;
+  overflow: hidden;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-visual::before,
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-visual::after {
+  display: none !important;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-chart {
+  height: 190px;
+  padding: 0;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-chart::before {
+  inset: 18px 18px 44px;
+  border: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, transparent 24%, rgba(54, 69, 103, 0.1) 24% 25%, transparent 25% 49%, rgba(54, 69, 103, 0.08) 49% 50%, transparent 50% 74%, rgba(54, 69, 103, 0.06) 74% 75%, transparent 75%),
+    linear-gradient(90deg, rgba(221, 63, 63, 0.05), rgba(243, 154, 47, 0.04), rgba(20, 148, 101, 0.05));
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-curve {
+  inset: 20px 18px 42px;
+  z-index: 3;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-curve-glow {
+  stroke: rgba(22, 33, 61, 0.09) !important;
+  stroke-width: 8 !important;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-curve-line {
+  stroke: url("#student-route-gradient") !important;
+  stroke-width: 3.2 !important;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-bars {
+  inset: 48px 38px 54px;
+  gap: 14px;
+  z-index: 2;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-bar {
+  min-height: 10px;
+  border-radius: 7px 7px 2px 2px;
+  opacity: var(--student-route-bar-opacity, 0.78);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #ffffff 26%, var(--student-route-bar-color)), var(--student-route-bar-color)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 10px 18px color-mix(in srgb, var(--student-route-bar-color) 14%, transparent) !important;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-marker {
+  top: 14px;
+  bottom: 40px;
+  width: 1px;
+  height: auto;
+  border-radius: 0;
+  background: rgba(22, 33, 61, 0.28);
+  transform: translateX(-50%);
+  color: inherit;
+  font-size: 0;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-marker::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 14px;
+  height: 14px;
+  border: 3px solid #ffffff;
+  border-radius: 999px;
+  background: #f39a2f;
+  box-shadow:
+    0 0 0 3px rgba(243, 154, 47, 0.18),
+    0 8px 16px rgba(22, 33, 61, 0.16);
+  transform: translate(-50%, 50%);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-marker span {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(151, 164, 196, 0.28);
+  background: rgba(255, 255, 255, 0.88);
+  color: #17213d;
+  font-size: 11px;
+  font-weight: 820;
+  white-space: nowrap;
+  box-shadow: 0 10px 24px rgba(22, 34, 66, 0.1);
+  transform: translate(-50%, -100%);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-zones {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 8px;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: 35% 35% 30%;
+  color: rgba(34, 52, 95, 0.58);
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-zones span:nth-child(2) {
+  text-align: center;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-zones span:nth-child(3) {
+  text-align: right;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-insight-track,
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-footer {
+  display: none !important;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-card {
+  padding: 18px !important;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-stage {
+  gap: 12px;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  overflow: visible;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview-card {
+  min-height: 48px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(151, 164, 196, 0.22);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: none;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview-card small {
+  color: rgba(34, 52, 95, 0.56);
+  font-size: 10px;
+  font-weight: 740;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview-card strong {
+  color: #17213d;
+  font-size: clamp(14px, 0.98vw, 17px);
+  line-height: 1.1;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-chart {
+  min-height: 220px;
+  padding: 18px 14px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(151, 164, 196, 0.18);
+  background:
+    linear-gradient(90deg, rgba(54, 69, 103, 0.055) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(54, 69, 103, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(249, 252, 255, 0.5));
+  background-size: 44px 44px, 44px 44px, 100% 100%;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-trend {
+  inset: 36px 22px 48px;
+  z-index: 1;
+  opacity: 0.42;
+  filter: none;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-line {
+  stroke: rgba(18, 141, 171, 0.82);
+  stroke-width: 2.8;
+  filter: none;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-area-fill {
+  fill: rgba(18, 141, 171, 0.06);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-average-line {
+  stroke: rgba(54, 69, 103, 0.18);
+  stroke-width: 1.2;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-strip {
+  min-height: 166px;
+  padding: 18px 4px 0;
+  gap: 8px;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-strip::before {
+  bottom: 27px;
+  background: rgba(54, 69, 103, 0.16);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-day {
+  grid-template-rows: 22px 112px 22px;
+  min-height: 156px;
+  border-radius: 10px;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-day.is-hovered,
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-day:focus-visible {
+  background: rgba(255, 255, 255, 0.5) !important;
+  box-shadow: inset 0 0 0 1px rgba(18, 141, 171, 0.14) !important;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-value {
+  color: rgba(34, 52, 95, 0.64);
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-capsule {
+  position: relative;
+  height: 112px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-capsule::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(54, 69, 103, 0.1);
+  transform: translateX(-50%);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-capsule i {
+  width: 54%;
+  min-height: 4px;
+  border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(180deg, var(--bar-top), var(--bar-mid) 52%, var(--bar-bottom)) !important;
+  box-shadow:
+    0 8px 16px color-mix(in srgb, var(--bar-bottom) 14%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+.study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-label {
+  color: rgba(34, 52, 95, 0.72);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-visual {
+    min-height: 210px;
+  }
+
+  .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-marker span {
+    display: none;
+  }
+
+  .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-insight-card--progress,
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-card,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-insight-card--progress,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-card {
+  background: linear-gradient(180deg, rgba(12, 18, 34, 0.98), rgba(16, 25, 45, 0.94)) !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-visual,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-visual {
+  background:
+    linear-gradient(90deg, rgba(248, 113, 113, 0.11) 0 35%, rgba(251, 191, 36, 0.1) 35% 70%, rgba(74, 222, 128, 0.1) 70%),
+    linear-gradient(90deg, rgba(164, 180, 219, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(164, 180, 219, 0.065) 1px, transparent 1px),
+    rgba(12, 19, 36, 0.92) !important;
+}
+
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-chart,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-chart {
+  background:
+    linear-gradient(90deg, rgba(164, 180, 219, 0.075) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(164, 180, 219, 0.06) 1px, transparent 1px),
+    rgba(12, 19, 36, 0.62);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview-card,
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-marker span,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview-card,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-marker span {
+  background: rgba(15, 25, 48, 0.78) !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  color: #edf4ff !important;
+}
+
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview-card strong,
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-zones,
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-value,
+:root[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-label,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-rhythm-overview-card strong,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-route-zones,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-value,
+[data-theme="dark"] .study-cabinet-panel.study-cabinet-panel--student-redesign .study-cabinet-panel__student-activity-label {
+  color: rgba(237, 244, 255, 0.8) !important;
+}
