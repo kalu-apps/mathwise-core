@@ -2532,14 +2532,17 @@
   }
 }
 
-/* 2026 messenger redesign: branded chat canvas, compact audio dock, spectral voice tracks. */
+/* 2026 messenger redesign: calm graph-paper thread canvas, compact audio dock, spectral voice tracks. */
 .chat-page {
-  --chat-canvas-base: color-mix(in srgb, #f7f9ff 82%, var(--background-elevated));
-  --chat-canvas-ink: color-mix(in srgb, #3f64d8 10%, transparent);
-  --chat-canvas-dot: color-mix(in srgb, #4c7bd9 18%, transparent);
-  --chat-canvas-line: color-mix(in srgb, #6d7fd6 9%, transparent);
-  --chat-canvas-glow-a: color-mix(in srgb, #6d7fd6 15%, transparent);
-  --chat-canvas-glow-b: color-mix(in srgb, #4ec7b0 13%, transparent);
+  --chat-canvas-base: color-mix(in srgb, #f8fbff 86%, var(--background-elevated));
+  --chat-canvas-ink: color-mix(in srgb, #5271c9 14%, transparent);
+  --chat-canvas-glow-a: color-mix(in srgb, #7e91d8 8%, transparent);
+  --chat-canvas-glow-b: color-mix(in srgb, #55c2b0 7%, transparent);
+  --chat-thread-bg: color-mix(in srgb, #fbfdff 88%, var(--background-elevated));
+  --chat-thread-grid-minor: color-mix(in srgb, #3d5fb7 5%, transparent);
+  --chat-thread-grid-major: color-mix(in srgb, #3d5fb7 10%, transparent);
+  --chat-thread-grid-axis: color-mix(in srgb, #55b8a8 7%, transparent);
+  --chat-thread-paper-wash: color-mix(in srgb, #ffffff 58%, transparent);
   --chat-wave-idle-2026: color-mix(in srgb, #7f96ba 48%, transparent);
   --chat-wave-active-2026: #3f7df0;
   --chat-wave-hot-2026: #4bd4b5;
@@ -2551,12 +2554,15 @@
 }
 
 :root[data-theme="dark"] .chat-page {
-  --chat-canvas-base: color-mix(in srgb, #101a32 86%, var(--background-elevated));
-  --chat-canvas-ink: color-mix(in srgb, #9bb7ff 10%, transparent);
-  --chat-canvas-dot: color-mix(in srgb, #93b7ff 20%, transparent);
-  --chat-canvas-line: color-mix(in srgb, #8aa4ff 11%, transparent);
-  --chat-canvas-glow-a: color-mix(in srgb, #496dff 18%, transparent);
-  --chat-canvas-glow-b: color-mix(in srgb, #35c7ae 14%, transparent);
+  --chat-canvas-base: color-mix(in srgb, #111a2d 88%, var(--background-elevated));
+  --chat-canvas-ink: color-mix(in srgb, #9fb6ff 13%, transparent);
+  --chat-canvas-glow-a: color-mix(in srgb, #6c86ff 9%, transparent);
+  --chat-canvas-glow-b: color-mix(in srgb, #4bd4bc 8%, transparent);
+  --chat-thread-bg: color-mix(in srgb, #101a2e 90%, var(--background-elevated));
+  --chat-thread-grid-minor: color-mix(in srgb, #a8baff 6%, transparent);
+  --chat-thread-grid-major: color-mix(in srgb, #a8baff 11%, transparent);
+  --chat-thread-grid-axis: color-mix(in srgb, #69dec8 9%, transparent);
+  --chat-thread-paper-wash: color-mix(in srgb, #17243e 46%, transparent);
   --chat-wave-idle-2026: color-mix(in srgb, #9fb6d8 42%, transparent);
   --chat-wave-active-2026: #6aa4ff;
   --chat-wave-hot-2026: #57ddc1;
@@ -2573,15 +2579,10 @@
   border-radius: 22px;
   border-color: color-mix(in srgb, var(--chat-canvas-ink) 72%, var(--border-subtle));
   background:
-    radial-gradient(
-      92% 72% at 0% 0%,
-      var(--chat-canvas-glow-a) 0%,
-      transparent 58%
-    ),
-    radial-gradient(
-      82% 70% at 100% 100%,
-      var(--chat-canvas-glow-b) 0%,
-      transparent 60%
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--chat-canvas-base) 94%, var(--chat-canvas-glow-a)),
+      color-mix(in srgb, var(--chat-canvas-base) 95%, var(--chat-canvas-glow-b))
     ),
     var(--chat-canvas-base);
   box-shadow:
@@ -2595,50 +2596,17 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background:
-    radial-gradient(
-      circle at 12px 12px,
-      var(--chat-canvas-dot) 0 1.15px,
-      transparent 1.35px
-    )
-    0 0 / 28px 28px,
-    linear-gradient(
-      135deg,
-      transparent 0 42px,
-      var(--chat-canvas-line) 42px 43px,
-      transparent 43px 86px
-    )
-    0 0 / 86px 86px,
-    linear-gradient(
-      45deg,
-      transparent 0 68px,
-      color-mix(in srgb, var(--chat-canvas-line) 70%, transparent) 68px 69px,
-      transparent 69px 136px
-    )
-    0 0 / 136px 136px;
-  opacity: 0.78;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--chat-thread-paper-wash) 72%, transparent),
+    transparent 38%,
+    color-mix(in srgb, var(--chat-canvas-glow-b) 20%, transparent)
+  );
+  opacity: 0.64;
 }
 
 .chat-page__conversation::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(
-      ellipse at 18% 22%,
-      transparent 0 44px,
-      color-mix(in srgb, var(--chat-canvas-ink) 70%, transparent) 45px 46px,
-      transparent 47px
-    ),
-    radial-gradient(
-      ellipse at 78% 68%,
-      transparent 0 56px,
-      color-mix(in srgb, var(--chat-canvas-ink) 52%, transparent) 57px 58px,
-      transparent 59px
-    );
-  opacity: 0.44;
+  content: none;
 }
 
 .chat-page__audio-dock,
@@ -2652,7 +2620,26 @@
 .chat-page__messages {
   padding: clamp(14px, 1.4vw, 22px);
   gap: 10px;
-  background: transparent;
+  background:
+    linear-gradient(90deg, var(--chat-thread-grid-major) 1px, transparent 1px)
+      0 0 / 96px 96px,
+    linear-gradient(var(--chat-thread-grid-major) 1px, transparent 1px)
+      0 0 / 96px 96px,
+    linear-gradient(90deg, var(--chat-thread-grid-minor) 1px, transparent 1px)
+      0 0 / 24px 24px,
+    linear-gradient(var(--chat-thread-grid-minor) 1px, transparent 1px)
+      0 0 / 24px 24px,
+    linear-gradient(90deg, transparent 0 49%, var(--chat-thread-grid-axis) 49% 50%, transparent 50%),
+    radial-gradient(
+      82% 46% at 50% 0%,
+      color-mix(in srgb, var(--chat-canvas-glow-a) 72%, transparent) 0%,
+      transparent 70%
+    ),
+    var(--chat-thread-bg);
+  background-attachment: local;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #ffffff 22%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--chat-canvas-ink) 28%, transparent);
 }
 
 .chat-page__day-separator span {
