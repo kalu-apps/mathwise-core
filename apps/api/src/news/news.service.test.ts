@@ -39,7 +39,12 @@ const createRepository = (seed: NewsPostDto[] = []): InMemoryNewsRepository => {
   };
 };
 
-const createMediaServiceMock = () =>
+const createMediaServiceMock = (options?: {
+  onRelease?: (params: {
+    objectIds: string[];
+    reason?: string;
+  }) => Promise<void> | void;
+}) =>
   ({
     getRuntimeDownloadUrlByObjectId: async (objectId: string) => ({
       objectId,
@@ -47,6 +52,12 @@ const createMediaServiceMock = () =>
       downloadUrl: `https://example.test/media/${objectId}`,
       expiresAt: new Date(Date.now() + 60_000).toISOString(),
     }),
+    releaseMediaObjects: async (params: {
+      objectIds: string[];
+      reason?: string;
+    }) => {
+      await options?.onRelease?.(params);
+    },
   }) as never;
 
 test("news: student feed hides targeted course updates for other students", async () => {
@@ -125,6 +136,137 @@ test("news: teacher can create and update own post", async () => {
   });
 
   assert.equal(updated.title, "Updated title");
+});
+
+test("news: update releases media detached from attachments", async () => {
+  const teacher = {
+    id: "teacher_1",
+    role: "teacher" as const,
+    email: "teacher@example.com",
+    firstName: "Teacher",
+    lastName: "One",
+  };
+  const repository = createRepository([
+    {
+      id: "news_1",
+      authorId: teacher.id,
+      authorName: "Teacher One",
+      title: "Announcement",
+      content: "Content",
+      tone: "general",
+      highlighted: false,
+      visibility: "all",
+      createdAt: "2026-04-03T00:00:00.000Z",
+      updatedAt: "2026-04-03T00:00:00.000Z",
+      targetUserIds: [],
+      attachments: [
+        {
+          id: "attachment_old",
+          kind: "image",
+          mediaObjectId: "media_old",
+        },
+        {
+          id: "attachment_keep",
+          kind: "video",
+          mediaObjectId: "media_keep",
+        },
+      ],
+    },
+  ]);
+  const released: string[][] = [];
+  const service = new NewsService(
+    repository as never,
+    createMediaServiceMock({
+      onRelease: async (params) => {
+        const saved = await repository.findById("news_1");
+        assert.deepEqual(
+          (saved?.attachments ?? []).map((attachment) => attachment.mediaObjectId),
+          ["media_keep", "media_new"]
+        );
+        released.push(params.objectIds);
+      },
+    })
+  );
+
+  await service.update({
+    actorUser: teacher,
+    newsId: "news_1",
+    actorId: teacher.id,
+    payload: {
+      attachments: [
+        {
+          id: "attachment_keep",
+          kind: "video",
+          mediaObjectId: "media_keep",
+        },
+        {
+          id: "attachment_new",
+          kind: "image",
+          mediaObjectId: "media_new",
+        },
+      ],
+    },
+  });
+
+  assert.equal(released.length, 1);
+  assert.deepEqual(released[0], ["media_old"]);
+});
+
+test("news: delete releases attached media after removing post", async () => {
+  const teacher = {
+    id: "teacher_1",
+    role: "teacher" as const,
+    email: "teacher@example.com",
+    firstName: "Teacher",
+    lastName: "One",
+  };
+  const repository = createRepository([
+    {
+      id: "news_1",
+      authorId: teacher.id,
+      authorName: "Teacher One",
+      title: "Announcement",
+      content: "Content",
+      tone: "general",
+      highlighted: false,
+      visibility: "all",
+      createdAt: "2026-04-03T00:00:00.000Z",
+      updatedAt: "2026-04-03T00:00:00.000Z",
+      targetUserIds: [],
+      attachments: [
+        {
+          id: "attachment_image",
+          kind: "image",
+          mediaObjectId: "media_image",
+        },
+        {
+          id: "attachment_external",
+          kind: "image",
+          url: "https://example.test/external.png",
+        },
+      ],
+    },
+  ]);
+  const released: string[][] = [];
+  const service = new NewsService(
+    repository as never,
+    createMediaServiceMock({
+      onRelease: (params) => {
+        assert.equal(repository.store.length, 0);
+        released.push(params.objectIds);
+      },
+    })
+  );
+
+  const deleted = await service.delete({
+    actorUser: teacher,
+    newsId: "news_1",
+    actorId: teacher.id,
+  });
+
+  assert.deepEqual(deleted, { id: "news_1" });
+  assert.equal(released.length, 1);
+  assert.deepEqual(released[0], ["media_image"]);
 });
 
 test("news: student cannot create post", async () => {

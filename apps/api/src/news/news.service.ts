@@ -91,6 +91,33 @@ const normalizeAttachments = (
     }, []);
 };
 
+const collectAttachmentMediaObjectIds = (
+  attachments: NewsAttachmentDto[] | undefined
+): string[] => {
+  if (!Array.isArray(attachments)) return [];
+  return Array.from(
+    new Set(
+      attachments
+        .map((attachment) =>
+          typeof attachment.mediaObjectId === "string"
+            ? attachment.mediaObjectId.trim()
+            : ""
+        )
+        .filter((item) => item.length > 0)
+    )
+  );
+};
+
+const diffDetachedAttachmentMediaObjectIds = (params: {
+  previousAttachments: NewsAttachmentDto[] | undefined;
+  nextAttachments: NewsAttachmentDto[] | undefined;
+}): string[] => {
+  const previous = collectAttachmentMediaObjectIds(params.previousAttachments);
+  if (previous.length === 0) return [];
+  const next = new Set(collectAttachmentMediaObjectIds(params.nextAttachments));
+  return previous.filter((mediaObjectId) => !next.has(mediaObjectId));
+};
+
 const canStudentViewNews = (item: NewsPostDto, studentId: string) => {
   if (item.visibility !== "course_students") return true;
   const targetUserIds = Array.isArray(item.targetUserIds) ? item.targetUserIds : [];
@@ -202,6 +229,37 @@ export class NewsService implements OnModuleInit {
     };
   }
 
+  private async releaseNewsMediaObjectIds(
+    objectIds: string[],
+    reason: string
+  ): Promise<void> {
+    const normalized = Array.from(
+      new Set(objectIds.map((item) => item.trim()).filter(Boolean))
+    );
+    if (normalized.length === 0) return;
+
+    try {
+      await this.mediaService.releaseMediaObjects({
+        objectIds: normalized,
+        reason,
+      });
+    } catch (error) {
+      if (typeof console !== "undefined") {
+        console.warn("[news] media-release-failed", {
+          objectIds: normalized,
+          reason,
+          error:
+            error instanceof Error
+              ? {
+                  name: error.name,
+                  message: error.message,
+                }
+              : error,
+        });
+      }
+    }
+  }
+
   async create(params: {
     actorUser: AuthUserDto;
     payload: CreateNewsPostPayloadDto;
@@ -294,6 +352,15 @@ export class NewsService implements OnModuleInit {
       throw new HttpException({ error: "Некорректная видимость объявления." }, 400);
     }
 
+    const nextAttachments =
+      params.payload.attachments !== undefined
+        ? normalizeAttachments(params.payload.attachments)
+        : normalizeAttachments(post.attachments);
+    const detachedMediaIds = diffDetachedAttachmentMediaObjectIds({
+      previousAttachments: post.attachments,
+      nextAttachments,
+    });
+
     const updated = await this.newsRepository.update({
       id: post.id,
       title,
@@ -307,10 +374,7 @@ export class NewsService implements OnModuleInit {
         params.payload.imageUrl !== undefined
           ? trimOrNull(params.payload.imageUrl)
           : trimOrNull(post.imageUrl),
-      attachments:
-        params.payload.attachments !== undefined
-          ? normalizeAttachments(params.payload.attachments)
-          : normalizeAttachments(post.attachments),
+      attachments: nextAttachments,
       externalUrl:
         params.payload.externalUrl !== undefined
           ? trimOrNull(params.payload.externalUrl)
@@ -329,6 +393,7 @@ export class NewsService implements OnModuleInit {
     if (!updated) {
       throw new HttpException({ error: "Объявление не найдено." }, 404);
     }
+    await this.releaseNewsMediaObjectIds(detachedMediaIds, "news_update_detach");
     return this.hydrateNewsPost(updated, new Map());
   }
 
@@ -354,10 +419,12 @@ export class NewsService implements OnModuleInit {
       throw new HttpException({ error: "Недостаточно прав." }, 403);
     }
 
+    const detachedMediaIds = collectAttachmentMediaObjectIds(post.attachments);
     const deleted = await this.newsRepository.deleteById(post.id);
     if (!deleted) {
       throw new HttpException({ error: "Объявление не найдено." }, 404);
     }
+    await this.releaseNewsMediaObjectIds(detachedMediaIds, "news_delete");
     return { id: post.id };
   }
 }
