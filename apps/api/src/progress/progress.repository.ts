@@ -83,13 +83,4 @@ export class ProgressRepository {
     );
   }
 
-  async deleteProgressByCourse(courseId: string): Promise<void> {
-    await this.databaseService.execute(
-      `
-        DELETE FROM lesson_progress
-        WHERE course_id = $1
-      `,
-      [courseId]
-    );
-  }
 }

@@ -19,12 +19,7 @@ import {
   type AuthIdentityIntentRecord,
 } from "./auth.identity-intent.repository";
 
-const IDENTITY_INTENT_CHANNELS: AuthIdentityIntentChannel[] = [
-  "email",
-  "google",
-  "yandex",
-  "vk",
-];
+const IDENTITY_INTENT_CHANNELS: AuthIdentityIntentChannel[] = ["email"];
 
 const buildEmailVerificationCode = () =>
   `${Math.floor(100000 + Math.random() * 900000)}`;

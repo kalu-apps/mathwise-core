@@ -12,8 +12,6 @@ import type {
   AuthIdentityCompletionStatusResponseContract,
   AuthIdentityIntentChannelContract,
   AuthIdentityIntentConflictReasonContract,
-  AuthOauthWidgetConfigResponseContract,
-  AuthOauthWidgetProviderContract,
   AuthIdentityIntentStartResponseContract,
   AuthIdentityIntentStateContract,
   AuthIdentityIntentStatusResponseContract,
@@ -21,30 +19,6 @@ import type {
   AuthPasswordSaveResponseContract,
   AuthPasswordStatusResponseContract,
 } from "@/shared/contracts/auth.contract";
-
-const readNodeEnv = (name: string) => {
-  if (typeof process === "undefined") return undefined;
-  return process.env?.[name];
-};
-
-const getApiBase = () => {
-  const raw =
-    import.meta.env.VITE_API_BASE_URL?.trim() ??
-    readNodeEnv("API_BASE_URL")?.trim();
-  if (!raw) return "/api";
-  const normalized = raw.endsWith("/") ? raw.slice(0, -1) : raw;
-  if (normalized === "/api" || normalized.endsWith("/api")) {
-    return normalized;
-  }
-  if (normalized.includes("/api/")) {
-    return normalized;
-  }
-  return `${normalized}/api`;
-};
-
-export type SocialProvider = "google" | "yandex" | "vk";
-export type OauthWidgetProviderConfig = AuthOauthWidgetProviderContract;
-export type OauthWidgetConfigResponse = AuthOauthWidgetConfigResponseContract;
 
 export type IdentityIntentChannel = AuthIdentityIntentChannelContract;
 export type IdentityIntentState = AuthIdentityIntentStateContract;
@@ -115,10 +89,6 @@ export async function getIdentityIntentStatus(
   intentId: string
 ): Promise<IdentityIntentStatusResponse> {
   return authGateway.getIdentityIntentStatus(intentId);
-}
-
-export async function getOauthWidgetConfig(): Promise<OauthWidgetConfigResponse> {
-  return authGateway.getOauthWidgetConfig();
 }
 
 export type PasswordStatusResponse = AuthPasswordStatusResponseContract;
@@ -247,19 +217,6 @@ export async function confirmPasswordReset(params: {
     throw new Error(reset.message || "Не удалось обновить пароль.");
   }
   return reset;
-}
-
-export function buildSocialLoginStartUrl(
-  provider: SocialProvider,
-  redirectPath?: string
-): string {
-  const base = getApiBase();
-  const target = new URL(`${base}/auth/oauth/${provider}/start`, window.location.origin);
-  const normalizedRedirect = redirectPath?.trim();
-  if (normalizedRedirect) {
-    target.searchParams.set("redirect", normalizedRedirect);
-  }
-  return target.toString();
 }
 
 export type SelfHealAccessResponse = {

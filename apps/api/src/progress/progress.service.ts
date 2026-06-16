@@ -99,7 +99,7 @@ export class ProgressService implements OnModuleInit {
         });
         return;
       }
-      await this.progressRepository.deleteProgressByCourse(courseId);
+      // Course removal is a teacher-side hide. Keep every student's course progress.
       return;
     }
 

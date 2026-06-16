@@ -61,6 +61,30 @@ test("runtime config: non-local requires absolute API_CORS_ORIGIN", () => {
   }
 });
 
+test("runtime config: auth idle timeout defaults to one hour and supports override", () => {
+  const snapshot = { ...process.env };
+  try {
+    process.env.APP_ENV = "local";
+    process.env.API_CORS_ORIGIN = "http://localhost:5173";
+    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
+    process.env.REDIS_URL = "redis://127.0.0.1:6379";
+    process.env.CARD_WEBHOOK_SECRET = "test-secret";
+    process.env.AUTH_PASSWORD_PEPPER = "pepper";
+    process.env.EMAIL_DELIVERY_MODE = "disabled";
+    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
+    delete process.env.AUTH_SESSION_IDLE_TIMEOUT_SEC;
+
+    const defaultConfig = getApiRuntimeConfig();
+    assert.equal(defaultConfig.authSessionIdleTimeoutSec, 60 * 60);
+
+    process.env.AUTH_SESSION_IDLE_TIMEOUT_SEC = "900";
+    const overriddenConfig = getApiRuntimeConfig();
+    assert.equal(overriddenConfig.authSessionIdleTimeoutSec, 900);
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
 test("runtime config: provider email mode requires EMAIL_PROVIDER_API_KEY", () => {
   const snapshot = { ...process.env };
   try {
@@ -376,12 +400,11 @@ test("runtime config: yookassa test mode reads and normalizes config", () => {
   }
 });
 
-test("runtime config: yookassa return url origin must match oauth redirect origin", () => {
+test("runtime config: yookassa return url origin must match cors origin", () => {
   const snapshot = { ...process.env };
   try {
     process.env.APP_ENV = "stage";
     process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
-    process.env.AUTH_OAUTH_REDIRECT_BASE_URL = "https://stage.mathwise.ru";
     process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
     process.env.REDIS_URL = "redis://127.0.0.1:6379";
     process.env.CARD_WEBHOOK_SECRET = "test-secret";
@@ -396,136 +419,7 @@ test("runtime config: yookassa return url origin must match oauth redirect origi
 
     assert.throws(
       () => getApiRuntimeConfig(),
-      /YOOKASSA_RETURN_URL origin must match AUTH_OAUTH_REDIRECT_BASE_URL/
-    );
-  } finally {
-    restoreEnv(snapshot);
-  }
-});
-
-test("runtime config: enabled social oauth provider requires credentials", () => {
-  const snapshot = { ...process.env };
-  try {
-    process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
-    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
-    process.env.REDIS_URL = "redis://127.0.0.1:6379";
-    process.env.CARD_WEBHOOK_SECRET = "test-secret";
-    process.env.AUTH_PASSWORD_PEPPER = "pepper";
-    process.env.AUTH_COOKIE_SECURE = "true";
-    process.env.AUTH_DEBUG_TOKENS = "false";
-    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
-    process.env.AUTH_OAUTH_GOOGLE_ENABLED = "true";
-    process.env.AUTH_OAUTH_GOOGLE_CLIENT_ID = "google-client-id";
-    delete process.env.AUTH_OAUTH_GOOGLE_CLIENT_SECRET;
-
-    assert.throws(
-      () => getApiRuntimeConfig(),
-      /Missing required env for google oauth/
-    );
-  } finally {
-    restoreEnv(snapshot);
-  }
-});
-
-test("runtime config: enabled social oauth provider is parsed and exposed", () => {
-  const snapshot = { ...process.env };
-  try {
-    process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
-    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
-    process.env.REDIS_URL = "redis://127.0.0.1:6379";
-    process.env.CARD_WEBHOOK_SECRET = "test-secret";
-    process.env.AUTH_PASSWORD_PEPPER = "pepper";
-    process.env.AUTH_COOKIE_SECURE = "true";
-    process.env.AUTH_DEBUG_TOKENS = "false";
-    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
-    process.env.AUTH_OAUTH_REDIRECT_BASE_URL = "https://stage.mathwise.ru";
-    process.env.AUTH_OAUTH_GOOGLE_ENABLED = "true";
-    process.env.AUTH_OAUTH_GOOGLE_CLIENT_ID = "google-client-id";
-    process.env.AUTH_OAUTH_GOOGLE_CLIENT_SECRET = "google-client-secret";
-
-    const config = getApiRuntimeConfig();
-    assert.equal(config.authOauthRedirectBaseUrl, "https://stage.mathwise.ru");
-    assert.equal(config.authOauthProviders.google.enabled, true);
-    assert.equal(config.authOauthProviders.google.clientId, "google-client-id");
-    assert.equal(
-      config.authOauthProviders.google.authorizeUrl,
-      "https://accounts.google.com/o/oauth2/v2/auth"
-    );
-  } finally {
-    restoreEnv(snapshot);
-  }
-});
-
-test("runtime config: oauth widget config is disabled by default", () => {
-  const snapshot = { ...process.env };
-  try {
-    process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
-    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
-    process.env.REDIS_URL = "redis://127.0.0.1:6379";
-    process.env.CARD_WEBHOOK_SECRET = "test-secret";
-    process.env.AUTH_PASSWORD_PEPPER = "pepper";
-    process.env.AUTH_COOKIE_SECURE = "true";
-    process.env.AUTH_DEBUG_TOKENS = "false";
-    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
-    process.env.AUTH_OAUTH_GOOGLE_ENABLED = "false";
-    delete process.env.AUTH_OAUTH_WIDGETS_ENABLED;
-    delete process.env.AUTH_OAUTH_GOOGLE_WIDGET_ENABLED;
-
-    const config = getApiRuntimeConfig();
-    assert.equal(config.authOauthWidgets.enabled, false);
-    assert.equal(config.authOauthWidgets.providers.google.enabled, false);
-  } finally {
-    restoreEnv(snapshot);
-  }
-});
-
-test("runtime config: oauth widget can be configured before oauth provider is enabled", () => {
-  const snapshot = { ...process.env };
-  try {
-    process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
-    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
-    process.env.REDIS_URL = "redis://127.0.0.1:6379";
-    process.env.CARD_WEBHOOK_SECRET = "test-secret";
-    process.env.AUTH_PASSWORD_PEPPER = "pepper";
-    process.env.AUTH_COOKIE_SECURE = "true";
-    process.env.AUTH_DEBUG_TOKENS = "false";
-    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
-    process.env.AUTH_OAUTH_WIDGETS_ENABLED = "true";
-    process.env.AUTH_OAUTH_GOOGLE_ENABLED = "false";
-    process.env.AUTH_OAUTH_GOOGLE_WIDGET_ENABLED = "true";
-    process.env.AUTH_OAUTH_GOOGLE_WIDGET_CLIENT_ID = "google-widget-client-id";
-    process.env.AUTH_OAUTH_GOOGLE_WIDGET_SCRIPT_URL =
-      "https://accounts.google.com/gsi/client";
-    const config = getApiRuntimeConfig();
-    assert.equal(config.authOauthWidgets.enabled, true);
-    assert.equal(config.authOauthWidgets.providers.google.enabled, true);
-    assert.equal(config.authOauthProviders.google.enabled, false);
-  } finally {
-    restoreEnv(snapshot);
-  }
-});
-
-test("runtime config: oauth redirect base url must match cors origin outside local", () => {
-  const snapshot = { ...process.env };
-  try {
-    process.env.APP_ENV = "stage";
-    process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
-    process.env.AUTH_OAUTH_REDIRECT_BASE_URL = "https://accounts.mathwise.ru";
-    process.env.DATABASE_URL = "postgres://u:p@127.0.0.1:5432/db";
-    process.env.REDIS_URL = "redis://127.0.0.1:6379";
-    process.env.CARD_WEBHOOK_SECRET = "test-secret";
-    process.env.AUTH_PASSWORD_PEPPER = "pepper";
-    process.env.AUTH_COOKIE_SECURE = "true";
-    process.env.AUTH_DEBUG_TOKENS = "false";
-    process.env.WORKBOOK_LAUNCH_ENABLED = "false";
-
-    assert.throws(
-      () => getApiRuntimeConfig(),
-      /AUTH_OAUTH_REDIRECT_BASE_URL must match API_CORS_ORIGIN origin/
+      /YOOKASSA_RETURN_URL origin must match API_CORS_ORIGIN/
     );
   } finally {
     restoreEnv(snapshot);

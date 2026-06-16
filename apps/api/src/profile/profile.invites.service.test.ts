@@ -21,7 +21,7 @@ test.beforeEach(() => {
   process.env.TEACHER_INVITES_ENABLED = "true";
   process.env.TEACHER_INVITE_TTL_SEC = "86400";
   process.env.AUTH_PASSWORD_PEPPER = "pepper-test";
-  process.env.AUTH_OAUTH_REDIRECT_BASE_URL = "https://stage.mathwise.ru";
+  process.env.API_CORS_ORIGIN = "https://stage.mathwise.ru";
 });
 
 test.afterEach(() => {
@@ -107,10 +107,15 @@ const createService = (overrides?: {
 
   const sessionStore = {
     createSession: async () => ({
-      id: "sid_1",
-      userId: studentActor.id,
-      issuedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+      ok: true as const,
+      session: {
+        id: "sid_1",
+        userId: studentActor.id,
+        issuedAt: new Date().toISOString(),
+        lastActivityAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+        idleExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+      },
     }),
     ...(overrides?.sessionStore ?? {}),
   };
@@ -373,10 +378,15 @@ test("teacher invite: registration path creates session for new student", async 
       createSession: async (userId: string) => {
         createdSessionFor = userId;
         return {
-          id: "sid_created",
-          userId,
-          issuedAt: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          ok: true as const,
+          session: {
+            id: "sid_created",
+            userId,
+            issuedAt: new Date().toISOString(),
+            lastActivityAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+            idleExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          },
         };
       },
     },

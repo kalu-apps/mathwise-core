@@ -2,13 +2,12 @@ import {
   Button,
   Dialog,
   DialogContent,
-  Divider,
   IconButton,
   InputAdornment,
   TextField,
   Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
@@ -19,13 +18,9 @@ import { ButtonPending } from "@/shared/ui/loading";
 import { Notice, type NoticeTone } from "@/shared/ui/Notice";
 import type { AuthModalContext } from "@/features/auth/model/authUiStore";
 import {
-  buildSocialLoginStartUrl,
-  getOauthWidgetConfig,
-  type OauthWidgetConfigResponse,
   requestPasswordReset,
   resetPasswordWithRecoveryToken,
   verifyPasswordResetCode,
-  type SocialProvider,
 } from "@/features/auth/model/api";
 
 interface AuthModalProps {
@@ -92,86 +87,6 @@ const validatePasswordPolicy = (password: string): string | null => {
   return null;
 };
 
-const mapSocialButton = (provider: SocialProvider) => {
-  if (provider === "vk") {
-    return {
-      label: t("auth.socialVk"),
-      compactLabel: "VK ID",
-      className: "auth-modal__social-btn--vk",
-    };
-  }
-  if (provider === "yandex") {
-    return {
-      label: t("auth.socialYandex"),
-      compactLabel: "Яндекс ID",
-      className: "auth-modal__social-btn--yandex",
-    };
-  }
-  return {
-    label: t("auth.socialGoogle"),
-    compactLabel: "Google",
-    className: "auth-modal__social-btn--google",
-  };
-};
-
-const SocialProviderMark = ({ provider }: { provider: SocialProvider }) => {
-  if (provider === "google") {
-    return (
-      <svg
-        className="auth-modal__social-brand auth-modal__social-brand--google"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <path
-          fill="#EA4335"
-          d="M12 10.18v3.96h5.49c-.24 1.27-.96 2.35-2.04 3.08l3.3 2.55c1.92-1.77 3.03-4.38 3.03-7.5 0-.72-.06-1.41-.2-2.09z"
-        />
-        <path
-          fill="#34A853"
-          d="M12 22c2.7 0 4.96-.89 6.61-2.43l-3.3-2.55c-.92.62-2.1.99-3.31.99-2.55 0-4.7-1.72-5.47-4.03L3.12 16.6C4.77 19.88 8.15 22 12 22z"
-        />
-        <path
-          fill="#FBBC05"
-          d="M6.53 13.98a5.98 5.98 0 0 1-.3-1.98c0-.69.11-1.35.3-1.98L3.12 7.4A9.97 9.97 0 0 0 2 12c0 1.64.39 3.2 1.12 4.6z"
-        />
-        <path
-          fill="#4285F4"
-          d="M12 5.99c1.47 0 2.79.51 3.83 1.51l2.87-2.87C16.96 2.99 14.7 2 12 2 8.15 2 4.77 4.12 3.12 7.4l3.41 2.62c.77-2.31 2.92-4.03 5.47-4.03z"
-        />
-      </svg>
-    );
-  }
-  if (provider === "vk") {
-    return (
-      <svg
-        className="auth-modal__social-brand auth-modal__social-brand--vk"
-        viewBox="0 0 448 512"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <path
-          fill="currentColor"
-          d="M75.6 168.3l51.1 0c1.7 85.5 39.4 121.7 69.3 129.2l0-129.2 48.2 0 0 73.7c29.5-3.2 60.5-36.8 70.9-73.7l48.2 0c-3.9 19.2-11.8 37.3-23.1 53.3s-25.7 29.5-42.5 39.6c18.7 9.3 35.2 22.4 48.4 38.5s22.9 34.9 28.3 55l-53 0c-4.9-17.5-14.8-33.1-28.6-45s-30.7-19.4-48.7-21.6l0 66.6-5.8 0c-102.1 0-160.3-70-162.8-186.5z"
-        />
-      </svg>
-    );
-  }
-  return (
-    <svg
-      className="auth-modal__social-brand auth-modal__social-brand--yandex"
-      viewBox="0 0 256 512"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        fill="currentColor"
-        d="M153.1 315.8L65.7 512 2 512 98 302.2C52.9 279.3 22.8 237.8 22.8 161.1 22.7 53.7 90.8 0 171.7 0l82.3 0 0 512-55.1 0 0-196.2-45.8 0zM198.9 46.5l-29.4 0c-44.4 0-87.4 29.4-87.4 114.6 0 82.3 39.4 108.8 87.4 108.8l29.4 0 0-223.4z"
-      />
-    </svg>
-  );
-};
-
 const parseRecoveryCode = (value: string) => value.replace(/\D+/g, "").slice(0, 6);
 
 const flowMetaByContext: Record<AuthModalContext, FlowMeta> = {
@@ -228,13 +143,6 @@ export function AuthModal({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [socialLoadingProvider, setSocialLoadingProvider] = useState<SocialProvider | null>(
-    null
-  );
-  const [oauthWidgetConfig, setOauthWidgetConfig] = useState<OauthWidgetConfigResponse | null>(
-    null
-  );
-  const [oauthWidgetConfigLoaded, setOauthWidgetConfigLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
@@ -252,18 +160,6 @@ export function AuthModal({
   const [recoverDebugCode, setRecoverDebugCode] = useState<string | null>(null);
 
   const normalizedEmail = normalizeEmailInput(email);
-  const socialProviders = useMemo<SocialProvider[]>(
-    () => ["vk", "yandex", "google"],
-    []
-  );
-  const providerConfigByKey = useMemo(() => {
-    const byKey: Partial<Record<SocialProvider, OauthWidgetConfigResponse["providers"][number]>> =
-      {};
-    oauthWidgetConfig?.providers.forEach((provider) => {
-      byKey[provider.provider] = provider;
-    });
-    return byKey;
-  }, [oauthWidgetConfig]);
   const flowMeta = flowMetaByContext[context];
   const recoverStage = recoveryStageMeta[recoverStep];
   const subtitleText = viewMode === "login" ? flowMeta.loginSubtitle : recoverStage.subtitle;
@@ -274,9 +170,6 @@ export function AuthModal({
     setPassword("");
     setShowPassword(false);
     setSubmitLoading(false);
-    setSocialLoadingProvider(null);
-    setOauthWidgetConfig(null);
-    setOauthWidgetConfigLoaded(false);
     setError(initialError ?? null);
     setInfoMessage(null);
 
@@ -298,26 +191,6 @@ export function AuthModal({
     blurActiveElement();
     onClose();
   }, [onClose]);
-
-  useEffect(() => {
-    if (!open || viewMode !== "login") return;
-    let cancelled = false;
-    setOauthWidgetConfigLoaded(false);
-    getOauthWidgetConfig()
-      .then((payload) => {
-        if (cancelled) return;
-        setOauthWidgetConfig(payload);
-        setOauthWidgetConfigLoaded(true);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setOauthWidgetConfig(null);
-        setOauthWidgetConfigLoaded(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, viewMode]);
 
   const passwordVisibilityAdornment = (
     visible: boolean,
@@ -370,14 +243,6 @@ export function AuthModal({
     } finally {
       setSubmitLoading(false);
     }
-  };
-
-  const handleSocialLogin = (provider: SocialProvider) => {
-    setError(null);
-    setInfoMessage(null);
-    setSocialLoadingProvider(provider);
-    const redirectPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    window.location.assign(buildSocialLoginStartUrl(provider, redirectPath));
   };
 
   const handleRequestRecoveryCode = async () => {
@@ -526,41 +391,6 @@ export function AuthModal({
     setRecoverMessage(null);
   };
 
-  const socialButtons = socialProviders.map((provider) => {
-    const social = mapSocialButton(provider);
-    const providerConfig = providerConfigByKey[provider];
-    const providerOauthEnabled = providerConfig?.oauthEnabled ?? true;
-    const providerWidgetReady = providerConfig?.ready ?? false;
-    const providerDisabled =
-      Boolean(socialLoadingProvider) ||
-      (oauthWidgetConfigLoaded && !providerOauthEnabled);
-    return (
-      <Button
-        key={provider}
-        type="button"
-        variant="outlined"
-        className={`auth-modal__social-btn ${social.className} ${
-          providerWidgetReady ? "auth-modal__social-btn--official-ready" : ""
-        }`}
-        onClick={() => handleSocialLogin(provider)}
-        disabled={providerDisabled}
-        aria-label={social.label}
-        data-oauth-provider={provider}
-        data-oauth-widget-ready={providerWidgetReady ? "true" : "false"}
-      >
-        <span className="auth-modal__social-mark" aria-hidden="true">
-          <SocialProviderMark provider={provider} />
-        </span>
-        <span className="auth-modal__social-label">{social.compactLabel}</span>
-        {socialLoadingProvider === provider ? (
-          <span className="auth-modal__social-loading">{t("common.loading")}</span>
-        ) : null}
-      </Button>
-    );
-  });
-  const hasEnabledSocialProviders =
-    oauthWidgetConfig?.providers.some((provider) => provider.oauthEnabled) ?? true;
-
   const recoverPrimaryAction =
     recoverStep === 1
       ? {
@@ -671,29 +501,10 @@ export function AuthModal({
               type="button"
               className="auth-modal__forgot-btn"
               onClick={openRecovery}
-              disabled={submitLoading || Boolean(socialLoadingProvider)}
+              disabled={submitLoading}
             >
               {t("auth.passwordResetShow")}
             </button>
-
-            <div className="auth-modal__divider-row" aria-hidden="true">
-              <Divider className="auth-modal__divider-line" />
-              <Typography variant="caption" className="auth-modal__divider-text">
-                {t("auth.socialDivider")}
-              </Typography>
-              <Divider className="auth-modal__divider-line" />
-            </div>
-
-            {socialButtons.length ? (
-              <div className="auth-modal__social-grid">{socialButtons}</div>
-            ) : null}
-
-            {oauthWidgetConfigLoaded &&
-            !hasEnabledSocialProviders ? (
-              <Typography variant="caption" className="auth-modal__social-hint">
-                {t("auth.socialProvidersNotConfigured")}
-              </Typography>
-            ) : null}
           </>
         ) : (
           <>

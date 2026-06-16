@@ -85,7 +85,7 @@ import {
   toMinutes,
   selectUpcomingBookingReminder,
 } from "@/pages/teacher/model/selectors";
-import { deleteCourseWithCascade } from "@/pages/teacher/model/courseDeleteFlow";
+import { deleteCourseFromTeacherWorkspace } from "@/pages/teacher/model/courseDeleteFlow";
 
 import {
   deleteCourse,
@@ -93,18 +93,15 @@ import {
 } from "@/entities/course/model/storage";
 import { createTeacherInvite } from "@/entities/profile/model/storage";
 import {
-  deletePurchasesByCourse,
   getPurchases,
 } from "@/entities/purchase/model/storage";
 import {
   getLessonsByCourse,
 } from "@/entities/lesson/model/storage";
 import {
-  deleteCourseContentItems,
   getCourseContentItems,
   getCourseMaterialBlocks,
 } from "@/features/assessments/model/storage";
-import { deleteProgressByCourse } from "@/entities/progress/model/storage";
 import {
   saveTeacherAvailability,
 } from "@/features/teacher-availability/api";
@@ -784,11 +781,8 @@ export default function TeacherDashboard() {
   );
 
   const deleteCourseFull = async (courseId: string) => {
-    await deleteCourseWithCascade(courseId, {
+    await deleteCourseFromTeacherWorkspace(courseId, {
       deleteCourse,
-      deleteCourseContentItems,
-      deletePurchasesByCourse,
-      deleteProgressByCourse,
       refreshAll,
     });
   };

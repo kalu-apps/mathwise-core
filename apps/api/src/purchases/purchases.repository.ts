@@ -189,17 +189,6 @@ export class PurchasesRepository {
     return row ? mapPurchaseRow(row) : null;
   }
 
-  async deletePurchasesByCourse(courseId: string): Promise<void> {
-    await this.databaseService.execute(
-      "DELETE FROM profile_purchases WHERE course_id = $1",
-      [courseId]
-    );
-    await this.databaseService.execute(
-      "DELETE FROM user_course_access WHERE course_id = $1",
-      [courseId]
-    );
-  }
-
   async insertCheckout(checkout: CheckoutProcessDto): Promise<void> {
     await this.databaseService.execute(
       `

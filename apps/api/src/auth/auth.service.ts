@@ -1,9 +1,6 @@
 import crypto from "node:crypto";
-import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
-import {
-  getApiRuntimeConfig,
-  type ApiAuthSocialProviderConfig,
-} from "../config/runtime.config";
+import { Injectable, OnModuleInit } from "@nestjs/common";
+import { getApiRuntimeConfig } from "../config/runtime.config";
 import { DatabaseService } from "../db/database.service";
 import { ensureId, normalizeEmail, validateEmailFormat } from "../purchases/purchases.helpers";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -12,28 +9,10 @@ import { hashPassword, verifyPassword } from "./auth.password";
 import { AuthRepository } from "./auth.repository";
 import { readAuthSeedUsers, upsertAuthUsers } from "./auth.seed";
 import { SessionStore } from "./session.store";
-import {
-  OAUTH_STATE_PREFIX,
-  SOCIAL_PROVIDERS,
-  type OauthProviderDiagnostics,
-  type OauthProfileResult,
-  type OauthStatePayload,
-  buildAuthorizationUrl as buildOauthAuthorizationUrl,
-  buildClientRedirectUrl as buildOauthClientRedirectUrl,
-  buildPkceCodeChallenge as buildOauthPkceCodeChallenge,
-  consumeOauthState as consumeOauthStatePayload,
-  fetchSocialProfile as fetchOauthSocialProfile,
-  fingerprint as fingerprintOauthState,
-  generatePkceCodeVerifier as generateOauthPkceCodeVerifier,
-  getOauthCallbackUrl as getOauthProviderCallbackUrl,
-  parseSocialProvider as parseOauthProvider,
-  sanitizeClientRedirectPath as sanitizeOauthClientRedirectPath,
-} from "./auth.oauth-orchestration";
 import type {
   AuthFirstPasswordCompleteResponseDto,
   AuthFirstPasswordStatusResponseDto,
   AuthIdentityCompletionStateDto,
-  AuthOauthWidgetConfigResponseDto,
   AuthIdentityCompletionStatusResponseDto,
   AuthLogoutResponseDto,
   AuthPasswordSaveResponseDto,
@@ -41,7 +20,6 @@ import type {
   AuthPasswordResetResponseDto,
   AuthRecoveryRequestResponseDto,
   AuthRecoveryVerifyResponseDto,
-  AuthSocialProvider,
   AuthUserDto,
   RequestMagicCodeResponseDto,
 } from "./auth.types";
@@ -62,10 +40,13 @@ const buildOpaqueToken = () =>
 
 type PasswordChangeReason = "first_password_set" | "password_changed" | "password_reset";
 
+const SESSION_ALREADY_ACTIVE_CODE = "session_already_active";
+const SESSION_ALREADY_ACTIVE_MESSAGE =
+  "Этот аккаунт уже открыт на другом устройстве или в другом браузере. Выйдите из предыдущей сессии либо повторите попытку после автоматического выхода при бездействии.";
+
 @Injectable()
 export class AuthService implements OnModuleInit {
   private readonly runtimeConfig = getApiRuntimeConfig();
-  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     private readonly databaseService: DatabaseService,
@@ -120,389 +101,6 @@ export class AuthService implements OnModuleInit {
         ),
       });
     }
-  }
-
-  getEnabledSocialProviders(): AuthSocialProvider[] {
-    return SOCIAL_PROVIDERS.filter(
-      (provider) => this.runtimeConfig.authOauthProviders[provider]?.enabled
-    );
-  }
-
-  getOauthWidgetConfig(): AuthOauthWidgetConfigResponseDto {
-    const widgetsEnabled = this.runtimeConfig.authOauthWidgets.enabled;
-    const providers = SOCIAL_PROVIDERS.map((provider) => {
-      const oauthProviderConfig = this.runtimeConfig.authOauthProviders[provider];
-      const widgetProviderConfig =
-        this.runtimeConfig.authOauthWidgets.providers[provider];
-      const ready = Boolean(
-        widgetsEnabled &&
-          widgetProviderConfig?.enabled &&
-          widgetProviderConfig?.clientId &&
-          widgetProviderConfig?.scriptUrl
-      );
-      const interactive = Boolean(ready && oauthProviderConfig?.enabled);
-      return {
-        provider,
-        oauthEnabled: Boolean(oauthProviderConfig?.enabled),
-        widgetEnabled: Boolean(widgetProviderConfig?.enabled),
-        ready,
-        interactive,
-        clientId: ready ? widgetProviderConfig.clientId : null,
-        scriptUrl: ready ? widgetProviderConfig.scriptUrl : null,
-        mode: widgetProviderConfig.mode,
-      };
-    });
-
-    return {
-      ok: true,
-      widgetsEnabled,
-      providers,
-    };
-  }
-
-  async buildSocialLoginStartUrl(params: {
-    provider: string;
-    redirectPath?: string;
-  }): Promise<
-    | { ok: true; redirectUrl: string }
-    | {
-        ok: false;
-        redirectUrl: string;
-        errorCode:
-          | "provider_not_supported"
-          | "provider_disabled"
-          | "provider_misconfigured";
-      }
-  > {
-    const provider = this.parseSocialProvider(params.provider);
-    const redirectPath = this.sanitizeClientRedirectPath(params.redirectPath);
-
-    if (!provider) {
-      return {
-        ok: false,
-        errorCode: "provider_not_supported",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath,
-          errorCode: "provider_not_supported",
-        }),
-      };
-    }
-
-    const providerConfig = this.runtimeConfig.authOauthProviders[provider];
-    if (!providerConfig?.enabled) {
-      return {
-        ok: false,
-        errorCode: "provider_disabled",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath,
-          provider,
-          errorCode: "provider_disabled",
-        }),
-      };
-    }
-    if (!providerConfig.clientId || !providerConfig.clientSecret) {
-      this.logger.warn(`[oauth:start] provider=${provider} provider_misconfigured`);
-      return {
-        ok: false,
-        errorCode: "provider_misconfigured",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath,
-          provider,
-          errorCode: "provider_misconfigured",
-        }),
-      };
-    }
-
-    const state = buildOpaqueToken();
-    const codeVerifier =
-      provider === "vk" ? this.generatePkceCodeVerifier() : undefined;
-    const payload: OauthStatePayload = {
-      provider,
-      redirectPath,
-      issuedAt: nowIso(),
-      codeVerifier,
-    };
-    await this.redisService.set(
-      `${OAUTH_STATE_PREFIX}${state}`,
-      JSON.stringify(payload),
-      this.runtimeConfig.authOauthStateTtlSec
-    );
-    this.logger.log(
-      `[oauth:start] provider=${provider} pkce=${codeVerifier ? "enabled" : "disabled"} state=${this.fingerprint(state)}`
-    );
-
-    const authorizationUrl = this.buildAuthorizationUrl({
-      provider,
-      providerConfig,
-      state,
-      codeChallenge: codeVerifier
-        ? this.buildPkceCodeChallenge(codeVerifier)
-        : undefined,
-    });
-
-    return {
-      ok: true,
-      redirectUrl: authorizationUrl.toString(),
-    };
-  }
-
-  async completeSocialLogin(params: {
-    provider: string;
-    code?: string;
-    state?: string;
-    providerError?: string;
-  }): Promise<{
-    ok: boolean;
-    redirectUrl: string;
-    sessionId?: string;
-    errorCode?: string;
-  }> {
-    const provider = this.parseSocialProvider(params.provider);
-    if (!provider) {
-      return {
-        ok: false,
-        errorCode: "provider_not_supported",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath: "/",
-          errorCode: "provider_not_supported",
-        }),
-      };
-    }
-
-    const state = params.state?.trim() || "";
-    if (!state) {
-      this.logger.warn(`[oauth:callback] provider=${provider} missing_state`);
-      return {
-        ok: false,
-        errorCode: "invalid_state",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath: "/",
-          provider,
-          errorCode: "invalid_state",
-        }),
-      };
-    }
-
-    const statePayload = await this.consumeOauthState(state);
-    if (!statePayload || statePayload.provider !== provider) {
-      this.logger.warn(
-        `[oauth:callback] provider=${provider} invalid_state state=${this.fingerprint(state)}`
-      );
-      return {
-        ok: false,
-        errorCode: "invalid_state",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath: "/",
-          provider,
-          errorCode: "invalid_state",
-        }),
-      };
-    }
-    const redirectPath = statePayload.redirectPath;
-    this.logger.log(
-      `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} has_code=${
-        params.code?.trim() ? "yes" : "no"
-      }`
-    );
-
-    if (params.providerError?.trim()) {
-      this.logger.warn(
-        `[oauth:callback] provider=${provider} provider_error=${params.providerError.trim()}`
-      );
-      return {
-        ok: false,
-        errorCode: "provider_rejected",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath,
-          provider,
-          errorCode: "provider_rejected",
-        }),
-      };
-    }
-
-    const providerConfig = this.runtimeConfig.authOauthProviders[provider];
-    if (!providerConfig?.enabled || !providerConfig.clientId || !providerConfig.clientSecret) {
-      this.logger.warn(
-        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} provider_misconfigured`
-      );
-      return {
-        ok: false,
-        errorCode: "provider_misconfigured",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath,
-          provider,
-          errorCode: "provider_misconfigured",
-        }),
-      };
-    }
-
-    const code = params.code?.trim() || "";
-    if (!code) {
-      this.logger.warn(
-        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} missing_code`
-      );
-      return {
-        ok: false,
-        errorCode: "token_exchange_failed",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath,
-          provider,
-          errorCode: "token_exchange_failed",
-        }),
-      };
-    }
-
-    if (provider === "vk" && !statePayload.codeVerifier) {
-      this.logger.warn(
-        `[oauth:callback] provider=vk state=${this.fingerprint(state)} missing_pkce_verifier`
-      );
-      return {
-        ok: false,
-        errorCode: "invalid_state",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath,
-          provider,
-          errorCode: "invalid_state",
-        }),
-      };
-    }
-
-    const profileResult = await this.fetchSocialProfile(
-      provider,
-      providerConfig,
-      code,
-      {
-        codeVerifier: statePayload.codeVerifier,
-      }
-    );
-    if (!profileResult.ok) {
-      const diagnosticsDetails = this.formatOauthDiagnostics(profileResult.diagnostics);
-      this.logger.warn(
-        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} profile_result=${profileResult.errorCode}${diagnosticsDetails}`
-      );
-      return {
-        ok: false,
-        errorCode: profileResult.errorCode,
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath,
-          provider,
-          errorCode: profileResult.errorCode,
-        }),
-      };
-    }
-
-    const normalizedEmail = normalizeEmail(profileResult.profile.email);
-    if (!normalizedEmail || !validateEmailFormat(normalizedEmail)) {
-      this.logger.warn(
-        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} invalid_email`
-      );
-      return {
-        ok: false,
-        errorCode: "email_missing",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath,
-          provider,
-          errorCode: "email_missing",
-        }),
-      };
-    }
-    if (!profileResult.profile.emailVerified) {
-      this.logger.warn(
-        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} email_not_verified`
-      );
-      return {
-        ok: false,
-        errorCode: "email_not_verified",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath,
-          provider,
-          errorCode: "email_not_verified",
-        }),
-      };
-    }
-
-    const user = await this.authRepository.findByEmail(normalizedEmail);
-    if (!user) {
-      this.logger.warn(
-        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} account_not_found`
-      );
-      return {
-        ok: false,
-        errorCode: "account_not_found",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath,
-          provider,
-          errorCode: "account_not_found",
-        }),
-      };
-    }
-
-    const identityByProvider = await this.authRepository.findIdentityByProvider({
-      provider,
-      providerUserId: profileResult.profile.providerUserId,
-    });
-    if (identityByProvider && identityByProvider.userId !== user.id) {
-      this.logger.warn(
-        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} identity_conflict_provider_user`
-      );
-      return {
-        ok: false,
-        errorCode: "identity_conflict",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath,
-          provider,
-          errorCode: "identity_conflict",
-        }),
-      };
-    }
-
-    const identityByUser = await this.authRepository.findIdentityByUserAndProvider({
-      userId: user.id,
-      provider,
-    });
-    if (
-      identityByUser &&
-      identityByUser.providerUserId !== profileResult.profile.providerUserId
-    ) {
-      this.logger.warn(
-        `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} identity_conflict_user_provider`
-      );
-      return {
-        ok: false,
-        errorCode: "identity_conflict",
-        redirectUrl: this.buildClientRedirectUrl({
-          redirectPath,
-          provider,
-          errorCode: "identity_conflict",
-        }),
-      };
-    }
-
-    await this.authRepository.upsertIdentity({
-      id: identityByUser?.id ?? identityByProvider?.id ?? ensureId("identity"),
-      userId: user.id,
-      provider,
-      providerUserId: profileResult.profile.providerUserId,
-      email: normalizedEmail,
-    });
-
-    const session = await this.sessionStore.createSession(user.id);
-    await this.safeReconcileIdentityCompletion({
-      userId: user.id,
-      identityVerifiedHint: true,
-      accountFinalizedHint: true,
-      source: `social_login:${provider}`,
-    });
-    this.logger.log(
-      `[oauth:callback] provider=${provider} state=${this.fingerprint(state)} success user_id=${user.id}`
-    );
-    return {
-      ok: true,
-      sessionId: session.id,
-      redirectUrl: this.buildClientRedirectUrl({
-        redirectPath,
-      }),
-    };
   }
 
   async ensureUserByEmail(params: {
@@ -601,7 +199,7 @@ export class AuthService implements OnModuleInit {
     code: string;
   }): Promise<
     | { ok: true; user: AuthUserDto; sessionId: string }
-    | { ok: false; status: number; error: string }
+    | { ok: false; status: number; error: string; code?: string }
   > {
     const normalizedEmail = normalizeEmail(params.email);
     const code = params.code.trim();
@@ -642,10 +240,18 @@ export class AuthService implements OnModuleInit {
       };
     }
     const session = await this.sessionStore.createSession(user.id);
+    if (!session.ok) {
+      return {
+        ok: false,
+        status: 409,
+        code: SESSION_ALREADY_ACTIVE_CODE,
+        error: SESSION_ALREADY_ACTIVE_MESSAGE,
+      };
+    }
     return {
       ok: true,
       user,
-      sessionId: session.id,
+      sessionId: session.session.id,
     };
   }
 
@@ -712,7 +318,15 @@ export class AuthService implements OnModuleInit {
       photo: userWithCredential.photo,
     };
     const session = await this.sessionStore.createSession(user.id);
-    return { ok: true, user, sessionId: session.id };
+    if (!session.ok) {
+      return {
+        ok: false,
+        status: 409,
+        code: SESSION_ALREADY_ACTIVE_CODE,
+        error: SESSION_ALREADY_ACTIVE_MESSAGE,
+      };
+    }
+    return { ok: true, user, sessionId: session.session.id };
   }
 
   async getPasswordStatus(userId: string): Promise<AuthPasswordStatusResponseDto> {
@@ -1238,105 +852,25 @@ export class AuthService implements OnModuleInit {
     });
   }
 
-  private parseSocialProvider(value: string): AuthSocialProvider | null {
-    return parseOauthProvider(value);
-  }
-
-  private sanitizeClientRedirectPath(raw: string | undefined): string {
-    return sanitizeOauthClientRedirectPath(raw);
-  }
-
-  private buildClientRedirectUrl(params: {
-    redirectPath: string;
-    provider?: AuthSocialProvider;
-    errorCode?: string;
-  }): string {
-    return buildOauthClientRedirectUrl(this.runtimeConfig.authOauthRedirectBaseUrl, params);
-  }
-
-  private getOauthCallbackUrl(provider: AuthSocialProvider): string {
-    return getOauthProviderCallbackUrl(
-      this.runtimeConfig.authOauthRedirectBaseUrl,
-      provider
-    );
-  }
-
-  private buildAuthorizationUrl(params: {
-    provider: AuthSocialProvider;
-    providerConfig: ApiAuthSocialProviderConfig;
-    state: string;
-    codeChallenge?: string;
-  }): URL {
-    return buildOauthAuthorizationUrl({
-      ...params,
-      redirectBaseUrl: this.runtimeConfig.authOauthRedirectBaseUrl,
-    });
-  }
-
-  private async consumeOauthState(state: string): Promise<OauthStatePayload | null> {
-    return consumeOauthStatePayload({
-      redisService: this.redisService,
-      state,
-    });
-  }
-
-  private async fetchSocialProfile(
-    provider: AuthSocialProvider,
-    providerConfig: ApiAuthSocialProviderConfig,
-    code: string,
-    options?: { codeVerifier?: string }
-  ): Promise<OauthProfileResult> {
-    return fetchOauthSocialProfile({
-      provider,
-      providerConfig,
-      code,
-      redirectBaseUrl: this.runtimeConfig.authOauthRedirectBaseUrl,
-      codeVerifier: options?.codeVerifier,
-    });
-  }
-
-  private generatePkceCodeVerifier(): string {
-    return generateOauthPkceCodeVerifier();
-  }
-
-  private buildPkceCodeChallenge(codeVerifier: string): string {
-    return buildOauthPkceCodeChallenge(codeVerifier);
-  }
-
-  private fingerprint(value: string): string {
-    return fingerprintOauthState(value);
-  }
-
-  private formatOauthDiagnostics(diagnostics?: OauthProviderDiagnostics): string {
-    if (!diagnostics) return "";
-    const parts: string[] = [];
-    parts.push(`stage=${diagnostics.stage}`);
-    if (typeof diagnostics.httpStatus === "number") {
-      parts.push(`http_status=${diagnostics.httpStatus}`);
-    }
-    if (diagnostics.transport) {
-      parts.push(`transport=${diagnostics.transport}`);
-    }
-    if (diagnostics.providerError) {
-      parts.push(`provider_error=${diagnostics.providerError}`);
-    }
-    if (diagnostics.providerErrorDescription) {
-      parts.push(`provider_error_description=${diagnostics.providerErrorDescription}`);
-    }
-    return parts.length > 0 ? ` diagnostics(${parts.join(" ")})` : "";
-  }
-
   async getSession(sessionId: string | null): Promise<AuthUserDto | null> {
     if (!sessionId) return null;
     const session = await this.sessionStore.readSession(sessionId);
     if (!session) return null;
-    const expiresAtMs = Date.parse(session.expiresAt);
-    if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+    if (this.sessionStore.isSessionExpired(session)) {
+      await this.sessionStore.revokeSession(session.id);
+      return null;
+    }
+    if (!(await this.sessionStore.isActiveSession(session))) {
       await this.sessionStore.revokeSession(session.id);
       return null;
     }
     const user = await this.authRepository.findById(session.userId);
     if (!user) {
+      await this.sessionStore.revokeSession(session.id);
+      return null;
+    }
+    const touchedSession = await this.sessionStore.touchSessionActivity(session);
+    if (!touchedSession) {
       await this.sessionStore.revokeSession(session.id);
       return null;
     }

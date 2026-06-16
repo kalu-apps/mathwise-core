@@ -135,6 +135,7 @@ const createServiceForCheckout = (options?: {
         teacherId: "teacher_1",
         status: "published",
       }),
+      isTeacherDeleted: async () => false,
     } as never,
     {
       findAll: async () => [],

@@ -162,8 +162,7 @@ export class PurchasesService implements OnModuleInit {
     if (!normalizedCourseId) {
       throw new HttpException({ error: "courseId обязателен." }, 400);
     }
-    await this.purchasesRepository.deletePurchasesByCourse(normalizedCourseId);
-    await this.mediaService.processOrphanCandidates(200);
+    // Course removal is a teacher-side hide. Purchase history and entitlements stay intact.
   }
 
   async checkoutPurchase(params: {
@@ -191,6 +190,9 @@ export class PurchasesService implements OnModuleInit {
 
     const course = await this.coursesRepository.findPublishedById(courseId);
     if (!course) {
+      throw new HttpException({ error: "Курс не найден." }, 404);
+    }
+    if (await this.coursesRepository.isTeacherDeleted(courseId)) {
       throw new HttpException({ error: "Курс не найден." }, 404);
     }
 

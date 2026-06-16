@@ -59,9 +59,21 @@ export class AccessRepository {
   async hasActiveEntitlement(userId: string, courseId: string): Promise<boolean> {
     const rows = await this.databaseService.query<{ hasActiveEntitlement: boolean }>(
       `
-        SELECT has_active_entitlement AS "hasActiveEntitlement"
-        FROM user_course_access
-        WHERE user_id = $1 AND course_id = $2
+        SELECT (
+          EXISTS (
+            SELECT 1
+            FROM user_course_access
+            WHERE user_id = $1
+              AND course_id = $2
+              AND has_active_entitlement = TRUE
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM profile_purchases
+            WHERE user_id = $1
+              AND course_id = $2
+          )
+        ) AS "hasActiveEntitlement"
         LIMIT 1
       `,
       [userId, courseId]

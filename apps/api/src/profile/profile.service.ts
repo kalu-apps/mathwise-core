@@ -295,7 +295,7 @@ export class ProfileService implements OnModuleInit {
     return {
       ok: true,
       invite,
-      inviteUrl: `${this.runtimeConfig.authOauthRedirectBaseUrl}/invite?token=${encodeURIComponent(
+      inviteUrl: `${this.runtimeConfig.corsOrigin}/invite?token=${encodeURIComponent(
         rawToken
       )}`,
     };
@@ -487,7 +487,17 @@ export class ProfileService implements OnModuleInit {
       });
 
       const createdSession = await this.sessionStore.createSession(resolvedStudent.id);
-      sessionId = createdSession.id;
+      if (!createdSession.ok) {
+        throw new HttpException(
+          {
+            error:
+              "Этот аккаунт уже открыт на другом устройстве или в другом браузере. Выйдите из предыдущей сессии либо повторите попытку после автоматического выхода при бездействии.",
+            code: "session_already_active",
+          },
+          409
+        );
+      }
+      sessionId = createdSession.session.id;
     }
 
     if (!resolvedStudent) {

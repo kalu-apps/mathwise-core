@@ -56,6 +56,29 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return result === "OK";
   }
 
+  async setIfValue(
+    key: string,
+    expectedValue: string,
+    nextValue: string,
+    ttlSec: number
+  ): Promise<boolean> {
+    const ttl = Math.max(1, Math.floor(ttlSec));
+    const result = await this.client.eval(
+      `
+        if redis.call("GET", KEYS[1]) == ARGV[1] then
+          redis.call("SET", KEYS[1], ARGV[2], "EX", ARGV[3])
+          return 1
+        end
+        return 0
+      `,
+      {
+        keys: [key],
+        arguments: [expectedValue, nextValue, String(ttl)],
+      }
+    );
+    return result === 1 || result === "1";
+  }
+
   async releaseLock(key: string, token: string): Promise<void> {
     await this.client.eval(
       `

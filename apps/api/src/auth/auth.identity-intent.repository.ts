@@ -52,7 +52,7 @@ export class AuthIdentityIntentRepository {
     await this.databaseService.execute(`
       CREATE TABLE IF NOT EXISTS auth_identity_intents (
         id TEXT PRIMARY KEY,
-        channel TEXT NOT NULL CHECK (channel IN ('email', 'google', 'yandex', 'vk')),
+        channel TEXT NOT NULL CHECK (channel IN ('email')),
         identity_value TEXT NOT NULL,
         identity_email TEXT,
         verification_state TEXT NOT NULL CHECK (verification_state IN ('pending', 'verified', 'expired', 'consumed', 'conflict')),

@@ -69,6 +69,42 @@ test("purchases: cancel checkout returns cached idempotent response", async () =
   });
 });
 
+test("purchases: course-level delete request preserves purchase history", async () => {
+  await withRequiredRuntimeEnv(async () => {
+    let deletedPurchases = false;
+    let processedOrphans = false;
+
+    const service = new PurchasesService(
+      {
+        deletePurchasesByCourse: async () => {
+          deletedPurchases = true;
+        },
+      } as never,
+      {} as never,
+      {} as never,
+      {
+        processOrphanCandidates: async () => {
+          processedOrphans = true;
+        },
+      } as never,
+      {} as never,
+      {} as never,
+      {} as never
+    );
+
+    await service.deletePurchasesByCourse("course_1", {
+      id: "teacher_1",
+      email: "teacher@example.test",
+      firstName: "Teacher",
+      lastName: "One",
+      role: "teacher",
+    });
+
+    assert.equal(deletedPurchases, false);
+    assert.equal(processedOrphans, false);
+  });
+});
+
 test("purchases: webhook rejects stale timestamp", async () => {
   await withRequiredRuntimeEnv(async () => {
     const purchasesRepository = {

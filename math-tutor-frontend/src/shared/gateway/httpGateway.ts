@@ -5,7 +5,6 @@ import type {
   AuthIdentityIntentVerifyResponseContract,
   AuthLogoutResponseContract,
   AuthMagicLinkRequestResponseContract,
-  AuthOauthWidgetConfigResponseContract,
   AuthSessionResponseContract,
 } from "@/shared/contracts/auth.contract";
 import type {
@@ -210,11 +209,6 @@ export const httpGateway: AuthGateway = {
   ): Promise<AuthIdentityIntentStatusResponseContract> {
     return requestHttpJson<AuthIdentityIntentStatusResponseContract>(
       `/auth/identity-intents/${encodeURIComponent(intentId)}/status`
-    );
-  },
-  async getOauthWidgetConfig(): Promise<AuthOauthWidgetConfigResponseContract> {
-    return requestHttpJson<AuthOauthWidgetConfigResponseContract>(
-      "/auth/oauth/widget-config"
     );
   },
   probeSession: probeAuthSession,

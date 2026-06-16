@@ -23,6 +23,7 @@ type CourseRow = {
   visualSeed: number | null;
   visualPalette: string | null;
   visualVariant: number | null;
+  teacherDeletedAt?: string | null;
 };
 
 type CourseSnapshotRow = {
@@ -91,6 +92,10 @@ export class CoursesRepository {
     await this.databaseService.execute(`
       ALTER TABLE courses_catalog
       ADD COLUMN IF NOT EXISTS visual_variant INTEGER NOT NULL DEFAULT 0
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE courses_catalog
+      ADD COLUMN IF NOT EXISTS teacher_deleted_at TEXT
     `);
     await this.databaseService.execute(`
       CREATE TABLE IF NOT EXISTS course_releases (
@@ -173,6 +178,7 @@ export class CoursesRepository {
           visual_variant AS "visualVariant"
         FROM courses_catalog
         WHERE teacher_id = $1
+          AND teacher_deleted_at IS NULL
         ORDER BY updated_at DESC, title ASC
       `,
       [teacherId]
@@ -187,6 +193,9 @@ export class CoursesRepository {
       FROM course_release_pointer crp
       JOIN course_releases cr
         ON cr.id = crp.active_release_id
+      JOIN courses_catalog cc
+        ON cc.id = crp.course_id
+      WHERE cc.teacher_deleted_at IS NULL
       ORDER BY LOWER(COALESCE(cr.course_snapshot_json->>'title', '')) ASC
     `);
     return rows
@@ -220,6 +229,19 @@ export class CoursesRepository {
       [courseId]
     );
     return rows.length > 0;
+  }
+
+  async isTeacherDeleted(courseId: string): Promise<boolean> {
+    const rows = await this.databaseService.query<{ teacherDeletedAt: string | null }>(
+      `
+        SELECT teacher_deleted_at AS "teacherDeletedAt"
+        FROM courses_catalog
+        WHERE id = $1
+        LIMIT 1
+      `,
+      [courseId]
+    );
+    return Boolean(rows[0]?.teacherDeletedAt);
   }
 
   async findById(courseId: string): Promise<CourseCatalogItemDto | null> {
@@ -342,6 +364,7 @@ export class CoursesRepository {
           visual_seed = EXCLUDED.visual_seed,
           visual_palette = EXCLUDED.visual_palette,
           visual_variant = EXCLUDED.visual_variant,
+          teacher_deleted_at = NULL,
           updated_at = NOW()
       `,
       [
@@ -363,13 +386,15 @@ export class CoursesRepository {
   }
 
   async deleteDraft(courseId: string): Promise<void> {
-    await this.databaseService.execute("DELETE FROM courses_catalog WHERE id = $1", [courseId]);
-    await this.databaseService.execute("DELETE FROM course_release_pointer WHERE course_id = $1", [
-      courseId,
-    ]);
-    await this.databaseService.execute("DELETE FROM course_releases WHERE course_id = $1", [
-      courseId,
-    ]);
+    await this.databaseService.execute(
+      `
+        UPDATE courses_catalog
+        SET teacher_deleted_at = COALESCE(teacher_deleted_at, $2),
+            updated_at = NOW()
+        WHERE id = $1
+      `,
+      [courseId, new Date().toISOString()]
+    );
   }
 
   async publishDraft(input: PublishReleaseInput): Promise<{ releaseId: string; version: number }> {

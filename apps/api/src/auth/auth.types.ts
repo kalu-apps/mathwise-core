@@ -1,6 +1,5 @@
 export type AuthUserRole = "student" | "teacher";
-export type AuthSocialProvider = "google" | "yandex" | "vk";
-export type AuthIdentityIntentChannel = "email" | AuthSocialProvider;
+export type AuthIdentityIntentChannel = "email";
 export type AuthIdentityIntentState =
   | "pending"
   | "verified"
@@ -46,25 +45,6 @@ export type AuthRecoveryVerifyResponseDto = {
   ok: boolean;
   message: string;
   recoveryToken?: string;
-};
-
-export type AuthOauthWidgetModeDto = "oauth_redirect";
-
-export type AuthOauthWidgetProviderDto = {
-  provider: AuthSocialProvider;
-  oauthEnabled: boolean;
-  widgetEnabled: boolean;
-  ready: boolean;
-  interactive: boolean;
-  clientId: string | null;
-  scriptUrl: string | null;
-  mode: AuthOauthWidgetModeDto;
-};
-
-export type AuthOauthWidgetConfigResponseDto = {
-  ok: true;
-  widgetsEnabled: boolean;
-  providers: AuthOauthWidgetProviderDto[];
 };
 
 export type AuthPasswordResetResponseDto = {
@@ -172,15 +152,7 @@ export type StoredSession = {
   id: string;
   userId: string;
   issuedAt: string;
+  lastActivityAt: string;
   expiresAt: string;
-};
-
-export type AuthSocialProfile = {
-  provider: AuthSocialProvider;
-  providerUserId: string;
-  email: string;
-  emailVerified: boolean;
-  firstName?: string;
-  lastName?: string;
-  photo?: string;
+  idleExpiresAt: string;
 };

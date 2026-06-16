@@ -5,9 +5,22 @@ import { RedisService } from "../redis/redis.service";
 import type { StoredSession } from "./auth.types";
 
 const SESSION_PREFIX = "auth:session:";
+const ACTIVE_SESSION_PREFIX = "auth:active-session:";
 const MAGIC_CODE_PREFIX = "auth:magic:";
 const MAGIC_CODE_TTL_SEC = 10 * 60;
 const MAGIC_CODE_MAX_ATTEMPTS = 6;
+const SECOND_MS = 1000;
+
+export type CreateSessionResult =
+  | {
+      ok: true;
+      session: StoredSession;
+    }
+  | {
+      ok: false;
+      reason: "already_active";
+      activeSessionId: string | null;
+    };
 
 type StoredMagicCode = {
   code: string;
@@ -34,47 +47,288 @@ export class SessionStore {
 
   constructor(private readonly redisService: RedisService) {}
 
-  async createSession(userId: string): Promise<StoredSession> {
-    const issuedAt = nowIso();
-    const expiresAt = new Date(
-      Date.now() + this.runtimeConfig.authSessionTtlSec * 1000
-    ).toISOString();
-    const session: StoredSession = {
-      id: ensureId(),
-      userId,
-      issuedAt,
-      expiresAt,
+  async createSession(userId: string): Promise<CreateSessionResult> {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const activeSession = await this.readActiveSession(userId);
+      if (activeSession) {
+        return {
+          ok: false,
+          reason: "already_active",
+          activeSessionId: activeSession.id,
+        };
+      }
+
+      const session = this.buildSession(userId);
+      const ttlSec = this.getSessionTtlSec(session);
+      await this.redisService.set(
+        this.sessionKey(session.id),
+        JSON.stringify(session),
+        ttlSec
+      );
+
+      const claimed = await this.redisService.setIfAbsent(
+        this.activeSessionKey(userId),
+        session.id,
+        ttlSec
+      );
+      if (claimed) {
+        return { ok: true, session };
+      }
+
+      await this.redisService.del(this.sessionKey(session.id));
+    }
+
+    const activeSessionId = await this.redisService.get(this.activeSessionKey(userId));
+    return {
+      ok: false,
+      reason: "already_active",
+      activeSessionId,
     };
-    await this.redisService.set(
-      `${SESSION_PREFIX}${session.id}`,
-      JSON.stringify(session),
-      this.runtimeConfig.authSessionTtlSec
-    );
-    return session;
   }
 
   async readSession(sessionId: string): Promise<StoredSession | null> {
-    const raw = await this.redisService.get(`${SESSION_PREFIX}${sessionId}`);
+    const raw = await this.redisService.get(this.sessionKey(sessionId));
     if (!raw) return null;
     try {
-      const parsed = JSON.parse(raw) as StoredSession;
+      const parsed = JSON.parse(raw) as Partial<StoredSession>;
       if (
         !parsed ||
         typeof parsed !== "object" ||
         typeof parsed.id !== "string" ||
         typeof parsed.userId !== "string" ||
+        typeof parsed.issuedAt !== "string" ||
         typeof parsed.expiresAt !== "string"
       ) {
         return null;
       }
-      return parsed;
+
+      const issuedAtMs = Date.parse(parsed.issuedAt);
+      const expiresAtMs = Date.parse(parsed.expiresAt);
+      if (!Number.isFinite(issuedAtMs) || !Number.isFinite(expiresAtMs)) {
+        return null;
+      }
+
+      const lastActivityAt =
+        typeof parsed.lastActivityAt === "string" &&
+        Number.isFinite(Date.parse(parsed.lastActivityAt))
+          ? parsed.lastActivityAt
+          : parsed.issuedAt;
+      const lastActivityAtMs = Date.parse(lastActivityAt);
+      const idleExpiresAt =
+        typeof parsed.idleExpiresAt === "string" &&
+        Number.isFinite(Date.parse(parsed.idleExpiresAt))
+          ? parsed.idleExpiresAt
+          : new Date(
+              lastActivityAtMs +
+                this.runtimeConfig.authSessionIdleTimeoutSec * SECOND_MS
+            ).toISOString();
+
+      return {
+        id: parsed.id,
+        userId: parsed.userId,
+        issuedAt: parsed.issuedAt,
+        lastActivityAt,
+        expiresAt: parsed.expiresAt,
+        idleExpiresAt,
+      };
     } catch {
       return null;
     }
   }
 
   async revokeSession(sessionId: string): Promise<void> {
-    await this.redisService.del(`${SESSION_PREFIX}${sessionId}`);
+    const session = await this.readSession(sessionId);
+    await this.redisService.del(this.sessionKey(sessionId));
+    if (session) {
+      await this.redisService.releaseLock(
+        this.activeSessionKey(session.userId),
+        session.id
+      );
+    }
+  }
+
+  isSessionExpired(session: StoredSession, nowMs = Date.now()): boolean {
+    const expiresAtMs = Date.parse(session.expiresAt);
+    const idleExpiresAtMs = Date.parse(session.idleExpiresAt);
+    return (
+      !Number.isFinite(expiresAtMs) ||
+      !Number.isFinite(idleExpiresAtMs) ||
+      expiresAtMs <= nowMs ||
+      idleExpiresAtMs <= nowMs
+    );
+  }
+
+  async isActiveSession(session: StoredSession): Promise<boolean> {
+    if (this.isSessionExpired(session)) {
+      await this.revokeSession(session.id);
+      return false;
+    }
+
+    const activeKey = this.activeSessionKey(session.userId);
+    const activeSessionId = await this.redisService.get(activeKey);
+    if (!activeSessionId) {
+      return this.redisService.setIfAbsent(
+        activeKey,
+        session.id,
+        this.getSessionTtlSec(session)
+      );
+    }
+    if (activeSessionId === session.id) {
+      return true;
+    }
+
+    const activeSession = await this.readSession(activeSessionId);
+    if (
+      !activeSession ||
+      activeSession.userId !== session.userId ||
+      this.isSessionExpired(activeSession)
+    ) {
+      if (activeSession?.userId === session.userId) {
+        await this.revokeSession(activeSession.id);
+      } else {
+        await this.redisService.releaseLock(activeKey, activeSessionId);
+      }
+      return this.redisService.setIfAbsent(
+        activeKey,
+        session.id,
+        this.getSessionTtlSec(session)
+      );
+    }
+
+    return false;
+  }
+
+  async touchSessionActivity(session: StoredSession): Promise<StoredSession | null> {
+    if (!(await this.isActiveSession(session))) {
+      return null;
+    }
+
+    const nowMs = Date.now();
+    if (this.isSessionExpired(session, nowMs)) {
+      await this.revokeSession(session.id);
+      return null;
+    }
+
+    const activeKey = this.activeSessionKey(session.userId);
+    const activeSessionId = await this.redisService.get(activeKey);
+    if (activeSessionId !== session.id) {
+      return null;
+    }
+    const sessionKey = this.sessionKey(session.id);
+    const currentRaw = await this.redisService.get(sessionKey);
+    if (!currentRaw) {
+      return null;
+    }
+    const currentSession = await this.readSession(session.id);
+    if (
+      !currentSession ||
+      currentSession.userId !== session.userId ||
+      currentSession.id !== session.id ||
+      this.isSessionExpired(currentSession, nowMs)
+    ) {
+      return null;
+    }
+
+    const absoluteExpiresAtMs = Date.parse(session.expiresAt);
+    const idleExpiresAtMs = Math.min(
+      absoluteExpiresAtMs,
+      nowMs + this.runtimeConfig.authSessionIdleTimeoutSec * SECOND_MS
+    );
+    const updated: StoredSession = {
+      ...session,
+      lastActivityAt: new Date(nowMs).toISOString(),
+      idleExpiresAt: new Date(idleExpiresAtMs).toISOString(),
+    };
+    const ttlSec = this.getSessionTtlSec(updated, nowMs);
+    const updatedRaw = JSON.stringify(updated);
+    const sessionUpdated = await this.redisService.setIfValue(
+      sessionKey,
+      currentRaw,
+      updatedRaw,
+      ttlSec
+    );
+    if (!sessionUpdated) {
+      const latestSession = await this.readSession(session.id);
+      const latestActiveSessionId = await this.redisService.get(activeKey);
+      if (
+        latestSession &&
+        latestActiveSessionId === session.id &&
+        !this.isSessionExpired(latestSession)
+      ) {
+        return latestSession;
+      }
+      return null;
+    }
+    const activeRefreshed = await this.redisService.setIfValue(
+      activeKey,
+      updated.id,
+      updated.id,
+      ttlSec
+    );
+    if (!activeRefreshed) {
+      await this.redisService.del(sessionKey);
+      return null;
+    }
+    return updated;
+  }
+
+  private async readActiveSession(userId: string): Promise<StoredSession | null> {
+    const activeKey = this.activeSessionKey(userId);
+    const activeSessionId = await this.redisService.get(activeKey);
+    if (!activeSessionId) return null;
+
+    const activeSession = await this.readSession(activeSessionId);
+    if (
+      !activeSession ||
+      activeSession.userId !== userId ||
+      this.isSessionExpired(activeSession)
+    ) {
+      if (activeSession?.userId === userId) {
+        await this.revokeSession(activeSession.id);
+      } else {
+        await this.redisService.releaseLock(activeKey, activeSessionId);
+      }
+      return null;
+    }
+
+    return activeSession;
+  }
+
+  private buildSession(userId: string): StoredSession {
+    const issuedAtMs = Date.now();
+    const issuedAt = new Date(issuedAtMs).toISOString();
+    const absoluteExpiresAtMs =
+      issuedAtMs + this.runtimeConfig.authSessionTtlSec * SECOND_MS;
+    const idleExpiresAtMs = Math.min(
+      absoluteExpiresAtMs,
+      issuedAtMs + this.runtimeConfig.authSessionIdleTimeoutSec * SECOND_MS
+    );
+    return {
+      id: ensureId(),
+      userId,
+      issuedAt,
+      lastActivityAt: issuedAt,
+      expiresAt: new Date(absoluteExpiresAtMs).toISOString(),
+      idleExpiresAt: new Date(idleExpiresAtMs).toISOString(),
+    };
+  }
+
+  private getSessionTtlSec(session: StoredSession, nowMs = Date.now()): number {
+    const expiresAtMs = Date.parse(session.expiresAt);
+    const idleExpiresAtMs = Date.parse(session.idleExpiresAt);
+    const remainingMs = Math.min(expiresAtMs, idleExpiresAtMs) - nowMs;
+    if (!Number.isFinite(remainingMs)) {
+      return 1;
+    }
+    return Math.max(1, Math.ceil(remainingMs / SECOND_MS));
+  }
+
+  private sessionKey(sessionId: string): string {
+    return `${SESSION_PREFIX}${sessionId}`;
+  }
+
+  private activeSessionKey(userId: string): string {
+    return `${ACTIVE_SESSION_PREFIX}${userId}`;
   }
 
   async issueMagicCode(email: string, userId: string) {

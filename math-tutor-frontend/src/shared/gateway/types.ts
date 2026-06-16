@@ -4,7 +4,6 @@ import type {
   AuthIdentityIntentVerifyResponseContract,
   AuthLogoutResponseContract,
   AuthMagicLinkRequestResponseContract,
-  AuthOauthWidgetConfigResponseContract,
   AuthSessionProbeResultContract,
   AuthSessionResponseContract,
 } from "@/shared/contracts/auth.contract";
@@ -85,7 +84,7 @@ export type AuthGateway = {
   getSession: () => Promise<AuthSessionResponseContract>;
   logout: () => Promise<AuthLogoutResponseContract>;
   startIdentityIntent: (payload: {
-    channel?: "email" | "google" | "yandex" | "vk";
+    channel?: "email";
     email?: string;
     metadata?: Record<string, unknown>;
   }) => Promise<AuthIdentityIntentStartResponseContract>;
@@ -96,7 +95,6 @@ export type AuthGateway = {
   getIdentityIntentStatus: (
     intentId: string
   ) => Promise<AuthIdentityIntentStatusResponseContract>;
-  getOauthWidgetConfig: () => Promise<AuthOauthWidgetConfigResponseContract>;
   probeSession: (signal?: AbortSignal) => Promise<AuthSessionProbeResultContract>;
 };
 

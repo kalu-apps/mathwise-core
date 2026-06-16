@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { hashPassword } from "./auth.password";
 import { AuthService } from "./auth.service";
 
 const REQUIRED_ENV: Record<string, string> = {
@@ -140,6 +141,110 @@ test("magic-link request returns uniform message for existing and missing users"
     assert.equal(existing.debugCode, null);
     assert.equal(missing.expiresAt, null);
     assert.equal(existing.expiresAt, "2026-04-03T00:00:00.000Z");
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("password login rejects when account already has an active session", async () => {
+  const snapshot = { ...process.env };
+  try {
+    applyEnv();
+    process.env.COURSES_SEED_ON_BOOT = "false";
+    process.env.TEACHER_BOOTSTRAP_ENABLED = "false";
+    const email = "student@axiom.demo";
+    const authRepository = {
+      findByEmail: async () => ({
+        id: "student_1",
+        email,
+        firstName: "Student",
+        lastName: "Axiom",
+        role: "student",
+        phone: null,
+        photo: null,
+        passwordHash: hashPassword("StrongPass123!", "test-pepper"),
+      }),
+    };
+    const sessionStore = {
+      createSession: async () => ({
+        ok: false as const,
+        reason: "already_active" as const,
+        activeSessionId: "sid_existing",
+      }),
+    };
+
+    const service = new AuthService(
+      { execute: async () => undefined } as never,
+      authRepository as never,
+      sessionStore as never,
+      { enqueueAndDispatch: async () => undefined } as never,
+      {} as never
+    );
+
+    const result = await service.passwordLogin({
+      email,
+      password: "StrongPass123!",
+    });
+
+    assert.equal(result.ok, false);
+    if (result.ok) {
+      throw new Error("Expected login to be rejected");
+    }
+    assert.equal(result.status, 409);
+    assert.equal(result.code, "session_already_active");
+    assert.match(result.error, /уже открыт/);
+  } finally {
+    restoreEnv(snapshot);
+  }
+});
+
+test("magic-link confirmation rejects when account already has an active session", async () => {
+  const snapshot = { ...process.env };
+  try {
+    applyEnv();
+    process.env.COURSES_SEED_ON_BOOT = "false";
+    process.env.TEACHER_BOOTSTRAP_ENABLED = "false";
+    const authRepository = {
+      findById: async () => ({
+        id: "student_1",
+        email: "student@axiom.demo",
+        firstName: "Student",
+        lastName: "Axiom",
+        role: "student",
+      }),
+    };
+    const sessionStore = {
+      confirmMagicCode: async () => ({
+        ok: true as const,
+        userId: "student_1",
+      }),
+      createSession: async () => ({
+        ok: false as const,
+        reason: "already_active" as const,
+        activeSessionId: "sid_existing",
+      }),
+    };
+
+    const service = new AuthService(
+      { execute: async () => undefined } as never,
+      authRepository as never,
+      sessionStore as never,
+      { enqueueAndDispatch: async () => undefined } as never,
+      {} as never
+    );
+
+    const result = await service.confirmMagicLink({
+      email: "student@axiom.demo",
+      code: "123456",
+    });
+
+    assert.equal(result.ok, false);
+    if (result.ok) {
+      throw new Error("Expected login to be rejected");
+    }
+    assert.equal(result.status, 409);
+    assert.equal(result.code, "session_already_active");
+    assert.match(result.error, /уже открыт/);
   } finally {
     restoreEnv(snapshot);
   }
@@ -345,176 +450,6 @@ test("identity completion: existing user with password stays completed", async (
     assert.equal(status.hasPassword, true);
     assert.equal(status.firstPasswordRequired, false);
     assert.equal(status.completionState, "completed");
-  } finally {
-    restoreEnv(snapshot);
-  }
-});
-
-test("oauth vk authorization url skips legacy params for oauth.vk.ru", async () => {
-  const snapshot = { ...process.env };
-  try {
-    applyEnv();
-
-    const service = new AuthService(
-      { execute: async () => undefined } as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never
-    );
-
-    const authorizationUrl = (service as any).buildAuthorizationUrl({
-      provider: "vk",
-      providerConfig: {
-        enabled: true,
-        clientId: "vk-client-id",
-        clientSecret: "vk-client-secret",
-        authorizeUrl: "https://oauth.vk.ru/authorize",
-        tokenUrl: "https://oauth.vk.ru/access_token",
-        userInfoUrl: "https://api.vk.com/method/users.get",
-        scope: "email",
-      },
-      state: "state-1",
-    }) as URL;
-
-    assert.equal(authorizationUrl.searchParams.get("response_type"), "code");
-    assert.equal(authorizationUrl.searchParams.get("client_id"), "vk-client-id");
-    assert.equal(authorizationUrl.searchParams.get("scope"), "email");
-    assert.equal(authorizationUrl.searchParams.get("state"), "state-1");
-    assert.equal(authorizationUrl.searchParams.get("v"), null);
-    assert.equal(authorizationUrl.searchParams.get("display"), null);
-  } finally {
-    restoreEnv(snapshot);
-  }
-});
-
-test("oauth vk authorization url keeps legacy params for oauth.vk.com", async () => {
-  const snapshot = { ...process.env };
-  try {
-    applyEnv();
-
-    const service = new AuthService(
-      { execute: async () => undefined } as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never
-    );
-
-    const authorizationUrl = (service as any).buildAuthorizationUrl({
-      provider: "vk",
-      providerConfig: {
-        enabled: true,
-        clientId: "vk-client-id",
-        clientSecret: "vk-client-secret",
-        authorizeUrl: "https://oauth.vk.com/authorize",
-        tokenUrl: "https://oauth.vk.com/access_token",
-        userInfoUrl: "https://api.vk.com/method/users.get",
-        scope: "email",
-      },
-      state: "state-2",
-    }) as URL;
-
-    assert.equal(authorizationUrl.searchParams.get("v"), "5.199");
-    assert.equal(authorizationUrl.searchParams.get("display"), "page");
-  } finally {
-    restoreEnv(snapshot);
-  }
-});
-
-test("oauth vk authorization url includes PKCE challenge when provided", async () => {
-  const snapshot = { ...process.env };
-  try {
-    applyEnv();
-
-    const service = new AuthService(
-      { execute: async () => undefined } as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never
-    );
-
-    const authorizationUrl = (service as any).buildAuthorizationUrl({
-      provider: "vk",
-      providerConfig: {
-        enabled: true,
-        clientId: "vk-client-id",
-        clientSecret: "vk-client-secret",
-        authorizeUrl: "https://oauth.vk.ru/authorize",
-        tokenUrl: "https://oauth.vk.ru/access_token",
-        userInfoUrl: "https://api.vk.com/method/users.get",
-        scope: "email",
-      },
-      state: "state-3",
-      codeChallenge: "challenge-xyz",
-    }) as URL;
-
-    assert.equal(authorizationUrl.searchParams.get("code_challenge"), "challenge-xyz");
-    assert.equal(authorizationUrl.searchParams.get("code_challenge_method"), null);
-    assert.equal(authorizationUrl.searchParams.get("v"), null);
-    assert.equal(authorizationUrl.searchParams.get("display"), null);
-  } finally {
-    restoreEnv(snapshot);
-  }
-});
-
-test("vk oauth start persists state with PKCE verifier and returns challenge in authorize URL", async () => {
-  const snapshot = { ...process.env };
-  try {
-    applyEnv();
-    process.env.AUTH_OAUTH_REDIRECT_BASE_URL = "https://stage.mathwise.ru";
-    process.env.AUTH_OAUTH_VK_ENABLED = "true";
-    process.env.AUTH_OAUTH_VK_CLIENT_ID = "vk-client-id";
-    process.env.AUTH_OAUTH_VK_CLIENT_SECRET = "vk-client-secret";
-    process.env.AUTH_OAUTH_VK_AUTHORIZE_URL = "https://oauth.vk.ru/authorize";
-    process.env.AUTH_OAUTH_VK_TOKEN_URL = "https://oauth.vk.ru/access_token";
-    process.env.AUTH_OAUTH_VK_USERINFO_URL = "https://api.vk.com/method/users.get";
-    process.env.AUTH_OAUTH_VK_SCOPE = "email";
-
-    let persistedKey = "";
-    let persistedValue = "";
-    let persistedTtl = 0;
-    const redisService = {
-      set: async (key: string, value: string, ttlSec?: number) => {
-        persistedKey = key;
-        persistedValue = value;
-        persistedTtl = Number(ttlSec ?? 0);
-      },
-    };
-
-    const service = new AuthService(
-      { execute: async () => undefined } as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      redisService as never
-    );
-
-    const started = await service.buildSocialLoginStartUrl({
-      provider: "vk",
-      redirectPath: "/courses/math",
-    });
-
-    assert.equal(started.ok, true);
-    const authorizeUrl = new URL(started.redirectUrl);
-    assert.equal(authorizeUrl.origin, "https://oauth.vk.ru");
-    assert.equal(authorizeUrl.searchParams.get("code_challenge_method"), null);
-    assert.equal(
-      (authorizeUrl.searchParams.get("code_challenge") ?? "").length > 10,
-      true
-    );
-
-    assert.equal(persistedKey.startsWith("auth:oauth:state:"), true);
-    assert.equal(persistedTtl > 0, true);
-    const payload = JSON.parse(persistedValue) as {
-      provider: string;
-      redirectPath: string;
-      codeVerifier?: string;
-    };
-    assert.equal(payload.provider, "vk");
-    assert.equal(payload.redirectPath, "/courses/math");
-    assert.equal((payload.codeVerifier ?? "").length >= 43, true);
   } finally {
     restoreEnv(snapshot);
   }

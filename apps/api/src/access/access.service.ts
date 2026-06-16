@@ -78,16 +78,23 @@ export class AccessService implements OnModuleInit {
     const context = await this.resolveAccessContext(actorUser);
     const hasPublishedRelease = await this.coursesRepository.existsPublishedById(courseId);
     const hasAnyDraft = await this.coursesRepository.existsById(courseId);
+    const isTeacherDeleted = await this.coursesRepository.isTeacherDeleted(courseId);
     const isTeacherOwner =
       context.role === "teacher" && context.userId
         ? await this.isTeacherOwnerOfCourse(context.userId, courseId)
         : false;
+    const hasEntitlement =
+      context.role === "student" && context.userId
+        ? await this.accessRepository.hasActiveEntitlement(context.userId, courseId)
+        : false;
     const hasVisibleCourse =
       context.role === "teacher"
         ? isTeacherOwner
-          ? hasAnyDraft
-          : hasPublishedRelease
-        : hasPublishedRelease;
+          ? hasAnyDraft && !isTeacherDeleted
+          : hasPublishedRelease && !isTeacherDeleted
+        : context.role === "student"
+        ? hasPublishedRelease && (!isTeacherDeleted || hasEntitlement)
+        : hasPublishedRelease && !isTeacherDeleted;
 
     if (!hasVisibleCourse) {
       return this.createCourseDecision({
@@ -137,10 +144,6 @@ export class AccessService implements OnModuleInit {
       });
     }
 
-    const hasEntitlement = await this.accessRepository.hasActiveEntitlement(
-      context.userId,
-      courseId
-    );
     if (hasEntitlement && context.isIdentityVerified) {
       return this.createCourseDecision({
         courseId,

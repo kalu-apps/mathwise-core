@@ -4,30 +4,6 @@ export type ApiAppEnv = "local" | "preview" | "stage" | "prod";
 export type ApiCookieSameSite = "Lax" | "Strict" | "None";
 export type ApiEmailDeliveryMode = "disabled" | "provider" | "smtp";
 export type ApiYooKassaMode = "disabled" | "test" | "prod";
-export type ApiAuthSocialProvider = "google" | "yandex" | "vk";
-export type ApiAuthSocialWidgetMode = "oauth_redirect";
-
-export type ApiAuthSocialProviderConfig = {
-  enabled: boolean;
-  clientId: string;
-  clientSecret: string;
-  authorizeUrl: string;
-  tokenUrl: string;
-  userInfoUrl: string;
-  scope: string;
-};
-
-export type ApiAuthSocialWidgetProviderConfig = {
-  enabled: boolean;
-  clientId: string;
-  scriptUrl: string;
-  mode: ApiAuthSocialWidgetMode;
-};
-
-export type ApiAuthSocialWidgetsConfig = {
-  enabled: boolean;
-  providers: Record<ApiAuthSocialProvider, ApiAuthSocialWidgetProviderConfig>;
-};
 
 export type ApiRuntimeConfig = {
   port: number;
@@ -40,6 +16,7 @@ export type ApiRuntimeConfig = {
   coursesSeedSourceFile: string;
   authSessionCookieName: string;
   authSessionTtlSec: number;
+  authSessionIdleTimeoutSec: number;
   authCookieSecure: boolean;
   authCookieHttpOnly: boolean;
   authCookieSameSite: ApiCookieSameSite;
@@ -72,10 +49,6 @@ export type ApiRuntimeConfig = {
   authIdentityIntentMaxAttempts: number;
   authIdentityIntentRateLimitPerHour: number;
   authPurchaseIdentityIntentGatingEnabled: boolean;
-  authOauthStateTtlSec: number;
-  authOauthRedirectBaseUrl: string;
-  authOauthProviders: Record<ApiAuthSocialProvider, ApiAuthSocialProviderConfig>;
-  authOauthWidgets: ApiAuthSocialWidgetsConfig;
   emailDeliveryMode: ApiEmailDeliveryMode;
   emailProviderApiKey: string;
   emailSmtpHost: string;
@@ -435,16 +408,6 @@ export const getApiRuntimeConfig = (
     }
   }
 
-  const authOauthRedirectBaseUrl = normalizeUrlOrigin(
-    process.env.AUTH_OAUTH_REDIRECT_BASE_URL,
-    corsOrigin,
-    "AUTH_OAUTH_REDIRECT_BASE_URL"
-  );
-  if (!isLocal && authOauthRedirectBaseUrl !== corsOrigin) {
-    throw new Error(
-      "[api-runtime] AUTH_OAUTH_REDIRECT_BASE_URL must match API_CORS_ORIGIN origin outside local APP_ENV"
-    );
-  }
   const authIdentityIntentsEnabled = parseBoolean(
     process.env.AUTH_IDENTITY_INTENTS_ENABLED,
     false
@@ -470,165 +433,6 @@ export const getApiRuntimeConfig = (
       "[api-runtime] AUTH_PURCHASE_IDENTITY_INTENT_GATING_ENABLED requires AUTH_IDENTITY_INTENTS_ENABLED=true"
     );
   }
-  const authOauthStateTtlSec = parsePositiveInteger(
-    process.env.AUTH_OAUTH_STATE_TTL_SEC,
-    10 * 60
-  );
-  const buildSocialConfig = (
-    provider: ApiAuthSocialProvider,
-    defaults: {
-      authorizeUrl: string;
-      tokenUrl: string;
-      userInfoUrl: string;
-      scope: string;
-    }
-  ): ApiAuthSocialProviderConfig => {
-    const upper = provider.toUpperCase();
-    const enabled = parseBoolean(process.env[`AUTH_OAUTH_${upper}_ENABLED`], false);
-    const clientId = process.env[`AUTH_OAUTH_${upper}_CLIENT_ID`]?.trim() || "";
-    const clientSecret =
-      process.env[`AUTH_OAUTH_${upper}_CLIENT_SECRET`]?.trim() || "";
-    const authorizeUrl =
-      process.env[`AUTH_OAUTH_${upper}_AUTHORIZE_URL`]?.trim() || defaults.authorizeUrl;
-    const tokenUrl =
-      process.env[`AUTH_OAUTH_${upper}_TOKEN_URL`]?.trim() || defaults.tokenUrl;
-    const userInfoUrl =
-      process.env[`AUTH_OAUTH_${upper}_USERINFO_URL`]?.trim() || defaults.userInfoUrl;
-    const scope = process.env[`AUTH_OAUTH_${upper}_SCOPE`]?.trim() || defaults.scope;
-
-    if (enabled && (!clientId || !clientSecret)) {
-      throw new Error(
-        `[api-runtime] Missing required env for ${provider} oauth: AUTH_OAUTH_${upper}_CLIENT_ID / AUTH_OAUTH_${upper}_CLIENT_SECRET`
-      );
-    }
-
-    for (const [name, value] of [
-      ["authorize", authorizeUrl],
-      ["token", tokenUrl],
-      ["userinfo", userInfoUrl],
-    ] as const) {
-      try {
-        const parsed = new URL(value);
-        if (!/^https?:$/.test(parsed.protocol)) {
-          throw new Error();
-        }
-      } catch {
-        throw new Error(
-          `[api-runtime] Invalid ${provider} oauth ${name} URL: ${value}`
-        );
-      }
-    }
-
-    return {
-      enabled,
-      clientId,
-      clientSecret,
-      authorizeUrl,
-      tokenUrl,
-      userInfoUrl,
-      scope,
-    };
-  };
-  const authOauthProviders: Record<ApiAuthSocialProvider, ApiAuthSocialProviderConfig> =
-    {
-      google: buildSocialConfig("google", {
-        authorizeUrl: "https://accounts.google.com/o/oauth2/v2/auth",
-        tokenUrl: "https://oauth2.googleapis.com/token",
-        userInfoUrl: "https://openidconnect.googleapis.com/v1/userinfo",
-        scope: "openid email profile",
-      }),
-      yandex: buildSocialConfig("yandex", {
-        authorizeUrl: "https://oauth.yandex.ru/authorize",
-        tokenUrl: "https://oauth.yandex.ru/token",
-        userInfoUrl: "https://login.yandex.ru/info",
-        scope: "login:email login:info",
-      }),
-      vk: buildSocialConfig("vk", {
-        authorizeUrl: "https://oauth.vk.ru/authorize",
-        tokenUrl: "https://oauth.vk.ru/access_token",
-        userInfoUrl: "https://api.vk.com/method/users.get",
-        scope: "email",
-      }),
-    };
-  const authOauthWidgetsEnabled = parseBoolean(
-    process.env.AUTH_OAUTH_WIDGETS_ENABLED,
-    false
-  );
-  const parseWidgetMode = (
-    raw: string | undefined,
-    envName: string
-  ): ApiAuthSocialWidgetMode => {
-    const normalized = (raw ?? "oauth_redirect").trim().toLowerCase();
-    if (normalized === "oauth_redirect") return "oauth_redirect";
-    throw new Error(
-      `[api-runtime] Invalid ${envName} value: ${raw}. Allowed: oauth_redirect`
-    );
-  };
-  const buildSocialWidgetConfig = (
-    provider: ApiAuthSocialProvider,
-    defaults: { scriptUrl: string }
-  ): ApiAuthSocialWidgetProviderConfig => {
-    const upper = provider.toUpperCase();
-    const enabled = parseBoolean(
-      process.env[`AUTH_OAUTH_${upper}_WIDGET_ENABLED`],
-      false
-    );
-    const clientId =
-      process.env[`AUTH_OAUTH_${upper}_WIDGET_CLIENT_ID`]?.trim() ||
-      authOauthProviders[provider].clientId;
-    const scriptUrl =
-      process.env[`AUTH_OAUTH_${upper}_WIDGET_SCRIPT_URL`]?.trim() ||
-      defaults.scriptUrl;
-    const mode = parseWidgetMode(
-      process.env[`AUTH_OAUTH_${upper}_WIDGET_MODE`],
-      `AUTH_OAUTH_${upper}_WIDGET_MODE`
-    );
-
-    if (enabled && !clientId) {
-      throw new Error(
-        `[api-runtime] Missing required env for ${provider} oauth widget: AUTH_OAUTH_${upper}_WIDGET_CLIENT_ID`
-      );
-    }
-    if (enabled && !scriptUrl) {
-      throw new Error(
-        `[api-runtime] Missing required env for ${provider} oauth widget: AUTH_OAUTH_${upper}_WIDGET_SCRIPT_URL`
-      );
-    }
-    if (scriptUrl) {
-      try {
-        const parsed = new URL(scriptUrl);
-        if (!/^https?:$/.test(parsed.protocol)) {
-          throw new Error();
-        }
-      } catch {
-        throw new Error(
-          `[api-runtime] Invalid ${provider} oauth widget script URL: ${scriptUrl}`
-        );
-      }
-    }
-
-    return {
-      enabled,
-      clientId,
-      scriptUrl,
-      mode,
-    };
-  };
-  const authOauthWidgets: ApiAuthSocialWidgetsConfig = {
-    enabled: authOauthWidgetsEnabled,
-    providers: {
-      google: buildSocialWidgetConfig("google", {
-        scriptUrl: "https://accounts.google.com/gsi/client",
-      }),
-      yandex: buildSocialWidgetConfig("yandex", {
-        scriptUrl:
-          "https://yastatic.net/s3/passport-sdk/autofill/v1/sdk-suggest-with-polyfills-latest.js",
-      }),
-      vk: buildSocialWidgetConfig("vk", {
-        scriptUrl: "https://unpkg.com/@vkid/sdk@latest/dist-sdk/umd/index.js",
-      }),
-    },
-  };
 
   const emailDeliveryMode = parseEmailDeliveryMode(
     process.env.EMAIL_DELIVERY_MODE,
@@ -721,10 +525,10 @@ export const getApiRuntimeConfig = (
   if (
     yookassaEnabled &&
     yookassaReturnOrigin &&
-    yookassaReturnOrigin !== authOauthRedirectBaseUrl
+    yookassaReturnOrigin !== corsOrigin
   ) {
     throw new Error(
-      "[api-runtime] YOOKASSA_RETURN_URL origin must match AUTH_OAUTH_REDIRECT_BASE_URL"
+      "[api-runtime] YOOKASSA_RETURN_URL origin must match API_CORS_ORIGIN"
     );
   }
   const yookassaWebhookPath =
@@ -870,6 +674,10 @@ export const getApiRuntimeConfig = (
       process.env.AUTH_SESSION_TTL_SEC,
       authCookieMaxAgeSec
     ),
+    authSessionIdleTimeoutSec: parsePositiveInteger(
+      process.env.AUTH_SESSION_IDLE_TIMEOUT_SEC,
+      60 * 60
+    ),
     authCookieSecure,
     authCookieHttpOnly,
     authCookieSameSite,
@@ -922,10 +730,6 @@ export const getApiRuntimeConfig = (
     authIdentityIntentMaxAttempts,
     authIdentityIntentRateLimitPerHour,
     authPurchaseIdentityIntentGatingEnabled,
-    authOauthStateTtlSec,
-    authOauthRedirectBaseUrl,
-    authOauthProviders,
-    authOauthWidgets,
     emailDeliveryMode,
     emailProviderApiKey,
     emailSmtpHost,

@@ -199,13 +199,27 @@ export class CoursesService implements OnModuleInit {
     const normalizedId = courseId.trim();
     if (!normalizedId) return null;
 
-    const draft = await this.coursesRepository.findDraftById(normalizedId);
+    const isTeacherDeleted = await this.coursesRepository.isTeacherDeleted(normalizedId);
+    const draft = !isTeacherDeleted
+      ? await this.coursesRepository.findDraftById(normalizedId)
+      : null;
     if (draft && actorUser?.role === "teacher" && draft.teacherId === actorUser.id) {
       return withCourseVisualMetadata(draft);
     }
 
     const published = await this.coursesRepository.findPublishedById(normalizedId);
-    return published ? withCourseVisualMetadata(published) : null;
+    if (!published) return null;
+    if (!isTeacherDeleted) return withCourseVisualMetadata(published);
+    if (
+      actorUser?.role === "student" &&
+      (await this.hasActiveCourseEntitlement({
+        userId: actorUser.id,
+        courseId: normalizedId,
+      }))
+    ) {
+      return withCourseVisualMetadata(published);
+    }
+    return null;
   }
 
   async getPublishedAssessmentContent(
@@ -311,18 +325,35 @@ export class CoursesService implements OnModuleInit {
     if (existing.teacherId !== actorUser.id) {
       throw new HttpException({ error: "Нет доступа к чужому курсу." }, 403);
     }
-    const previousLessons = await this.lessonsRepository.findDraftByCourse(
-      normalizedId
-    );
-    await this.lessonsRepository.deleteByCourse(normalizedId);
     await this.coursesRepository.deleteDraft(normalizedId);
-    const detachedMediaIds = collectLessonsMediaObjectIds(previousLessons);
-    if (detachedMediaIds.length > 0) {
-      await this.mediaService.releaseMediaObjects({
-        objectIds: detachedMediaIds,
-        reason: "course_delete_draft",
-      });
-    }
+  }
+
+  private async hasActiveCourseEntitlement(params: {
+    userId: string;
+    courseId: string;
+  }): Promise<boolean> {
+    const rows = await this.databaseService.query<{ hasActiveEntitlement: boolean }>(
+      `
+        SELECT (
+          EXISTS (
+            SELECT 1
+            FROM user_course_access
+            WHERE user_id = $1
+              AND course_id = $2
+              AND has_active_entitlement = TRUE
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM profile_purchases
+            WHERE user_id = $1
+              AND course_id = $2
+          )
+        ) AS "hasActiveEntitlement"
+        LIMIT 1
+      `,
+      [params.userId, params.courseId]
+    );
+    return Boolean(rows[0]?.hasActiveEntitlement);
   }
 
   async publishCourse(params: {

@@ -67,7 +67,18 @@
 
 .news-feed__empty--plain {
   text-align: left;
-  background: color-mix(in srgb, var(--background-soft) 84%, transparent);
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.news-feed__empty--plain .news-feed__empty-title,
+.news-feed__empty--plain .news-feed__empty-caption {
+  border: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 
 .news-feed__empty--error {
