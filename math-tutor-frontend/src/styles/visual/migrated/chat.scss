@@ -2737,9 +2737,9 @@
 }
 
 .chat-page__audio-dock-track {
-  height: 13px;
+  height: 9px;
   padding: 0;
-  border-radius: 0;
+  border-radius: 999px;
   background: transparent;
   box-shadow: none;
 }
@@ -2747,12 +2747,12 @@
 .chat-page__audio-dock-track::before {
   left: 0;
   right: 0;
-  height: 1px;
+  height: 2px;
   background:
     linear-gradient(
       90deg,
-      color-mix(in srgb, var(--chat-accent) 66%, transparent) 0%,
-      color-mix(in srgb, var(--chat-accent) 66%, transparent)
+      color-mix(in srgb, var(--chat-accent) 78%, var(--accent-mint) 22%) 0%,
+      color-mix(in srgb, var(--chat-accent) 78%, var(--accent-mint) 22%)
         var(--audio-dock-progress, 0%),
       color-mix(in srgb, var(--chat-text-muted) 18%, transparent)
         var(--audio-dock-progress, 0%),
@@ -2761,13 +2761,16 @@
   opacity: 1;
 }
 
+.chat-page__audio-dock-track:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--chat-accent) 22%, transparent);
+}
+
 .chat-page__audio-dock-track::after {
   content: none;
 }
 
 .chat-page__audio-dock-wave {
-  height: 12px;
-  gap: 2px;
+  display: none;
 }
 
 .chat-page__audio-dock-wave span,
