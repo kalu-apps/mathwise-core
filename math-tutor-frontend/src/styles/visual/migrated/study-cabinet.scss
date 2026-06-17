@@ -1022,6 +1022,24 @@
   opacity: 0.58;
 }
 
+.teacher-note-field select.teacher-note-field__control {
+  appearance: none;
+  -webkit-appearance: none;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%) calc(100% - 20px) 50% / 7px 7px no-repeat,
+    linear-gradient(135deg, var(--text-secondary) 50%, transparent 50%) calc(100% - 15px) 50% / 7px 7px no-repeat,
+    var(--input-bg);
+  padding-right: 42px;
+}
+
+.teacher-note-field select.teacher-note-field__control:hover,
+.teacher-note-field select.teacher-note-field__control:focus {
+  background:
+    linear-gradient(45deg, transparent 50%, var(--accent-text) 50%) calc(100% - 20px) 50% / 7px 7px no-repeat,
+    linear-gradient(135deg, var(--accent-text) 50%, transparent 50%) calc(100% - 15px) 50% / 7px 7px no-repeat,
+    var(--input-bg-hover);
+}
+
 .teacher-note-field__error {
   margin: -2px 0 0;
   color: #dc2626;

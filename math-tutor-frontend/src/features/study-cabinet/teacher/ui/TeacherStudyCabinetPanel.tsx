@@ -287,7 +287,6 @@ export function TeacherStudyCabinetPanel({
             >
               <header className="teacher-note-dialog__head">
                 <div>
-                  <span className="study-cabinet-panel__kicker">Planner note</span>
                   <h3 id="teacher-note-dialog-title">
                     {editingNoteId ? "Редактировать заметку" : "Новая заметка"}
                   </h3>
