@@ -3119,7 +3119,7 @@
 }
 
 .teacher-daily-timeline__slot:nth-child(4n + 1) {
-  background: color-mix(in srgb, var(--surface-soft) 12%, transparent);
+  background: transparent;
 }
 
 .teacher-daily-timeline__slot.is-clickable {
@@ -3379,33 +3379,23 @@
   grid-template-rows: auto minmax(0, 1fr);
   gap: 4px;
   border-radius: 0;
-  border-color: color-mix(in srgb, var(--teacher-daily-event-color) 26%, var(--teacher-daily-line));
-  border-left: 5px solid color-mix(in srgb, var(--teacher-daily-event-color) 82%, transparent);
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--teacher-daily-event-color) 13%, transparent),
-      transparent 46%
-    ),
-    color-mix(in srgb, var(--teacher-daily-event-color) 6%, var(--background-elevated) 94%);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, #ffffff 16%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--teacher-daily-line) 90%, transparent);
+  border-color: color-mix(in srgb, var(--teacher-daily-event-color) 34%, var(--teacher-daily-line));
+  border-left: 6px solid color-mix(in srgb, var(--teacher-daily-event-color) 84%, transparent);
+  background: color-mix(in srgb, var(--teacher-daily-event-color) 7%, var(--background-elevated) 93%);
+  box-shadow: none;
   padding: 5px 8px 5px 10px;
 }
 
 .teacher-daily-event--note:hover,
 .teacher-daily-event--note.is-selected {
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--teacher-daily-event-color) 17%, transparent),
-      transparent 50%
-    ),
-    color-mix(in srgb, var(--teacher-daily-event-color) 8%, var(--background-elevated) 92%);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--teacher-daily-event-color) 18%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--teacher-daily-line) 90%, transparent);
+  border-color: color-mix(in srgb, var(--teacher-daily-event-color) 54%, var(--teacher-daily-line));
+  background: color-mix(in srgb, var(--teacher-daily-event-color) 10%, var(--background-elevated) 90%);
+  box-shadow: none;
+}
+
+.teacher-daily-event--note.is-selected {
+  outline: 2px solid color-mix(in srgb, var(--teacher-daily-event-color) 34%, transparent);
+  outline-offset: 0;
 }
 
 .teacher-daily-event--note .teacher-daily-event__note-topline,
@@ -3547,6 +3537,11 @@
     color-mix(in srgb, var(--background-elevated) 88%, transparent);
 }
 
+.teacher-daily-detail--list {
+  gap: 10px;
+  background: color-mix(in srgb, var(--background-elevated) 92%, transparent);
+}
+
 .teacher-daily-detail--empty {
   position: static;
   place-items: center;
@@ -3572,6 +3567,101 @@
   inset: 0 auto 0 0;
   width: 4px;
   background: var(--teacher-daily-event-color);
+}
+
+.teacher-daily-detail__cards-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 780;
+
+  strong {
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 860;
+  }
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.teacher-daily-detail__cards {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  max-height: min(68vh, 720px);
+  min-width: 0;
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+}
+
+.teacher-daily-detail__card {
+  --teacher-daily-event-color: var(--planner-event-color, var(--accent-primary));
+  display: grid;
+  gap: 10px;
+  min-height: 132px;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--teacher-daily-event-color) 28%, var(--card-border));
+  border-left: 5px solid color-mix(in srgb, var(--teacher-daily-event-color) 78%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--teacher-daily-event-color) 5%, var(--background-elevated) 95%);
+  padding: 12px;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.12s ease;
+}
+
+.teacher-daily-detail__card:hover,
+.teacher-daily-detail__card.is-active {
+  border-color: color-mix(in srgb, var(--teacher-daily-event-color) 46%, var(--card-border));
+  border-left-color: color-mix(in srgb, var(--teacher-daily-event-color) 86%, transparent);
+  background: color-mix(in srgb, var(--teacher-daily-event-color) 8%, var(--background-elevated) 92%);
+}
+
+.teacher-daily-detail__card:hover {
+  transform: translateY(-1px);
+}
+
+.teacher-daily-detail__card-head {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+
+  h3 {
+    margin: 2px 0 0;
+    color: var(--text-primary);
+    font-size: 18px;
+    font-weight: 850;
+    line-height: 1.16;
+    letter-spacing: 0;
+  }
+}
+
+.teacher-daily-detail__card-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--teacher-daily-event-color) 13%, var(--background-elevated));
+  color: color-mix(in srgb, var(--teacher-daily-event-color) 78%, var(--text-primary));
+}
+
+.teacher-daily-detail__card-icon svg {
+  width: 17px;
+  height: 17px;
 }
 
 .teacher-daily-detail__event-list {
