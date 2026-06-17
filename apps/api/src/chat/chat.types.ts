@@ -56,6 +56,7 @@ export type TeacherChatVoiceMessageDto = {
 
 export type TeacherChatMessageDto = {
   id: string;
+  clientMessageId?: string;
   threadId: string;
   senderId: string;
   senderRole: ChatSenderRole;
@@ -100,6 +101,7 @@ export type TeacherChatRealtimeEventDto = {
 };
 
 export type SendTeacherChatMessagePayloadDto = {
+  clientMessageId?: string;
   threadId?: string;
   text: string;
   attachments?: TeacherChatAttachmentDto[];

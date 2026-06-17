@@ -625,15 +625,60 @@ select:focus-visible,
 }
 
 .chat-page__composer-field {
+  position: relative !important;
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
 }
 
+.chat-page__composer-field::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 44px;
+  bottom: 0;
+  left: 78px;
+  z-index: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--brand-solid) 12%, var(--ag-tier1-bg) 88%);
+}
+
+.chat-page__composer-field.is-recording::before {
+  left: 112px;
+}
+
 .chat-page__composer-input {
+  position: relative !important;
+  z-index: 1;
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
+}
+
+.chat-page .chat-page__attach-button.MuiIconButton-root:hover,
+.chat-page .chat-page__audio-button.MuiIconButton-root:hover,
+.chat-page .chat-page__send-button.MuiIconButton-root:hover,
+.chat-page .chat-page__attach-button.MuiIconButton-root:focus-visible,
+.chat-page .chat-page__audio-button.MuiIconButton-root:focus-visible,
+.chat-page .chat-page__send-button.MuiIconButton-root:focus-visible,
+.chat-page .chat-page__send-button.MuiIconButton-root:not(.Mui-disabled),
+.chat-page .chat-page__send-button.MuiIconButton-root:active {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.chat-page .chat-page__send-button.MuiIconButton-root:not(.Mui-disabled) {
+  color: var(--chat-text-muted) !important;
+}
+
+.chat-page .chat-page__attach-button.MuiIconButton-root:hover,
+.chat-page .chat-page__audio-button.MuiIconButton-root:hover,
+.chat-page .chat-page__send-button.MuiIconButton-root:hover,
+.chat-page .chat-page__attach-button.MuiIconButton-root:focus-visible,
+.chat-page .chat-page__audio-button.MuiIconButton-root:focus-visible,
+.chat-page .chat-page__send-button.MuiIconButton-root:focus-visible {
+  color: var(--chat-text-strong) !important;
 }
 
 .chat-page__message.is-teacher {

@@ -110,6 +110,11 @@ import { formatUserBadgeName, getUserAvatarInitial } from "@/shared/lib/userDisp
 
 const PROFILE_AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 
+const formatUnreadBadgeCount = (value: number) =>
+  new Intl.NumberFormat("ru-RU").format(
+    Math.max(0, Math.floor(Number.isFinite(value) ? value : 0))
+  );
+
 export default function StudentProfile() {
   const WORKBOOK_TAB_INDEX = 4;
   const CHAT_TAB_INDEX = 5;
@@ -210,6 +215,11 @@ export default function StudentProfile() {
 
   const chatAccessAvailable = chatEligibility?.available === true;
   const premiumToolsLocked = chatEligibility?.available === false;
+  const premiumToolsUnlocked = chatEligibility?.available === true;
+  const chatUnreadBadgeLabel =
+    chatAccessAvailable && chatUnreadCount > 0
+      ? formatUnreadBadgeCount(chatUnreadCount)
+      : null;
 
   useEffect(() => {
     resetStudentProfileUiState();
@@ -795,34 +805,29 @@ export default function StudentProfile() {
         {
           index: WORKBOOK_TAB_INDEX,
           label: "Рабочая тетрадь",
-          premium: true,
+          showPremiumMarker: !premiumToolsUnlocked,
           icon: <AutoStoriesRoundedIcon />,
         },
         {
           index: CHAT_TAB_INDEX,
           label: "Чат",
-          premium: true,
-          icon: (
-            <Badge
-              color="error"
-              badgeContent={chatUnreadCount > 99 ? "99+" : chatUnreadCount}
-              invisible={chatUnreadCount <= 0 || !chatAccessAvailable}
-            >
-              <ForumRoundedIcon />
-            </Badge>
-          ),
+          showPremiumMarker: !premiumToolsUnlocked,
+          unreadCountLabel: chatUnreadBadgeLabel,
+          icon: <ForumRoundedIcon />,
         },
       ] satisfies Array<{
         index: number;
         label: string;
         icon: ReactNode;
-        premium?: boolean;
+        showPremiumMarker?: boolean;
+        unreadCountLabel?: string | null;
       }>,
     [
       CHAT_TAB_INDEX,
       WORKBOOK_TAB_INDEX,
       chatAccessAvailable,
-      chatUnreadCount,
+      chatUnreadBadgeLabel,
+      premiumToolsUnlocked,
       upcomingBooking,
     ]
   );
@@ -1016,11 +1021,23 @@ export default function StudentProfile() {
                   label={
                     <span
                       className={`student-profile__tab-label ${
-                        item.premium ? "student-profile__tab-label--premium" : ""
+                        item.showPremiumMarker
+                          ? "student-profile__tab-label--premium"
+                          : ""
                       }`}
                     >
-                      <span>{item.label}</span>
-                      {item.premium ? (
+                      <span className="student-profile__tab-label-text">
+                        {item.label}
+                      </span>
+                      {item.unreadCountLabel ? (
+                        <span
+                          className="student-profile__tab-unread"
+                          aria-label={`Непрочитанных сообщений: ${item.unreadCountLabel}`}
+                        >
+                          {item.unreadCountLabel}
+                        </span>
+                      ) : null}
+                      {item.showPremiumMarker ? (
                         <DiamondRoundedIcon className="student-profile__tab-diamond" />
                       ) : null}
                     </span>
@@ -1034,12 +1051,26 @@ export default function StudentProfile() {
         ) : (
           <div className="student-profile__tabs-mobile">
             <Button
-              className="student-profile__tabs-mobile-trigger"
-              variant="outlined"
-              startIcon={<AppsRoundedIcon />}
-              onClick={() => setTabMenuOpen(true)}
-            >
-              {activeStudentTab ? `Раздел: ${activeStudentTab.label}` : "Разделы"}
+            className="student-profile__tabs-mobile-trigger"
+            variant="outlined"
+            startIcon={<AppsRoundedIcon />}
+            onClick={() => setTabMenuOpen(true)}
+          >
+              {activeStudentTab ? (
+                <span className="student-profile__tabs-mobile-trigger-content">
+                  <span>{`Раздел: ${activeStudentTab.label}`}</span>
+                  {activeStudentTab.unreadCountLabel ? (
+                    <span
+                      className="student-profile__tab-unread"
+                      aria-label={`Непрочитанных сообщений: ${activeStudentTab.unreadCountLabel}`}
+                    >
+                      {activeStudentTab.unreadCountLabel}
+                    </span>
+                  ) : null}
+                </span>
+              ) : (
+                "Разделы"
+              )}
             </Button>
           </div>
         )}
@@ -1871,8 +1902,18 @@ export default function StudentProfile() {
               >
                 <span className="student-profile__tabs-drawer-icon">{item.icon}</span>
                 <span className="student-profile__tabs-drawer-label">
-                  <span>{item.label}</span>
-                  {item.premium ? (
+                  <span className="student-profile__tab-label-text">
+                    {item.label}
+                  </span>
+                  {item.unreadCountLabel ? (
+                    <span
+                      className="student-profile__tab-unread"
+                      aria-label={`Непрочитанных сообщений: ${item.unreadCountLabel}`}
+                    >
+                      {item.unreadCountLabel}
+                    </span>
+                  ) : null}
+                  {item.showPremiumMarker ? (
                     <DiamondRoundedIcon className="student-profile__tab-diamond" />
                   ) : null}
                 </span>

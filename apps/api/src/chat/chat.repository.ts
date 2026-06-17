@@ -20,6 +20,7 @@ type ThreadRow = {
   createdAt: string;
   lastMessageText: string | null;
   lastMessageAt: string | null;
+  unreadCount: number | string | null;
 };
 
 type MessageRow = {
@@ -215,7 +216,12 @@ const mapThreadRow = (row: ThreadRow): TeacherChatThreadDto => ({
   createdAt: row.createdAt,
   lastMessageText: row.lastMessageText ?? undefined,
   lastMessageAt: row.lastMessageAt ?? undefined,
-  unreadCount: 0,
+  unreadCount:
+    typeof row.unreadCount === "number"
+      ? Math.max(0, Math.floor(row.unreadCount))
+      : typeof row.unreadCount === "string"
+        ? Math.max(0, Math.floor(Number(row.unreadCount) || 0))
+        : 0,
 });
 
 const mapMessageRow = (row: MessageRow): TeacherChatMessageDto => {
@@ -259,9 +265,42 @@ export class ChatRepository {
         teacher_id TEXT NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
+        student_read_at TEXT,
+        teacher_read_at TEXT,
         updated_at_ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         UNIQUE (student_id, teacher_id)
       )
+    `);
+
+    await this.databaseService.execute(`
+      ALTER TABLE chat_threads
+      ADD COLUMN IF NOT EXISTS student_read_at TEXT
+    `);
+    await this.databaseService.execute(`
+      ALTER TABLE chat_threads
+      ADD COLUMN IF NOT EXISTS teacher_read_at TEXT
+    `);
+    await this.databaseService.execute(`
+      CREATE TABLE IF NOT EXISTS chat_schema_migrations (
+        id TEXT PRIMARY KEY,
+        applied_at TEXT NOT NULL
+      )
+    `);
+    await this.databaseService.execute(`
+      UPDATE chat_threads
+      SET
+        student_read_at = COALESCE(student_read_at, updated_at),
+        teacher_read_at = COALESCE(teacher_read_at, updated_at)
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM chat_schema_migrations
+        WHERE id = 'chat_thread_reads_backfill_v1'
+      )
+    `);
+    await this.databaseService.execute(`
+      INSERT INTO chat_schema_migrations (id, applied_at)
+      VALUES ('chat_thread_reads_backfill_v1', NOW()::TEXT)
+      ON CONFLICT (id) DO NOTHING
     `);
 
     await this.databaseService.execute(`
@@ -321,6 +360,11 @@ export class ChatRepository {
     await this.databaseService.execute(`
       CREATE INDEX IF NOT EXISTS idx_chat_messages_thread
       ON chat_messages (thread_id, created_at ASC)
+    `);
+    await this.databaseService.execute(`
+      CREATE INDEX IF NOT EXISTS idx_chat_messages_thread_sender_created
+      ON chat_messages (thread_id, sender_id, created_at ASC)
+      WHERE deleted_for_all = FALSE
     `);
   }
 
@@ -401,7 +445,8 @@ export class ChatRepository {
           t.updated_at AS "updatedAt",
           t.created_at AS "createdAt",
           lm.text AS "lastMessageText",
-          lm.created_at AS "lastMessageAt"
+          lm.created_at AS "lastMessageAt",
+          unread.unread_count AS "unreadCount"
         FROM chat_threads t
         LEFT JOIN auth_users su
           ON su.id = t.student_id
@@ -430,6 +475,17 @@ export class ChatRepository {
           ORDER BY m.created_at DESC, m.id DESC
           LIMIT 1
         ) lm ON TRUE
+        LEFT JOIN LATERAL (
+          SELECT COUNT(*)::int AS unread_count
+          FROM chat_messages m
+          WHERE m.thread_id = t.id
+            AND m.deleted_for_all = FALSE
+            AND m.sender_id <> $1
+            AND (
+              t.student_read_at IS NULL
+              OR m.created_at > t.student_read_at
+            )
+        ) unread ON TRUE
         WHERE t.student_id = $1
         ORDER BY COALESCE(lm.created_at, t.updated_at) DESC, t.id DESC
       `,
@@ -453,7 +509,8 @@ export class ChatRepository {
           t.updated_at AS "updatedAt",
           t.created_at AS "createdAt",
           lm.text AS "lastMessageText",
-          lm.created_at AS "lastMessageAt"
+          lm.created_at AS "lastMessageAt",
+          unread.unread_count AS "unreadCount"
         FROM chat_threads t
         LEFT JOIN auth_users su
           ON su.id = t.student_id
@@ -482,6 +539,17 @@ export class ChatRepository {
           ORDER BY m.created_at DESC, m.id DESC
           LIMIT 1
         ) lm ON TRUE
+        LEFT JOIN LATERAL (
+          SELECT COUNT(*)::int AS unread_count
+          FROM chat_messages m
+          WHERE m.thread_id = t.id
+            AND m.deleted_for_all = FALSE
+            AND m.sender_id <> $1
+            AND (
+              t.teacher_read_at IS NULL
+              OR m.created_at > t.teacher_read_at
+            )
+        ) unread ON TRUE
         WHERE t.teacher_id = $1
         ORDER BY COALESCE(lm.created_at, t.updated_at) DESC, t.id DESC
       `,
@@ -701,6 +769,25 @@ export class ChatRepository {
     );
     const message = await this.findMessageById(params.id);
     return message;
+  }
+
+  async markThreadRead(params: {
+    threadId: string;
+    actorRole: "student" | "teacher";
+    readAt: string;
+  }): Promise<void> {
+    const readColumn =
+      params.actorRole === "teacher" ? "teacher_read_at" : "student_read_at";
+    await this.databaseService.execute(
+      `
+        UPDATE chat_threads
+        SET
+          ${readColumn} = $2,
+          updated_at_ts = NOW()
+        WHERE id = $1
+      `,
+      [params.threadId, params.readAt]
+    );
   }
 
   async clearThreadMessages(threadId: string, clearedAt: string): Promise<void> {

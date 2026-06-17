@@ -149,6 +149,16 @@ const CHAT_AUDIO_PLAYBACK_RATES = [1, 1.5, 2] as const;
 const CHAT_AUDIO_RATE_STORAGE_PREFIX = "mathwise.chat.audioRate.";
 const CHAT_AUDIO_CACHE_SKEW_MS = 30_000;
 const CHAT_AUDIO_LEGACY_URL_TTL_MS = 90_000;
+const CHAT_NOTIFICATION_SOUND_MIN_INTERVAL_MS = 1_200;
+
+type AudioContextConstructor = new (
+  contextOptions?: AudioContextOptions
+) => AudioContext;
+
+type ChatNotificationWindow = Window &
+  typeof globalThis & {
+    webkitAudioContext?: AudioContextConstructor;
+  };
 
 type ChatAudioSourceCacheEntry = {
   downloadUrl: string;
@@ -169,6 +179,14 @@ type ChatMediaSourceCacheEntry = {
   downloadUrl: string;
   expiresAtMs: number;
   urlExpiresAt?: string;
+};
+
+type ComposerVoiceUploadStatus = "uploading" | "ready" | "failed";
+
+type ComposerVoiceDraft = TeacherChatVoiceMessage & {
+  localPreviewUrl?: string;
+  uploadStatus?: ComposerVoiceUploadStatus;
+  uploadError?: string;
 };
 
 const chatAudioSourceCache = new Map<string, ChatAudioSourceCacheEntry>();
@@ -437,13 +455,37 @@ const mergeChatMessage = (
   nextMessage: TeacherChatMessage
 ) => {
   const next = normalizeChatMessage(nextMessage);
-  const index = messages.findIndex((message) => message.id === next.id);
+  const nextClientMessageId = next.clientMessageId?.trim() ?? "";
+  const index = messages.findIndex((message) => {
+    if (message.id === next.id) return true;
+    if (!nextClientMessageId) return false;
+    return message.clientMessageId?.trim() === nextClientMessageId;
+  });
   if (index < 0) {
     return sortChatMessages([...messages, next]);
   }
   const updated = [...messages];
   updated[index] = next;
   return sortChatMessages(updated);
+};
+
+const releaseComposerVoicePreview = (
+  voice: ComposerVoiceDraft | null | undefined
+) => {
+  const localPreviewUrl = voice?.localPreviewUrl?.trim();
+  if (!localPreviewUrl || typeof URL === "undefined") return;
+  URL.revokeObjectURL(localPreviewUrl);
+};
+
+const isReadyComposerVoice = (
+  voice: ComposerVoiceDraft | null | undefined
+): voice is ComposerVoiceDraft => {
+  if (!isValidChatVoiceMessage(voice)) return false;
+  if (voice.uploadStatus === "uploading" || voice.uploadStatus === "failed") {
+    return false;
+  }
+  const mediaObjectId = voice.mediaObjectId?.trim() || voice.id.trim();
+  return mediaObjectId.startsWith("media_");
 };
 
 const readStoredChatAudioRate = (threadId: string) => {
@@ -484,8 +526,9 @@ export default function ChatPage() {
   const [composerAttachments, setComposerAttachments] = useState<
     TeacherChatAttachment[]
   >([]);
-  const [composerVoice, setComposerVoice] =
-    useState<TeacherChatVoiceMessage | null>(null);
+  const [composerVoice, setComposerVoice] = useState<ComposerVoiceDraft | null>(
+    null
+  );
   const [sending, setSending] = useState(false);
   const [threadQuery, setThreadQuery] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -544,25 +587,88 @@ export default function ChatPage() {
   const threadRefreshThrottleRef = useRef<number | null>(null);
   const lastRealtimeEventVersionRef = useRef(0);
   const messagesRef = useRef<TeacherChatMessage[]>([]);
+  const composerVoiceRef = useRef<ComposerVoiceDraft | null>(null);
+  const composerVoiceUploadGenerationRef = useRef(0);
   const listenedVoicePendingRef = useRef(new Set<string>());
+  const notificationAudioContextRef = useRef<AudioContext | null>(null);
+  const lastNotificationSoundAtRef = useRef(0);
+
+  const getNotificationAudioContext = useCallback(() => {
+    if (typeof window === "undefined") return null;
+    const audioWindow = window as ChatNotificationWindow;
+    const AudioContextClass =
+      audioWindow.AudioContext ?? audioWindow.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    const current = notificationAudioContextRef.current;
+    if (current && current.state !== "closed") return current;
+    const next = new AudioContextClass();
+    notificationAudioContextRef.current = next;
+    return next;
+  }, []);
+
+  const playIncomingMessageNotification = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const now = window.performance.now();
+    if (
+      now - lastNotificationSoundAtRef.current <
+      CHAT_NOTIFICATION_SOUND_MIN_INTERVAL_MS
+    ) {
+      return;
+    }
+    lastNotificationSoundAtRef.current = now;
+    const context = getNotificationAudioContext();
+    if (!context || context.state === "closed") return;
+
+    const playTone = () => {
+      if (context.state === "closed") return;
+      const startAt = context.currentTime;
+      const endAt = startAt + 0.28;
+      const gain = context.createGain();
+      gain.gain.setValueAtTime(0.0001, startAt);
+      gain.gain.exponentialRampToValueAtTime(0.035, startAt + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.0001, endAt);
+      gain.connect(context.destination);
+
+      const firstTone = context.createOscillator();
+      firstTone.type = "sine";
+      firstTone.frequency.setValueAtTime(660, startAt);
+      firstTone.frequency.exponentialRampToValueAtTime(880, startAt + 0.12);
+      firstTone.connect(gain);
+      firstTone.start(startAt);
+      firstTone.stop(startAt + 0.18);
+
+      const secondTone = context.createOscillator();
+      secondTone.type = "sine";
+      secondTone.frequency.setValueAtTime(1046.5, startAt + 0.08);
+      secondTone.frequency.exponentialRampToValueAtTime(987.8, endAt);
+      secondTone.connect(gain);
+      secondTone.start(startAt + 0.08);
+      secondTone.stop(endAt);
+      secondTone.addEventListener(
+        "ended",
+        () => {
+          firstTone.disconnect();
+          secondTone.disconnect();
+          gain.disconnect();
+        },
+        { once: true }
+      );
+    };
+
+    if (context.state === "suspended") {
+      void context.resume().then(playTone).catch(() => undefined);
+      return;
+    }
+    playTone();
+  }, [getNotificationAudioContext]);
 
   const goBack = useCallback(() => {
     if (!showBackButton) return;
     navigate(backFrom);
   }, [backFrom, navigate, showBackButton]);
 
-  const handleToggleFullscreen = useCallback(async () => {
-    const shell = shellRef.current;
-    if (!shell) return;
-    try {
-      if (document.fullscreenElement === shell) {
-        await document.exitFullscreen();
-        return;
-      }
-      await shell.requestFullscreen();
-    } catch {
-      // noop: browser can block fullscreen if action was interrupted
-    }
+  const handleToggleFullscreen = useCallback(() => {
+    setIsFullscreen((current) => !current);
   }, []);
 
   const closeMessageMenu = useCallback(() => {
@@ -648,6 +754,10 @@ export default function ChatPage() {
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  useEffect(() => {
+    composerVoiceRef.current = composerVoice;
+  }, [composerVoice]);
 
   const resolveAudioPlaybackSource = useCallback(
     async (
@@ -787,13 +897,51 @@ export default function ChatPage() {
   }, [loadThreads]);
 
   useEffect(() => {
-    const syncFullscreenState = () => {
-      setIsFullscreen(document.fullscreenElement === shellRef.current);
+    if (!isFullscreen) return undefined;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleFullscreenKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsFullscreen(false);
+      }
     };
-    syncFullscreenState();
-    document.addEventListener("fullscreenchange", syncFullscreenState);
+    document.addEventListener("keydown", handleFullscreenKeyDown);
     return () => {
-      document.removeEventListener("fullscreenchange", syncFullscreenState);
+      document.body.style.overflow = previousBodyOverflow;
+      document.removeEventListener("keydown", handleFullscreenKeyDown);
+    };
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const unlockNotificationAudio = () => {
+      const context = getNotificationAudioContext();
+      if (context?.state === "suspended") {
+        void context.resume().catch(() => undefined);
+      }
+    };
+    window.addEventListener("pointerdown", unlockNotificationAudio, {
+      capture: true,
+      once: true,
+      passive: true,
+    });
+    window.addEventListener("keydown", unlockNotificationAudio, {
+      capture: true,
+      once: true,
+    });
+    return () => {
+      window.removeEventListener("pointerdown", unlockNotificationAudio, true);
+      window.removeEventListener("keydown", unlockNotificationAudio, true);
+    };
+  }, [getNotificationAudioContext]);
+
+  useEffect(() => {
+    return () => {
+      const context = notificationAudioContextRef.current;
+      notificationAudioContextRef.current = null;
+      if (context && context.state !== "closed") {
+        void context.close().catch(() => undefined);
+      }
     };
   }, []);
 
@@ -887,7 +1035,7 @@ export default function ChatPage() {
   ]);
 
   useEffect(() => {
-    if (!selectedThreadId) return;
+    if (!selectedThreadId || !user) return;
     const resetRealtimeState = window.setTimeout(() => {
       setRealtimeConnected(false);
     }, 0);
@@ -904,7 +1052,15 @@ export default function ChatPage() {
         if (event.version > lastRealtimeEventVersionRef.current) {
           lastRealtimeEventVersionRef.current = event.version;
         }
-        if (event.threadId && event.threadId !== selectedThreadId) {
+        const eventThreadId = event.threadId ?? event.message?.threadId;
+        if (eventThreadId && eventThreadId !== selectedThreadId) {
+          if (
+            event.type === "message.created" &&
+            event.message &&
+            event.message.senderId !== user.id
+          ) {
+            playIncomingMessageNotification();
+          }
           scheduleThreadRefresh();
           return;
         }
@@ -943,7 +1099,12 @@ export default function ChatPage() {
       window.clearTimeout(resetRealtimeState);
       unsubscribe();
     };
-  }, [scheduleThreadRefresh, selectedThreadId]);
+  }, [
+    playIncomingMessageNotification,
+    scheduleThreadRefresh,
+    selectedThreadId,
+    user,
+  ]);
 
   useEffect(() => {
     if (!selectedThreadId) return;
@@ -1339,10 +1500,22 @@ export default function ChatPage() {
   ]);
 
   const resetComposer = useCallback(() => {
+    composerVoiceUploadGenerationRef.current += 1;
     setInputValue("");
     setComposerAttachments([]);
-    setComposerVoice(null);
+    setComposerVoice((current) => {
+      releaseComposerVoicePreview(current);
+      return null;
+    });
     setEditingMessageId(null);
+  }, []);
+
+  const clearComposerVoice = useCallback(() => {
+    composerVoiceUploadGenerationRef.current += 1;
+    setComposerVoice((current) => {
+      releaseComposerVoicePreview(current);
+      return null;
+    });
   }, []);
 
   const handleMessagesScroll = useCallback(() => {
@@ -1472,20 +1645,62 @@ export default function ChatPage() {
         const file = new File([blob], `voice-${Date.now()}.webm`, {
           type: blob.type || "audio/webm",
         });
+        const localPreviewUrl = URL.createObjectURL(blob);
+        const localVoiceId = `local-voice-${generateId()}`;
+        const uploadGeneration = composerVoiceUploadGenerationRef.current + 1;
+        composerVoiceUploadGenerationRef.current = uploadGeneration;
+        const localVoice: ComposerVoiceDraft = {
+          id: localVoiceId,
+          mimeType: file.type || "audio/webm",
+          size: file.size,
+          url: localPreviewUrl,
+          localPreviewUrl,
+          durationSeconds: recordedSeconds > 0 ? recordedSeconds : undefined,
+          listenedByPeer: false,
+          uploadStatus: "uploading",
+        };
+        setComposerVoice((current) => {
+          releaseComposerVoicePreview(current);
+          return localVoice;
+        });
+        const markLocalVoiceFailed = (message: string) => {
+          if (composerVoiceUploadGenerationRef.current !== uploadGeneration) {
+            return;
+          }
+          setComposerVoice((current) => {
+            if (current?.id !== localVoiceId) return current;
+            return {
+              ...current,
+              uploadStatus: "failed",
+              uploadError: message,
+            };
+          });
+          setMessagesError(message);
+        };
         try {
           const voice = await createVoiceMessageFromFile(file, {
             durationSeconds: recordedSeconds > 0 ? recordedSeconds : undefined,
             listenedByPeer: false,
           });
           if (!voice.url?.trim()) {
-            setMessagesError(
+            markLocalVoiceFailed(
               "Не удалось подготовить голосовое сообщение. Попробуйте еще раз."
             );
             return;
           }
-          setComposerVoice(voice);
+          setComposerVoice((current) => {
+            if (composerVoiceUploadGenerationRef.current !== uploadGeneration) {
+              return current;
+            }
+            if (current?.id !== localVoiceId) return current;
+            releaseComposerVoicePreview(current);
+            return {
+              ...voice,
+              uploadStatus: "ready",
+            };
+          });
         } catch (error) {
-          setMessagesError(
+          markLocalVoiceFailed(
             error instanceof Error
               ? error.message
               : "Не удалось подготовить голосовое сообщение."
@@ -1530,6 +1745,8 @@ export default function ChatPage() {
       if (recorderStreamRef.current) {
         recorderStreamRef.current.getTracks().forEach((track) => track.stop());
       }
+      releaseComposerVoicePreview(composerVoiceRef.current);
+      composerVoiceRef.current = null;
     };
   }, []);
 
@@ -1545,9 +1762,20 @@ export default function ChatPage() {
             Boolean(attachment.url?.trim())
         )
         .slice(0, MAX_ATTACHMENTS_PER_MESSAGE);
-      const safeVoice = isValidChatVoiceMessage(composerVoice)
-        ? composerVoice
-        : null;
+      if (composerVoice?.uploadStatus === "uploading") {
+        setMessagesError(
+          "Голосовое сообщение еще готовится к отправке. Подождите пару секунд."
+        );
+        return;
+      }
+      if (composerVoice?.uploadStatus === "failed") {
+        setMessagesError(
+          composerVoice.uploadError ||
+            "Не удалось подготовить голосовое сообщение. Удалите запись и попробуйте еще раз."
+        );
+        return;
+      }
+      const safeVoice = isReadyComposerVoice(composerVoice) ? composerVoice : null;
       if (!text && safeAttachments.length === 0 && !safeVoice) return;
       const activeThreadId = selectedThreadId;
       if (user.role === "teacher" && !activeThreadId) {
@@ -1565,17 +1793,19 @@ export default function ChatPage() {
       const restoreDraftVoice = safeVoice;
       try {
         if (editingMessageId && activeThreadId) {
-          await updateTeacherChatMessage({
+          const updated = await updateTeacherChatMessage({
             messageId: editingMessageId,
             threadId: activeThreadId,
             text,
             attachments: safeAttachments,
             voice: safeVoice ?? undefined,
           });
+          setMessages((current) => mergeChatMessage(current, updated));
         } else {
           const baseThreadId =
             user.role === "teacher" ? activeThreadId ?? undefined : undefined;
           const payloads: Array<{
+            clientMessageId: string;
             text: string;
             attachments?: TeacherChatAttachment[];
             voice?: TeacherChatVoiceMessage;
@@ -1583,18 +1813,23 @@ export default function ChatPage() {
 
           safeAttachments.forEach((attachment) => {
             payloads.push({
+              clientMessageId: `chat-client-${generateId()}`,
               text: "",
               attachments: [attachment],
             });
           });
           if (safeVoice) {
             payloads.push({
+              clientMessageId: `chat-client-${generateId()}`,
               text: "",
               voice: safeVoice,
             });
           }
           if (payloads.length === 0) {
-            payloads.push({ text });
+            payloads.push({
+              clientMessageId: `chat-client-${generateId()}`,
+              text,
+            });
           } else {
             const [firstPayload, ...restPayloads] = payloads;
             if (firstPayload) {
@@ -1621,6 +1856,7 @@ export default function ChatPage() {
                 senderRole: user.role,
                 senderName,
                 senderPhoto,
+                clientMessageId: payload.clientMessageId,
                 text: payload.text,
                 createdAt: new Date(baseTimestamp + index).toISOString(),
                 attachments: payload.attachments ?? [],
@@ -1637,6 +1873,7 @@ export default function ChatPage() {
           let createdThreadId: string | null = null;
           for (const payload of payloads) {
             const created = await sendTeacherChatMessage({
+              clientMessageId: payload.clientMessageId,
               threadId: baseThreadId,
               text: payload.text,
               attachments: payload.attachments,
@@ -1644,6 +1881,9 @@ export default function ChatPage() {
             });
             if (created?.threadId) {
               createdThreadId = created.threadId;
+            }
+            if (activeThreadId) {
+              setMessages((current) => mergeChatMessage(current, created));
             }
           }
           if (!activeThreadId && createdThreadId) {
@@ -1655,7 +1895,7 @@ export default function ChatPage() {
           resetComposer();
         }
         void loadThreads({ keepSpinner: true }).catch(() => undefined);
-        if (resultingThreadId) {
+        if (!activeThreadId && resultingThreadId) {
           void loadMessages(resultingThreadId, { silent: true }).catch(() => undefined);
         }
       } catch (error) {
@@ -1696,7 +1936,11 @@ export default function ChatPage() {
       setEditingMessageId(message.id);
       setInputValue(message.text);
       setComposerAttachments(message.attachments ?? []);
-      setComposerVoice(message.voice ?? null);
+      composerVoiceUploadGenerationRef.current += 1;
+      setComposerVoice((current) => {
+        releaseComposerVoicePreview(current);
+        return message.voice ?? null;
+      });
       requestAnimationFrame(() => {
         composerInputRef.current?.focus();
         adjustComposerHeight();
@@ -1777,6 +2021,7 @@ export default function ChatPage() {
     inputValue.trim().length > 0 ||
     composerAttachments.length > 0 ||
     Boolean(composerVoice);
+  const isComposerVoicePreparing = composerVoice?.uploadStatus === "uploading";
   const previewCurrentMedia = mediaPreview
     ? mediaPreview.items[mediaPreview.index]
     : null;
@@ -1982,9 +2227,17 @@ export default function ChatPage() {
   }, [isRecordingAudio, sending, startAudioRecording, stopAudioRecording]);
 
   const handleComposerSendAction = useCallback(() => {
-    if (sending || isRecordingAudio || !hasDraftContent) return;
+    if (sending || isRecordingAudio || isComposerVoicePreparing || !hasDraftContent) {
+      return;
+    }
     void submitComposer();
-  }, [hasDraftContent, isRecordingAudio, sending, submitComposer]);
+  }, [
+    hasDraftContent,
+    isComposerVoicePreparing,
+    isRecordingAudio,
+    sending,
+    submitComposer,
+  ]);
 
   const handleVoiceListened = useCallback(
     async (message: TeacherChatMessage) => {
@@ -2049,7 +2302,10 @@ export default function ChatPage() {
         </IconButton>
       ) : null}
 
-      <section className="chat-page__shell" ref={shellRef}>
+      <section
+        className={`chat-page__shell${isFullscreen ? " is-fullscreen" : ""}`}
+        ref={shellRef}
+      >
         <div
           className={`chat-page__workspace ${
             isTeacherView ? "chat-page__workspace--with-sidebar" : ""
@@ -2673,11 +2929,20 @@ export default function ChatPage() {
                     waveform={composerVoice.waveform}
                     playbackRate={selectedThreadAudioRate}
                   />
+                  {composerVoice.uploadStatus === "uploading" ? (
+                    <span className="chat-page__composer-voice-status">
+                      Подготовка аудио
+                    </span>
+                  ) : composerVoice.uploadStatus === "failed" ? (
+                    <span className="chat-page__composer-voice-status is-error">
+                      Не удалось подготовить
+                    </span>
+                  ) : null}
                   <IconButton
                     size="small"
                     className="chat-page__composer-voice-remove"
                     disableRipple
-                    onClick={() => setComposerVoice(null)}
+                    onClick={clearComposerVoice}
                     aria-label="Удалить голосовое сообщение"
                   >
                     <CloseRoundedIcon fontSize="small" />
@@ -2813,7 +3078,12 @@ export default function ChatPage() {
                   <div className="chat-page__composer-actions chat-page__composer-actions--right">
                     <IconButton
                       type="button"
-                      disabled={sending || isRecordingAudio || !hasDraftContent}
+                      disabled={
+                        sending ||
+                        isRecordingAudio ||
+                        isComposerVoicePreparing ||
+                        !hasDraftContent
+                      }
                       className="chat-page__send-button"
                       onClick={handleComposerSendAction}
                       aria-label="Отправить сообщение"

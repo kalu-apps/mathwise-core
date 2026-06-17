@@ -115,6 +115,7 @@
   min-width: 0;
 }
 
+.chat-page__shell.is-fullscreen,
 .chat-page__shell:fullscreen,
 .chat-page__shell:-webkit-full-screen {
   width: 100vw;
@@ -123,6 +124,15 @@
   max-height: none;
 }
 
+.chat-page__shell.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  padding: 0;
+  background: color-mix(in srgb, var(--background-elevated) 92%, var(--surface-soft));
+}
+
+.chat-page__shell.is-fullscreen .chat-page__workspace,
 .chat-page__shell:fullscreen .chat-page__workspace,
 .chat-page__shell:-webkit-full-screen .chat-page__workspace {
   height: 100%;
@@ -1788,6 +1798,25 @@
   display: none;
 }
 
+.chat-page__composer-voice-status {
+  position: absolute;
+  right: 42px;
+  bottom: 5px;
+  max-width: calc(100% - 96px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0;
+  color: color-mix(in srgb, var(--chat-text-muted) 80%, var(--chat-accent));
+  pointer-events: none;
+}
+
+.chat-page__composer-voice-status.is-error {
+  color: color-mix(in srgb, #b74761 86%, var(--chat-text-strong));
+}
+
 .chat-page__composer-voice-remove.MuiIconButton-root {
   position: absolute;
   top: 8px;
@@ -2576,10 +2605,13 @@
   --chat-canvas-glow-a: color-mix(in srgb, #7e91d8 8%, transparent);
   --chat-canvas-glow-b: color-mix(in srgb, #55c2b0 7%, transparent);
   --chat-thread-bg: color-mix(in srgb, #fbfdff 88%, var(--background-elevated));
-  --chat-thread-grid-minor: color-mix(in srgb, #3d5fb7 5%, transparent);
-  --chat-thread-grid-major: color-mix(in srgb, #3d5fb7 10%, transparent);
-  --chat-thread-grid-axis: color-mix(in srgb, #55b8a8 7%, transparent);
   --chat-thread-paper-wash: color-mix(in srgb, #ffffff 58%, transparent);
+  --chat-doodle-mask: url("../../../assets/chat/math-doodle-pattern.svg");
+  --chat-doodle-size: 760px 428px;
+  --chat-doodle-opacity: 0.18;
+  --chat-doodle-ink-a: color-mix(in srgb, #526bd8 84%, var(--accent-primary));
+  --chat-doodle-ink-b: color-mix(in srgb, #42bfae 76%, var(--accent-mint));
+  --chat-doodle-ink-c: color-mix(in srgb, #356fbf 82%, var(--accent-secondary));
   --chat-wave-idle-2026: color-mix(in srgb, #7f96ba 48%, transparent);
   --chat-wave-active-2026: #3f7df0;
   --chat-wave-hot-2026: #4bd4b5;
@@ -2596,10 +2628,11 @@
   --chat-canvas-glow-a: color-mix(in srgb, #6c86ff 9%, transparent);
   --chat-canvas-glow-b: color-mix(in srgb, #4bd4bc 8%, transparent);
   --chat-thread-bg: color-mix(in srgb, #101a2e 90%, var(--background-elevated));
-  --chat-thread-grid-minor: color-mix(in srgb, #a8baff 6%, transparent);
-  --chat-thread-grid-major: color-mix(in srgb, #a8baff 11%, transparent);
-  --chat-thread-grid-axis: color-mix(in srgb, #69dec8 9%, transparent);
   --chat-thread-paper-wash: color-mix(in srgb, #17243e 46%, transparent);
+  --chat-doodle-opacity: 0.26;
+  --chat-doodle-ink-a: color-mix(in srgb, #7d8cff 78%, var(--accent-primary));
+  --chat-doodle-ink-b: color-mix(in srgb, #55dec6 72%, var(--accent-mint));
+  --chat-doodle-ink-c: color-mix(in srgb, #4f95d8 72%, var(--accent-secondary));
   --chat-wave-idle-2026: color-mix(in srgb, #9fb6d8 42%, transparent);
   --chat-wave-active-2026: #6aa4ff;
   --chat-wave-hot-2026: #57ddc1;
@@ -2658,25 +2691,71 @@
   padding: clamp(14px, 1.4vw, 22px);
   gap: 10px;
   background:
-    linear-gradient(90deg, var(--chat-thread-grid-major) 1px, transparent 1px)
-      0 0 / 96px 96px,
-    linear-gradient(var(--chat-thread-grid-major) 1px, transparent 1px)
-      0 0 / 96px 96px,
-    linear-gradient(90deg, var(--chat-thread-grid-minor) 1px, transparent 1px)
-      0 0 / 24px 24px,
-    linear-gradient(var(--chat-thread-grid-minor) 1px, transparent 1px)
-      0 0 / 24px 24px,
-    linear-gradient(90deg, transparent 0 49%, var(--chat-thread-grid-axis) 49% 50%, transparent 50%),
     radial-gradient(
       82% 46% at 50% 0%,
       color-mix(in srgb, var(--chat-canvas-glow-a) 72%, transparent) 0%,
       transparent 70%
+    ),
+    linear-gradient(
+      110deg,
+      color-mix(in srgb, var(--chat-canvas-glow-a) 30%, transparent),
+      transparent 38%,
+      color-mix(in srgb, var(--chat-canvas-glow-b) 34%, transparent)
     ),
     var(--chat-thread-bg);
   background-attachment: local;
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #ffffff 22%, transparent),
     inset 0 -1px 0 color-mix(in srgb, var(--chat-canvas-ink) 28%, transparent);
+}
+
+.chat-page__messages::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      116deg,
+      var(--chat-doodle-ink-a) 0%,
+      var(--chat-doodle-ink-b) 47%,
+      var(--chat-doodle-ink-c) 100%
+    );
+  opacity: var(--chat-doodle-opacity);
+  -webkit-mask-image: var(--chat-doodle-mask);
+  mask-image: var(--chat-doodle-mask);
+  -webkit-mask-size: var(--chat-doodle-size);
+  mask-size: var(--chat-doodle-size);
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+  -webkit-mask-position: 50% 18px;
+  mask-position: 50% 18px;
+}
+
+.chat-page__messages::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      74% 52% at 50% 8%,
+      color-mix(in srgb, var(--chat-thread-paper-wash) 56%, transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--chat-thread-paper-wash) 28%, transparent),
+      transparent 28%,
+      color-mix(in srgb, var(--chat-canvas-glow-b) 10%, transparent)
+    );
+}
+
+.chat-page__messages > * {
+  position: relative;
+  z-index: 1;
 }
 
 .chat-page__day-separator span {

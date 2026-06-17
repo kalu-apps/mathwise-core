@@ -17,9 +17,12 @@ export async function getTeacherChatEligibility(): Promise<TeacherChatEligibilit
   });
 }
 
-export async function getTeacherChatThreads(): Promise<TeacherChatThread[]> {
+export async function getTeacherChatThreads(options?: {
+  forceFresh?: boolean;
+}): Promise<TeacherChatThread[]> {
   return api.get<TeacherChatThread[]>("/chat/threads", {
-    cacheTtlMs: 1_000,
+    cacheTtlMs: options?.forceFresh ? 0 : 1_000,
+    dedupe: options?.forceFresh ? false : undefined,
   });
 }
 

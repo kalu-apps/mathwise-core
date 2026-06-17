@@ -24,6 +24,12 @@ const nowIso = () => new Date().toISOString();
 
 const normalizeMessageText = (value: string) => value.trim();
 
+const normalizeClientMessageId = (value: string | undefined) => {
+  const normalized = value?.trim() ?? "";
+  if (!normalized) return undefined;
+  return normalized.slice(0, 96);
+};
+
 const isLikelyMediaObjectId = (value: string) => value.startsWith("media_");
 
 const resolveMediaObjectId = (params: {
@@ -306,7 +312,13 @@ export class ChatService implements OnModuleInit {
       createdAt,
     });
     const [hydrated] = await this.hydrateMessageAttachments([created]);
-    const response = hydrated ?? created;
+    const clientMessageId = normalizeClientMessageId(
+      params.payload.clientMessageId
+    );
+    const response: TeacherChatMessageDto = {
+      ...(hydrated ?? created),
+      ...(clientMessageId ? { clientMessageId } : {}),
+    };
     this.realtimeService?.publishThread(thread, {
       type: "message.created",
       threadId: thread.id,
@@ -463,6 +475,11 @@ export class ChatService implements OnModuleInit {
     if (params.actorUser.role === "student") {
       await this.assertStudentPremiumAccess(params.actorUser, thread.teacherId);
     }
+    await this.chatRepository.markThreadRead({
+      threadId: thread.id,
+      actorRole: params.actorUser.role,
+      readAt: nowIso(),
+    });
     this.realtimeService?.publishThread(thread, {
       type: "thread.read",
       threadId: thread.id,

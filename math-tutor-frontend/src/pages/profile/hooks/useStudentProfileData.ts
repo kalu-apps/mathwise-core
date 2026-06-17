@@ -16,6 +16,7 @@ import { buildPublishedCourseContentProjection } from "@/features/assessments/mo
 import {
   getTeacherChatEligibility,
   getTeacherChatThreads,
+  subscribeTeacherChatEvents,
 } from "@/features/chat/model/api";
 import type { TeacherChatEligibility } from "@/features/chat/model/types";
 import {
@@ -473,7 +474,7 @@ export const useStudentProfileData = ({
       return;
     }
     try {
-      const threads = await getTeacherChatThreads();
+      const threads = await getTeacherChatThreads({ forceFresh: true });
       const unread = threads.reduce(
         (sum, thread) => sum + Math.max(0, thread.unreadCount),
         0
@@ -511,11 +512,24 @@ export const useStudentProfileData = ({
     const pollId = window.setInterval(() => {
       void loadChatUnread();
     }, 8_000);
+    const unsubscribeRealtime = subscribeTeacherChatEvents({
+      onEvent: (event) => {
+        if (
+          event.type === "message.created" ||
+          event.type === "message.deleted" ||
+          event.type === "thread.cleared" ||
+          event.type === "thread.read"
+        ) {
+          void loadChatUnread();
+        }
+      },
+    });
     const unsubscribe = subscribeAppDataUpdates(() => {
       void loadChatUnread();
     });
     return () => {
       window.clearInterval(pollId);
+      unsubscribeRealtime();
       unsubscribe();
     };
   }, [chatAccessAvailable, loadChatUnread, setChatUnreadCount]);
