@@ -18,14 +18,17 @@
   position: relative;
   z-index: 3;
   padding: clamp(22px, 2.8vw, 36px);
-  display: grid;
-  grid-template-columns: minmax(0, 1.16fr) minmax(0, 1fr);
-  gap: clamp(14px, 1.8vw, 22px);
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  --home-path-step: clamp(18px, 3vw, 52px);
 }
 
 .home-first-screen__hero-command {
   position: relative;
+  align-self: flex-start;
+  width: min(820px, calc(58% - 12px));
   padding: clamp(18px, 2.1vw, 24px) clamp(16px, 1.8vw, 22px);
   border-radius: 22px;
   background: linear-gradient(
@@ -175,9 +178,7 @@
 }
 
 .home-first-screen__paths {
-  display: grid;
-  gap: 10px;
-  align-content: start;
+  display: contents;
 }
 
 .home-first-screen__paths-head {
@@ -200,13 +201,13 @@
 }
 
 .home-first-screen__paths-list {
-  display: grid;
-  gap: 9px;
-  overflow: visible;
+  display: contents;
 }
 
 .home-first-screen__path-item {
   position: relative;
+  width: min(720px, calc(50% - 12px));
+  margin-top: var(--home-path-step);
   padding: 13px 13px 12px;
   border-radius: 16px;
   background: linear-gradient(
@@ -220,6 +221,14 @@
   box-shadow:
     0 8px 18px color-mix(in srgb, #050a16 13%, transparent),
     inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent);
+}
+
+.home-first-screen__path-item:nth-child(odd) {
+  align-self: flex-end;
+}
+
+.home-first-screen__path-item:nth-child(even) {
+  align-self: flex-start;
 }
 
 .home-first-screen__path-item--primary {
@@ -422,12 +431,32 @@
 
 @media (max-width: 1080px) {
   .home-first-screen__layout {
+    display: grid;
     grid-template-columns: 1fr;
     gap: 12px;
   }
 
   .home-first-screen__hero-command {
+    width: 100%;
     max-width: 100%;
+  }
+
+  .home-first-screen__paths {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+  }
+
+  .home-first-screen__paths-list {
+    display: grid;
+    gap: 9px;
+    overflow: visible;
+  }
+
+  .home-first-screen__path-item {
+    width: 100%;
+    margin-top: 0;
+    align-self: stretch;
   }
 }
 
