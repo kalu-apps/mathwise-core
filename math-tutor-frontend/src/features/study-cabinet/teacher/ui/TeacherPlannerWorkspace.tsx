@@ -225,10 +225,6 @@ export function TeacherPlannerWorkspace({
   const selectEvent = (event: TeacherPlannerEvent) => {
     setSelectedDateKey(event.dateKey);
     setSelectedEventId(event.id);
-    if (event.kind === "note" && event.note) {
-      onEditNote(event.note);
-      return;
-    }
     if (isCompactLayout) {
       window.setTimeout(() => {
         document
@@ -417,6 +413,9 @@ export function TeacherPlannerWorkspace({
         <TeacherPlannerDetailPanel
           id={TEACHER_DAILY_DETAIL_PANEL_ID}
           event={selectedEvent}
+          events={selectedDayEvents}
+          selectedEventId={effectiveSelectedEventId}
+          onSelectEvent={selectEvent}
           onOpenSchedule={onOpenSchedule}
           onOpenStudentChat={onOpenStudentChat}
           onCreatePrepNote={(booking) => onCreateNote({ templateId: "prep", booking })}

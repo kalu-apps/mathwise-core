@@ -315,8 +315,8 @@ const buildNoteEvent = (note: StudyCabinetNote): TeacherPlannerEvent | null => {
     subtitle: kindLabel,
     description: note.body || "Личная заметка преподавателя",
     badge: "Напоминание",
-    secondaryBadge: note.remind ? "Сигнал" : undefined,
-    statusLabel: note.remind ? "С напоминанием" : "Без напоминания",
+    secondaryBadge: undefined,
+    statusLabel: undefined,
     color: note.color || TEACHER_NOTE_COLORS[0],
     note,
   };

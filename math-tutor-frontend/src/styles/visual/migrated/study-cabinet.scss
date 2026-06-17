@@ -2510,6 +2510,7 @@
 .teacher-daily-button,
 .teacher-daily-icon-button,
 .teacher-daily-detail__note-action,
+.teacher-daily-detail__event-item,
 .teacher-daily-week-strip__day,
 .teacher-daily-planner__tabs button,
 .teacher-daily-timeline__slot,
@@ -3069,7 +3070,13 @@
 .teacher-daily-timeline__canvas {
   position: relative;
   min-width: 0;
-  background: color-mix(in srgb, var(--background-elevated) 96%, transparent);
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--teacher-daily-line-soft) 42%, transparent) 0 1px,
+      transparent 1px 100%
+    ) 0 0 / 25% 100%,
+    color-mix(in srgb, var(--background-elevated) 96%, transparent);
 }
 
 .teacher-daily-timeline__slots {
@@ -3081,19 +3088,20 @@
 
 .teacher-daily-timeline__slot {
   min-height: 31px;
-  border-bottom: 1px solid var(--teacher-daily-line-soft);
+  border-bottom: 1px solid color-mix(in srgb, var(--teacher-daily-line-soft) 78%, transparent);
   border-radius: 0;
   background: transparent;
   padding: 0;
   margin: 0;
+  box-shadow: none;
 }
 
 .teacher-daily-timeline__slot:nth-child(2n) {
-  border-bottom-color: var(--teacher-daily-line);
+  border-bottom-color: color-mix(in srgb, var(--teacher-daily-line) 78%, transparent);
 }
 
 .teacher-daily-timeline__slot:nth-child(4n + 1) {
-  background: color-mix(in srgb, var(--surface-soft) 22%, transparent);
+  background: color-mix(in srgb, var(--surface-soft) 12%, transparent);
 }
 
 .teacher-daily-timeline__slot.is-clickable {
@@ -3101,20 +3109,12 @@
 }
 
 .teacher-daily-timeline__slot.is-clickable:hover {
-  background: color-mix(in srgb, var(--accent-primary) 6%, var(--surface-soft) 20%);
+  background: color-mix(in srgb, var(--accent-primary) 6%, var(--surface-soft) 14%);
 }
 
 .teacher-daily-timeline__slot.is-disabled {
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--border-subtle) 32%, transparent),
-      transparent 34px
-    ),
-    color-mix(in srgb, var(--surface-soft) 34%, var(--background-elevated));
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--border-subtle) 34%, transparent),
-    inset 3px 0 0 color-mix(in srgb, var(--border-subtle) 46%, transparent);
+  background: color-mix(in srgb, var(--surface-soft) 26%, var(--background-elevated));
+  box-shadow: none;
   cursor: default;
 }
 
@@ -3554,6 +3554,106 @@
   inset: 0 auto 0 0;
   width: 4px;
   background: var(--teacher-daily-event-color);
+}
+
+.teacher-daily-detail__event-list {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+}
+
+.teacher-daily-detail__event-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 820;
+  text-transform: uppercase;
+}
+
+.teacher-daily-detail__event-items {
+  display: grid;
+  gap: 7px;
+  max-height: 210px;
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+}
+
+.teacher-daily-detail__event-item {
+  --teacher-daily-event-color: var(--planner-event-color, var(--accent-primary));
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--card-border) 58%, transparent);
+  border-left: 4px solid color-mix(in srgb, var(--teacher-daily-event-color) 72%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--background-elevated) 86%, transparent);
+  padding: 8px 10px 8px 8px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.12s ease;
+}
+
+.teacher-daily-detail__event-item:hover,
+.teacher-daily-detail__event-item.is-active {
+  border-color: color-mix(in srgb, var(--teacher-daily-event-color) 42%, var(--card-border));
+  border-left-color: color-mix(in srgb, var(--teacher-daily-event-color) 84%, transparent);
+  background: color-mix(in srgb, var(--teacher-daily-event-color) 8%, var(--background-elevated) 92%);
+}
+
+.teacher-daily-detail__event-item:hover {
+  transform: translateY(-1px);
+}
+
+.teacher-daily-detail__event-item-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--teacher-daily-event-color) 13%, var(--background-elevated));
+  color: color-mix(in srgb, var(--teacher-daily-event-color) 76%, var(--text-primary));
+}
+
+.teacher-daily-detail__event-item-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.teacher-daily-detail__event-item-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.teacher-daily-detail__event-item-copy strong,
+.teacher-daily-detail__event-item-copy span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-daily-detail__event-item-copy strong {
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 820;
+  line-height: 1.14;
+}
+
+.teacher-daily-detail__event-item-copy span {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 720;
+  line-height: 1.2;
 }
 
 .teacher-daily-detail__empty-icon,
