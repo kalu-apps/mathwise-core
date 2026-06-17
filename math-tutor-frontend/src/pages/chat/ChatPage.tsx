@@ -2239,9 +2239,6 @@ export default function ChatPage() {
                   </button>
                   <div className="chat-page__audio-dock-body">
                     <div className="chat-page__audio-dock-copy">
-                      <span className="chat-page__audio-dock-eyebrow">
-                        Сейчас играет
-                      </span>
                       <span className="chat-page__audio-dock-title">
                         {activeAudioDockCopy.title}
                       </span>
