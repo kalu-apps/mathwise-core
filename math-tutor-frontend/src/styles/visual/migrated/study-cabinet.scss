@@ -3107,11 +3107,11 @@
 .teacher-daily-timeline__slot {
   min-height: 31px;
   border-bottom: 1px solid color-mix(in srgb, var(--teacher-daily-line-soft) 78%, transparent);
-  border-radius: 0;
-  background: transparent;
+  border-radius: 0 !important;
+  background: transparent !important;
   padding: 0;
   margin: 0;
-  box-shadow: none;
+  box-shadow: none !important;
 }
 
 .teacher-daily-timeline__slot:nth-child(2n) {
@@ -3119,7 +3119,7 @@
 }
 
 .teacher-daily-timeline__slot:nth-child(4n + 1) {
-  background: transparent;
+  background: transparent !important;
 }
 
 .teacher-daily-timeline__slot.is-clickable {
@@ -3127,12 +3127,12 @@
 }
 
 .teacher-daily-timeline__slot.is-clickable:hover {
-  background: color-mix(in srgb, var(--accent-primary) 6%, var(--surface-soft) 14%);
+  background: color-mix(in srgb, var(--accent-primary) 6%, var(--surface-soft) 14%) !important;
 }
 
 .teacher-daily-timeline__slot.is-disabled {
-  background: color-mix(in srgb, var(--surface-soft) 26%, var(--background-elevated));
-  box-shadow: none;
+  background: color-mix(in srgb, var(--surface-soft) 26%, var(--background-elevated)) !important;
+  box-shadow: none !important;
   cursor: default;
 }
 
@@ -3378,11 +3378,11 @@
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   gap: 4px;
-  border-radius: 0;
+  border-radius: 0 !important;
   border-color: color-mix(in srgb, var(--teacher-daily-event-color) 34%, var(--teacher-daily-line));
   border-left: 6px solid color-mix(in srgb, var(--teacher-daily-event-color) 84%, transparent);
   background: color-mix(in srgb, var(--teacher-daily-event-color) 7%, var(--background-elevated) 93%);
-  box-shadow: none;
+  box-shadow: none !important;
   padding: 5px 8px 5px 10px;
 }
 
