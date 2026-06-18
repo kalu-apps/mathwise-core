@@ -22,6 +22,7 @@ import type {
   AcceptTeacherInviteResponseDto,
   CreateTeacherInvitePayloadDto,
   CreateTeacherInviteResponseDto,
+  HomeHeroAssetDto,
   StudentProfileContextDto,
   TeacherInviteInspectResponseDto,
   TeacherDashboardContextDto,
@@ -101,6 +102,11 @@ export class ProfileController {
   @Get("public/about-teacher/content")
   async getPublicAboutTeacherContent(): Promise<AboutTeacherPublicContentDto> {
     return this.profileService.getPublicAboutTeacherContent();
+  }
+
+  @Get("public/home/hero-asset")
+  async getPublicHomeHeroAsset(): Promise<HomeHeroAssetDto> {
+    return this.profileService.getPublicHomeHeroAsset();
   }
 
   @Get("student/context")

@@ -1201,15 +1201,6 @@ export default function ChatPage() {
     }
   }, [selectedThreadId]);
 
-  const syncMessagesBackdropOffset = useCallback(() => {
-    const viewport = messagesViewportRef.current;
-    if (!viewport) return;
-    viewport.style.setProperty(
-      "--chat-messages-scroll-y",
-      `${Math.max(0, viewport.scrollTop)}px`
-    );
-  }, []);
-
   useEffect(() => {
     const viewport = messagesViewportRef.current;
     if (!viewport) return;
@@ -1219,8 +1210,7 @@ export default function ChatPage() {
     lastMessageIdRef.current = currentLastMessageId;
     if (!shouldStickToBottomRef.current) return;
     endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    window.requestAnimationFrame(syncMessagesBackdropOffset);
-  }, [messages, syncMessagesBackdropOffset]);
+  }, [messages]);
 
   useLayoutEffect(() => {
     const previousHeight = restoreScrollRef.current;
@@ -1230,7 +1220,6 @@ export default function ChatPage() {
       return;
     }
     if (previousHeight === null) {
-      syncMessagesBackdropOffset();
       return;
     }
     const delta = viewport.scrollHeight - previousHeight;
@@ -1238,8 +1227,7 @@ export default function ChatPage() {
       viewport.scrollTop += delta;
     }
     restoreScrollRef.current = null;
-    syncMessagesBackdropOffset();
-  }, [visibleCount, messages.length, syncMessagesBackdropOffset]);
+  }, [visibleCount, messages.length]);
 
   const visibleMessages = useMemo(() => {
     if (messages.length <= visibleCount) return messages;
@@ -1609,11 +1597,10 @@ export default function ChatPage() {
   const handleMessagesScroll = useCallback(() => {
     const viewport = messagesViewportRef.current;
     if (!viewport) return;
-    syncMessagesBackdropOffset();
     const distanceToBottom =
       viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
     shouldStickToBottomRef.current = distanceToBottom < 64;
-  }, [syncMessagesBackdropOffset]);
+  }, []);
 
   const handleLoadOlderMessages = useCallback(() => {
     if (!hasOlderMessages) return;
@@ -2724,6 +2711,9 @@ export default function ChatPage() {
                       getAttachmentKind(attachment.mimeType)
                     );
                     const hasAudioAttachments = attachmentKinds.includes("audio");
+                    const hasVisualAttachments = attachmentKinds.some(
+                      (kind) => kind === "image" || kind === "video"
+                    );
                     const hasNonAudioAttachments = attachmentKinds.some(
                       (kind) => kind !== "audio"
                     );
@@ -2776,12 +2766,6 @@ export default function ChatPage() {
                           });
                         }}
                       >
-                        {!ownMessage ? (
-                          <span className="chat-page__message-author">
-                            {displaySenderName}
-                          </span>
-                        ) : null}
-
                         {message.text ? <p>{renderChatMessageText(message.text)}</p> : null}
 
                         {message.voice ? (
@@ -2885,6 +2869,18 @@ export default function ChatPage() {
                                       ) : (
                                         <img src={attachment.url} alt={attachment.name} />
                                       )}
+                                      <span className="chat-page__attachment-time">
+                                        <time>{messageTimestampLabel}</time>
+                                        {ownMessage ? (
+                                          <span className="chat-page__attachment-read-state">
+                                            {message.readByPeer ? (
+                                              <DoneAllRoundedIcon fontSize="inherit" />
+                                            ) : (
+                                              <DoneRoundedIcon fontSize="inherit" />
+                                            )}
+                                          </span>
+                                        ) : null}
+                                      </span>
                                     </button>
                                   </div>
                                 );
@@ -2990,7 +2986,7 @@ export default function ChatPage() {
                           </div>
                         ) : null}
 
-                        {!isAudioOnlyMessage ? (
+                        {!isAudioOnlyMessage && !hasVisualAttachments ? (
                           <div className="chat-page__message-foot">
                             {message.editedAt ? (
                               <span className="chat-page__message-edited">изм.</span>
@@ -3021,34 +3017,46 @@ export default function ChatPage() {
               ) : null}
 
               {composerVoice ? (
-                <div className="chat-page__composer-voice">
+                <div
+                  className={`chat-page__composer-voice chat-page__composer-voice--${composerVoice.uploadStatus}`}
+                >
                   <AudioMessagePlayer
                     key={composerVoice.mediaObjectId || composerVoice.id}
                     src={composerVoice.url}
                     mediaIdentity={composerVoice.mediaObjectId || composerVoice.id}
-                    title="Черновик голосового сообщения"
+                    title="Голосовое сообщение"
                     durationSeconds={composerVoice.durationSeconds}
                     waveform={composerVoice.waveform}
                     playbackRate={selectedThreadAudioRate}
                   />
-                  {composerVoice.uploadStatus === "uploading" ? (
-                    <span className="chat-page__composer-voice-status">
-                      Подготовка аудио
-                    </span>
-                  ) : composerVoice.uploadStatus === "failed" ? (
-                    <span className="chat-page__composer-voice-status is-error">
-                      Не удалось подготовить
-                    </span>
-                  ) : null}
-                  <IconButton
-                    size="small"
-                    className="chat-page__composer-voice-remove"
-                    disableRipple
-                    onClick={clearComposerVoice}
-                    aria-label="Удалить голосовое сообщение"
-                  >
-                    <CloseRoundedIcon fontSize="small" />
-                  </IconButton>
+                  <div className="chat-page__composer-voice-actions">
+                    {composerVoice.uploadStatus === "uploading" ? (
+                      <span className="chat-page__composer-voice-status">
+                        Подготовка
+                      </span>
+                    ) : composerVoice.uploadStatus === "failed" ? (
+                      <span className="chat-page__composer-voice-status is-error">
+                        Ошибка
+                      </span>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="chat-page__audio-rate-control chat-page__composer-voice-rate"
+                      onClick={handleCycleThreadAudioRate}
+                      aria-label="Изменить скорость голосового сообщения"
+                    >
+                      {formatChatAudioRateLabel(selectedThreadAudioRate)}
+                    </button>
+                    <IconButton
+                      size="small"
+                      className="chat-page__composer-voice-remove"
+                      disableRipple
+                      onClick={clearComposerVoice}
+                      aria-label="Удалить голосовое сообщение"
+                    >
+                      <CloseRoundedIcon fontSize="small" />
+                    </IconButton>
+                  </div>
                 </div>
               ) : null}
 

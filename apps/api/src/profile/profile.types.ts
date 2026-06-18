@@ -161,3 +161,7 @@ export type AboutTeacherPublicContentDto = {
   diplomas: AboutTeacherAssetDto[];
   reviews: AboutTeacherAssetDto[];
 };
+
+export type HomeHeroAssetDto = {
+  routeAsset: AboutTeacherAssetDto | null;
+};

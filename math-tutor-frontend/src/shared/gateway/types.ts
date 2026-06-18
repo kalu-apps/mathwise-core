@@ -24,6 +24,7 @@ import type {
 } from "@/domain/auth-payments/model/access";
 import type {
   AboutTeacherPublicContentResponseContract,
+  HomeHeroAssetResponseContract,
   ProfileMeResponseContract,
   StudentProfileContextResponseContract,
   TeacherInviteAcceptResponseContract,
@@ -142,6 +143,7 @@ export type AccessGateway = {
 export type ProfileGateway = {
   getProfileMe: () => Promise<ProfileMeResponseContract>;
   getPublicAboutTeacherContent: () => Promise<AboutTeacherPublicContentResponseContract>;
+  getPublicHomeHeroAsset: () => Promise<HomeHeroAssetResponseContract>;
   getStudentProfileContext: () => Promise<StudentProfileContextResponseContract>;
   getTeacherDashboardContext: () => Promise<TeacherDashboardContextResponseContract>;
   createTeacherInvite: (payload: {

@@ -33,6 +33,7 @@ import type {
 } from "./types";
 import type {
   AboutTeacherPublicContentResponseContract,
+  HomeHeroAssetResponseContract,
   ProfileMeResponseContract,
   StudentProfileContextResponseContract,
   TeacherInviteAcceptResponseContract,
@@ -353,6 +354,9 @@ export const httpProfileGateway: ProfileGateway = {
     return requestHttpJson<AboutTeacherPublicContentResponseContract>(
       "/public/about-teacher/content"
     );
+  },
+  async getPublicHomeHeroAsset(): Promise<HomeHeroAssetResponseContract> {
+    return requestHttpJson<HomeHeroAssetResponseContract>("/public/home/hero-asset");
   },
   async getStudentProfileContext(): Promise<StudentProfileContextResponseContract> {
     return requestHttpJson<StudentProfileContextResponseContract>("/student/context");

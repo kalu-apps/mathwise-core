@@ -30,6 +30,7 @@ import type {
   AcceptTeacherInviteResponseDto,
   CreateTeacherInvitePayloadDto,
   CreateTeacherInviteResponseDto,
+  HomeHeroAssetDto,
   StudentProfileContextDto,
   TeacherInviteInspectResponseDto,
   TeacherDashboardContextDto,
@@ -62,6 +63,9 @@ const ABOUT_TEACHER_IMAGE_EXTENSIONS = new Set([
   ".avif",
   ".gif",
 ]);
+
+const HOME_HERO_ROUTE_ASSET_KEY =
+  "hero_section/infinity_route_asset_transparent_2400_no_shadow.png";
 
 const normalizeKeyFileName = (objectKey: string) => {
   const segments = objectKey.split("/");
@@ -575,6 +579,17 @@ export class ProfileService implements OnModuleInit {
     };
   }
 
+  async getPublicHomeHeroAsset(): Promise<HomeHeroAssetDto> {
+    const routeAsset = await this.getSignedPublicAssetByKey(
+      HOME_HERO_ROUTE_ASSET_KEY,
+      "home-hero-route"
+    );
+
+    return {
+      routeAsset,
+    };
+  }
+
   async updateProfile(userId: string, patch: {
     firstName?: string;
     lastName?: string;
@@ -685,6 +700,66 @@ export class ProfileService implements OnModuleInit {
         message: error instanceof Error ? error.message : "unknown_error",
       });
       return [];
+    }
+  }
+
+  private async getSignedPublicAssetByKey(
+    objectKey: string,
+    scope: string
+  ): Promise<AboutTeacherAssetDto | null> {
+    const mediaStorageService = this.mediaStorageService;
+    if (!mediaStorageService?.isEnabled()) {
+      console.warn("[profile] public-media-storage-disabled", {
+        scope,
+        objectKey,
+        appEnv: this.runtimeConfig.appEnv,
+      });
+      return null;
+    }
+
+    const rootKey = objectKey;
+    const envScopedKey = `${this.runtimeConfig.appEnv}/${objectKey}`;
+    const candidateKeys =
+      rootKey === envScopedKey
+        ? [rootKey]
+        : [rootKey, envScopedKey];
+
+    try {
+      for (const candidateKey of candidateKeys) {
+        const listed = await mediaStorageService.listObjectsByPrefix({
+          prefix: candidateKey,
+          maxKeys: 1,
+        });
+        const exactObject = listed.find((item) => item.key === candidateKey);
+        if (!exactObject) continue;
+
+        const fileName = normalizeKeyFileName(exactObject.key);
+        const signedUrl = await mediaStorageService.createSignedDownloadUrl({
+          objectKey: exactObject.key,
+        });
+
+        return {
+          key: exactObject.key,
+          fileName,
+          url: signedUrl.url,
+          contentType: resolveContentTypeByFileName(fileName),
+        };
+      }
+
+      console.warn("[profile] public-media-asset-missing", {
+        scope,
+        appEnv: this.runtimeConfig.appEnv,
+        candidateKeys,
+      });
+      return null;
+    } catch (error) {
+      console.error("[profile] public-media-asset-unavailable", {
+        scope,
+        appEnv: this.runtimeConfig.appEnv,
+        candidateKeys,
+        message: error instanceof Error ? error.message : "unknown_error",
+      });
+      return null;
     }
   }
 }

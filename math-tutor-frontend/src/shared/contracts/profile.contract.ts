@@ -20,6 +20,10 @@ export type AboutTeacherPublicContentResponseContract = {
   reviews: AboutTeacherAssetContract[];
 };
 
+export type HomeHeroAssetResponseContract = {
+  routeAsset: AboutTeacherAssetContract | null;
+};
+
 export type StudentProfileContextResponseContract = {
   profile: User | null;
   courses: Course[];

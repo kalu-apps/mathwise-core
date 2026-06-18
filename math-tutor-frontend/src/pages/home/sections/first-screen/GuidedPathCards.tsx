@@ -1,9 +1,10 @@
-import type { ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import AutoGraphRoundedIcon from "@mui/icons-material/AutoGraphRounded";
 import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
 import SupportAgentRoundedIcon from "@mui/icons-material/SupportAgentRounded";
 import ArrowOutwardRoundedIcon from "@mui/icons-material/ArrowOutwardRounded";
 import { Button } from "@mui/material";
+import { getPublicHomeHeroAsset } from "@/entities/profile/model/storage";
 import type { HomeGuidedPath } from "./content";
 
 type GuidedPathCardsProps = {
@@ -17,21 +18,51 @@ const iconByPath: Record<HomeGuidedPath["icon"], ReactElement> = {
   support: <SupportAgentRoundedIcon fontSize="small" />,
 };
 
-const routeAssetUrl =
-  "https://s3.twcstorage.ru/b814d9eb-c69b-46de-98d2-abc0ea838a7e/hero_section/infinity_route_asset_transparent_2400_no_shadow.png";
-
 export function GuidedPathCards({ paths, onSelectPath }: GuidedPathCardsProps) {
+  const [routeAssetUrl, setRouteAssetUrl] = useState<string | null>(null);
+  const [routeAssetFailed, setRouteAssetFailed] = useState(false);
+
+  useEffect(() => {
+    let canceled = false;
+
+    const loadRouteAsset = async () => {
+      try {
+        const payload = await getPublicHomeHeroAsset();
+        if (canceled) return;
+        setRouteAssetUrl(payload.routeAsset?.url ?? null);
+        setRouteAssetFailed(false);
+      } catch (error) {
+        if (canceled) return;
+        setRouteAssetUrl(null);
+        setRouteAssetFailed(true);
+        if (typeof console !== "undefined") {
+          console.error("[home] failed-to-load-route-asset", error);
+        }
+      }
+    };
+
+    void loadRouteAsset();
+    return () => {
+      canceled = true;
+    };
+  }, []);
+
+  const shouldShowRouteAsset = Boolean(routeAssetUrl) && !routeAssetFailed;
+
   return (
     <section className="home-first-screen__paths" aria-label="Маршруты старта">
-      <div className="home-first-screen__route-asset" aria-hidden="true">
-        <img
-          src={routeAssetUrl}
-          alt=""
-          loading="eager"
-          decoding="async"
-          draggable={false}
-        />
-      </div>
+      {shouldShowRouteAsset ? (
+        <div className="home-first-screen__route-asset" aria-hidden="true">
+          <img
+            src={routeAssetUrl ?? undefined}
+            alt=""
+            loading="eager"
+            decoding="async"
+            draggable={false}
+            onError={() => setRouteAssetFailed(true)}
+          />
+        </div>
+      ) : null}
 
       <div className="home-first-screen__paths-list">
         {paths.map((path) => {
