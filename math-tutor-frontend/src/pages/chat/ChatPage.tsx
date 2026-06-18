@@ -2667,6 +2667,7 @@ export default function ChatPage() {
                 ref={messagesViewportRef}
                 onScroll={handleMessagesScroll}
               >
+                <div className="chat-page__messages-backdrop" aria-hidden="true" />
                 {hasOlderMessages ? (
                   <div className="chat-page__history-toolbar">
                     <Button
@@ -3018,7 +3019,7 @@ export default function ChatPage() {
 
               {composerVoice ? (
                 <div
-                  className={`chat-page__composer-voice chat-page__composer-voice--${composerVoice.uploadStatus}`}
+                  className={`chat-page__audio-dock chat-page__composer-voice chat-page__composer-voice--${composerVoice.uploadStatus}`}
                 >
                   <AudioMessagePlayer
                     key={composerVoice.mediaObjectId || composerVoice.id}
@@ -3029,7 +3030,7 @@ export default function ChatPage() {
                     waveform={composerVoice.waveform}
                     playbackRate={selectedThreadAudioRate}
                   />
-                  <div className="chat-page__composer-voice-actions">
+                  <div className="chat-page__audio-dock-actions chat-page__composer-voice-actions">
                     {composerVoice.uploadStatus === "uploading" ? (
                       <span className="chat-page__composer-voice-status">
                         Подготовка
@@ -3047,15 +3048,14 @@ export default function ChatPage() {
                     >
                       {formatChatAudioRateLabel(selectedThreadAudioRate)}
                     </button>
-                    <IconButton
-                      size="small"
-                      className="chat-page__composer-voice-remove"
-                      disableRipple
+                    <button
+                      type="button"
+                      className="chat-page__audio-dock-close chat-page__composer-voice-remove"
                       onClick={clearComposerVoice}
                       aria-label="Удалить голосовое сообщение"
                     >
-                      <CloseRoundedIcon fontSize="small" />
-                    </IconButton>
+                      <CloseRoundedIcon fontSize="inherit" />
+                    </button>
                   </div>
                 </div>
               ) : null}
