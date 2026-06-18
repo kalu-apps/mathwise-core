@@ -1201,6 +1201,35 @@ export default function ChatPage() {
     }
   }, [selectedThreadId]);
 
+  useLayoutEffect(() => {
+    const viewport = messagesViewportRef.current;
+    if (!viewport) return;
+
+    const syncViewportHeight = () => {
+      viewport.style.setProperty(
+        "--chat-messages-viewport-height",
+        `${Math.max(1, Math.round(viewport.clientHeight))}px`
+      );
+    };
+
+    syncViewportHeight();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", syncViewportHeight);
+      return () => {
+        window.removeEventListener("resize", syncViewportHeight);
+      };
+    }
+
+    const resizeObserver = new ResizeObserver(syncViewportHeight);
+    resizeObserver.observe(viewport);
+    window.addEventListener("resize", syncViewportHeight);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", syncViewportHeight);
+    };
+  }, [selectedThreadId]);
+
   useEffect(() => {
     const viewport = messagesViewportRef.current;
     if (!viewport) return;
@@ -2667,7 +2696,6 @@ export default function ChatPage() {
                 ref={messagesViewportRef}
                 onScroll={handleMessagesScroll}
               >
-                <div className="chat-page__messages-backdrop" aria-hidden="true" />
                 {hasOlderMessages ? (
                   <div className="chat-page__history-toolbar">
                     <Button
@@ -3031,15 +3059,6 @@ export default function ChatPage() {
                     playbackRate={selectedThreadAudioRate}
                   />
                   <div className="chat-page__audio-dock-actions chat-page__composer-voice-actions">
-                    {composerVoice.uploadStatus === "uploading" ? (
-                      <span className="chat-page__composer-voice-status">
-                        Подготовка
-                      </span>
-                    ) : composerVoice.uploadStatus === "failed" ? (
-                      <span className="chat-page__composer-voice-status is-error">
-                        Ошибка
-                      </span>
-                    ) : null}
                     <button
                       type="button"
                       className="chat-page__audio-rate-control chat-page__composer-voice-rate"
