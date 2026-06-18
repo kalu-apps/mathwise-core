@@ -215,7 +215,6 @@ export default function StudentProfile() {
 
   const chatAccessAvailable = chatEligibility?.available === true;
   const premiumToolsLocked = chatEligibility?.available === false;
-  const premiumToolsUnlocked = chatEligibility?.available === true;
   const chatUnreadBadgeLabel =
     chatAccessAvailable && chatUnreadCount > 0
       ? formatUnreadBadgeCount(chatUnreadCount)
@@ -805,13 +804,13 @@ export default function StudentProfile() {
         {
           index: WORKBOOK_TAB_INDEX,
           label: "Рабочая тетрадь",
-          showPremiumMarker: !premiumToolsUnlocked,
+          showPremiumMarker: premiumToolsLocked,
           icon: <AutoStoriesRoundedIcon />,
         },
         {
           index: CHAT_TAB_INDEX,
           label: "Чат",
-          showPremiumMarker: !premiumToolsUnlocked,
+          showPremiumMarker: premiumToolsLocked,
           unreadCountLabel: chatUnreadBadgeLabel,
           icon: <ForumRoundedIcon />,
         },
@@ -827,7 +826,7 @@ export default function StudentProfile() {
       WORKBOOK_TAB_INDEX,
       chatAccessAvailable,
       chatUnreadBadgeLabel,
-      premiumToolsUnlocked,
+      premiumToolsLocked,
       upcomingBooking,
     ]
   );

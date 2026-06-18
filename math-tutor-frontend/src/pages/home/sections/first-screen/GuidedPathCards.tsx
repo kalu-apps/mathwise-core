@@ -17,9 +17,22 @@ const iconByPath: Record<HomeGuidedPath["icon"], ReactElement> = {
   support: <SupportAgentRoundedIcon fontSize="small" />,
 };
 
+const routeAssetUrl =
+  "https://s3.twcstorage.ru/b814d9eb-c69b-46de-98d2-abc0ea838a7e/hero_section/infinity_route_asset_transparent_2400_no_shadow.png";
+
 export function GuidedPathCards({ paths, onSelectPath }: GuidedPathCardsProps) {
   return (
     <section className="home-first-screen__paths" aria-label="Маршруты старта">
+      <div className="home-first-screen__route-asset" aria-hidden="true">
+        <img
+          src={routeAssetUrl}
+          alt=""
+          loading="eager"
+          decoding="async"
+          draggable={false}
+        />
+      </div>
+
       <div className="home-first-screen__paths-list">
         {paths.map((path) => {
           const isPrimary = path.tone === "primary";

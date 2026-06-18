@@ -592,6 +592,8 @@ export default function ChatPage() {
   const listenedVoicePendingRef = useRef(new Set<string>());
   const notificationAudioContextRef = useRef<AudioContext | null>(null);
   const lastNotificationSoundAtRef = useRef(0);
+  const fullscreenPreferenceRef = useRef(false);
+  const fileDialogFullscreenRestoreRef = useRef(false);
 
   const getNotificationAudioContext = useCallback(() => {
     if (typeof window === "undefined") return null;
@@ -667,9 +669,52 @@ export default function ChatPage() {
     navigate(backFrom);
   }, [backFrom, navigate, showBackButton]);
 
-  const handleToggleFullscreen = useCallback(() => {
-    setIsFullscreen((current) => !current);
+  const requestNativeChatFullscreen = useCallback(async () => {
+    const shell = shellRef.current;
+    if (!shell || document.fullscreenElement === shell) return;
+    try {
+      await shell.requestFullscreen();
+    } catch {
+      // Keep the CSS fullscreen fallback active when the browser blocks native fullscreen.
+    }
   }, []);
+
+  const restorePreferredFullscreen = useCallback(() => {
+    if (!fullscreenPreferenceRef.current) return;
+    setIsFullscreen(true);
+    void requestNativeChatFullscreen();
+  }, [requestNativeChatFullscreen]);
+
+  const handleToggleFullscreen = useCallback(() => {
+    const shell = shellRef.current;
+    if (isFullscreen) {
+      fullscreenPreferenceRef.current = false;
+      setIsFullscreen(false);
+      if (shell && document.fullscreenElement === shell) {
+        void document.exitFullscreen().catch(() => undefined);
+      }
+      return;
+    }
+
+    fullscreenPreferenceRef.current = true;
+    setIsFullscreen(true);
+    void requestNativeChatFullscreen();
+  }, [isFullscreen, requestNativeChatFullscreen]);
+
+  const handleAttachButtonClick = useCallback(() => {
+    if (isFullscreen) {
+      fileDialogFullscreenRestoreRef.current = true;
+      const restoreAfterFileDialogFocus = () => {
+        if (!fileDialogFullscreenRestoreRef.current) return;
+        fileDialogFullscreenRestoreRef.current = false;
+        window.setTimeout(restorePreferredFullscreen, 80);
+      };
+      window.setTimeout(() => {
+        window.addEventListener("focus", restoreAfterFileDialogFocus, { once: true });
+      }, 0);
+    }
+    fileInputRef.current?.click();
+  }, [isFullscreen, restorePreferredFullscreen]);
 
   const closeMessageMenu = useCallback(() => {
     setMessageMenu({
@@ -897,12 +942,41 @@ export default function ChatPage() {
   }, [loadThreads]);
 
   useEffect(() => {
+    const syncNativeFullscreenState = () => {
+      const shell = shellRef.current;
+      if (shell && document.fullscreenElement === shell) {
+        setIsFullscreen(true);
+        return;
+      }
+
+      if (document.fullscreenElement && document.fullscreenElement !== shell) {
+        fullscreenPreferenceRef.current = false;
+        setIsFullscreen(false);
+        return;
+      }
+
+      if (!fullscreenPreferenceRef.current) {
+        setIsFullscreen(false);
+      }
+    };
+    document.addEventListener("fullscreenchange", syncNativeFullscreenState);
+    return () => {
+      document.removeEventListener("fullscreenchange", syncNativeFullscreenState);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isFullscreen) return undefined;
     const previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const handleFullscreenKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {
+        fullscreenPreferenceRef.current = false;
         setIsFullscreen(false);
+        const shell = shellRef.current;
+        if (shell && document.fullscreenElement === shell) {
+          void document.exitFullscreen().catch(() => undefined);
+        }
       }
     };
     document.addEventListener("keydown", handleFullscreenKeyDown);
@@ -1127,6 +1201,15 @@ export default function ChatPage() {
     }
   }, [selectedThreadId]);
 
+  const syncMessagesBackdropOffset = useCallback(() => {
+    const viewport = messagesViewportRef.current;
+    if (!viewport) return;
+    viewport.style.setProperty(
+      "--chat-messages-scroll-y",
+      `${Math.max(0, viewport.scrollTop)}px`
+    );
+  }, []);
+
   useEffect(() => {
     const viewport = messagesViewportRef.current;
     if (!viewport) return;
@@ -1136,14 +1219,18 @@ export default function ChatPage() {
     lastMessageIdRef.current = currentLastMessageId;
     if (!shouldStickToBottomRef.current) return;
     endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages]);
+    window.requestAnimationFrame(syncMessagesBackdropOffset);
+  }, [messages, syncMessagesBackdropOffset]);
 
   useLayoutEffect(() => {
     const previousHeight = restoreScrollRef.current;
-    if (previousHeight === null) return;
     const viewport = messagesViewportRef.current;
     if (!viewport) {
       restoreScrollRef.current = null;
+      return;
+    }
+    if (previousHeight === null) {
+      syncMessagesBackdropOffset();
       return;
     }
     const delta = viewport.scrollHeight - previousHeight;
@@ -1151,7 +1238,8 @@ export default function ChatPage() {
       viewport.scrollTop += delta;
     }
     restoreScrollRef.current = null;
-  }, [visibleCount, messages.length]);
+    syncMessagesBackdropOffset();
+  }, [visibleCount, messages.length, syncMessagesBackdropOffset]);
 
   const visibleMessages = useMemo(() => {
     if (messages.length <= visibleCount) return messages;
@@ -1521,10 +1609,11 @@ export default function ChatPage() {
   const handleMessagesScroll = useCallback(() => {
     const viewport = messagesViewportRef.current;
     if (!viewport) return;
+    syncMessagesBackdropOffset();
     const distanceToBottom =
       viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
     shouldStickToBottomRef.current = distanceToBottom < 64;
-  }, []);
+  }, [syncMessagesBackdropOffset]);
 
   const handleLoadOlderMessages = useCallback(() => {
     if (!hasOlderMessages) return;
@@ -2022,6 +2111,17 @@ export default function ChatPage() {
     composerAttachments.length > 0 ||
     Boolean(composerVoice);
   const isComposerVoicePreparing = composerVoice?.uploadStatus === "uploading";
+  const isComposerPrimarySendMode = hasDraftContent && !isRecordingAudio;
+  const isComposerPrimaryDisabled = isRecordingAudio
+    ? sending
+    : isComposerPrimarySendMode
+      ? sending || isComposerVoicePreparing
+      : sending;
+  const composerPrimaryActionLabel = isRecordingAudio
+    ? "Остановить запись аудио"
+    : isComposerPrimarySendMode
+      ? "Отправить сообщение"
+      : "Записать аудиосообщение";
   const previewCurrentMedia = mediaPreview
     ? mediaPreview.items[mediaPreview.index]
     : null;
@@ -2217,17 +2317,17 @@ export default function ChatPage() {
     refreshPreviewMediaItem,
   ]);
 
-  const handleComposerAudioAction = useCallback(() => {
+  const handleComposerPrimaryAction = useCallback(() => {
     if (sending) return;
     if (isRecordingAudio) {
       stopAudioRecording();
       return;
     }
-    void startAudioRecording();
-  }, [isRecordingAudio, sending, startAudioRecording, stopAudioRecording]);
-
-  const handleComposerSendAction = useCallback(() => {
-    if (sending || isRecordingAudio || isComposerVoicePreparing || !hasDraftContent) {
+    if (!hasDraftContent) {
+      void startAudioRecording();
+      return;
+    }
+    if (isComposerVoicePreparing) {
       return;
     }
     void submitComposer();
@@ -2236,6 +2336,8 @@ export default function ChatPage() {
     isComposerVoicePreparing,
     isRecordingAudio,
     sending,
+    startAudioRecording,
+    stopAudioRecording,
     submitComposer,
   ]);
 
@@ -3029,8 +3131,15 @@ export default function ChatPage() {
                   hidden
                   multiple
                   onChange={async (event) => {
-                    await handlePickFiles(event.target.files);
-                    event.target.value = "";
+                    try {
+                      await handlePickFiles(event.target.files);
+                    } finally {
+                      event.target.value = "";
+                      if (fileDialogFullscreenRestoreRef.current) {
+                        fileDialogFullscreenRestoreRef.current = false;
+                        window.setTimeout(restorePreferredFullscreen, 80);
+                      }
+                    }
                   }}
                 />
                 <div
@@ -3043,23 +3152,10 @@ export default function ChatPage() {
                       type="button"
                       disabled={sending || isRecordingAudio}
                       className="chat-page__attach-button"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={handleAttachButtonClick}
                       aria-label="Прикрепить файл"
                     >
                       <AttachFileRoundedIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      type="button"
-                      disabled={sending}
-                      className="chat-page__audio-button"
-                      onClick={handleComposerAudioAction}
-                      aria-label={
-                        isRecordingAudio
-                          ? "Остановить запись аудио"
-                          : "Начать запись аудио"
-                      }
-                    >
-                      {isRecordingAudio ? <StopRoundedIcon /> : <MicRoundedIcon />}
                     </IconButton>
                     {isRecordingAudio ? (
                       <span className="chat-page__record-timer">
@@ -3078,20 +3174,31 @@ export default function ChatPage() {
                   <div className="chat-page__composer-actions chat-page__composer-actions--right">
                     <IconButton
                       type="button"
-                      disabled={
-                        sending ||
-                        isRecordingAudio ||
-                        isComposerVoicePreparing ||
-                        !hasDraftContent
-                      }
-                      className="chat-page__send-button"
-                      onClick={handleComposerSendAction}
-                      aria-label="Отправить сообщение"
+                      disabled={isComposerPrimaryDisabled}
+                      className={`chat-page__send-button chat-page__primary-action-button ${
+                        isRecordingAudio
+                          ? "is-recording"
+                          : isComposerPrimarySendMode
+                            ? "is-send-mode"
+                            : "is-record-mode"
+                      }`}
+                      onClick={handleComposerPrimaryAction}
+                      aria-label={composerPrimaryActionLabel}
                     >
                       {sending ? (
                         <CircularProgress size={18} color="inherit" />
                       ) : (
-                        <SendRoundedIcon />
+                        <span className="chat-page__primary-action-icons" aria-hidden="true">
+                          <span className="chat-page__primary-action-icon chat-page__primary-action-icon--mic">
+                            <MicRoundedIcon />
+                          </span>
+                          <span className="chat-page__primary-action-icon chat-page__primary-action-icon--send">
+                            <SendRoundedIcon />
+                          </span>
+                          <span className="chat-page__primary-action-icon chat-page__primary-action-icon--stop">
+                            <StopRoundedIcon />
+                          </span>
+                        </span>
                       )}
                     </IconButton>
                   </div>

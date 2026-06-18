@@ -121,7 +121,10 @@
   width: 100vw;
   height: 100dvh;
   min-height: 100dvh;
+  max-width: none;
   max-height: none;
+  margin: 0;
+  overflow: hidden;
 }
 
 .chat-page__shell.is-fullscreen {
@@ -136,6 +139,20 @@
 .chat-page__shell:fullscreen .chat-page__workspace,
 .chat-page__shell:-webkit-full-screen .chat-page__workspace {
   height: 100%;
+  min-height: 0;
+  max-height: none;
+}
+
+.chat-page__shell.is-fullscreen .chat-page__main,
+.chat-page__shell:fullscreen .chat-page__main,
+.chat-page__shell:-webkit-full-screen .chat-page__main,
+.chat-page__shell.is-fullscreen .chat-page__conversation,
+.chat-page__shell:fullscreen .chat-page__conversation,
+.chat-page__shell:-webkit-full-screen .chat-page__conversation,
+.chat-page__shell.is-fullscreen .chat-page__messages,
+.chat-page__shell:fullscreen .chat-page__messages,
+.chat-page__shell:-webkit-full-screen .chat-page__messages {
+  min-height: 0;
   max-height: none;
 }
 
@@ -2008,9 +2025,7 @@
   box-shadow: none !important;
   padding: 0;
   transition:
-    background 0.16s ease,
     color 0.16s ease,
-    filter 0.16s ease,
     transform 0.12s ease;
 }
 
@@ -2022,7 +2037,7 @@
 .chat-page__attach-button.MuiIconButton-root:hover,
 .chat-page__audio-button.MuiIconButton-root:hover,
 .chat-page__send-button.MuiIconButton-root:hover {
-  background: color-mix(in srgb, var(--control-bg-hover) 74%, transparent);
+  background: transparent !important;
   color: var(--chat-text-strong);
   filter: none;
 }
@@ -2030,7 +2045,7 @@
 .chat-page .chat-page__send-button.MuiIconButton-root:hover,
 .chat-page .chat-page__send-button.MuiIconButton-root:focus-visible,
 .chat-page .chat-page__send-button.MuiIconButton-root:active {
-  background: color-mix(in srgb, var(--control-bg-hover) 74%, transparent) !important;
+  background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
   color: var(--chat-text-strong) !important;
@@ -2040,7 +2055,7 @@
 .chat-page__attach-button.MuiIconButton-root:focus-visible,
 .chat-page__audio-button.MuiIconButton-root:focus-visible,
 .chat-page__send-button.MuiIconButton-root:focus-visible {
-  background: color-mix(in srgb, var(--control-bg-hover) 74%, transparent);
+  background: transparent !important;
   color: var(--chat-text-strong);
   filter: none;
 }
@@ -2058,6 +2073,49 @@
   font-size: 21px;
 }
 
+.chat-page__primary-action-button.MuiIconButton-root {
+  overflow: hidden;
+}
+
+.chat-page__primary-action-icons {
+  position: relative;
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+.chat-page__primary-action-icon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transform: scale(0.68) rotate(-16deg);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.chat-page__primary-action-button.is-record-mode
+  .chat-page__primary-action-icon--mic,
+.chat-page__primary-action-button.is-send-mode
+  .chat-page__primary-action-icon--send,
+.chat-page__primary-action-button.is-recording
+  .chat-page__primary-action-icon--stop {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+.chat-page__primary-action-button.is-send-mode
+  .chat-page__primary-action-icon--mic {
+  transform: scale(0.72) rotate(18deg) translateX(5px);
+}
+
+.chat-page__primary-action-button.is-record-mode
+  .chat-page__primary-action-icon--send {
+  transform: scale(0.72) rotate(-18deg) translateX(-5px);
+}
+
 .chat-page__composer-input {
   display: block;
   box-sizing: border-box;
@@ -2072,7 +2130,7 @@
   font: inherit;
   font-size: 15px;
   line-height: 1.4;
-  padding: 9px 44px 9px 78px;
+  padding: 9px 44px;
   resize: none;
   outline: none;
   overflow-y: auto;
@@ -2080,7 +2138,7 @@
 }
 
 .chat-page__composer-field.is-recording .chat-page__composer-input {
-  padding-left: 112px;
+  padding-left: 92px;
 }
 
 .chat-page__composer-input::placeholder {
@@ -2590,11 +2648,11 @@
 
   .chat-page__composer-input {
     padding-right: 42px;
-    padding-left: 76px;
+    padding-left: 42px;
   }
 
   .chat-page__composer-field.is-recording .chat-page__composer-input {
-    padding-left: 108px;
+    padding-left: 88px;
   }
 }
 
@@ -2607,7 +2665,7 @@
   --chat-thread-bg: color-mix(in srgb, #fbfdff 88%, var(--background-elevated));
   --chat-thread-paper-wash: color-mix(in srgb, #ffffff 58%, transparent);
   --chat-doodle-mask: url("../../../assets/chat/math-doodle-pattern.svg");
-  --chat-doodle-size: 760px 428px;
+  --chat-doodle-size: clamp(1320px, 96vw, 1720px) auto;
   --chat-doodle-opacity: 0.18;
   --chat-doodle-ink-a: color-mix(in srgb, #526bd8 84%, var(--accent-primary));
   --chat-doodle-ink-b: color-mix(in srgb, #42bfae 76%, var(--accent-mint));
@@ -2712,9 +2770,15 @@
 .chat-page__messages::before {
   content: "";
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  min-height: 100%;
   z-index: 0;
   pointer-events: none;
+  transform: translate3d(0, var(--chat-messages-scroll-y, 0px), 0);
+  will-change: transform;
   background:
     linear-gradient(
       116deg,
@@ -2736,9 +2800,15 @@
 .chat-page__messages::after {
   content: "";
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  min-height: 100%;
   z-index: 0;
   pointer-events: none;
+  transform: translate3d(0, var(--chat-messages-scroll-y, 0px), 0);
+  will-change: transform;
   background:
     radial-gradient(
       74% 52% at 50% 8%,
@@ -2983,6 +3053,19 @@
 .chat-page__message.is-own .chat-page__audio-toggle {
   color: color-mix(in srgb, var(--chat-accent-strong) 78%, var(--chat-text-strong));
   background: color-mix(in srgb, #ffffff 64%, var(--chat-accent) 18%);
+}
+
+:root[data-theme="dark"] .chat-page__message.is-own .chat-page__audio-toggle {
+  color: color-mix(in srgb, #17213a 84%, var(--chat-wave-active-2026) 16%);
+  background: color-mix(in srgb, #f4f7ff 88%, var(--chat-wave-hot-2026) 12%);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, #ffffff 74%, transparent),
+    0 5px 13px color-mix(in srgb, #071225 18%, transparent);
+}
+
+:root[data-theme="dark"] .chat-page__message.is-own .chat-page__audio-toggle.is-active {
+  color: color-mix(in srgb, #111b31 90%, var(--chat-wave-active-2026) 10%);
+  background: color-mix(in srgb, #ffffff 88%, var(--chat-wave-active-2026) 12%);
 }
 
 .chat-page__audio-topline {
